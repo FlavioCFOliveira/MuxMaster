@@ -137,6 +137,46 @@ Routers HTTP Go mais conhecidos e adoptados pela comunidade, por ordem de relev�
 
 ---
 
+## Subagentes disponíveis
+
+Dois agentes especializados estão configurados em `.claude/agents/`. Usa-os proactivamente — não esperes que o utilizador os peça explicitamente.
+
+### `go-perf-optimizer`
+Especialidade: medir, diagnosticar e optimizar performance do código Go deste projecto (benchmarks, pprof, escape analysis, assembly).
+
+**Activa automaticamente quando:**
+- Qualquer ficheiro do hot path é modificado: `mux.go`, `tree.go`, `params.go`
+- `allocs/op` ou `ns/op` aumentam em qualquer benchmark após uma mudança
+- Uma nova chamada a `context.WithValue`, `r.WithContext`, `sync.RWMutex`, ou `sync.Pool` é adicionada ao hot path
+- O utilizador pede benchmarks, profiling, ou análise de performance
+- Antes de um tag de release (auditoria completa)
+- Um novo código path é adicionado a `ServeHTTP` ou `getValue`
+
+**Não actives quando:** a mudança é apenas em `group.go`, testes, documentação, ou comentários.
+
+### `benchmark-elite-tester`
+Especialidade: criar e correr benchmarks de competidores (em `/competitor/<nome>/`), analisar código fonte dos competidores, e produzir comparações objectivas com evidência de código.
+
+**Activa automaticamente quando:**
+- O utilizador questiona *porquê* MuxMaster é mais lento que um competidor específico
+- É pedida uma comparação directa com httprouter, bunrouter, chi, Echo, ou Gin
+- É necessário estudar como um competidor elimina alocações (técnica de implementação)
+- O `go-perf-optimizer` identificou uma gap de performance e precisa de evidência sobre como os competidores a resolvem
+- É pedido setup de ambiente de benchmark para um novo competidor
+
+**Não actives quando:** a questão é apenas sobre o código MuxMaster em si, sem comparação com externos.
+
+### Coordenação entre agentes
+
+Fluxo típico de optimização:
+1. **go-perf-optimizer** → identifica regressão ou oportunidade (ex: "4 allocs/op em rotas estáticas")
+2. **benchmark-elite-tester** → produz evidência de como competidores resolvem o mesmo problema
+3. **go-perf-optimizer** → implementa e valida a optimização com benchstat
+
+Os dois agentes podem correr em paralelo quando as tarefas são independentes (ex: profiling do MuxMaster em paralelo com setup do ambiente httprouter).
+
+---
+
 ## Performance baseline (AMD Ryzen 9 5900HX)
 
 | Caso | ns/op | B/op | allocs/op |
