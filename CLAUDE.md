@@ -187,3 +187,19 @@ Os dois agentes podem correr em paralelo quando as tarefas são independentes (e
 | 3 parâmetros | 213 | 488 | 4 |
 | Catch-all | 183 | 424 | 4 |
 | Paralelo estático | 132 | 425 | 4 |
+
+---
+
+## Princípios de desenvolvimento — Desempenho Máximo
+
+### Abordagem multi-disciplinar obrigatória
+Antes de implementar qualquer solução, deves considerar **todas as abordagens possíveis** — estruturas de dados alternativas, algoritmos de outras linguagens (C, C++, Rust, Zig, Java, etc.), técnicas de sistemas operativos, e padrões de hardware — e implementar a mais eficiente em Go idiomático. Não te limites ao que é comum em Go; inspira-te no melhor de todas as linguagens e transpõe para Go.
+
+### Critérios de selecção de implementação
+1. **Medir primeiro** — nunca optimizar sem benchmark antes e depois (`benchstat`)
+2. **Menor ns/op e allocs/op** — estas são as métricas primárias de sucesso
+3. **Zero alocações no hot path** é o objectivo; qualquer alocação deve ser justificada
+4. **Idiomático Go** — toda a implementação deve respeitar os princípios Go: simplicidade, legibilidade, uso correcto de goroutines/channels/sync, e compatibilidade 100% com `net/http`
+
+### Uso activo dos sub-agentes especializados
+Os sub-agentes não são opcionais — são parte do processo. Deves activá-los proactivamente (sem esperar que o utilizador peça) sempre que as condições descritas na secção "Subagentes disponíveis" se verificarem. O objectivo é desempenho máximo, e os agentes especializados são o mecanismo para o atingir com rigor e evidência.
