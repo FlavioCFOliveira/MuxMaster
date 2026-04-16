@@ -177,33 +177,16 @@ Os dois agentes podem correr em paralelo quando as tarefas são independentes (e
 
 ---
 
-## Performance baseline (Apple M4, Go 1.26)
-
-Benchmarks internos (bench_test.go):
+## Performance baseline (AMD Ryzen 9 5900HX)
 
 | Caso | ns/op | B/op | allocs/op |
 |---|---|---|---|
-| Rota estática | 13.5 | 0 | 0 |
-| 1 parâmetro | 24 | 0 | 0 |
-| 2 parâmetros | 36 | 0 | 0 |
-| 3 parâmetros | 42 | 0 | 0 |
-| Catch-all | 24 | 0 | 0 |
-| Paralelo estático | 2.0 | 0 | 0 |
-| Paralelo 1 parâmetro | 6.8 | 0 | 0 |
-
-Benchmarks competitivos (competitor/bench_test.go, rota `/api/v1/...`):
-
-| Caso | MuxMaster | httprouter | bunrouter |
-|---|---|---|---|
-| Estático | **13.5 ns, 0 allocs** | 15.9 ns, 0 allocs | 14.0 ns, 0 allocs |
-| 1 parâmetro | 27 ns, 0 allocs | 32.8 ns, 1 alloc | **22.4 ns**, 0 allocs |
-| 2 parâmetros | **38.7 ns, 0 allocs** | 40.0 ns, 1 alloc | 41.7 ns, 0 allocs |
-| 3 parâmetros | 46.7 ns, 0 allocs | 44.5 ns, 1 alloc | **29.8 ns**, 0 allocs |
-| Catch-all | **23.2 ns, 0 allocs** | 28.0 ns, 1 alloc | 11.9 ns, 0 allocs |
-| Paralelo estático | **1.55 ns, 0 allocs** | 1.98 ns, 0 allocs | 1.77 ns, 0 allocs |
-| Paralelo 1 parâmetro | ~10 ns, 0 allocs | 15.5 ns, 1 alloc | 3.6 ns, 0 allocs |
-
-Nota: bunrouter usa extracção lazy de parâmetros — não copia os valores durante o tree walk. Isto faz-o aparecer mais rápido em benchmarks onde os parâmetros não são lidos no handler. Em handlers reais que lêem todos os parâmetros, MuxMaster é mais rápido a partir de ≥3 parâmetros (eager é O(1) por leitura; bunrouter é O(N) por read lazy).
+| Rota estática | 185 | 424 | 4 |
+| 1 parâmetro | 185 | 424 | 4 |
+| 2 parâmetros | 205 | 456 | 4 |
+| 3 parâmetros | 213 | 488 | 4 |
+| Catch-all | 183 | 424 | 4 |
+| Paralelo estático | 132 | 425 | 4 |
 
 ---
 

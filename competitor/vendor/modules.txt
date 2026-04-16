@@ -1,0 +1,13 @@
+# github.com/FlavioCFOliveira/MuxMaster v0.0.0-20260416175757-434f76cb080e => ../
+## explicit; go 1.26
+github.com/FlavioCFOliveira/MuxMaster
+# github.com/go-chi/chi/v5 v5.2.5
+## explicit; go 1.22
+github.com/go-chi/chi/v5
+# github.com/julienschmidt/httprouter v1.3.0
+## explicit; go 1.7
+github.com/julienschmidt/httprouter
+# github.com/uptrace/bunrouter v1.0.23
+## explicit; go 1.22
+github.com/uptrace/bunrouter
+# github.com/FlavioCFOliveira/MuxMaster => ../
