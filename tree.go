@@ -2,32 +2,41 @@ package muxmaster
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 )
 
 type nodeType uint8
 
 const (
-	static   nodeType = iota
+	static     nodeType = iota
 	root
 	param
 	wildcard
+	regexParam // {name:expr}
 )
 
-// node is a single node in the radix (compressed prefix) tree.
 type node struct {
-	path      string       // compressed path segment (edge label)
-	indices   string       // first byte of each child's path, for O(1) dispatch
-	wildChild bool         // one of the children is a wildcard node
+	path      string
+	indices   string
+	wildChild bool
 	nType     nodeType
 	priority  uint32
 	children  []*node
 	handler   http.Handler
+	pattern   string         // registered full path pattern, set at leaf nodes
+	regexp    *regexp.Regexp // non-nil for regexParam nodes
 }
 
-// addRoute inserts path → handler into the tree.
-// Not concurrency-safe; protected by Mux.mu at the call site.
+// addRoute registers a handler for the given path, expanding optional segments first.
 func (n *node) addRoute(path string, handler http.Handler) {
+	// Expand optional segments before doing anything else.
+	if expanded, ok := expandOptional(path); ok {
+		n.addRoute(expanded[0], handler)
+		n.addRoute(expanded[1], handler)
+		return
+	}
+
 	fullPath := path
 	n.priority++
 
@@ -41,7 +50,6 @@ walk:
 	for {
 		i := longestCommonPrefix(path, n.path)
 
-		// Split the current node when the common prefix is shorter than n.path.
 		if i < len(n.path) {
 			child := &node{
 				path:      n.path[i:],
@@ -51,11 +59,14 @@ walk:
 				children:  n.children,
 				handler:   n.handler,
 				priority:  n.priority - 1,
+				pattern:   n.pattern, // split child inherits the original pattern
+				regexp:    n.regexp,
 			}
 			n.children = []*node{child}
 			n.indices = string(n.path[i])
 			n.path = path[:i]
 			n.handler = nil
+			n.pattern = ""
 			n.wildChild = false
 		}
 
@@ -63,14 +74,12 @@ walk:
 			path = path[i:]
 			c := path[0]
 
-			// After a param node, continue into the single '/' child.
 			if n.nType == param && c == '/' && len(n.children) == 1 {
 				n = n.children[0]
 				n.priority++
 				continue walk
 			}
 
-			// Check whether a child starting with c already exists.
 			for j := range len(n.indices) {
 				if c == n.indices[j] {
 					j = n.incrementChildPrio(j)
@@ -79,8 +88,7 @@ walk:
 				}
 			}
 
-			// Insert a new child.
-			if c != ':' && c != '*' {
+			if c != ':' && c != '*' && c != '{' {
 				n.indices += string(c)
 				child := &node{}
 				n.children = append(n.children, child)
@@ -111,12 +119,11 @@ walk:
 			panic("a handler is already registered for path '" + fullPath + "'")
 		}
 		n.handler = handler
+		n.pattern = fullPath
 		return
 	}
 }
 
-// incrementChildPrio bumps the priority of child at pos and reorders children
-// by descending priority. Returns the new index of the promoted child.
 func (n *node) incrementChildPrio(pos int) int {
 	cs := n.children
 	cs[pos].priority++
@@ -137,7 +144,6 @@ func (n *node) incrementChildPrio(pos int) int {
 	return newPos
 }
 
-// insertChild handles the portion of a path that contains wildcards.
 func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 	for {
 		wc, i, valid := findWildcard(path)
@@ -170,6 +176,41 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 				continue
 			}
 			n.handler = handler
+			n.pattern = fullPath
+			return
+		}
+
+		if wc[0] == '{' {
+			// Regex param: {name:expr}
+			colonIdx := strings.Index(wc[1:], ":")
+			if colonIdx < 0 {
+				panic("muxmaster: regex param must have the form {name:expr} in '" + fullPath + "'")
+			}
+			expr := wc[2+colonIdx : len(wc)-1] // strip '{', name, ':', and trailing '}'
+			re, err := regexp.Compile("^(?:" + expr + ")$")
+			if err != nil {
+				panic("muxmaster: invalid regexp in path '" + fullPath + "': " + err.Error())
+			}
+
+			if i > 0 {
+				n.path = path[:i]
+				path = path[i:]
+			}
+			child := &node{nType: regexParam, path: wc, regexp: re}
+			n.children = []*node{child}
+			n.wildChild = true
+			n = child
+			n.priority++
+
+			if len(wc) < len(path) {
+				path = path[len(wc):]
+				next := &node{priority: 1}
+				n.children = []*node{next}
+				n = next
+				continue
+			}
+			n.handler = handler
+			n.pattern = fullPath
 			return
 		}
 
@@ -181,7 +222,7 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 			panic("catch-all conflicts with existing handler for the path root in '" + fullPath + "'")
 		}
 
-		i-- // step back to the '/' before '*'
+		i--
 		if path[i] != '/' {
 			panic("no '/' before catch-all in path '" + fullPath + "'")
 		}
@@ -198,6 +239,7 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 			path:     path[i:],
 			nType:    wildcard,
 			handler:  handler,
+			pattern:  fullPath,
 			priority: 1,
 		}
 		n.children = []*node{leaf}
@@ -206,17 +248,19 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 
 	n.path = path
 	n.handler = handler
+	n.pattern = fullPath
 }
 
-// getValue traverses the tree for path, filling params along the way.
-// Returns the matched handler and whether a trailing-slash redirect applies.
-func (n *node) getValue(path string, params *Params) (handler http.Handler, tsr bool) {
+// getValue looks up the handler for path.
+// ci enables case-insensitive static prefix matching.
+// Returns the handler, the registered route pattern, and a trailing-slash-redirect hint.
+func (n *node) getValue(path string, params *Params, ci bool) (handler http.Handler, pattern string, tsr bool) {
 walk:
 	for {
 		prefix := n.path
 
 		if len(path) > len(prefix) {
-			if path[:len(prefix)] != prefix {
+			if !prefixMatch(path[:len(prefix)], prefix, ci) {
 				return
 			}
 			path = path[len(prefix):]
@@ -224,7 +268,7 @@ walk:
 			if !n.wildChild {
 				c := path[0]
 				for j := range len(n.indices) {
-					if c == n.indices[j] {
+					if foldEq(c, n.indices[j], ci) {
 						n = n.children[j]
 						continue walk
 					}
@@ -246,6 +290,39 @@ walk:
 				}
 				if end == len(path) {
 					handler = n.handler
+					pattern = n.pattern
+					if handler == nil && len(n.children) == 1 {
+						n = n.children[0]
+						tsr = n.path == "/" && n.handler != nil
+					}
+					return
+				}
+				if len(n.children) > 0 {
+					path = path[end:]
+					n = n.children[0]
+					continue walk
+				}
+				tsr = len(path) == end+1
+				return
+
+			case regexParam:
+				end := strings.IndexByte(path, '/')
+				if end < 0 {
+					end = len(path)
+				}
+				seg := path[:end]
+				if !n.regexp.MatchString(seg) {
+					return
+				}
+				// Param name is between '{' and ':' in n.path, e.g. "{name:expr}"
+				colonIdx := strings.Index(n.path[1:], ":")
+				name := n.path[1 : 1+colonIdx]
+				if params != nil {
+					*params = append(*params, Param{Key: name, Value: seg})
+				}
+				if end == len(path) {
+					handler = n.handler
+					pattern = n.pattern
 					if handler == nil && len(n.children) == 1 {
 						n = n.children[0]
 						tsr = n.path == "/" && n.handler != nil
@@ -265,6 +342,7 @@ walk:
 					*params = append(*params, Param{Key: n.path[2:], Value: path})
 				}
 				handler = n.handler
+				pattern = n.pattern
 				return
 
 			default:
@@ -272,8 +350,9 @@ walk:
 			}
 		}
 
-		if path == prefix {
+		if prefixMatch(path, prefix, ci) && len(path) == len(prefix) {
 			handler = n.handler
+			pattern = n.pattern
 			if handler != nil {
 				return
 			}
@@ -293,25 +372,60 @@ walk:
 		tsr = (path == "/" ||
 			(len(prefix) == len(path)+1 &&
 				prefix[len(path)] == '/' &&
-				path == prefix[:len(prefix)-1] &&
+				prefixMatch(path, prefix[:len(prefix)-1], ci) &&
 				n.handler != nil))
 		return
 	}
 }
 
-// hasHandler reports whether any handler is registered at path.
-// Used to build the Allow header for 405 responses.
+// prefixMatch checks if s equals prefix, using case-insensitive comparison when ci is true.
+// Both s and prefix must have the same length.
+func prefixMatch(s, prefix string, ci bool) bool {
+	if !ci {
+		return s == prefix
+	}
+	if len(s) != len(prefix) {
+		return false
+	}
+	for i := range len(s) {
+		if !foldEq(s[i], prefix[i], ci) {
+			return false
+		}
+	}
+	return true
+}
+
+// foldEq compares two bytes, folding ASCII case when ci is true.
+func foldEq(a, b byte, ci bool) bool {
+	if !ci {
+		return a == b
+	}
+	if a >= 'A' && a <= 'Z' {
+		a += 32
+	}
+	if b >= 'A' && b <= 'Z' {
+		b += 32
+	}
+	return a == b
+}
+
 func (n *node) hasHandler(path string) bool {
-	h, _ := n.getValue(path, nil)
+	h, _, _ := n.getValue(path, nil, false)
 	return h != nil
 }
 
-// longestCommonPrefix returns the length of the shared prefix of a and b.
-func longestCommonPrefix(a, b string) int {
-	limit := len(a)
-	if len(b) < limit {
-		limit = len(b)
+// walk visits every leaf node (nodes with a registered handler) in depth-first order.
+func (n *node) walk(fn func(pattern string, handler http.Handler)) {
+	if n.handler != nil && n.pattern != "" {
+		fn(n.pattern, n.handler)
 	}
+	for _, child := range n.children {
+		child.walk(fn)
+	}
+}
+
+func longestCommonPrefix(a, b string) int {
+	limit := min(len(a), len(b))
 	for i := range limit {
 		if a[i] != b[i] {
 			return i
@@ -320,24 +434,95 @@ func longestCommonPrefix(a, b string) int {
 	return limit
 }
 
-// findWildcard scans path for the first ':' or '*' wildcard.
-// Returns the wildcard token, its start index, and whether it is valid
-// (no more than one special character within the segment).
+// findWildcard finds the first wildcard token in path.
+// Recognised forms: :name, *name, {name:expr}.
 func findWildcard(path string) (token string, start int, valid bool) {
 	for i, c := range []byte(path) {
-		if c != ':' && c != '*' {
-			continue
-		}
-		valid = true
-		for j, ch := range []byte(path[i+1:]) {
-			switch ch {
-			case '/':
-				return path[i : i+1+j], i, valid
-			case ':', '*':
-				valid = false
+		switch c {
+		case ':':
+			valid = true
+			for j, ch := range []byte(path[i+1:]) {
+				switch ch {
+				case '/':
+					return path[i : i+1+j], i, valid
+				case ':', '*':
+					valid = false
+				}
 			}
+			return path[i:], i, valid
+
+		case '*':
+			valid = true
+			for j, ch := range []byte(path[i+1:]) {
+				switch ch {
+				case '/':
+					return path[i : i+1+j], i, valid
+				case ':', '*':
+					valid = false
+				}
+			}
+			return path[i:], i, valid
+
+		case '{':
+			// Scan for the matching '}', rejecting nested '{'.
+			depth := 1
+			valid = true
+			for j, ch := range []byte(path[i+1:]) {
+				switch ch {
+				case '{':
+					valid = false
+					depth++
+				case '}':
+					depth--
+					if depth == 0 {
+						return path[i : i+1+j+1], i, valid
+					}
+				}
+			}
+			// No closing '}' found.
+			return "", -1, false
 		}
-		return path[i:], i, valid
 	}
 	return "", -1, false
+}
+
+// expandOptional detects a {/:name} or {/:name:expr} optional segment and returns
+// the two expanded paths (without and with the segment). Returns (nil, false) when
+// no optional segment is found.
+func expandOptional(path string) ([]string, bool) {
+	i := strings.Index(path, "{/:")
+	if i < 0 {
+		return nil, false
+	}
+	j := strings.Index(path[i:], "}")
+	if j < 0 {
+		panic("muxmaster: unclosed { in path '" + path + "'")
+	}
+	j += i
+
+	inner := path[i+1 : j] // "/:name" or "/:name:expr"
+
+	// Path without the optional segment.
+	without := path[:i] + path[j+1:]
+	if without == "" {
+		without = "/"
+	}
+
+	// inner starts with "/", so inner[1:] is ":name" or ":name:expr".
+	seg := inner[1:]
+
+	// Detect regex optional {/:name:expr}: find a second colon after the leading ':'.
+	colonIdx := strings.Index(seg[1:], ":")
+	var paramToken string
+	if colonIdx >= 0 {
+		// ":name:expr" → convert to "{name:expr}"
+		name := seg[1 : 1+colonIdx]
+		expr := seg[2+colonIdx:]
+		paramToken = "{" + name + ":" + expr + "}"
+	} else {
+		paramToken = seg // keep as ":name"
+	}
+
+	withOpt := path[:i] + "/" + paramToken + path[j+1:]
+	return []string{without, withOpt}, true
 }
