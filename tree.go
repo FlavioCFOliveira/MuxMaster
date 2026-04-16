@@ -163,7 +163,9 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 				path = path[i:]
 			}
 			child := &node{nType: param, path: wc}
-			n.children = []*node{child}
+			// Append: preserve existing static children so they remain reachable via n.indices.
+			// The wildchild is always the last element; getValue uses children[len-1] for it.
+			n.children = append(n.children, child)
 			n.wildChild = true
 			n = child
 			n.priority++
@@ -197,7 +199,8 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 				path = path[i:]
 			}
 			child := &node{nType: regexParam, path: wc, regexp: re}
-			n.children = []*node{child}
+			// Append: preserve existing static children so they remain reachable via n.indices.
+			n.children = append(n.children, child)
 			n.wildChild = true
 			n = child
 			n.priority++
@@ -265,18 +268,21 @@ walk:
 			}
 			path = path[len(prefix):]
 
-			if !n.wildChild {
-				c := path[0]
-				for j := range len(n.indices) {
-					if foldEq(c, n.indices[j], ci) {
-						n = n.children[j]
-						continue walk
-					}
+			// Always try static children first so that /users/list beats /users/:id.
+			c := path[0]
+			for j := range len(n.indices) {
+				if foldEq(c, n.indices[j], ci) {
+					n = n.children[j]
+					continue walk
 				}
+			}
+
+			if !n.wildChild {
 				tsr = path == "/" && n.handler != nil
 				return
 			}
 
+			// No static child matched — fall through to wildchild (always last).
 			n = n.children[len(n.children)-1]
 
 			switch n.nType {
