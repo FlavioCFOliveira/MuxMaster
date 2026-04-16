@@ -94,11 +94,25 @@ func (ps Params) Map() map[string]string {
 
 var errParamNotFound = errors.New("muxmaster: parameter not found")
 
-// routeCtx stores the matched params and registered route pattern together
-// in a single context write per request, avoiding two separate allocations.
-type routeCtx struct {
+// requestCtx IS the context — it embeds the parent and adds route data inline.
+// By implementing context.Context directly, we bypass context.WithValue entirely,
+// eliminating the valueCtx heap allocation that WithValue would cause.
+type requestCtx struct {
+	context.Context
 	params  Params
 	pattern string
+	// small holds param data for routes with ≤3 params without a separate heap alloc.
+	// params points into small[:n] in the common case, so the slice header and
+	// the backing array share a single allocation (the requestCtx itself).
+	small [3]Param
+}
+
+// Value intercepts the route-params key and falls through to the parent for everything else.
+func (c *requestCtx) Value(key any) any {
+	if _, ok := key.(contextKey); ok {
+		return c
+	}
+	return c.Context.Value(key)
 }
 
 type contextKey struct{}
@@ -123,12 +137,16 @@ func releaseParams(ps *Params) {
 
 // PathParam returns the value of the named path parameter from the request.
 func PathParam(r *http.Request, name string) string {
-	return ParamsFromContext(r.Context()).Get(name)
+	rc, _ := r.Context().(*requestCtx)
+	if rc == nil {
+		return ""
+	}
+	return rc.params.Get(name)
 }
 
 // ParamsFromContext returns the path parameters stored in ctx.
 func ParamsFromContext(ctx context.Context) Params {
-	rc, _ := ctx.Value(contextKey{}).(*routeCtx)
+	rc, _ := ctx.(*requestCtx)
 	if rc == nil {
 		return nil
 	}
@@ -138,17 +156,25 @@ func ParamsFromContext(ctx context.Context) Params {
 // RoutePattern returns the registered route pattern that matched the request,
 // or "" if none has been stored in the context.
 func RoutePattern(r *http.Request) string {
-	rc, _ := r.Context().Value(contextKey{}).(*routeCtx)
+	rc, _ := r.Context().(*requestCtx)
 	if rc == nil {
 		return ""
 	}
 	return rc.pattern
 }
 
-// withRoute stores the matched params and route pattern in the request context.
+// withRoute attaches params and pattern to r without context.WithValue.
+// For ≤3 params the backing array is embedded in requestCtx itself (zero extra alloc).
+// The pool slice ps is consumed here — caller must not use ps after this call.
 func withRoute(r *http.Request, ps Params, pattern string) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), contextKey{}, &routeCtx{
-		params:  ps,
-		pattern: pattern,
-	}))
+	rc := &requestCtx{Context: r.Context(), pattern: pattern}
+	n := copy(rc.small[:], ps)
+	rc.params = Params(rc.small[:n])
+	if len(ps) > len(rc.small) {
+		// only for routes with 4+ params (rare — most real-world APIs have ≤3)
+		full := make(Params, len(ps))
+		copy(full, ps)
+		rc.params = full
+	}
+	return r.WithContext(rc)
 }

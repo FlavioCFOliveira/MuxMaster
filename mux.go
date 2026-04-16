@@ -327,18 +327,16 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 
 		if handler != nil {
 			if len(*ps) > 0 {
-				paramsCopy := make(Params, len(*ps))
-				copy(paramsCopy, *ps)
 				if m.UnescapePathValues {
-					for i := range paramsCopy {
-						if v, err := url.QueryUnescape(paramsCopy[i].Value); err == nil {
-							paramsCopy[i].Value = v
+					for i := range *ps {
+						if v, err := url.QueryUnescape((*ps)[i].Value); err == nil {
+							(*ps)[i].Value = v
 						}
 					}
 				}
+				// withRoute copies *ps into requestCtx.small — safe to release pool after
+				r = withRoute(r, *ps, pattern)
 				releaseParams(ps)
-				// params must be stored in context so handlers can read them
-				r = withRoute(r, paramsCopy, pattern)
 			} else {
 				releaseParams(ps)
 				// skip withRoute on static routes — 0 allocs for context overhead
@@ -381,10 +379,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		h2, pat2, _ := starRoot.getValue(urlPath, ps2, m.CaseInsensitive)
 		if h2 != nil {
 			if len(*ps2) > 0 {
-				cp := make(Params, len(*ps2))
-				copy(cp, *ps2)
+				// withRoute copies *ps2 into requestCtx.small — safe to release pool after
+				r = withRoute(r, *ps2, pat2)
 				releaseParams(ps2)
-				r = withRoute(r, cp, pat2)
 			} else {
 				releaseParams(ps2)
 				// no params — skip withRoute
