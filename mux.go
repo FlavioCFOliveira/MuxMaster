@@ -27,6 +27,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // anyMethods is the full set of HTTP methods registered by ANY and Group.ANY.
@@ -38,7 +39,9 @@ var anyMethods = []string{
 
 // Mux is a high-performance HTTP request multiplexer.
 type Mux struct {
-	trees map[string]*node
+	// treesPtr is loaded atomically on every request — no lock needed after startup.
+	// Written only during route registration under mu.
+	treesPtr atomic.Pointer[map[string]*node]
 
 	// RedirectTrailingSlash redirects /foo/ → /foo (or /foo → /foo/) when a
 	// handler exists at the alternate path.
@@ -62,6 +65,7 @@ type Mux struct {
 	UseRawPath bool
 
 	// UnescapePathValues percent-decodes path parameter values before storing them.
+	// Defaults to false — opt in explicitly if you need it.
 	UnescapePathValues bool
 
 	// RedirectCode overrides the default redirect status code (301/307).
@@ -89,7 +93,7 @@ type Mux struct {
 	middleware []func(http.Handler) http.Handler
 	pre        []func(http.Handler) http.Handler
 	preHandler http.Handler // built by Pre(), wraps dispatch
-	mu         sync.RWMutex
+	mu         sync.Mutex   // guards registration only — never held on the hot path
 }
 
 // New returns a Mux with production-safe defaults enabled.
@@ -99,7 +103,7 @@ func New() *Mux {
 		RedirectFixedPath:      true,
 		HandleMethodNotAllowed: true,
 		HandleOPTIONS:          true,
-		UnescapePathValues:     true,
+		// UnescapePathValues is false by default — opt in explicitly if needed.
 	}
 }
 
@@ -136,16 +140,22 @@ func (m *Mux) Handle(method, pattern string, handler http.Handler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.trees == nil {
-		m.trees = make(map[string]*node)
+	// Copy-on-write: load current map, copy it, mutate, then store atomically.
+	// Readers in ServeHTTP never need a lock — they just load the pointer.
+	old := m.treesPtr.Load()
+	newTrees := make(map[string]*node)
+	if old != nil {
+		for k, v := range *old {
+			newTrees[k] = v
+		}
 	}
-	root := m.trees[method]
+	root := newTrees[method]
 	if root == nil {
 		root = new(node)
-		m.trees[method] = root
+		newTrees[method] = root
 	}
-
 	root.addRoute(pattern, wrapMiddleware(handler, m.middleware))
+	m.treesPtr.Store(&newTrees)
 }
 
 // HandleFunc registers a HandlerFunc for the given method and path.
@@ -304,9 +314,12 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		urlPath = r.URL.RawPath
 	}
 
-	m.mu.RLock()
-	root := m.trees[r.Method]
-	m.mu.RUnlock()
+	// Load the trees pointer atomically — no lock needed after registration.
+	treesMap := m.treesPtr.Load()
+	var root *node
+	if treesMap != nil {
+		root = (*treesMap)[r.Method]
+	}
 
 	if root != nil {
 		ps := acquireParams()
@@ -324,10 +337,11 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 				releaseParams(ps)
+				// params must be stored in context so handlers can read them
 				r = withRoute(r, paramsCopy, pattern)
 			} else {
 				releaseParams(ps)
-				r = withRoute(r, nil, pattern)
+				// skip withRoute on static routes — 0 allocs for context overhead
 			}
 			handler.ServeHTTP(w, r)
 			return
@@ -358,9 +372,10 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check the wildcard method tree (used by Mount).
-	m.mu.RLock()
-	starRoot := m.trees["*"]
-	m.mu.RUnlock()
+	var starRoot *node
+	if treesMap != nil {
+		starRoot = (*treesMap)["*"]
+	}
 	if starRoot != nil {
 		ps2 := acquireParams()
 		h2, pat2, _ := starRoot.getValue(urlPath, ps2, m.CaseInsensitive)
@@ -372,7 +387,7 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 				r = withRoute(r, cp, pat2)
 			} else {
 				releaseParams(ps2)
-				r = withRoute(r, nil, pat2)
+				// no params — skip withRoute
 			}
 			h2.ServeHTTP(w, r)
 			return
@@ -429,11 +444,13 @@ func (m *Mux) redirectCode(method string) int {
 // allowed returns a comma-separated Allow header value for urlPath.
 // Returns "" when no other methods are registered at that path.
 func (m *Mux) allowed(urlPath, reqMethod string) string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	treesMap := m.treesPtr.Load()
+	if treesMap == nil {
+		return ""
+	}
 
 	var b strings.Builder
-	for method, root := range m.trees {
+	for method, root := range *treesMap {
 		if method == reqMethod || method == http.MethodOptions {
 			continue
 		}
