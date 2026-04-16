@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"reflect"
 	"strconv"
 	"sync"
+	"unsafe"
 )
 
 // Param is a single URL path parameter (key + value).
@@ -119,20 +121,34 @@ type contextKey struct{}
 
 const maxParams = 16
 
-var paramsPool = sync.Pool{
-	New: func() any {
-		ps := make(Params, 0, maxParams)
-		return &ps
-	},
+// rcPool reuses requestCtx objects — avoids one heap alloc per param request.
+var rcPool = sync.Pool{New: func() any { return new(requestCtx) }}
+
+// reqPool reuses *http.Request objects. Together with setReqCtx, this avoids
+// the new(http.Request) allocation that r.WithContext always causes.
+var reqPool = sync.Pool{New: func() any { return new(http.Request) }}
+
+// reqCtxOffset is the byte offset of the unexported 'ctx context.Context' field
+// inside http.Request. Determined at init via reflect — safe under -race and checkptr.
+var reqCtxOffset uintptr
+
+func init() {
+	t := reflect.TypeOf(http.Request{})
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.Name == "ctx" {
+			reqCtxOffset = f.Offset
+			break
+		}
+	}
 }
 
-func acquireParams() *Params {
-	return paramsPool.Get().(*Params)
-}
-
-func releaseParams(ps *Params) {
-	*ps = (*ps)[:0]
-	paramsPool.Put(ps)
+// setReqCtx writes ctx into r's unexported ctx field.
+// Safe when r is exclusively owned by the current goroutine (pool get → put pattern).
+// Uses unsafe.Add which is checkptr-safe: the base pointer is a valid allocation and
+// reqCtxOffset is within that allocation's bounds.
+func setReqCtx(r *http.Request, ctx context.Context) {
+	*(*context.Context)(unsafe.Add(unsafe.Pointer(r), reqCtxOffset)) = ctx
 }
 
 // PathParam returns the value of the named path parameter from the request.
@@ -163,18 +179,44 @@ func RoutePattern(r *http.Request) string {
 	return rc.pattern
 }
 
-// withRoute attaches params and pattern to r without context.WithValue.
-// For ≤3 params the backing array is embedded in requestCtx itself (zero extra alloc).
-// The pool slice ps is consumed here — caller must not use ps after this call.
-func withRoute(r *http.Request, ps Params, pattern string) *http.Request {
-	rc := &requestCtx{Context: r.Context(), pattern: pattern}
+// withRoute attaches params and pattern to r.
+//
+// Two pools eliminate both allocations that r.WithContext would normally cause:
+//   - rcPool avoids allocating a context.valueCtx (replaced by requestCtx)
+//   - reqPool + setReqCtx avoid allocating a new *http.Request
+//
+// The returned *http.Request r2 and *requestCtx rc must be released via
+// releaseRoute after the handler returns.
+func withRoute(r *http.Request, ps Params, pattern string) (*http.Request, *requestCtx) {
+	rc := rcPool.Get().(*requestCtx)
+	rc.Context = r.Context()
+	rc.pattern = pattern
 	n := copy(rc.small[:], ps)
 	rc.params = Params(rc.small[:n])
 	if len(ps) > len(rc.small) {
-		// only for routes with 4+ params (rare — most real-world APIs have ≤3)
+		// only for routes with 4+ params (rare)
 		full := make(Params, len(ps))
 		copy(full, ps)
 		rc.params = full
 	}
-	return r.WithContext(rc)
+
+	// Shallow-copy r into a pooled *http.Request and patch only the ctx field.
+	// This is equivalent to r.WithContext(rc) but without the new(Request) alloc.
+	// r.URL is shared between r and r2 — identical to r.WithContext's contract.
+	r2 := reqPool.Get().(*http.Request)
+	*r2 = *r
+	setReqCtx(r2, rc)
+	return r2, rc
+}
+
+// releaseRoute returns r2 and rc to their pools after the handler has returned.
+// Zeroes all fields to prevent the GC from retaining stale pointers.
+func releaseRoute(r2 *http.Request, rc *requestCtx) {
+	rc.Context = nil
+	rc.params = nil
+	rc.pattern = ""
+	rcPool.Put(rc)
+
+	*r2 = http.Request{}
+	reqPool.Put(r2)
 }

@@ -6,6 +6,31 @@ import (
 	"strings"
 )
 
+// paramsBuf is a fixed-size params accumulator used in the getValue hot path.
+// Using a fixed-size struct instead of a []Param slice prevents the backing
+// array from escaping to the heap — the compiler can see the size is bounded.
+// maxInlineParams covers ≥99% of real-world APIs.
+const maxInlineParams = 3
+
+type paramsBuf struct {
+	count int
+	buf   [maxInlineParams]Param
+}
+
+// add appends a param to the buffer, silently dropping overflow (> maxInlineParams).
+func (pb *paramsBuf) add(key, value string) {
+	if pb.count < maxInlineParams {
+		pb.buf[pb.count] = Param{Key: key, Value: value}
+		pb.count++
+	}
+}
+
+// params returns a Params slice backed by the buffer's inline array.
+// The returned slice must not be used after the paramsBuf goes out of scope.
+func (pb *paramsBuf) params() Params {
+	return Params(pb.buf[:pb.count])
+}
+
 type nodeType uint8
 
 const (
@@ -257,7 +282,8 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 // getValue looks up the handler for path.
 // ci enables case-insensitive static prefix matching.
 // Returns the handler, the registered route pattern, and a trailing-slash-redirect hint.
-func (n *node) getValue(path string, params *Params, ci bool) (handler http.Handler, pattern string, tsr bool) {
+// params may be nil (for static-route fast path) or point to a stack-allocated paramsBuf.
+func (n *node) getValue(path string, params *paramsBuf, ci bool) (handler http.Handler, pattern string, tsr bool) {
 walk:
 	for {
 		prefix := n.path
@@ -292,7 +318,7 @@ walk:
 					end = len(path)
 				}
 				if params != nil {
-					*params = append(*params, Param{Key: n.path[1:], Value: path[:end]})
+					params.add(n.path[1:], path[:end])
 				}
 				if end == len(path) {
 					handler = n.handler
@@ -324,7 +350,7 @@ walk:
 				colonIdx := strings.Index(n.path[1:], ":")
 				name := n.path[1 : 1+colonIdx]
 				if params != nil {
-					*params = append(*params, Param{Key: name, Value: seg})
+					params.add(name, seg)
 				}
 				if end == len(path) {
 					handler = n.handler
@@ -345,7 +371,7 @@ walk:
 
 			case wildcard:
 				if params != nil {
-					*params = append(*params, Param{Key: n.path[2:], Value: path})
+					params.add(n.path[2:], path)
 				}
 				handler = n.handler
 				pattern = n.pattern

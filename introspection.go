@@ -20,37 +20,43 @@ func (m *Mux) Lookup(method, path string) (http.Handler, Params, bool) {
 	if path == "" || path[0] != '/' {
 		return nil, nil, false
 	}
-	treesMap := m.treesPtr.Load()
-	if treesMap == nil {
+	trees := m.treesPtr.Load()
+	if trees == nil {
 		return nil, nil, false
 	}
-	root := (*treesMap)[method]
+	idx := methodIdx(method)
+	if idx < 0 {
+		return nil, nil, false
+	}
+	root := trees[idx]
 	if root == nil {
 		return nil, nil, false
 	}
-	ps := acquireParams()
-	handler, _, _ := root.getValue(path, ps, false)
+	var pb paramsBuf
+	handler, _, _ := root.getValue(path, &pb, false)
 	if handler == nil {
-		releaseParams(ps)
 		return nil, nil, false
 	}
 	var params Params
-	if len(*ps) > 0 {
-		params = make(Params, len(*ps))
-		copy(params, *ps)
+	if pb.count > 0 {
+		params = make(Params, pb.count)
+		copy(params, pb.params())
 	}
-	releaseParams(ps)
 	return handler, params, true
 }
 
 // Routes returns a slice of RouteInfo for every registered route.
 func (m *Mux) Routes() []RouteInfo {
-	treesMap := m.treesPtr.Load()
-	if treesMap == nil {
+	trees := m.treesPtr.Load()
+	if trees == nil {
 		return nil
 	}
 	var infos []RouteInfo
-	for method, root := range *treesMap {
+	for i, root := range trees {
+		if root == nil {
+			continue
+		}
+		method := methodNames[i]
 		root.walk(func(pattern string, handler http.Handler) {
 			infos = append(infos, RouteInfo{
 				Method:  method,
@@ -65,11 +71,15 @@ func (m *Mux) Routes() []RouteInfo {
 // Walk calls fn for each registered route.
 // Stops iteration and returns the error if fn returns non-nil.
 func (m *Mux) Walk(fn func(method, pattern string, handler http.Handler) error) error {
-	treesMap := m.treesPtr.Load()
-	if treesMap == nil {
+	trees := m.treesPtr.Load()
+	if trees == nil {
 		return nil
 	}
-	for method, root := range *treesMap {
+	for i, root := range trees {
+		if root == nil {
+			continue
+		}
+		method := methodNames[i]
 		var walkErr error
 		root.walk(func(pattern string, handler http.Handler) {
 			if walkErr != nil {
