@@ -243,26 +243,65 @@ func (m *Mux) HandleE(method, pattern string, h HandlerFuncE) {
 	}))
 }
 
-// Shorthand registration methods.
+// GET registers a HandlerFunc for GET requests on pattern.
+func (m *Mux) GET(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodGet, pattern, h) }
 
-func (m *Mux) GET(pattern string, h http.HandlerFunc)     { m.HandleFunc(http.MethodGet, pattern, h) }
-func (m *Mux) HEAD(pattern string, h http.HandlerFunc)    { m.HandleFunc(http.MethodHead, pattern, h) }
-func (m *Mux) POST(pattern string, h http.HandlerFunc)    { m.HandleFunc(http.MethodPost, pattern, h) }
-func (m *Mux) PUT(pattern string, h http.HandlerFunc)     { m.HandleFunc(http.MethodPut, pattern, h) }
-func (m *Mux) PATCH(pattern string, h http.HandlerFunc)   { m.HandleFunc(http.MethodPatch, pattern, h) }
-func (m *Mux) DELETE(pattern string, h http.HandlerFunc)  { m.HandleFunc(http.MethodDelete, pattern, h) }
-func (m *Mux) OPTIONS(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodOptions, pattern, h) }
-func (m *Mux) CONNECT(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodConnect, pattern, h) }
-func (m *Mux) TRACE(pattern string, h http.HandlerFunc)   { m.HandleFunc(http.MethodTrace, pattern, h) }
+// HEAD registers a HandlerFunc for HEAD requests on pattern.
+func (m *Mux) HEAD(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodHead, pattern, h) }
 
-// Error-returning shorthand methods.
+// POST registers a HandlerFunc for POST requests on pattern.
+func (m *Mux) POST(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodPost, pattern, h) }
 
-func (m *Mux) GETE(pattern string, h HandlerFuncE)     { m.HandleE(http.MethodGet, pattern, h) }
-func (m *Mux) HEADE(pattern string, h HandlerFuncE)    { m.HandleE(http.MethodHead, pattern, h) }
-func (m *Mux) POSTE(pattern string, h HandlerFuncE)    { m.HandleE(http.MethodPost, pattern, h) }
-func (m *Mux) PUTE(pattern string, h HandlerFuncE)     { m.HandleE(http.MethodPut, pattern, h) }
-func (m *Mux) PATCHE(pattern string, h HandlerFuncE)   { m.HandleE(http.MethodPatch, pattern, h) }
-func (m *Mux) DELETEE(pattern string, h HandlerFuncE)  { m.HandleE(http.MethodDelete, pattern, h) }
+// PUT registers a HandlerFunc for PUT requests on pattern.
+func (m *Mux) PUT(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodPut, pattern, h) }
+
+// PATCH registers a HandlerFunc for PATCH requests on pattern.
+func (m *Mux) PATCH(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodPatch, pattern, h) }
+
+// DELETE registers a HandlerFunc for DELETE requests on pattern.
+func (m *Mux) DELETE(pattern string, h http.HandlerFunc) {
+	m.HandleFunc(http.MethodDelete, pattern, h)
+}
+
+// OPTIONS registers a HandlerFunc for OPTIONS requests on pattern.
+func (m *Mux) OPTIONS(pattern string, h http.HandlerFunc) {
+	m.HandleFunc(http.MethodOptions, pattern, h)
+}
+
+// CONNECT registers a HandlerFunc for CONNECT requests on pattern.
+func (m *Mux) CONNECT(pattern string, h http.HandlerFunc) {
+	m.HandleFunc(http.MethodConnect, pattern, h)
+}
+
+// TRACE registers a HandlerFunc for TRACE requests on pattern.
+func (m *Mux) TRACE(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodTrace, pattern, h) }
+
+// GETE registers a HandlerFuncE for GET requests on pattern.
+// Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
+func (m *Mux) GETE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodGet, pattern, h) }
+
+// HEADE registers a HandlerFuncE for HEAD requests on pattern.
+// Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
+func (m *Mux) HEADE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodHead, pattern, h) }
+
+// POSTE registers a HandlerFuncE for POST requests on pattern.
+// Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
+func (m *Mux) POSTE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodPost, pattern, h) }
+
+// PUTE registers a HandlerFuncE for PUT requests on pattern.
+// Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
+func (m *Mux) PUTE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodPut, pattern, h) }
+
+// PATCHE registers a HandlerFuncE for PATCH requests on pattern.
+// Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
+func (m *Mux) PATCHE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodPatch, pattern, h) }
+
+// DELETEE registers a HandlerFuncE for DELETE requests on pattern.
+// Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
+func (m *Mux) DELETEE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodDelete, pattern, h) }
+
+// OPTIONSE registers a HandlerFuncE for OPTIONS requests on pattern.
+// Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
 func (m *Mux) OPTIONSE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodOptions, pattern, h) }
 
 // ANY registers handler for all standard HTTP methods on pattern.

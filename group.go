@@ -45,26 +45,63 @@ func (g *Group) HandleE(method, path string, h HandlerFuncE) {
 	}))
 }
 
-// Shorthand registration methods.
+// GET registers a HandlerFunc for GET requests on path.
+func (g *Group) GET(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodGet, path, h) }
 
-func (g *Group) GET(path string, h http.HandlerFunc)     { g.HandleFunc(http.MethodGet, path, h) }
-func (g *Group) HEAD(path string, h http.HandlerFunc)    { g.HandleFunc(http.MethodHead, path, h) }
-func (g *Group) POST(path string, h http.HandlerFunc)    { g.HandleFunc(http.MethodPost, path, h) }
-func (g *Group) PUT(path string, h http.HandlerFunc)     { g.HandleFunc(http.MethodPut, path, h) }
-func (g *Group) PATCH(path string, h http.HandlerFunc)   { g.HandleFunc(http.MethodPatch, path, h) }
-func (g *Group) DELETE(path string, h http.HandlerFunc)  { g.HandleFunc(http.MethodDelete, path, h) }
-func (g *Group) OPTIONS(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodOptions, path, h) }
-func (g *Group) CONNECT(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodConnect, path, h) }
-func (g *Group) TRACE(path string, h http.HandlerFunc)   { g.HandleFunc(http.MethodTrace, path, h) }
+// HEAD registers a HandlerFunc for HEAD requests on path.
+func (g *Group) HEAD(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodHead, path, h) }
 
-// Error-returning shorthand methods.
+// POST registers a HandlerFunc for POST requests on path.
+func (g *Group) POST(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodPost, path, h) }
 
-func (g *Group) GETE(path string, h HandlerFuncE)     { g.HandleE(http.MethodGet, path, h) }
-func (g *Group) HEADE(path string, h HandlerFuncE)    { g.HandleE(http.MethodHead, path, h) }
-func (g *Group) POSTE(path string, h HandlerFuncE)    { g.HandleE(http.MethodPost, path, h) }
-func (g *Group) PUTE(path string, h HandlerFuncE)     { g.HandleE(http.MethodPut, path, h) }
-func (g *Group) PATCHE(path string, h HandlerFuncE)   { g.HandleE(http.MethodPatch, path, h) }
-func (g *Group) DELETEE(path string, h HandlerFuncE)  { g.HandleE(http.MethodDelete, path, h) }
+// PUT registers a HandlerFunc for PUT requests on path.
+func (g *Group) PUT(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodPut, path, h) }
+
+// PATCH registers a HandlerFunc for PATCH requests on path.
+func (g *Group) PATCH(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodPatch, path, h) }
+
+// DELETE registers a HandlerFunc for DELETE requests on path.
+func (g *Group) DELETE(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodDelete, path, h) }
+
+// OPTIONS registers a HandlerFunc for OPTIONS requests on path.
+func (g *Group) OPTIONS(path string, h http.HandlerFunc) {
+	g.HandleFunc(http.MethodOptions, path, h)
+}
+
+// CONNECT registers a HandlerFunc for CONNECT requests on path.
+func (g *Group) CONNECT(path string, h http.HandlerFunc) {
+	g.HandleFunc(http.MethodConnect, path, h)
+}
+
+// TRACE registers a HandlerFunc for TRACE requests on path.
+func (g *Group) TRACE(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodTrace, path, h) }
+
+// GETE registers a HandlerFuncE for GET requests on path.
+// Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
+func (g *Group) GETE(path string, h HandlerFuncE) { g.HandleE(http.MethodGet, path, h) }
+
+// HEADE registers a HandlerFuncE for HEAD requests on path.
+// Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
+func (g *Group) HEADE(path string, h HandlerFuncE) { g.HandleE(http.MethodHead, path, h) }
+
+// POSTE registers a HandlerFuncE for POST requests on path.
+// Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
+func (g *Group) POSTE(path string, h HandlerFuncE) { g.HandleE(http.MethodPost, path, h) }
+
+// PUTE registers a HandlerFuncE for PUT requests on path.
+// Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
+func (g *Group) PUTE(path string, h HandlerFuncE) { g.HandleE(http.MethodPut, path, h) }
+
+// PATCHE registers a HandlerFuncE for PATCH requests on path.
+// Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
+func (g *Group) PATCHE(path string, h HandlerFuncE) { g.HandleE(http.MethodPatch, path, h) }
+
+// DELETEE registers a HandlerFuncE for DELETE requests on path.
+// Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
+func (g *Group) DELETEE(path string, h HandlerFuncE) { g.HandleE(http.MethodDelete, path, h) }
+
+// OPTIONSE registers a HandlerFuncE for OPTIONS requests on path.
+// Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
 func (g *Group) OPTIONSE(path string, h HandlerFuncE) { g.HandleE(http.MethodOptions, path, h) }
 
 // ANY registers h for all standard HTTP methods on path.
