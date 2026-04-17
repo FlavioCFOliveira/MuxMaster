@@ -302,9 +302,10 @@ walk:
 
 			// Always try static children first so that /users/list beats /users/:id.
 			c := path[0]
+			children := n.children[:len(n.indices)]
 			for j := range len(n.indices) {
 				if foldEq(c, n.indices[j], ci) {
-					n = n.children[j]
+					n = children[j]
 					continue walk
 				}
 			}
