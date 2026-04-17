@@ -193,9 +193,11 @@ Routers HTTP Go mais conhecidos e adoptados pela comunidade, por ordem de relev�
 
 ## Subagentes disponíveis
 
-Dois agentes especializados estão configurados em `.claude/agents/`. Usa-os proactivamente — não esperes que o utilizador os peça explicitamente.
+Agentes especializados estão configurados em `.claude/agents/`. Usa-os proactivamente — não esperes que o utilizador os peça explicitamente.
 
-### `go-perf-optimizer`
+### Agentes de performance
+
+#### `go-perf-optimizer`
 Especialidade: medir, diagnosticar e optimizar performance do código Go deste projecto (benchmarks, pprof, escape analysis, assembly).
 
 **Activa automaticamente quando:**
@@ -208,7 +210,7 @@ Especialidade: medir, diagnosticar e optimizar performance do código Go deste p
 
 **Não actives quando:** a mudança é apenas em `group.go`, testes, documentação, ou comentários.
 
-### `benchmark-elite-tester`
+#### `benchmark-elite-tester`
 Especialidade: criar e correr benchmarks de competidores (em `/competitor/<nome>/`), analisar código fonte dos competidores, e produzir comparações objectivas com evidência de código.
 
 **Activa automaticamente quando:**
@@ -220,14 +222,66 @@ Especialidade: criar e correr benchmarks de competidores (em `/competitor/<nome>
 
 **Não actives quando:** a questão é apenas sobre o código MuxMaster em si, sem comparação com externos.
 
+### Agentes de segurança
+
+9 agentes cobrem a totalidade dos vectores de ataque aplicáveis a um HTTP router Go. Todos eles produzem relatórios em `/reports/<nome>/` (e `/reports/overview/` para o threat-modeler). Ver `/reports/README.md` para a matriz completa de activação.
+
+#### `http-protocol-security-auditor`
+HTTP/1.1 + HTTP/2 framing, request smuggling (CL.TE/TE.CL/TE.TE), HPP, Rapid Reset (CVE-2023-44487), HPACK bombing, CONTINUATION flood, CRLF injection, response splitting, open redirect via RedirectTrailingSlash/RedirectFixedPath, method override abuse.
+**Activa quando:** `mux.go` / `response.go` / `handler.go` / middlewares de header são modificados; há perguntas sobre segurança protocolar; pré-release.
+
+#### `path-routing-fuzzer`
+Fuzz nativo Go + differential testing contra httprouter/chi/bunrouter sobre `tree.go` (getValue/addRoute/findWildcard). Cobre path traversal, Unicode (NFC/NFKC/NFD), double/overlong encoding, null bytes, catch-all escape, wildcard shadow, case-folding bypass.
+**Activa quando:** `tree.go` é modificado; novas catch-all routes registadas; qualquer pergunta sobre bypass de routing.
+
+#### `dos-resilience-tester`
+Algorithmic complexity da radix tree, memory exhaustion, slowloris, compression bomb, throttle bypass, hash-flood, GC pressure. Mede empiricamente slopes de complexidade e profile de recursos sob carga sustentada.
+**Activa quando:** novas middlewares de `throttle` / `timeout` / `compress` são adicionadas; perguntas sobre worst-case; pré-release.
+
+#### `concurrency-security-auditor`
+Data races (-race stress), sync.Pool contamination (canary tests), TOCTOU em registration, goroutine leaks, panic recovery + pool cleanliness, context propagation, introspection thread-safety.
+**Activa quando:** `sync.Pool` ou `RWMutex` são tocados; registo dinâmico é considerado; `recoverer` é modificado; `-race` reporta.
+
+#### `middleware-security-reviewer`
+Audita os 13 middlewares individualmente com threat model próprio: basic_auth (timing, constant-time), cors (wildcard+credentials, reflection), compress (BREACH/gzip bomb), real_ip (XFF trust), recoverer (info leak), throttle, timeout, logger (CRLF/secret leak), request_id, clean_path, strip_slashes, with_value, set_header.
+**Activa quando:** qualquer ficheiro em `/middleware/` é alterado ou adicionado.
+
+#### `go-sast-and-memory-auditor`
+SAST: `gosec`, `staticcheck`, `golangci-lint`, `govulncheck`, `semgrep`, `CodeQL`, `errcheck`, `ineffassign`. Supply chain: `osv-scanner`, SBOM (CycloneDX), licenças. Memory safety: escape analysis, `unsafe` detection, type assertion audit.
+**Activa quando:** qualquer ficheiro Go é adicionado/alterado; em CI; pré-release.
+
+#### `timing-and-sidechannel-analyst`
+Validação estatística de constant-time (Welch t-test, KS, Mann-Whitney U) com N ≥ 1e6 samples. Detecção de error oracles, route-existence leaks, PRNG audit (math/rand vs crypto/rand).
+**Activa quando:** auth primitives (basic_auth, HMAC, signatures) são alteradas; `crypto/subtle` deixa de ser usado; perguntas sobre "vaza informação?".
+
+#### `fuzzing-and-property-engineer`
+Fuzz nativo de toda a API pública (Mux.Handle, Mux.Group, Params, middlewares individuais) e property tests com `pgregory.net/rapid`. Mantém `invariants.md` e corpus contínuo. Complementa `path-routing-fuzzer` cobrindo o resto do módulo.
+**Activa quando:** API pública ganha novo símbolo exportado; nightly / pré-release; requer fuzz ≥ 30s por target em short mode.
+
+#### `threat-modeler-and-zero-day-researcher` (orquestrador)
+STRIDE, attack trees, transposição cross-ecosistema (nginx / Rails / Express / Spring / Traefik / Caddy → Go), geração de hipóteses zero-day por combinação de findings. Único autor de `/reports/overview/`. Coordena os 8 especialistas.
+**Activa quando:** auditoria completa é pedida; pré-release; novo componente arquitectural; dois agentes produzem findings que podem combinar.
+
 ### Coordenação entre agentes
 
-Fluxo típico de optimização:
-1. **go-perf-optimizer** → identifica regressão ou oportunidade (ex: "4 allocs/op em rotas estáticas")
-2. **benchmark-elite-tester** → produz evidência de como competidores resolvem o mesmo problema
-3. **go-perf-optimizer** → implementa e valida a optimização com benchstat
+**Fluxo de performance:**
+1. `go-perf-optimizer` → identifica oportunidade
+2. `benchmark-elite-tester` → evidência de competidores
+3. `go-perf-optimizer` → implementa e valida
 
-Os dois agentes podem correr em paralelo quando as tarefas são independentes (ex: profiling do MuxMaster em paralelo com setup do ambiente httprouter).
+**Fluxo de segurança (sprint):**
+1. `threat-modeler` → escreve `/reports/overview/<data>-sprint.md`
+2. Os 8 especialistas correm em paralelo, escrevem em `/reports/<agente>/`
+3. `threat-modeler` consolida em `/reports/overview/<data>-posture.md` + actualiza `findings.md`, `threat-model.md`, `hypotheses.md`
+
+**Escalation paths (segurança):**
+- CRLF detectado em qualquer agente → `http-protocol-security-auditor`
+- Race detectado em qualquer agente → `concurrency-security-auditor`
+- Timing suspeito → `timing-and-sidechannel-analyst`
+- Bypass de routing → `path-routing-fuzzer`
+- Combinação de findings → `threat-modeler-and-zero-day-researcher`
+
+Todos os agentes podem correr em paralelo quando as tarefas são independentes. O `threat-modeler` executa antes (planeamento) e depois (consolidação) do batch paralelo.
 
 ---
 
