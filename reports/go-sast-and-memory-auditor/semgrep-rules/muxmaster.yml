@@ -1,0 +1,83 @@
+rules:
+  - id: muxmaster-context-string-key
+    message: "Using string literals as context.WithValue keys risks cross-package collision. Use a typed key."
+    pattern: context.WithValue($CTX, "...", $V)
+    severity: ERROR
+    languages: [go]
+
+  - id: muxmaster-non-constant-time-compare
+    message: "Comparing secrets with bytes.Equal / == leaks timing. Use crypto/subtle.ConstantTimeCompare."
+    patterns:
+      - pattern-either:
+          - pattern: bytes.Equal($A, $B)
+          - pattern: $A == $B
+      - pattern-inside: |
+          func $F(...) {
+            ...
+          }
+      - metavariable-regex:
+          metavariable: $F
+          regex: ".*(Auth|Password|Token|Secret|HMAC).*"
+    severity: ERROR
+    languages: [go]
+
+  - id: muxmaster-panic-on-hotpath
+    message: "panic() on the hot path; ensure Mux.PanicHandler covers this."
+    pattern: panic(...)
+    paths:
+      include:
+        - "mux.go"
+        - "tree.go"
+        - "params.go"
+        - "middleware/"
+    severity: WARNING
+    languages: [go]
+
+  - id: muxmaster-sync-pool-without-reset
+    message: "Object returned to sync.Pool must be reset to avoid cross-request leaks."
+    patterns:
+      - pattern: $POOL.Put($X)
+      - pattern-not-inside: |
+          {
+            ...
+            $RESET_FUNC($X, ...)
+            ...
+            $POOL.Put($X)
+          }
+    severity: WARNING
+    languages: [go]
+
+  - id: muxmaster-xff-unconditional-trust
+    message: "Overwriting r.RemoteAddr from X-Forwarded-For without trusted-proxies allowlist permits spoofing."
+    pattern-either:
+      - pattern: $R.RemoteAddr = $HEADER
+    paths:
+      include:
+        - "middleware/real_ip.go"
+    severity: WARNING
+    languages: [go]
+
+  - id: muxmaster-unbounded-buffer-append
+    message: "Unbounded append to buffer during handler write — consider streaming or bound-cap."
+    patterns:
+      - pattern: $BUF = append($BUF, $IN...)
+      - pattern-inside: |
+          func ($R *$T) Write($B []byte) (int, error) {
+            ...
+          }
+    paths:
+      include:
+        - "middleware/compress.go"
+    severity: WARNING
+    languages: [go]
+
+  - id: muxmaster-unsafe-ptr-without-checkptr-note
+    message: "unsafe.Add without documented checkptr safety note."
+    patterns:
+      - pattern: unsafe.Add(unsafe.Pointer($P), $OFF)
+      - pattern-not-inside: |
+          // $COMMENT ...
+          ...
+          unsafe.Add(unsafe.Pointer($P), $OFF)
+    severity: INFO
+    languages: [go]

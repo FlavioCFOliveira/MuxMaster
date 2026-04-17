@@ -1,0 +1,3 @@
+go test fuzz v1
+string("\uf33f\uf329\uee70\uee70")
+string("0")

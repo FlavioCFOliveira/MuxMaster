@@ -1,0 +1,3 @@
+go test fuzz v1
+string("")
+string("\xb5\xb5\xff\xff\xff\xff\xff\xce")

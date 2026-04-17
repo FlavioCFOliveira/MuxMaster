@@ -1,0 +1,45 @@
+=== go ===
+go version go1.26.2 linux/amd64
+
+=== staticcheck ===
+staticcheck 2026.1 (v0.7.0)
+
+=== gosec ===
+Version: dev
+Git tag: 
+Build date: 
+
+=== govulncheck ===
+Go: go1.26.2
+Scanner: govulncheck@v1.2.0
+DB: https://vuln.go.dev
+
+=== errcheck ===
+flag provided but not defined: -version
+Usage of errcheck:
+  -abspath
+
+=== ineffassign ===
+ineffassign: version v0.2.0
+
+=== cyclonedx-gomod ===
+flag provided but not defined: -version
+USAGE
+  cyclonedx-gomod <SUBCOMMAND> [FLAGS...] [<ARG>...]
+
+=== osv-scanner ===
+osv-scanner version: 1.9.2
+commit: n/a
+built at: n/a
+
+=== golangci-lint ===
+golangci-lint has version 2.11.4 built with go1.26.1 from 8f3b0c7e on 2026-03-22T17:35:14Z
+
+=== semgrep ===
+1.159.0 (installed via /tmp/semgrep-venv — isolated venv due to PEP 668)
+
+=== CodeQL ===
+NOT AVAILABLE in this environment (not installed; would require ~3GB CLI + Go queries pack)
+
+=== go-licenses ===
+NOT AVAILABLE (not installed — license audit done manually since go.mod declares zero deps)

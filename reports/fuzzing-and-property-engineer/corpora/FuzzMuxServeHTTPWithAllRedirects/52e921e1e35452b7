@@ -1,0 +1,3 @@
+go test fuzz v1
+string("0\xcd\xcd")
+string("/u/0000/")

@@ -1,0 +1,3 @@
+go test fuzz v1
+string("")
+string("?\xd3Ө\xa8\xa8\xd3Ө\xa8\xa8\xa8\xa8Ө\xa8Ө")

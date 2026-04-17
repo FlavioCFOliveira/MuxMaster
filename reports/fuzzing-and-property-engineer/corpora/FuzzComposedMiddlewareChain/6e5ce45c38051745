@@ -1,0 +1,4 @@
+go test fuzz v1
+string("i/users/:id")
+string("rid-42")
+string("GET")
