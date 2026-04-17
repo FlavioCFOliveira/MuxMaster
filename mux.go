@@ -22,12 +22,14 @@
 package muxmaster
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unsafe"
 )
 
 // anyMethods is the full set of HTTP methods registered by ANY and Group.ANY.
@@ -358,7 +360,26 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 }
 
 // ServeHTTP implements http.Handler, dispatching through pre-middleware if set.
+//
+// The fast path (no PanicHandler, no pre-middleware) avoids the defer frame
+// overhead entirely by going straight to dispatch. Deferred paths are isolated
+// in dispatchWithRecover to keep this function inlineable.
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if m.PanicHandler != nil {
+		m.dispatchWithRecover(w, r)
+		return
+	}
+	if m.preHandler != nil {
+		m.preHandler.ServeHTTP(w, r)
+		return
+	}
+	m.dispatch(w, r)
+}
+
+// dispatchWithRecover is the slow-path variant used only when PanicHandler is
+// configured. Kept in a separate function so the common path avoids defer setup.
+func (m *Mux) dispatchWithRecover(w http.ResponseWriter, r *http.Request) {
+	defer m.recoverPanic(w, r)
 	if m.preHandler != nil {
 		m.preHandler.ServeHTTP(w, r)
 		return
@@ -368,10 +389,6 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // dispatch performs route lookup and dispatches to the matched handler.
 func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
-	if m.PanicHandler != nil {
-		defer m.recoverPanic(w, r)
-	}
-
 	// Determine the effective URL path.
 	urlPath := r.URL.Path
 	if m.UseRawPath && r.URL.RawPath != "" {
@@ -404,18 +421,24 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-				origCtx := r.Context()
-				rc := rcPool.Get().(*requestCtx)
-				rc.Context = origCtx
+				// Direct unsafe read of r.ctx field — skips r.Context()'s call+nilcheck.
+				origCtxPtr := (*context.Context)(unsafe.Add(unsafe.Pointer(r), reqCtxOffset))
+				origCtx := *origCtxPtr
+				rc := acquireRC()
+				if origCtx != nil {
+					rc.Context = origCtx
+				} else {
+					rc.Context = context.Background()
+				}
 				rc.pattern = pattern
 				rc.params = Params(rc.small[:copy(rc.small[:], pslice)])
-				setReqCtx(r, rc)
+				*origCtxPtr = rc
 				handler.ServeHTTP(w, r)
-				setReqCtx(r, origCtx)
+				*origCtxPtr = origCtx
 				rc.Context = nil
 				rc.params = nil
 				rc.pattern = ""
-				rcPool.Put(rc)
+				releaseRC(rc)
 			} else {
 				// static route — 0 pool ops, 0 allocs
 				handler.ServeHTTP(w, r)
@@ -456,18 +479,23 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		h2, pat2, _ := starRoot.getValue(urlPath, &ps2, m.CaseInsensitive)
 		if h2 != nil {
 			if ps2.count > 0 {
-				origCtx2 := r.Context()
-				rc2 := rcPool.Get().(*requestCtx)
-				rc2.Context = origCtx2
+				origCtxPtr2 := (*context.Context)(unsafe.Add(unsafe.Pointer(r), reqCtxOffset))
+				origCtx2 := *origCtxPtr2
+				rc2 := acquireRC()
+				if origCtx2 != nil {
+					rc2.Context = origCtx2
+				} else {
+					rc2.Context = context.Background()
+				}
 				rc2.pattern = pat2
 				rc2.params = Params(rc2.small[:copy(rc2.small[:], ps2.buf[:ps2.count])])
-				setReqCtx(r, rc2)
+				*origCtxPtr2 = rc2
 				h2.ServeHTTP(w, r)
-				setReqCtx(r, origCtx2)
+				*origCtxPtr2 = origCtx2
 				rc2.Context = nil
 				rc2.params = nil
 				rc2.pattern = ""
-				rcPool.Put(rc2)
+				releaseRC(rc2)
 			} else {
 				// no params — skip withRoute
 				h2.ServeHTTP(w, r)

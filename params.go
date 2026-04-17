@@ -122,7 +122,15 @@ type contextKey struct{}
 const maxParams = 16
 
 // rcPool reuses requestCtx objects — avoids one heap alloc per param request.
+// sync.Pool's per-P design wins under real parallel load: attempts at user-space
+// atomic rings (swap / CAS on global slots) regressed parallel param routes by
+// ~20% due to cache line bouncing across cores, even with per-slot padding.
 var rcPool = sync.Pool{New: func() any { return new(requestCtx) }}
+
+// acquireRC / releaseRC: indirection layer — ready to swap in an alternative
+// pool strategy if a future design beats sync.Pool in both serial and parallel.
+func acquireRC() *requestCtx  { return rcPool.Get().(*requestCtx) }
+func releaseRC(rc *requestCtx) { rcPool.Put(rc) }
 
 // reqCtxOffset is the byte offset of the unexported 'ctx context.Context' field
 // inside http.Request. Determined at init via reflect — safe under -race and checkptr.

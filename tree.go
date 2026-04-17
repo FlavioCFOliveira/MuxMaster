@@ -41,16 +41,22 @@ const (
 	regexParam // {name:expr}
 )
 
+// Field layout is hand-tuned to put the hot-read fields in cache line 0 (0-63).
+// A successful static route match reads only `path` + `handler` — both in CL0.
+// `pattern`, `priority`, `nType`, `wildChild`, `regexp` are cold — CL1.
 type node struct {
-	path      string
-	indices   string
-	wildChild bool
-	nType     nodeType
-	priority  uint32
-	children  []*node
-	handler   http.Handler
-	pattern   string         // registered full path pattern, set at leaf nodes
-	regexp    *regexp.Regexp // non-nil for regexParam nodes
+	// --- Cache line 0 (offsets 0-63) ---
+	path     string       // 16 bytes @ 0
+	handler  http.Handler // 16 bytes @ 16  (moved from CL1 — hot on leaf match)
+	indices  string       // 16 bytes @ 32
+	children []*node      // 24 bytes @ 48-71 (crosses into CL1)
+
+	// --- Cache line 1 (offsets 64-103) ---
+	pattern   string         // 16 bytes @ 72 (cold on lookup; set on leaves)
+	priority  uint32         // 4 bytes  @ 88 (written only during registration)
+	nType     nodeType       // 1 byte   @ 92
+	wildChild bool           // 1 byte   @ 93
+	regexp    *regexp.Regexp // 8 bytes  @ 96 (regex routes only)
 }
 
 // addRoute registers a handler for the given path, expanding optional segments first.
@@ -313,9 +319,13 @@ walk:
 
 			switch n.nType {
 			case param:
-				end := strings.IndexByte(path, '/')
-				if end < 0 {
-					end = len(path)
+				// Inline scan for '/' — avoids strings.IndexByte call for short params.
+				end := len(path)
+				for i := 0; i < len(path); i++ {
+					if path[i] == '/' {
+						end = i
+						break
+					}
 				}
 				if params != nil {
 					params.add(n.path[1:], path[:end])
@@ -338,9 +348,12 @@ walk:
 				return
 
 			case regexParam:
-				end := strings.IndexByte(path, '/')
-				if end < 0 {
-					end = len(path)
+				end := len(path)
+				for i := 0; i < len(path); i++ {
+					if path[i] == '/' {
+						end = i
+						break
+					}
 				}
 				seg := path[:end]
 				if !n.regexp.MatchString(seg) {
