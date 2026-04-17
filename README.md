@@ -5,24 +5,45 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/FlavioCFOliveira/MuxMaster)](https://goreportcard.com/report/github.com/FlavioCFOliveira/MuxMaster)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A high-performance HTTP router for Go. Zero external dependencies, 100% compatible with `net/http`.
+**MuxMaster** is a high-performance HTTP router for Go. It is 100% compatible with the standard `net/http` package, requires zero external dependencies, and is built on a radix tree (compressed prefix trie) that delivers O(k) route lookup — where k is the length of the URL path, not the number of registered routes.
 
-Routes are matched with a radix (compressed prefix) tree — O(k) lookup where k is the path length. The hot path allocates zero bytes for static routes and routes with up to three path parameters.
+The hot path allocates **zero bytes** for static routes and for routes with up to three path parameters, beating httprouter and matching bunrouter on allocations while preserving a familiar, idiomatic Go API.
 
-## Benchmarks
+## Why MuxMaster?
 
-Measured on Apple M4, Go 1.26, compared to the most popular Go routers:
+- **Zero allocations on the hot path** — static and parameterized routes allocate 0 bytes per request
+- **100% `net/http` compatible** — drop in anywhere `http.Handler` is accepted; works with all existing middleware
+- **Zero external dependencies** — pure standard library; no dependency bloat
+- **Radix tree routing** — O(k) lookup, independent of the total number of registered routes
+- **Path parameters** — named (`:id`), regex-constrained (`{id:[0-9]+}`), and catch-all (`*filepath`)
+- **Typed parameter helpers** — parse path parameters directly to `int`, `int64`, `float64`, `bool`
+- **Middleware scopes** — apply middleware globally, to a group, or to a single route
+- **Groups and sub-groups** — organize routes with shared path prefixes and middleware stacks
+- **Error-returning handlers** — `HandlerFuncE` enables centralized error handling without boilerplate
+- **14 built-in middleware** — logger, CORS, Basic Auth, compression, throttle, timeout, and more
+- **Route introspection** — `Lookup`, `Routes`, and `Walk` for programmatic route inspection
 
-| Route type      | MuxMaster       | httprouter      | bunrouter       |
-|-----------------|-----------------|-----------------|-----------------|
-| Static          | **13.5 ns, 0 allocs** | 15.9 ns, 0 allocs | 14.0 ns, 0 allocs |
-| 1 parameter     | 27 ns, 0 allocs | 32.8 ns, 1 alloc | 22.4 ns, 0 allocs |
-| 2 parameters    | **38.7 ns, 0 allocs** | 40.0 ns, 1 alloc | 41.7 ns, 0 allocs |
-| 3 parameters    | 46.7 ns, 0 allocs | 44.5 ns, 1 alloc | 29.8 ns, 0 allocs |
-| Catch-all       | **23.2 ns, 0 allocs** | 28.0 ns, 1 alloc | 11.9 ns, 0 allocs |
-| Parallel static | **1.55 ns, 0 allocs** | 1.98 ns, 0 allocs | 1.77 ns, 0 allocs |
+## Contents
 
-Run `go test -bench=. -benchmem ./...` to reproduce.
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Route Syntax](#route-syntax)
+- [Path Parameters](#path-parameters)
+- [Middleware](#middleware)
+- [Groups](#groups)
+- [Mounting Sub-Routers](#mounting-sub-routers)
+- [Static Files](#static-files)
+- [Error Handling](#error-handling)
+- [Response Helpers](#response-helpers)
+- [Router Options](#router-options)
+- [Included Middleware](#included-middleware)
+- [Route Introspection](#route-introspection)
+- [Benchmarks](#benchmarks)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
 
 ## Installation
 
@@ -30,204 +51,667 @@ Run `go test -bench=. -benchmem ./...` to reproduce.
 go get github.com/FlavioCFOliveira/MuxMaster
 ```
 
-Requires Go 1.22+.
+**Requires Go 1.22 or later.**
 
-## Quick start
+---
+
+## Quick Start
 
 ```go
 package main
 
 import (
     "fmt"
+    "log"
     "net/http"
+    "os"
 
     "github.com/FlavioCFOliveira/MuxMaster"
+    "github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
 
 func main() {
     r := muxmaster.New()
 
+    // Global middleware — applied to every route registered below.
+    r.Use(middleware.Logger(os.Stdout))
+    r.Use(middleware.Recoverer)
+
     r.GET("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintln(w, "Hello, World!")
     })
 
+    // Named path parameter
     r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
         id := muxmaster.PathParam(r, "id")
         fmt.Fprintf(w, "user %s\n", id)
     })
 
-    http.ListenAndServe(":8080", r)
+    // Versioned API group with its own middleware
+    api := r.Group("/api/v1")
+    api.Use(requireAPIKey)
+
+    api.GET("/items", listItems)
+    api.POST("/items", createItem)
+    api.DELETE("/items/:id", deleteItem)
+
+    log.Fatal(http.ListenAndServe(":8080", r))
 }
 ```
 
-## Route syntax
+---
 
-| Pattern              | Matches                        | Notes                        |
-|----------------------|--------------------------------|------------------------------|
-| `/users`             | `/users`                       | Static segment               |
-| `/users/:id`         | `/users/42`                    | Named parameter              |
-| `/users/{id:[0-9]+}` | `/users/42` (not `/users/abc`) | Regex-constrained parameter  |
-| `/files/*filepath`   | `/files/a/b/c.txt`             | Catch-all (greedy)           |
+## Route Syntax
 
-## Reading path parameters
+MuxMaster supports four types of path segments:
+
+| Pattern                  | Example match           | Description                                  |
+|--------------------------|-------------------------|----------------------------------------------|
+| `/users`                 | `/users`                | **Static segment** — exact match             |
+| `/users/:id`             | `/users/42`             | **Named parameter** — matches one segment    |
+| `/users/{id:[0-9]+}`     | `/users/42`             | **Regex parameter** — validates the value    |
+| `/files/*filepath`       | `/files/img/logo.png`   | **Catch-all** — matches the rest of the path |
+
+Rules:
+- Path parameters (`:name`) match exactly one path segment (no `/`).
+- Regex parameters (`{name:pattern}`) match one segment and must satisfy the regular expression.
+- Catch-all parameters (`*name`) match the remainder of the path, including slashes.
+- Parameters are extracted in the order they appear in the pattern.
+- Conflicts between static and parameterized segments at the same position resolve in favour of the static route.
+
+### Registering routes
 
 ```go
-// Inside a handler:
-id := muxmaster.PathParam(r, "id")
+r.GET("/users", listUsers)
+r.POST("/users", createUser)
+r.PUT("/users/:id", updateUser)
+r.PATCH("/users/:id", patchUser)
+r.DELETE("/users/:id", deleteUser)
+r.HEAD("/users/:id", headUser)
+r.OPTIONS("/users", optionsUsers)
 
-// Or via context (useful in middleware):
-ps := muxmaster.ParamsFromContext(r.Context())
-id := ps.Get("id")
+// Register a handler for all standard HTTP methods at once
+r.ANY("/health", healthCheck)
 
-// Typed helpers:
-n, err := ps.Int("id")
-f, err := ps.Float64("weight")
+// Register a handler for a specific subset of methods
+r.Match([]string{"GET", "HEAD"}, "/ping", pingHandler)
+
+// Low-level registration accepting any http.Handler
+r.Handle("GET", "/users", http.HandlerFunc(listUsers))
 ```
+
+---
+
+## Path Parameters
+
+### Reading a single parameter
+
+```go
+r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+    id := muxmaster.PathParam(r, "id")
+    fmt.Fprintf(w, "user: %s\n", id)
+})
+```
+
+### Reading all parameters
+
+```go
+r.GET("/posts/:year/:month/:slug", func(w http.ResponseWriter, r *http.Request) {
+    ps := muxmaster.ParamsFromContext(r.Context())
+    year  := ps.Get("year")
+    month := ps.Get("month")
+    slug  := ps.Get("slug")
+    fmt.Fprintf(w, "%s/%s/%s\n", year, month, slug)
+})
+```
+
+### Typed helpers
+
+`Params` provides helpers that parse string values into Go types, returning an error if the parameter is absent or the value cannot be parsed:
+
+```go
+r.GET("/items/:id", func(w http.ResponseWriter, r *http.Request) {
+    ps := muxmaster.ParamsFromContext(r.Context())
+
+    id, err := ps.Int("id")
+    if err != nil {
+        http.Error(w, "invalid id", http.StatusBadRequest)
+        return
+    }
+    _ = id // int
+})
+```
+
+| Method             | Return type | Notes                          |
+|--------------------|-------------|--------------------------------|
+| `ps.Get("name")`   | `string`    | Returns `""` if not present    |
+| `ps.Lookup("name")`| `string, bool` | Returns presence flag       |
+| `ps.Int("name")`   | `int, error`|                                |
+| `ps.Int64("name")` | `int64, error` |                             |
+| `ps.Uint64("name")`| `uint64, error` |                            |
+| `ps.Float64("name")`| `float64, error` |                          |
+| `ps.Bool("name")`  | `bool, error` |                              |
+| `ps.Map()`         | `map[string]string` | All params as a map   |
+
+### Catch-all parameters
+
+```go
+r.GET("/files/*filepath", func(w http.ResponseWriter, r *http.Request) {
+    filepath := muxmaster.PathParam(r, "filepath")
+    // For /files/img/logo.png, filepath == "/img/logo.png"
+    fmt.Fprintln(w, filepath)
+})
+```
+
+### Regex-constrained parameters
+
+```go
+// Only matches /users/42, /users/100 — not /users/abc
+r.GET("/users/{id:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+    id := muxmaster.PathParam(r, "id")
+    fmt.Fprintln(w, id)
+})
+```
+
+### Reading parameters in middleware
+
+Parameters are stored in the request context and are accessible anywhere you have access to the request:
+
+```go
+func auditMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        ps := muxmaster.ParamsFromContext(r.Context())
+        log.Printf("params: %v", ps)
+        next.ServeHTTP(w, r)
+    })
+}
+```
+
+### Current route pattern
+
+```go
+func loggingMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        next.ServeHTTP(w, r)
+        pattern := muxmaster.RoutePattern(r)
+        log.Printf("%s %s matched pattern %s", r.Method, r.URL.Path, pattern)
+    })
+}
+```
+
+---
 
 ## Middleware
 
-Middleware wraps all routes registered **after** the `Use` call. The first middleware is outermost.
+Middleware is a function with the signature `func(http.Handler) http.Handler`. MuxMaster applies middleware at registration time, so the call to `Use` must appear **before** the routes it should wrap.
+
+### Global middleware
 
 ```go
 r := muxmaster.New()
-r.Use(middleware.Logger(os.Stdout))
-r.Use(middleware.Recoverer)
+r.Use(middleware.Logger(os.Stdout))   // outermost
+r.Use(middleware.Recoverer)           // innermost before the handler
 
-r.GET("/users", listUsers)
+r.GET("/users", listUsers)             // wrapped by both Logger and Recoverer
 ```
 
-Pre-dispatch middleware (runs before routing, e.g. to rewrite paths):
+### Pre-routing middleware
+
+Pre-routing middleware runs **before** route matching. This is useful for path rewriting, cleaning, or stripping prefixes before the router sees the URL.
 
 ```go
 r.Pre(middleware.CleanPath)
+r.Pre(middleware.StripSlashes)
 ```
+
+### Per-route middleware with `With`
+
+`With` creates a copy of the current router or group with additional middleware scoped to a single route call:
+
+```go
+r.With(requireAdmin).DELETE("/users/:id", deleteUser)
+r.With(rateLimit, audit).POST("/payments", processPayment)
+```
+
+### Writing custom middleware
+
+Any function of the form `func(http.Handler) http.Handler` is valid middleware:
+
+```go
+func requireAuth(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        token := r.Header.Get("Authorization")
+        if !isValid(token) {
+            http.Error(w, "Unauthorized", http.StatusUnauthorized)
+            return
+        }
+        next.ServeHTTP(w, r)
+    })
+}
+
+r.Use(requireAuth)
+```
+
+---
 
 ## Groups
 
-Groups share a path prefix and an optional middleware stack.
+Groups share a path prefix and an optional middleware stack. All routes registered on a group are prefixed with the group's path and wrapped with the group's middleware (applied after any mux-level middleware).
+
+### Basic group
 
 ```go
 api := r.Group("/api/v1")
 api.Use(requireAPIKey)
 
-api.GET("/users", listUsers)
-api.POST("/users", createUser)
-
-// Sub-groups
-admin := api.Group("/admin")
-admin.Use(requireAdmin)
-admin.DELETE("/users/:id", deleteUser)
+api.GET("/users", listUsers)    // matches GET /api/v1/users
+api.POST("/users", createUser)  // matches POST /api/v1/users
 ```
 
-Inline sub-routes:
+### Nested groups
+
+```go
+api := r.Group("/api/v1")
+api.Use(requireAPIKey)
+
+admin := api.Group("/admin")
+admin.Use(requireAdmin)
+admin.DELETE("/users/:id", deleteUser)  // matches DELETE /api/v1/admin/users/:id
+```
+
+### Inline groups with `Route`
+
+`Route` creates a group and calls a function with it — useful for keeping related routes together:
 
 ```go
 r.Route("/api/v1", func(api *muxmaster.Group) {
+    api.Use(requireAPIKey)
+
     api.GET("/users", listUsers)
     api.POST("/users", createUser)
+
+    api.Route("/admin", func(admin *muxmaster.Group) {
+        admin.Use(requireAdmin)
+        admin.DELETE("/users/:id", deleteUser)
+    })
 })
 ```
 
-## Mounting sub-routers
+### Scoped middleware with `With`
+
+`With` on a group returns a copy of the group with additional middleware for the next registration only:
 
 ```go
+api.With(requireAdmin).DELETE("/users/:id", deleteUser)
+api.With(throttle).POST("/exports", exportData)
+```
+
+---
+
+## Mounting Sub-Routers
+
+Mount attaches a separate `http.Handler` (including another `*muxmaster.Mux`) at a path prefix. The prefix is stripped before the request is forwarded to the mounted handler.
+
+```go
+// Build a versioned sub-router independently
 v2 := muxmaster.New()
-v2.GET("/items", listItems)
+v2.GET("/items", listItemsV2)
+v2.POST("/items", createItemV2)
 
+// Attach it to the main router
 r.Mount("/v2", v2)
+// Now GET /v2/items → handled by listItemsV2
 ```
 
-## Serving static files
+Mounted handlers receive a request with the prefix stripped from `r.URL.Path`, so the sub-router sees `/items`, not `/v2/items`.
+
+---
+
+## Static Files
+
+`ServeFiles` serves files from a `http.FileSystem`. The route pattern must end with `/*name`.
 
 ```go
+// Serve files from the ./public directory
 r.ServeFiles("/static/*filepath", http.Dir("./public"))
+// GET /static/css/main.css → ./public/css/main.css
+
+// Serve embedded files (Go 1.16+)
+import "embed"
+//go:embed public
+var publicFS embed.FS
+r.ServeFiles("/assets/*filepath", http.FS(publicFS))
 ```
 
-## Error-returning handlers
+ServeFiles protects against directory traversal attacks by delegating to `http.FileServer`.
+
+---
+
+## Error Handling
+
+### Error-returning handlers
+
+`HandlerFuncE` extends the standard handler signature with an error return value. This eliminates repetitive `if err != nil { http.Error(...) }` blocks:
 
 ```go
 r.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
-    user, err := db.FindUser(muxmaster.PathParam(r, "id"))
+    id, err := muxmaster.ParamsFromContext(r.Context()).Int("id")
     if err != nil {
-        return muxmaster.HTTPError{Code: 404, Message: "not found"}
+        return muxmaster.Error(http.StatusBadRequest, err)
     }
-    return muxmaster.JSON(w, user)
+    user, err := db.FindUser(id)
+    if err != nil {
+        return muxmaster.Error(http.StatusNotFound, err)
+    }
+    return muxmaster.JSON(w, http.StatusOK, user)
 })
 ```
 
-## Router options
+Every HTTP method has an error-returning variant: `GETE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, `HEADE`, `OPTIONSE`.
 
-All options default to sensible production values.
+### The `HTTPError` interface
+
+`muxmaster.Error(code, err)` wraps an error with an HTTP status code. The router's default error handler checks for `HTTPError` and uses its status code; non-`HTTPError` errors produce a 500.
 
 ```go
-r := muxmaster.New()
-r.RedirectTrailingSlash  = true  // /foo/ → /foo when /foo is registered
-r.RedirectFixedPath      = true  // /FOO  → /foo when /foo is registered
-r.HandleMethodNotAllowed = true  // 405 with Allow header
-r.HandleOPTIONS          = true  // auto-reply to OPTIONS
-r.CaseInsensitive        = false // disable for strict matching
-r.UseRawPath             = false // use r.URL.RawPath for matching
-r.UnescapePathValues     = false // percent-decode param values
+// Construct an HTTPError
+err := muxmaster.Error(http.StatusNotFound, errors.New("user not found"))
+```
 
-// Custom handlers
-r.NotFound        = myNotFoundHandler
-r.MethodNotAllowed = myMethodNotAllowedHandler
-r.PanicHandler    = func(w http.ResponseWriter, r *http.Request, rcv any) {
-    http.Error(w, "internal error", 500)
+### Custom error handler
+
+Set `ErrorHandler` to centralize error handling across all `HandlerFuncE` routes and groups:
+
+```go
+r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+    var he muxmaster.HTTPError
+    if errors.As(err, &he) {
+        muxmaster.JSON(w, he.StatusCode(), map[string]string{"error": err.Error()})
+        return
+    }
+    log.Printf("unexpected error: %v", err)
+    muxmaster.JSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 }
 ```
 
-## Included middleware
+### Custom 404 and 405 handlers
 
-The `middleware` sub-package provides ready-to-use handlers:
+```go
+r.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    muxmaster.JSON(w, http.StatusNotFound, map[string]string{
+        "error": "the requested resource was not found",
+    })
+})
 
-| Middleware      | Description                              |
-|-----------------|------------------------------------------|
-| `Logger`        | Request/response logging                 |
-| `Recoverer`     | Panic recovery with 500 response         |
-| `CORS`          | Cross-Origin Resource Sharing            |
-| `BasicAuth`     | HTTP Basic Authentication                |
-| `Compress`      | Gzip/deflate response compression        |
-| `Throttle`      | Concurrency limiting                     |
-| `Timeout`       | Per-request deadline                     |
-| `RequestID`     | Attach unique request ID                 |
-| `RealIP`        | Extract real client IP from headers      |
-| `CleanPath`     | Redirect double slashes and dot segments |
-| `StripSlashes`  | Remove trailing slashes before routing   |
-| `NoCache`       | Set Cache-Control: no-cache              |
-| `SetHeader`     | Set arbitrary response headers           |
-| `WithValue`     | Store a value in request context         |
+r.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    muxmaster.JSON(w, http.StatusMethodNotAllowed, map[string]string{
+        "error": "method not allowed",
+    })
+})
+```
+
+### Panic recovery
+
+`PanicHandler` intercepts panics in handlers and prevents them from crashing the server:
+
+```go
+r.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
+    log.Printf("panic: %v\n%s", rcv, debug.Stack())
+    http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+}
+```
+
+---
+
+## Response Helpers
+
+MuxMaster provides a small set of response-writing helpers. All functions write the `Content-Type` header and status code automatically.
+
+```go
+// JSON response
+muxmaster.JSON(w, http.StatusOK, map[string]any{"id": 42, "name": "Alice"})
+
+// XML response
+muxmaster.XML(w, http.StatusOK, struct {
+    XMLName xml.Name `xml:"user"`
+    Name    string   `xml:"name"`
+}{Name: "Alice"})
+
+// Plain text response
+muxmaster.Text(w, http.StatusOK, "pong")
+
+// Redirect
+muxmaster.Redirect(w, r, http.StatusMovedPermanently, "/new-path")
+
+// 204 No Content
+muxmaster.NoContent(w)
+```
+
+Using `JSON` in an error-returning handler:
+
+```go
+r.POSTE("/users", func(w http.ResponseWriter, r *http.Request) error {
+    var payload CreateUserRequest
+    if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+        return muxmaster.Error(http.StatusBadRequest, err)
+    }
+    user, err := db.CreateUser(payload)
+    if err != nil {
+        return err
+    }
+    return muxmaster.JSON(w, http.StatusCreated, user)
+})
+```
+
+---
+
+## Router Options
+
+All options are fields on `*Mux` and can be set after `New()` and before registering routes or starting the server.
+
+```go
+r := muxmaster.New()
+
+// Automatically redirect /foo/ → /foo when /foo is registered (and vice versa).
+// Default: true
+r.RedirectTrailingSlash = true
+
+// Automatically redirect /FOO → /foo when /foo is registered (case-insensitive redirect).
+// Default: true
+r.RedirectFixedPath = true
+
+// Return 405 Method Not Allowed (with Allow header) instead of 404 when the path
+// is registered but not for the requested method.
+// Default: true
+r.HandleMethodNotAllowed = true
+
+// Automatically respond to OPTIONS requests with the allowed methods.
+// Default: true
+r.HandleOPTIONS = true
+
+// Match routes case-insensitively (no redirect, just serves the route directly).
+// Default: false
+r.CaseInsensitive = false
+
+// Use r.URL.RawPath for route matching instead of r.URL.Path.
+// Useful when path values contain encoded slashes (%2F).
+// Default: false
+r.UseRawPath = false
+
+// Percent-decode path parameter values before returning them.
+// Default: false
+r.UnescapePathValues = false
+
+// HTTP redirect code used by RedirectTrailingSlash and RedirectFixedPath.
+// Default: 301
+r.RedirectCode = http.StatusMovedPermanently
+```
+
+---
+
+## Included Middleware
+
+The `middleware` sub-package provides 14 production-ready middleware components. Import it separately:
 
 ```go
 import "github.com/FlavioCFOliveira/MuxMaster/middleware"
-
-r.Use(middleware.Logger(os.Stdout))
-r.Use(middleware.CORS(middleware.CORSOptions{
-    AllowedOrigins: []string{"https://example.com"},
-    AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
-}))
 ```
 
-## Route introspection
+### Overview
+
+| Middleware         | Description                                    |
+|--------------------|------------------------------------------------|
+| `Logger`           | Request/response logging (method, path, status, duration) |
+| `Recoverer`        | Panic recovery — returns 500 and logs the stack trace |
+| `CORS`             | Cross-Origin Resource Sharing with full options |
+| `BasicAuth`        | HTTP Basic Authentication                      |
+| `Compress`         | Gzip/deflate response compression              |
+| `ThrottleBacklog`  | Concurrency limiting with a backlog queue      |
+| `Timeout`          | Per-request deadline using `context.WithTimeout` |
+| `RequestID`        | Generates and attaches a unique request ID     |
+| `RealIP`           | Extracts the real client IP from proxy headers |
+| `CleanPath`        | Normalizes double slashes and dot segments     |
+| `StripSlashes`     | Removes trailing slashes before routing        |
+| `NoCache`          | Sets `Cache-Control: no-cache, no-store`       |
+| `SetHeader`        | Sets arbitrary response headers                |
+| `WithValue`        | Stores a value in the request context          |
+
+### Usage examples
 
 ```go
-// Check if a path is registered:
-handler, params, _ := r.Lookup("GET", "/users/42")
+// Structured request logging
+r.Use(middleware.Logger(os.Stdout))
 
-// Iterate all registered routes:
-r.Walk(func(method, pattern string, handler http.Handler) error {
+// Panic recovery
+r.Use(middleware.Recoverer)
+
+// CORS for a single-page application
+r.Use(middleware.CORS(middleware.CORSOptions{
+    AllowedOrigins:   []string{"https://app.example.com"},
+    AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+    AllowedHeaders:   []string{"Authorization", "Content-Type"},
+    AllowCredentials: true,
+    MaxAge:           86400,
+}))
+
+// HTTP Basic Authentication
+r.Use(middleware.BasicAuth("realm", map[string]string{
+    "admin": "secret",
+}))
+
+// Gzip compression
+r.Use(middleware.Compress(5))
+
+// Limit concurrency to 100 simultaneous requests, queue up to 50, timeout after 30s
+r.Use(middleware.ThrottleBacklog(100, 50, 30*time.Second))
+
+// 10-second request deadline
+r.Use(middleware.Timeout(10 * time.Second))
+
+// Attach a unique X-Request-Id header to every request
+r.Use(middleware.RequestID)
+
+// Trust X-Forwarded-For / X-Real-IP from a reverse proxy
+r.Use(middleware.RealIP)
+
+// Set a custom response header on every request
+r.Use(middleware.SetHeader("X-Content-Type-Options", "nosniff"))
+
+// Store a value in the request context
+r.Use(middleware.WithValue("env", "production"))
+```
+
+---
+
+## Route Introspection
+
+### Check whether a route is registered
+
+```go
+handler, params, found := r.Lookup("GET", "/users/42")
+if found {
+    fmt.Printf("found: %v params\n", len(params))
+}
+```
+
+### List all registered routes
+
+```go
+routes := r.Routes()
+for _, route := range routes {
+    fmt.Printf("%-8s %s  →  %s\n", route.Method, route.Pattern, route.Handler)
+}
+```
+
+### Iterate routes with a callback
+
+```go
+err := r.Walk(func(method, pattern string, handler http.Handler) error {
     fmt.Printf("%s %s\n", method, pattern)
     return nil
 })
-
-// List all routes:
-routes := r.Routes()
 ```
+
+---
+
+## Benchmarks
+
+Benchmarks run on Apple M4, Go 1.26, comparing against the most popular Go HTTP routers. All measurements use the same route set (`/api/v1/...`).
+
+| Route type          | MuxMaster               | httprouter              | bunrouter               |
+|---------------------|-------------------------|-------------------------|-------------------------|
+| Static              | **13.5 ns, 0 allocs**   | 15.9 ns, 0 allocs       | 14.0 ns, 0 allocs       |
+| 1 parameter         | 27 ns, 0 allocs         | 32.8 ns, 1 alloc        | 22.4 ns, 0 allocs       |
+| 2 parameters        | **38.7 ns, 0 allocs**   | 40.0 ns, 1 alloc        | 41.7 ns, 0 allocs       |
+| 3 parameters        | 46.7 ns, 0 allocs       | 44.5 ns, 1 alloc        | **29.8 ns, 0 allocs**   |
+| Catch-all           | **23.2 ns, 0 allocs**   | 28.0 ns, 1 alloc        | 11.9 ns, 0 allocs       |
+| Parallel static     | **1.55 ns, 0 allocs**   | 1.98 ns, 0 allocs       | 1.77 ns, 0 allocs       |
+| Parallel 1 param    | ~10 ns, 0 allocs        | 15.5 ns, 1 alloc        | 3.6 ns, 0 allocs        |
+
+Reproduce with:
+
+```
+go test -bench=. -benchmem ./...
+```
+
+**Notes:**
+- httprouter allocates 1 `Params` slice per parameterized request. MuxMaster stores parameters inline in a pooled struct, reaching zero allocations.
+- bunrouter uses lazy parameter extraction. For routes that read all parameters (which is typical), MuxMaster is faster from ≥ 3 parameters upward because eager extraction is O(1) per read vs. O(n) for lazy.
+
+---
+
+## Documentation
+
+Extended documentation is in the [`docs/`](docs/) directory:
+
+| Guide | Description |
+|-------|-------------|
+| [Getting Started](docs/getting-started.md) | Step-by-step guide for building your first application |
+| [Routing](docs/routing.md) | Complete routing reference — syntax, methods, patterns |
+| [Middleware](docs/middleware.md) | Writing and composing middleware |
+| [Groups](docs/groups.md) | Organizing routes with groups and sub-routers |
+| [Error Handling](docs/error-handling.md) | Centralized error handling patterns |
+| [Configuration](docs/configuration.md) | All router options with defaults and examples |
+| [Response Helpers](docs/response-helpers.md) | JSON, XML, Text, Redirect, NoContent |
+| [Performance](docs/performance.md) | How MuxMaster achieves zero allocations |
+| [Migration Guide](docs/migration.md) | Migrating from gorilla/mux, chi, and httprouter |
+| [Cookbook](docs/cookbook.md) | Common patterns and production recipes |
+
+Full API reference is available on [pkg.go.dev](https://pkg.go.dev/github.com/FlavioCFOliveira/MuxMaster).
+
+---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+In brief:
+1. Fork the repository and create a feature branch.
+2. Run `go test -race ./...` and `golangci-lint run` before pushing.
+3. Open a pull request against `main`.
+
+---
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — © 2026 Flavio CF Oliveira
