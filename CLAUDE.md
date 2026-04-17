@@ -3,6 +3,53 @@
 ## O que é este projecto
 Router HTTP / HTTP muxer de alta performance para Go, implementado **puramente em Go** (zero dependências externas). Usa uma árvore radix (Patricia trie) para lookup O(k) onde k é o comprimento do path.
 
+**Este é um projecto open-source.** Toda a decisão de design, código, documentação e tooling deve seguir os preceitos típicos de um projecto open-source de qualidade:
+
+### Padrões obrigatórios de projecto open-source
+
+#### Qualidade de código
+- **`go vet ./...`** — sem avisos; executar antes de qualquer commit
+- **`staticcheck ./...`** — análise estática avançada; corrigir todos os findings
+- **`golangci-lint run`** — suite completa de linters (errcheck, gosimple, ineffassign, unused, etc.)
+- **`go test -race ./...`** — zero race conditions; nunca relaxar este requisito
+- **Cobertura de testes** — toda a funcionalidade pública tem teste; regressões têm teste antes do fix
+
+#### Testes
+- Cada feature nova requer testes unitários em `mux_test.go` (ou ficheiro dedicado)
+- Casos de erro e edge cases devem ser cobertos, não apenas o happy path
+- Benchmarks em `bench_test.go` para qualquer código no hot path
+- Testes de integração quando a interacção entre componentes for não-trivial
+
+#### Documentação
+- **`README.md`** — instalação, quickstart, exemplos de uso, badges de CI/cobertura
+- **GoDoc** — todos os tipos e funções exportados têm doc comment (`// TypeName ...`)
+- **`CHANGELOG.md`** — registo de mudanças por versão (seguir Keep a Changelog + SemVer)
+- **`CONTRIBUTING.md`** — guia para contribuidores: como fazer fork, branch, PR, e correr testes
+- **`LICENSE`** — ficheiro de licença presente na raiz
+
+#### Gestão de versões e releases
+- **SemVer** (Semantic Versioning): `vMAJOR.MINOR.PATCH`
+  - PATCH: bug fixes retrocompatíveis
+  - MINOR: features novas retrocompatíveis
+  - MAJOR: breaking changes na API pública
+- Tags Git para cada release: `git tag v1.2.3`
+- Release notes no GitHub com o diff de CHANGELOG
+
+#### CI/CD
+- Pipeline de CI (GitHub Actions ou equivalente) que corre em cada PR:
+  - `go build ./...`
+  - `go test -race ./...`
+  - `go vet ./...`
+  - linters (golangci-lint)
+- Badge de estado de CI no README
+- Protecção da branch `main`: merge só após CI verde
+
+#### Compatibilidade e API pública
+- Não introduzir breaking changes em MINOR/PATCH releases
+- Deprecar antes de remover: marcar com `// Deprecated:` no GoDoc antes de eliminar
+- Manter compatibilidade com a versão mínima de Go declarada no `go.mod`
+- Seguir as Go API compatibility guidelines
+
 ## Versão de Go
 **Go 1.26+** (go.mod declara `go 1.26`). Usa funcionalidades modernas:
 - `for i := range n` (range sobre inteiro, Go 1.22+)
@@ -109,7 +156,14 @@ Routers HTTP Go mais conhecidos e adoptados pela comunidade, por ordem de relev�
 |---|---|---|---|---|
 | **Gin** | `github.com/gin-gonic/gin` | httprouter (fork) | ~81 000 | O mais popular; usa radix tree do httprouter |
 | **Echo** | `github.com/labstack/echo/v5` | Radix tree próprio + sync.Pool | ~30 000 | Reportado como mais rápido em 2025 em hello-world |
-| **Fiber** | `github.com/gofiber/fiber/v3` | Baseado em fasthttp | ~35 000 | API estilo Express; não usa net/http — incompatível com stdlib |
+
+### Frameworks de stack alternativa (comparação de raw routing)
+
+| Framework | Import path | Stack HTTP | Estrelas GitHub | Notas |
+|---|---|---|---|---|
+| **Fiber** | `github.com/gofiber/fiber/v3` | fasthttp (não net/http) | ~35 000 | API estilo Express; incompatível com stdlib; benchmarks de raw routing são comparáveis mas stacks diferentes |
+
+> **Nota sobre Fiber:** A comparação com Fiber é de *raw routing throughput*, não de stack completa. Fiber usa `fasthttp` que evita alocações de `net/http` — vantagem estrutural independente do router. Os benchmarks medem apenas a lógica de dispatch de rotas.
 
 ### Routers mais lentos (não são o alvo, mas são muito usados)
 
@@ -193,17 +247,22 @@ Benchmarks internos (bench_test.go):
 
 Benchmarks competitivos (competitor/bench_test.go, rota `/api/v1/...`):
 
-| Caso | MuxMaster | httprouter | bunrouter |
-|---|---|---|---|
-| Estático | **13.5 ns, 0 allocs** | 15.9 ns, 0 allocs | 14.0 ns, 0 allocs |
-| 1 parâmetro | 27 ns, 0 allocs | 32.8 ns, 1 alloc | **22.4 ns**, 0 allocs |
-| 2 parâmetros | **38.7 ns, 0 allocs** | 40.0 ns, 1 alloc | 41.7 ns, 0 allocs |
-| 3 parâmetros | 46.7 ns, 0 allocs | 44.5 ns, 1 alloc | **29.8 ns**, 0 allocs |
-| Catch-all | **23.2 ns, 0 allocs** | 28.0 ns, 1 alloc | 11.9 ns, 0 allocs |
-| Paralelo estático | **1.55 ns, 0 allocs** | 1.98 ns, 0 allocs | 1.77 ns, 0 allocs |
-| Paralelo 1 parâmetro | ~10 ns, 0 allocs | 15.5 ns, 1 alloc | 3.6 ns, 0 allocs |
+| Caso | MuxMaster | httprouter | bunrouter | Fiber v3 |
+|---|---|---|---|---|
+| Estático | **13.5 ns, 0 allocs** | 15.9 ns, 0 allocs | 14.0 ns, 0 allocs | 187 ns, 0 allocs |
+| 1 parâmetro | 27 ns, 0 allocs | 32.8 ns, 1 alloc | **22.4 ns**, 0 allocs | 212 ns, 0 allocs |
+| 2 parâmetros | **38.7 ns, 0 allocs** | 40.0 ns, 1 alloc | 41.7 ns, 0 allocs | 286 ns, 0 allocs |
+| 3 parâmetros | 46.7 ns, 0 allocs | 44.5 ns, 1 alloc | **29.8 ns**, 0 allocs | 267 ns, 0 allocs |
+| Catch-all | **23.2 ns, 0 allocs** | 28.0 ns, 1 alloc | 11.9 ns, 0 allocs | 211 ns, 0 allocs |
+| Paralelo estático | **1.55 ns, 0 allocs** | 1.98 ns, 0 allocs | 1.77 ns, 0 allocs | 27 ns, 0 allocs |
+| Paralelo 1 parâmetro | ~10 ns, 0 allocs | 15.5 ns, 1 alloc | 3.6 ns, 0 allocs | **32 ns**, 0 allocs |
 
-Nota: bunrouter usa extracção lazy de parâmetros — não copia os valores durante o tree walk. Isto faz-o aparecer mais rápido em benchmarks onde os parâmetros não são lidos no handler. Em handlers reais que lêem todos os parâmetros, MuxMaster é mais rápido a partir de ≥3 parâmetros (eager é O(1) por leitura; bunrouter é O(N) por read lazy).
+> Benchmarks Fiber medidos em AMD Ryzen 9 5900HX / Go 1.26.2 (`competitor/fiber/bench_test.go`). Os restantes em Apple M4. Fiber inclui overhead de URI parsing do fasthttp (~55% do CPU) que faz parte do custo real de produção.
+
+Notas de interpretação:
+- **bunrouter** usa extracção lazy de parâmetros — não copia os valores durante o tree walk. Em handlers reais que lêem todos os parâmetros, MuxMaster é mais rápido a partir de ≥3 parâmetros (eager é O(1) por leitura; lazy é O(N))
+- **Fiber** usa linear scan de rotas (não radix trie) + URI parsing fasthttp por cada request; MuxMaster é 5–8x mais rápido em rotas seriais. Fiber não é compatível com `net/http` (usa `fasthttp`)
+- **Paralelo Fiber (param1):** Fiber ganha por 1.2x porque agrupa params e contexto num único pool.Get/Put; MuxMaster faz dois — investigar fusão
 
 ---
 
