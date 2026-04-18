@@ -4,7 +4,7 @@ This guide walks you through building a small but realistic REST API with MuxMas
 
 ## Prerequisites
 
-- Go 1.22 or later ([download](https://go.dev/dl/))
+- Go 1.26 or later ([download](https://go.dev/dl/))
 - Familiarity with `net/http` and Go modules
 
 ## Install

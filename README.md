@@ -51,7 +51,7 @@ The hot path allocates **zero bytes** for static routes and for routes with up t
 go get github.com/FlavioCFOliveira/MuxMaster
 ```
 
-**Requires Go 1.22 or later.**
+**Requires Go 1.26 or later.**
 
 ---
 
@@ -407,7 +407,7 @@ r.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
 })
 ```
 
-Every HTTP method has an error-returning variant: `GETE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, `HEADE`, `OPTIONSE`.
+The common HTTP methods have error-returning variants: `GETE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, `HEADE`, `OPTIONSE`. Use `HandleE` directly for `CONNECT` and `TRACE`.
 
 ### The `HTTPError` interface
 

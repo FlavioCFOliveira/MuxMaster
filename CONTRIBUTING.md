@@ -6,7 +6,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go 1.26 or later
 - `golangci-lint` — `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`
 - `staticcheck` — `go install honnef.co/go/tools/cmd/staticcheck@latest`
 
