@@ -307,8 +307,8 @@ func TestIntrospectionConcurrentNoRace(t *testing.T) {
 // a descriptive message rather than triggering a runtime index-out-of-range.
 func TestCatchAllRequiresSlashPrefix(t *testing.T) {
 	cases := []string{
-		"*bare",    // no leading slash at all
-		"/*",       // anonymous catch-all — valid form, but included for coverage
+		"*bare", // no leading slash at all
+		"/*",    // anonymous catch-all — valid form, but included for coverage
 	}
 	// The pattern that originally caused the OOB: a catch-all placed directly
 	// after a non-slash byte (i.e. `path[i] != '/'` after `i--`).

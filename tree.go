@@ -36,7 +36,7 @@ func (pb *paramsBuf) params() Params {
 type nodeType uint8
 
 const (
-	static     nodeType = iota
+	static nodeType = iota
 	root
 	param
 	wildcard
@@ -54,12 +54,12 @@ type node struct {
 	children []*node      // 24 bytes @ 48-71 (crosses into CL1)
 
 	// --- Cache line 1 (offsets 64-103) ---
-	pattern        string         // 16 bytes @ 72 (cold on lookup; set on leaves)
-	priority       uint32         // 4 bytes  @ 88 (written only during registration)
-	nType          nodeType       // 1 byte   @ 92
-	wildChild      bool           // 1 byte   @ 93
-	regexpNameEnd  uint8          // 1 byte   @ 94 (end index of param name in path for regexParam nodes)
-	regexp         *regexp.Regexp // 8 bytes  @ 96 (regex routes only)
+	pattern       string         // 16 bytes @ 72 (cold on lookup; set on leaves)
+	priority      uint32         // 4 bytes  @ 88 (written only during registration)
+	nType         nodeType       // 1 byte   @ 92
+	wildChild     bool           // 1 byte   @ 93
+	regexpNameEnd uint8          // 1 byte   @ 94 (end index of param name in path for regexParam nodes)
+	regexp        *regexp.Regexp // 8 bytes  @ 96 (regex routes only)
 }
 
 // addRoute registers a handler for the given path, expanding optional segments first.

@@ -11,10 +11,10 @@ import (
 // bytes can reach downstream middleware in raw form even though Go's wire
 // serialiser strips them before writing to the network.
 func SetHeader(key, value string) func(http.Handler) http.Handler {
-	if strings.IndexAny(key, "\r\n") >= 0 {
+	if strings.ContainsAny(key, "\r\n") {
 		panic("middleware: SetHeader key contains CR or LF: " + strconv.QuoteToASCII(key))
 	}
-	if strings.IndexAny(value, "\r\n") >= 0 {
+	if strings.ContainsAny(value, "\r\n") {
 		panic("middleware: SetHeader value contains CR or LF: " + strconv.QuoteToASCII(value))
 	}
 	return func(next http.Handler) http.Handler {

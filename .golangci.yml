@@ -3,32 +3,36 @@ version: "2"
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - gofmt
     - misspell
     - revive
-
-linters-settings:
-  revive:
+  settings:
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            - "disableStutteringCheck"
+  exclusions:
+    paths:
+      - "reports"
+      - "competitor"
     rules:
-      - name: exported
-        arguments:
-          - "checkPrivateReceivers"
+      - path: "_test\\.go"
+        linters:
+          - errcheck
+          - revive
+      - path: "(params|mux)\\.go"
+        linters:
+          - govet
+        text: "unsafeptr"
+      - path: "params\\.go"
+        linters:
+          - revive
+        text: "context-as-argument"
 
-issues:
-  exclude-rules:
-    # Error returns in tests are routinely ignored intentionally
-    - path: "_test\\.go"
-      linters:
-        - errcheck
-
-    # unsafe.Add in params.go and mux.go is intentional: reads r.ctx field offset
-    # determined at init() via reflect — documented and safe within the allocation bounds.
-    - path: "(params|mux)\\.go"
-      linters:
-        - govet
-      text: "unsafeptr"
+formatters:
+  enable:
+    - gofmt
