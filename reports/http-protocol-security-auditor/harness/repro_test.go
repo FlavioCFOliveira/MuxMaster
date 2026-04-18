@@ -149,28 +149,23 @@ func TestReproHPS004_OPTIONSAllowLeakBeforeAuth(t *testing.T) {
 	t.Logf("HPS-004 FIXED — auto-OPTIONS passes through middleware (auth_calls=%d, code=%d)", auth, rec.Code)
 }
 
-// ReproHPS005 — HPS-005: SetHeader accepts raw CR/LF in caller-supplied
-// values; while Go's serialiser replaces \r\n with spaces on the wire
-// (so no response-splitting occurs), the in-memory value is retained
-// verbatim, and any middleware downstream that reads the header sees the
-// raw bytes. Severity: Low / defence-in-depth.
+// ReproHPS005 — FIXED (MM-2026-0037): SetHeader now panics at construction
+// time when value contains CR or LF. The in-memory injection vector is
+// eliminated before any request is served.
 func TestReproHPS005_SetHeaderCRLFInMemory(t *testing.T) {
-	mux := muxmaster.New()
-	mux.Use(middleware.SetHeader("X-Inject", "val\r\nX-Other: attacker"))
-	mux.GET("/x", func(w http.ResponseWriter, r *http.Request) {
-		// Within the handler the header is visible as raw bytes.
-		v := w.Header().Get("X-Inject")
-		if !strings.ContainsAny(v, "\r\n") {
-			t.Fatalf("expected raw CR/LF in X-Inject within handler, got %q", v)
-		}
-		w.WriteHeader(204)
-	})
-
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/x", nil)
-	mux.ServeHTTP(rec, req)
-	t.Logf("HPS-005 reproduced — X-Inject = %q (sanitised on wire but visible in-memory)",
-		rec.Header().Get("X-Inject"))
+	panicked := false
+	func() {
+		defer func() {
+			if recover() != nil {
+				panicked = true
+			}
+		}()
+		middleware.SetHeader("X-Inject", "val\r\nX-Other: attacker")
+	}()
+	if !panicked {
+		t.Fatal("expected SetHeader to panic on CR/LF value")
+	}
+	t.Logf("HPS-005 FIXED (MM-2026-0037): SetHeader panics at construction — in-memory injection blocked")
 }
 
 // ReproHPS006 — HPS-006: RequestID middleware reflects arbitrary bytes

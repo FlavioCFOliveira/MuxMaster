@@ -48,8 +48,6 @@ var benchReq = func(method, path string) *http.Request {
 	return httptest.NewRequest(method, path, nil)
 }
 
-var sink int // prevent dead-code elimination
-
 // BenchmarkStaticRoute measures lookup of a route with no parameters.
 func BenchmarkStaticRoute(b *testing.B) {
 	m := newBenchMux()

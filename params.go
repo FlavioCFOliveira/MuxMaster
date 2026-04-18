@@ -116,8 +116,6 @@ func (c *requestCtx) Value(key any) any {
 
 type contextKey struct{}
 
-const maxParams = 16
-
 // PathParam returns the value of the named path parameter from the request.
 func PathParam(r *http.Request, name string) string {
 	rc, _ := r.Context().(*requestCtx)

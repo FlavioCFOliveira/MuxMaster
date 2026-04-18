@@ -146,36 +146,21 @@ func TestLoggerCRLFDirectServeHTTP(t *testing.T) {
 	}
 }
 
-// TestSetHeaderCRLF exercises middleware/set_header.go: if a caller passes
-// a value containing CR/LF, what does Go's Header().Set do?
+// TestSetHeaderCRLF — FIXED (MM-2026-0037): SetHeader now panics at construction
+// time when key or value contains CR or LF. Injection is blocked before any
+// request is served.
 func TestSetHeaderCRLF(t *testing.T) {
-	mux := muxmaster.New()
-	mux.Use(middleware.SetHeader("X-Custom", "val\r\nSet-Cookie: evil=1"))
-	mux.GET("/x", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) })
-
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-
-	resp, err := rawHTTPExchange(srv, "GET /x HTTP/1.1\r\nHost: "+stripSchemeHost(srv.URL)+"\r\nConnection: close\r\n\r\n")
-	if err != nil {
-		t.Fatalf("exchange: %v", err)
+	panicked := false
+	func() {
+		defer func() {
+			if recover() != nil {
+				panicked = true
+			}
+		}()
+		middleware.SetHeader("X-Custom", "val\r\nSet-Cookie: evil=1")
+	}()
+	if !panicked {
+		t.Fatal("expected SetHeader to panic on CR/LF value")
 	}
-	recordTranscript(t, "set-header-crlf.txt",
-		"GET /x with SetHeader('X-Custom', 'val\\r\\nSet-Cookie: evil=1')",
-		resp)
-	// Validate that the stdlib response writer does NOT produce a real
-	// Set-Cookie line. On the wire the serialiser replaces CR/LF with
-	// spaces. So "Set-Cookie:" survives only as part of the X-Custom
-	// value, with two spaces (where \r\n was).
-	cookie := ""
-	for _, line := range strings.Split(string(resp), "\r\n") {
-		if strings.HasPrefix(line, "Set-Cookie:") {
-			cookie = line
-			break
-		}
-	}
-	if cookie != "" {
-		t.Errorf("actual Set-Cookie header appeared: %q", cookie)
-	}
-	t.Logf("wire-level response: %q", string(resp))
+	t.Logf("MM-2026-0037 FIXED: SetHeader panics at construction on CR/LF value")
 }

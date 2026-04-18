@@ -71,7 +71,7 @@ func (g *gzipResponseWriter) commit() error {
 	if g.status != 0 {
 		g.ResponseWriter.WriteHeader(g.status)
 	}
-	g.gz = g.pool.Get().(*gzip.Writer)
+	g.gz = g.pool.Get().(*gzip.Writer) //nolint:forcetypeassert // pool.New always returns *gzip.Writer
 	g.gz.Reset(g.ResponseWriter)
 	_, err := g.gz.Write(g.buf)
 	g.buf = nil
@@ -106,7 +106,7 @@ func Compress(level int) func(http.Handler) http.Handler {
 		},
 	}
 	// Validate level eagerly.
-	_ = pool.Get().(*gzip.Writer)
+	_ = pool.Get().(*gzip.Writer) //nolint:forcetypeassert // pool.New always returns *gzip.Writer; errcheck not applicable to discarded value
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

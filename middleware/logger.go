@@ -35,7 +35,7 @@ func Logger(out io.Writer) func(http.Handler) http.Handler {
 			start := time.Now()
 			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 			next.ServeHTTP(rec, r)
-			fmt.Fprintf(out, "%s %s %s %d %s\n",
+			fmt.Fprintf(out, "%s %s %s %d %s\n", //nolint:errcheck // log writes intentionally ignore I/O errors
 				time.Now().Format(time.RFC3339),
 				r.Method,
 				sanitiseForLog(r.URL.Path),

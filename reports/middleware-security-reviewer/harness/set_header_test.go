@@ -17,27 +17,50 @@ import (
 )
 
 // -----------------------------------------------------------------------------
-// MSR-SH-001 — CRLF in value is refused by Go; SetHeader does NOT validate.
-// We verify that the final serialised headers do not contain injected lines.
+// MSR-SH-001 — FIXED (MM-2026-0037): SetHeader now panics at construction time
+// for values containing CR or LF. Non-CR/LF control chars pass through; Go
+// stdlib sanitises them on the wire.
 // -----------------------------------------------------------------------------
 
 func TestSec_SetHeader_CRLFValue(t *testing.T) {
-	payloads := map[string]string{
-		"crlf":       "text/html\r\nX-Injected: yes",
-		"lf":         "text/html\nX-Injected: yes",
-		"cr":         "text/html\rInjected",
+	// Payloads with CR or LF must panic at construction.
+	shouldPanic := map[string]string{
+		"crlf": "text/html\r\nX-Injected: yes",
+		"lf":   "text/html\nX-Injected: yes",
+		"cr":   "text/html\rInjected",
+	}
+	for name, p := range shouldPanic {
+		t.Run(name, func(t *testing.T) {
+			panicked := false
+			func() {
+				defer func() {
+					if recover() != nil {
+						panicked = true
+					}
+				}()
+				middleware.SetHeader("Content-Type", p)
+			}()
+			if !panicked {
+				t.Errorf("set_header[%s]: expected panic on CR/LF value %q", name, p)
+			} else {
+				t.Logf("MM-2026-0037 FIXED: set_header[%s] panics at construction", name)
+			}
+		})
+	}
+
+	// Payloads without CR/LF must not panic; wire is sanitised by Go stdlib.
+	shouldPass := map[string]string{
 		"nul":        "text/html\x00",
 		"ansi":       "text/html\x1b[2J",
 		"long_8k":    strings.Repeat("A", 8192),
 		"tab":        "text/html\ttab",
 		"unicode_ls": "text/html\u2028",
 	}
-
-	for name, p := range payloads {
+	for name, p := range shouldPass {
 		t.Run(name, func(t *testing.T) {
 			defer func() {
 				if rcv := recover(); rcv != nil {
-					t.Fatalf("SetHeader panicked on value=%q: %v", p, rcv)
+					t.Fatalf("SetHeader panicked unexpectedly on value=%q: %v", p, rcv)
 				}
 			}()
 			mw := middleware.SetHeader("Content-Type", p)
@@ -47,22 +70,9 @@ func TestSec_SetHeader_CRLFValue(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			rec := httptest.NewRecorder()
 			h.ServeHTTP(rec, req)
-
-			// Validate both in-memory and on-wire views.
-			got := rec.Header().Get("Content-Type")
 			wire := rawHeaderDump(rec.Header())
-
-			// WIRE check: only one header-block terminator. Multiple means
-			// CRLF was injected past the stdlib sanitisation.
 			if strings.Count(wire, "\r\n\r\n") > 1 {
 				t.Errorf("set_header[%s]: WIRE contains injected header block:\n%s", name, wire)
-			}
-			// IN-MEMORY finding: SetHeader does NOT validate input; any caller
-			// that passes a value through (untrusted) config may corrupt the
-			// header value, but the wire is sanitised.
-			if strings.ContainsAny(got, "\r\n") {
-				t.Logf("MSR-SH-001 CONFIRMED: set_header[%s] accepted raw CR/LF; Go stdlib sanitises on wire (wire view below):\n%s",
-					name, wire)
 			}
 		})
 	}

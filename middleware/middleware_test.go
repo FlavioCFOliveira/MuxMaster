@@ -636,3 +636,21 @@ func TestStripSlashes_MultipleTrailing(t *testing.T) {
 		}
 	}
 }
+
+func TestSetHeaderRejectsCRLF(t *testing.T) {
+	cases := []struct{ key, value string }{
+		{"X-Inject\r\nX-Other", "val"},
+		{"X-Inject", "val\r\nX-Other: evil"},
+		{"X-Key", "val\nX-Other: evil"},
+	}
+	for _, c := range cases {
+		func() {
+			defer func() {
+				if recover() == nil {
+					t.Errorf("SetHeader(%q, %q) should panic on CR/LF", c.key, c.value)
+				}
+			}()
+			middleware.SetHeader(c.key, c.value)
+		}()
+	}
+}
