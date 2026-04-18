@@ -95,6 +95,13 @@ func (ps Params) Map() map[string]string {
 
 var errParamNotFound = errors.New("muxmaster: parameter not found")
 
+// bundleInlineMax is the number of params stored inline inside requestCtx.small.
+// Routes with ≤bundleInlineMax params need no separate slice allocation.
+// Routes with >bundleInlineMax params allocate an overflow slice via make(Params, n).
+// Kept at 3 to minimise reqBundle size (reduces GC scan + malloc cost).
+// Distinct from maxParams (tree.go) which sizes the stack-local paramsBuf during getValue.
+const bundleInlineMax = 3
+
 // requestCtx IS the context — it embeds the parent and adds route data inline.
 // By implementing context.Context directly, we bypass context.WithValue entirely,
 // eliminating the valueCtx heap allocation that WithValue would cause.
@@ -102,10 +109,10 @@ type requestCtx struct {
 	context.Context
 	params  Params
 	pattern string
-	// small holds param data for routes with ≤maxInlineParams params without a separate heap alloc.
+	// small holds param data inline for routes with ≤bundleInlineMax params.
 	// params points into small[:n] in the common case, so the slice header and
 	// the backing array share a single allocation (the requestCtx itself).
-	small [maxInlineParams]Param
+	small [bundleInlineMax]Param
 }
 
 // reqBundle fuses requestCtx and a cloned http.Request in a single heap allocation.

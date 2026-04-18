@@ -85,6 +85,26 @@ func TestParamRoutes(t *testing.T) {
 	}
 }
 
+// TestParamRoutesOverflowInline exercises routes with more than bundleInlineMax (3) params.
+// These use an overflow slice (make(Params, n)) instead of the inline array in requestCtx.small.
+func TestParamRoutesOverflowInline(t *testing.T) {
+	m := muxmaster.New()
+	// 4 params — one beyond bundleInlineMax=3.
+	m.GET("/a/:p1/b/:p2/c/:p3/d/:p4", func(w http.ResponseWriter, r *http.Request) {
+		ps := muxmaster.ParamsFromContext(r.Context())
+		if len(ps) != 4 {
+			t.Errorf("want 4 params, got %d", len(ps))
+			return
+		}
+		w.Write([]byte(ps[0].Value + "," + ps[1].Value + "," + ps[2].Value + "," + ps[3].Value)) //nolint:errcheck
+	})
+
+	rec := get(m, "/a/1/b/2/c/3/d/4")
+	if want := "1,2,3,4"; rec.Body.String() != want {
+		t.Fatalf("overflow params: got %q, want %q", rec.Body.String(), want)
+	}
+}
+
 // ── Wildcard routes ───────────────────────────────────────────────────────────
 
 func TestWildcardRoutes(t *testing.T) {

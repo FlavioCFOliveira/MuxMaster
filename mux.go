@@ -480,10 +480,17 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 					bundle.ctx.Context = r.Context()
 					bundle.ctx.pattern = pattern
 					n := ps.count
-					for i := range n {
-						bundle.ctx.small[i] = pslice[i]
+					if n <= bundleInlineMax {
+						for i := range n {
+							bundle.ctx.small[i] = pslice[i]
+						}
+						bundle.ctx.params = Params(bundle.ctx.small[:n])
+					} else {
+						// Overflow: >bundleInlineMax params — allocate a separate slice.
+						overflow := make(Params, n)
+						copy(overflow, pslice)
+						bundle.ctx.params = overflow
 					}
-					bundle.ctx.params = Params(bundle.ctx.small[:n])
 					bundle.req = *r
 					setReqCtxUnsafe(&bundle.req, &bundle.ctx)
 					handler.ServeHTTP(w, &bundle.req)
@@ -493,7 +500,17 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 						Context: r.Context(),
 						pattern: pattern,
 					}
-					rc.params = Params(rc.small[:copy(rc.small[:], pslice)])
+					n := ps.count
+					if n <= bundleInlineMax {
+						for i := range n {
+							rc.small[i] = pslice[i]
+						}
+						rc.params = Params(rc.small[:n])
+					} else {
+						overflow := make(Params, n)
+						copy(overflow, pslice)
+						rc.params = overflow
+					}
 					handler.ServeHTTP(w, r.WithContext(rc))
 				}
 			} else {
@@ -550,10 +567,16 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 					bundle2.ctx.Context = r.Context()
 					bundle2.ctx.pattern = pat2
 					n := ps2.count
-					for i := range n {
-						bundle2.ctx.small[i] = pslice2[i]
+					if n <= bundleInlineMax {
+						for i := range n {
+							bundle2.ctx.small[i] = pslice2[i]
+						}
+						bundle2.ctx.params = Params(bundle2.ctx.small[:n])
+					} else {
+						overflow := make(Params, n)
+						copy(overflow, pslice2)
+						bundle2.ctx.params = overflow
 					}
-					bundle2.ctx.params = Params(bundle2.ctx.small[:n])
 					bundle2.req = *r
 					setReqCtxUnsafe(&bundle2.req, &bundle2.ctx)
 					h2.ServeHTTP(w, &bundle2.req)
@@ -562,7 +585,17 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 						Context: r.Context(),
 						pattern: pat2,
 					}
-					rc2.params = Params(rc2.small[:copy(rc2.small[:], pslice2)])
+					n := ps2.count
+					if n <= bundleInlineMax {
+						for i := range n {
+							rc2.small[i] = pslice2[i]
+						}
+						rc2.params = Params(rc2.small[:n])
+					} else {
+						overflow := make(Params, n)
+						copy(overflow, pslice2)
+						rc2.params = overflow
+					}
 					h2.ServeHTTP(w, r.WithContext(rc2))
 				}
 			} else {

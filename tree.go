@@ -11,17 +11,17 @@ import (
 // paramsBuf is a fixed-size params accumulator used in the getValue hot path.
 // Using a fixed-size struct instead of a []Param slice prevents the backing
 // array from escaping to the heap — the compiler can see the size is bounded.
-// maxInlineParams covers ≥99% of real-world APIs.
-const maxInlineParams = 8
+// maxParams covers ≥99% of real-world APIs.
+const maxParams = 8
 
 type paramsBuf struct {
 	count int
-	buf   [maxInlineParams]Param
+	buf   [maxParams]Param
 }
 
-// add appends a param to the buffer, silently dropping overflow (> maxInlineParams).
+// add appends a param to the buffer, silently dropping overflow (> maxParams).
 func (pb *paramsBuf) add(key, value string) {
-	if pb.count < maxInlineParams {
+	if pb.count < maxParams {
 		pb.buf[pb.count] = Param{Key: key, Value: value}
 		pb.count++
 	}

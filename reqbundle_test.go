@@ -50,7 +50,8 @@ func TestReqBundleParamsFromContext(t *testing.T) {
 	m.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/orgs/acme/repos/api", nil))
 }
 
-// TestReqBundleOriginalRequestUnmodified verifies that the original r is not modified.
+// TestReqBundleOriginalRequestUnmodified verifies that dispatch (reqBundle path)
+// does NOT modify the original *http.Request — the handler receives a copy.
 func TestReqBundleOriginalRequestUnmodified(t *testing.T) {
 	if !hasReqCtxField {
 		t.Skip("reqBundle fast path unavailable on this Go version")
@@ -64,7 +65,7 @@ func TestReqBundleOriginalRequestUnmodified(t *testing.T) {
 	m.ServeHTTP(httptest.NewRecorder(), orig)
 
 	if orig.Context() != origCtx {
-		t.Error("original request context was modified by dispatch")
+		t.Error("dispatch (reqBundle): original request context was modified")
 	}
 }
 
