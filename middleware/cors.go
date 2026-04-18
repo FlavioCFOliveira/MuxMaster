@@ -6,6 +6,17 @@ import (
 	"strings"
 )
 
+// isValidOrigin returns false if origin contains CR, LF, or NUL bytes.
+func isValidOrigin(origin string) bool {
+	for i := range len(origin) {
+		c := origin[i]
+		if c == '\r' || c == '\n' || c == 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // CORSOptions configures CORS behaviour.
 type CORSOptions struct {
 	AllowedOrigins   []string
@@ -42,6 +53,11 @@ func CORS(opts CORSOptions) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
+			// Reject CRLF/NUL in Origin before setting any response header (MM-2026-0028).
+			if !isValidOrigin(origin) {
+				http.Error(w, "Bad Request", http.StatusBadRequest)
+				return
+			}
 			if !allowAll && !allowedOrigins[origin] {
 				if len(opts.AllowedOrigins) > 0 {
 					http.Error(w, "Forbidden", http.StatusForbidden)
@@ -51,7 +67,12 @@ func CORS(opts CORSOptions) func(http.Handler) http.Handler {
 				return
 			}
 			h := w.Header()
-			h.Set("Access-Control-Allow-Origin", origin)
+			// When allowAll, emit the literal "*" — never reflect the request origin (MM-2026-0012).
+			if allowAll {
+				h.Set("Access-Control-Allow-Origin", "*")
+			} else {
+				h.Set("Access-Control-Allow-Origin", origin)
+			}
 			if opts.AllowCredentials {
 				h.Set("Access-Control-Allow-Credentials", "true")
 			}

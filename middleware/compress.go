@@ -2,20 +2,24 @@ package middleware
 
 import (
 	"compress/gzip"
-	"io"
 	"net/http"
 	"strings"
 	"sync"
 )
 
-const minCompressSize = 1024
+const (
+	minCompressSize = 1024
+	sniffBufSize    = 8192
+)
 
 type gzipResponseWriter struct {
 	http.ResponseWriter
-	gz     *gzip.Writer
-	buf    []byte
-	status int
-	done   bool
+	pool    *sync.Pool
+	gz      *gzip.Writer // non-nil once compression is committed
+	buf     []byte       // bounded sniff buffer (at most sniffBufSize bytes)
+	status  int
+	decided bool // true once compress/skip decision is made
+	skip    bool // true = pass through uncompressed
 }
 
 func (g *gzipResponseWriter) WriteHeader(code int) {
@@ -23,50 +27,86 @@ func (g *gzipResponseWriter) WriteHeader(code int) {
 }
 
 func (g *gzipResponseWriter) Write(b []byte) (int, error) {
-	if !g.done {
+	if g.decided {
+		if g.skip {
+			return g.ResponseWriter.Write(b)
+		}
+		return g.gz.Write(b)
+	}
+	// Still accumulating the sniff buffer.
+	room := sniffBufSize - len(g.buf)
+	if len(b) <= room {
 		g.buf = append(g.buf, b...)
 		return len(b), nil
 	}
-	return g.gz.Write(b)
+	// Enough data — make the compress/skip decision now.
+	g.buf = append(g.buf, b[:room]...)
+	if err := g.commit(); err != nil {
+		return 0, err
+	}
+	rest := b[room:]
+	if g.skip {
+		n, err := g.ResponseWriter.Write(rest)
+		return room + n, err
+	}
+	n, err := g.gz.Write(rest)
+	return room + n, err
 }
 
-func (g *gzipResponseWriter) flush(w http.ResponseWriter, pool *sync.Pool) {
+// commit flushes the sniff buffer and sets decided=true.
+func (g *gzipResponseWriter) commit() error {
+	g.decided = true
 	if len(g.buf) < minCompressSize {
-		// write uncompressed
+		g.skip = true
 		if g.status != 0 {
-			w.WriteHeader(g.status)
+			g.ResponseWriter.WriteHeader(g.status)
 		}
-		_, _ = w.Write(g.buf)
-		return
+		_, err := g.ResponseWriter.Write(g.buf)
+		g.buf = nil
+		return err
 	}
-	w.Header().Set("Content-Encoding", "gzip")
-	w.Header().Del("Content-Length")
-	w.Header().Add("Vary", "Accept-Encoding")
+	g.ResponseWriter.Header().Set("Content-Encoding", "gzip")
+	g.ResponseWriter.Header().Del("Content-Length")
+	g.ResponseWriter.Header().Add("Vary", "Accept-Encoding")
 	if g.status != 0 {
-		w.WriteHeader(g.status)
+		g.ResponseWriter.WriteHeader(g.status)
 	}
-	gz := pool.Get().(*gzip.Writer)
-	gz.Reset(w)
-	_, _ = gz.Write(g.buf)
-	_ = gz.Close()
-	pool.Put(gz)
+	g.gz = g.pool.Get().(*gzip.Writer)
+	g.gz.Reset(g.ResponseWriter)
+	_, err := g.gz.Write(g.buf)
+	g.buf = nil
+	return err
 }
 
-// Compress compresses responses with gzip when the client accepts it. Panics on invalid level.
-func Compress(level int) func(http.Handler) http.Handler {
-	// validate level by creating a test writer
-	testGz, err := gzip.NewWriterLevel(io.Discard, level)
-	if err != nil {
-		panic("middleware: invalid gzip level: " + err.Error())
+// close is called after the handler returns.
+func (g *gzipResponseWriter) close() {
+	if !g.decided {
+		// Handler returned without writing sniffBufSize bytes — decide now.
+		_ = g.commit()
 	}
-	testGz.Close()
+	if !g.skip && g.gz != nil {
+		_ = g.gz.Close()
+		g.pool.Put(g.gz)
+		g.gz = nil
+	}
+}
 
+// Compress compresses responses with gzip when the client accepts it.
+// Responses smaller than 1024 bytes are passed through uncompressed.
+// Uses streaming compression — memory usage is bounded regardless of response size.
+// Panics on invalid compression level.
+func Compress(level int) func(http.Handler) http.Handler {
 	pool := &sync.Pool{
 		New: func() any {
-			gz, _ := gzip.NewWriterLevel(io.Discard, level)
+			gz, err := gzip.NewWriterLevel(nil, level)
+			if err != nil {
+				panic("middleware: invalid gzip level: " + err.Error())
+			}
 			return gz
 		},
 	}
+	// Validate level eagerly.
+	_ = pool.Get().(*gzip.Writer)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -74,10 +114,9 @@ func Compress(level int) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			grw := &gzipResponseWriter{ResponseWriter: w}
+			grw := &gzipResponseWriter{ResponseWriter: w, pool: pool}
+			defer grw.close()
 			next.ServeHTTP(grw, r)
-			grw.done = true
-			grw.flush(w, pool)
 		})
 	}
 }

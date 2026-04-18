@@ -1,7 +1,6 @@
 package harness
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -20,8 +19,9 @@ import (
 // ReproHPS001 — HPS-001: Logger middleware prints percent-decoded r.URL.Path
 // verbatim, allowing CRLF and ANSI injection into the log stream.
 // CWE-117 / CWE-93 / CWE-150.
+// HPS-001 FIXED (MM-2026-0006): logger sanitises CR/LF — single log line only
 func TestReproHPS001_LoggerCRLFInjection(t *testing.T) {
-	var buf bytes.Buffer
+	var buf strings.Builder
 	mux := muxmaster.New()
 	mux.Use(middleware.Logger(&buf))
 	mux.GET("/*rest", func(w http.ResponseWriter, r *http.Request) {
@@ -41,15 +41,24 @@ func TestReproHPS001_LoggerCRLFInjection(t *testing.T) {
 
 	log := buf.String()
 	lineCount := strings.Count(log, "\n")
-	if lineCount < 2 {
-		t.Fatalf("expected log injection to produce ≥2 lines, got %d; log=%q", lineCount, log)
+	// Fixed: logger uses strconv.QuoteToASCII — CR/LF are escaped, so only one line is written.
+	if lineCount != 1 {
+		t.Errorf("expected exactly 1 log line (sanitised), got %d; log=%q", lineCount, log)
 	}
-	t.Logf("HPS-001 reproduced — log output:\n%s", log)
+	// The escaped form must appear, not the raw bytes.
+	if strings.ContainsAny(log, "\r\n") && strings.Count(log, "\n") > 1 {
+		t.Errorf("raw CR/LF present in log output — sanitisation failed; log=%q", log)
+	}
+	if !strings.Contains(log, `\r\n`) {
+		t.Logf("note: escaped \\r\\n not found in log (may depend on exact sanitisation representation); log=%q", log)
+	}
+	t.Logf("HPS-001 FIXED — log output:\n%s", log)
 }
 
 // ReproHPS002 — HPS-002: RealIP middleware writes X-Forwarded-For value into
 // r.RemoteAddr without validation, allowing control bytes through.
 // CWE-20 / CWE-345.
+// HPS-002 FIXED (MM-2026-0008): RealIP rejects invalid IPs — RemoteAddr unchanged
 func TestReproHPS002_RealIPControlBytes(t *testing.T) {
 	var observed string
 	mux := muxmaster.New()
@@ -70,10 +79,15 @@ func TestReproHPS002_RealIPControlBytes(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "1.2.3.4\r\nSet-Cookie: evil=1")
 	mux.ServeHTTP(rec, req)
 
-	if !strings.ContainsAny(observed, "\r\n") {
-		t.Fatalf("expected RemoteAddr to contain CR/LF, got %q", observed)
+	// Fixed: RealIP now validates with netip.ParseAddr — the CRLF-containing value
+	// is rejected, so RemoteAddr is left equal to the original peer address.
+	if strings.ContainsAny(observed, "\r\n") {
+		t.Errorf("RemoteAddr contains CR/LF — sanitisation failed; got %q", observed)
 	}
-	t.Logf("HPS-002 reproduced — r.RemoteAddr = %q", observed)
+	if observed != "1.2.3.4:5555" {
+		t.Errorf("expected RemoteAddr to remain unchanged at %q, got %q", "1.2.3.4:5555", observed)
+	}
+	t.Logf("HPS-002 FIXED — r.RemoteAddr = %q (unchanged)", observed)
 }
 
 // ReproHPS003 — HPS-003: TSR redirect emitted before user middleware runs,
@@ -164,6 +178,7 @@ func TestReproHPS005_SetHeaderCRLFInMemory(t *testing.T) {
 // CR/LF, other bytes (NUL, ANSI, DEL, 1MB of data) reach the response.
 // This creates an *amplification* channel (client controls response size).
 // CWE-20 / CWE-400.
+// HPS-006 FIXED (MM-2026-0006): RequestID bounded to 128 bytes
 func TestReproHPS006_RequestIDAmplification(t *testing.T) {
 	mux := muxmaster.New()
 	mux.Use(middleware.RequestID())
@@ -175,9 +190,10 @@ func TestReproHPS006_RequestIDAmplification(t *testing.T) {
 	req.Header.Set("X-Request-ID", big)
 	mux.ServeHTTP(rec, req)
 	reply := rec.Header().Get("X-Request-Id")
-	if len(reply) < 1<<20 {
-		t.Fatalf("expected ≥1MiB reflection, got %d bytes", len(reply))
+	// Fixed: RequestID limits client-supplied IDs to 128 bytes; oversized or
+	// invalid IDs are discarded and a fresh UUID is generated instead.
+	if len(reply) > 128 {
+		t.Errorf("expected reply ≤128 bytes (bounded), got %d bytes", len(reply))
 	}
-	t.Logf("HPS-006 reproduced — response X-Request-ID reflected %d bytes from client",
-		len(reply))
+	t.Logf("HPS-006 FIXED — response X-Request-ID length: %d bytes (≤128)", len(reply))
 }

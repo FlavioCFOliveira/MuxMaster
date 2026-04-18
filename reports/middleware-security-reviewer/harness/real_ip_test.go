@@ -48,8 +48,8 @@ func TestSec_RealIP_TrustMatrix(t *testing.T) {
 		// Chain XFF "a, b, c" → RemoteAddr = first element.
 		{"chain_xff_first", "10.0.0.5:12345", "1.2.3.4, 5.6.7.8, 10.0.0.5", "", "1.2.3.4"},
 
-		// XFF with tab-separator — current code uses only IndexByte ','.
-		{"xff_tab_sep", "10.0.0.5:12345", "1.2.3.4 \t5.6.7.8", "", "1.2.3.4 \t5.6.7.8"},
+		// XFF with tab-separator — tab-separated value is not a valid IP; rejected.
+		{"xff_tab_sep", "10.0.0.5:12345", "1.2.3.4 \t5.6.7.8", "", "10.0.0.5:12345"},
 
 		// XFF with whitespace — TrimSpace runs.
 		{"xff_whitespace", "10.0.0.5:12345", "   1.2.3.4   ", "", "1.2.3.4"},
@@ -63,27 +63,27 @@ func TestSec_RealIP_TrustMatrix(t *testing.T) {
 		// IPv6 without brackets.
 		{"ipv6_plain", "10.0.0.5:12345", "2001:db8::1", "", "2001:db8::1"},
 
-		// IPv6 with brackets.
-		{"ipv6_bracketed", "10.0.0.5:12345", "[2001:db8::1]", "", "[2001:db8::1]"},
+		// IPv6 with brackets — netip.ParseAddr rejects bracketed form; RemoteAddr unchanged.
+		{"ipv6_bracketed", "10.0.0.5:12345", "[2001:db8::1]", "", "10.0.0.5:12345"},
 
 		// Private ranges — accepted without warning.
 		{"private_xff", "10.0.0.5:12345", "192.168.1.1", "", "192.168.1.1"},
 		{"loopback_xff", "10.0.0.5:12345", "127.0.0.1", "", "127.0.0.1"},
 
-		// Obviously invalid IP — accepted (no validation).
-		{"garbage_xff", "10.0.0.5:12345", "not-an-ip!!!", "", "not-an-ip!!!"},
+		// Obviously invalid IP — rejected by netip.ParseAddr; RemoteAddr unchanged.
+		{"garbage_xff", "10.0.0.5:12345", "not-an-ip!!!", "", "10.0.0.5:12345"},
 
 		// Empty XFF string (header present, value empty) → skipped.
 		{"empty_xff", "192.0.2.1:12345", "", "", "192.0.2.1:12345"},
 
-		// XFF with only whitespace.
-		{"whitespace_only_xff", "192.0.2.1:12345", "   ", "", ""},
+		// XFF with only whitespace — trimmed to empty, rejected; RemoteAddr unchanged.
+		{"whitespace_only_xff", "192.0.2.1:12345", "   ", "", "192.0.2.1:12345"},
 
 		// XFF with trailing comma.
 		{"trailing_comma", "10.0.0.5:12345", "1.2.3.4,", "", "1.2.3.4"},
 
-		// XFF leading comma.
-		{"leading_comma", "10.0.0.5:12345", ",1.2.3.4", "", ""},
+		// XFF leading comma — first element is empty after split; rejected; RemoteAddr unchanged.
+		{"leading_comma", "10.0.0.5:12345", ",1.2.3.4", "", "10.0.0.5:12345"},
 	}
 
 	rows := [][]string{{"case", "remote_addr_in", "xff", "xri", "remote_addr_out", "expected"}}

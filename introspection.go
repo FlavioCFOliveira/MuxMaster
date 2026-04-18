@@ -20,6 +20,8 @@ func (m *Mux) Lookup(method, path string) (http.Handler, Params, bool) {
 	if path == "" || path[0] != '/' {
 		return nil, nil, false
 	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	trees := m.treesPtr.Load()
 	if trees == nil {
 		return nil, nil, false
@@ -47,6 +49,8 @@ func (m *Mux) Lookup(method, path string) (http.Handler, Params, bool) {
 
 // Routes returns a slice of RouteInfo for every registered route.
 func (m *Mux) Routes() []RouteInfo {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	trees := m.treesPtr.Load()
 	if trees == nil {
 		return nil
@@ -71,6 +75,8 @@ func (m *Mux) Routes() []RouteInfo {
 // Walk calls fn for each registered route.
 // Stops iteration and returns the error if fn returns non-nil.
 func (m *Mux) Walk(fn func(method, pattern string, handler http.Handler) error) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	trees := m.treesPtr.Load()
 	if trees == nil {
 		return nil

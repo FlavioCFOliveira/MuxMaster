@@ -31,7 +31,7 @@ func TestSec_StripSlashes_Matrix(t *testing.T) {
 		{"//", "/"},        // len > 1 and ends in '/' → strip last byte
 		{"//a", "//a"},     // leading double-slash, no trailing strip needed
 		{"//a/", "//a"},    // leading double-slash, trailing stripped
-		{"/a//", "/a/"},    // only last byte stripped — documented single-pass
+		{"/a//", "/a"},     // all trailing slashes stripped (loop, not single-pass)
 		{"/a//b", "/a//b"}, // internal double slash preserved
 		{"/a/b/c/", "/a/b/c"},
 	}

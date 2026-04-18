@@ -153,8 +153,11 @@ type Mux struct {
 
 	middleware []func(http.Handler) http.Handler
 	pre        []func(http.Handler) http.Handler
-	preHandler http.Handler // built by Pre(), wraps dispatch
-	mu         sync.Mutex   // guards registration only — never held on the hot path
+
+	// preHandlerPtr stores the pre-dispatch handler chain built by Pre().
+	// Stored as an atomic pointer so ServeHTTP can read it without a lock.
+	preHandlerPtr atomic.Pointer[http.Handler]
+	mu            sync.RWMutex // guards Use/Pre/Handle/introspection
 }
 
 // New returns a Mux with production-safe defaults enabled.
@@ -171,14 +174,19 @@ func New() *Mux {
 // Use appends one or more middleware to the chain. Each middleware wraps all
 // handlers registered after this call. The first middleware added is outermost.
 func (m *Mux) Use(middleware ...func(http.Handler) http.Handler) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.middleware = append(m.middleware, middleware...)
 }
 
 // Pre registers middleware that runs before dispatch (e.g. before routing).
 // Calling Pre rebuilds the pre-dispatch handler chain.
 func (m *Mux) Pre(mw ...func(http.Handler) http.Handler) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.pre = append(m.pre, mw...)
-	m.preHandler = wrapMiddleware(http.HandlerFunc(m.dispatch), m.pre)
+	h := wrapMiddleware(http.HandlerFunc(m.dispatch), m.pre)
+	m.preHandlerPtr.Store(&h)
 }
 
 // Handle registers handler for the given HTTP method and path pattern.
@@ -362,7 +370,13 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 		*r2.URL = *r.URL
 		r2.URL.Path = p
 		if r.URL.RawPath != "" {
-			r2.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, prefix)
+			trimmed := strings.TrimPrefix(r.URL.RawPath, prefix)
+			if len(trimmed) == len(r.URL.RawPath) {
+				// TrimPrefix didn't match — zero RawPath to prevent stale encoded prefix.
+				r2.URL.RawPath = ""
+			} else {
+				r2.URL.RawPath = trimmed
+			}
 		}
 		h.ServeHTTP(w, r2)
 	})
@@ -406,8 +420,8 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		m.dispatchWithRecover(w, r)
 		return
 	}
-	if m.preHandler != nil {
-		m.preHandler.ServeHTTP(w, r)
+	if ph := m.preHandlerPtr.Load(); ph != nil {
+		(*ph).ServeHTTP(w, r)
 		return
 	}
 	m.dispatch(w, r)
@@ -417,8 +431,8 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // configured. Kept in a separate function so the common path avoids defer setup.
 func (m *Mux) dispatchWithRecover(w http.ResponseWriter, r *http.Request) {
 	defer m.recoverPanic(w, r)
-	if m.preHandler != nil {
-		m.preHandler.ServeHTTP(w, r)
+	if ph := m.preHandlerPtr.Load(); ph != nil {
+		(*ph).ServeHTTP(w, r)
 		return
 	}
 	m.dispatch(w, r)
