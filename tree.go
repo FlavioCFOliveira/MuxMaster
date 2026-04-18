@@ -54,11 +54,12 @@ type node struct {
 	children []*node      // 24 bytes @ 48-71 (crosses into CL1)
 
 	// --- Cache line 1 (offsets 64-103) ---
-	pattern   string         // 16 bytes @ 72 (cold on lookup; set on leaves)
-	priority  uint32         // 4 bytes  @ 88 (written only during registration)
-	nType     nodeType       // 1 byte   @ 92
-	wildChild bool           // 1 byte   @ 93
-	regexp    *regexp.Regexp // 8 bytes  @ 96 (regex routes only)
+	pattern        string         // 16 bytes @ 72 (cold on lookup; set on leaves)
+	priority       uint32         // 4 bytes  @ 88 (written only during registration)
+	nType          nodeType       // 1 byte   @ 92
+	wildChild      bool           // 1 byte   @ 93
+	regexpNameEnd  uint8          // 1 byte   @ 94 (end index of param name in path for regexParam nodes)
+	regexp         *regexp.Regexp // 8 bytes  @ 96 (regex routes only)
 }
 
 // addRoute registers a handler for the given path, expanding optional segments first.
@@ -240,7 +241,7 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 				n.path = path[:i]
 				path = path[i:]
 			}
-			child := &node{nType: regexParam, path: wc, regexp: re}
+			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
 			// Append: preserve existing static children so they remain reachable via n.indices.
 			n.children = append(n.children, child)
 			n.wildChild = true
@@ -371,9 +372,9 @@ walk:
 				if !n.regexp.MatchString(seg) {
 					return
 				}
-				// Param name is between '{' and ':' in n.path, e.g. "{name:expr}"
-				colonIdx := strings.Index(n.path[1:], ":")
-				name := n.path[1 : 1+colonIdx]
+				// Param name is between '{' and ':' in n.path, e.g. "{name:expr}".
+				// regexpNameEnd is pre-computed at registration — no strings.Index here.
+				name := n.path[1:n.regexpNameEnd]
 				if params != nil {
 					params.add(name, seg)
 				}
