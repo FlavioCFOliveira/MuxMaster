@@ -96,11 +96,11 @@ r.NotFound = myHandler
 r.MethodNotAllowed = myHandler
 r.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) { ... }
 
-// Opções (todas true por defeito)
-r.RedirectTrailingSlash  = true
-r.RedirectFixedPath      = true
-r.HandleMethodNotAllowed = true
-r.HandleOPTIONS          = true
+// Opções e respectivos defaults
+r.RedirectTrailingSlash  = true   // default: true
+r.RedirectFixedPath      = false  // default: false (segurança — canonicalização pode bypassar middleware)
+r.HandleMethodNotAllowed = true   // default: true
+r.HandleOPTIONS          = true   // default: true
 
 http.ListenAndServe(":8080", r)
 ```
@@ -110,12 +110,14 @@ http.ListenAndServe(":8080", r)
 ### Middleware aplicado no registo, não no request
 `wrapMiddleware` é chamado em `Handle()` no momento do registo. Isto significa **zero overhead de middleware por request** — mas o `Use()` deve ser chamado antes das rotas que deve envolver.
 
-### sync.Pool para Params
-- `acquireParams()` / `releaseParams()` evitam alocação na pesquisa de rotas sem parâmetros
-- Quando há parâmetros: faz-se um `make(Params, n)` + `copy` antes de armazenar no contexto (necessário para não partilhar o array do pool entre goroutines)
+### Acumulação de params sem alocação (paramsBuf + requestCtx)
+- `paramsBuf` é uma struct de tamanho fixo alocada na stack durante `getValue` — sem `sync.Pool`, sem escape para heap em rotas estáticas
+- `requestCtx` incorpora `small [maxInlineParams]Param` inline; em rotas com parâmetros, `params` aponta para `small[:n]`, partilhando a mesma alocação do `requestCtx` (+1 alloc/op no hot path de params, necessário porque o contexto pode sobreviver ao handler via goroutines)
 
 ### Concorrência
-- `sync.RWMutex` protege o mapa `m.trees` (adição de métodos novos)
+- `treesPtr atomic.Pointer[methodTrees]` — leitura lock-free em cada request via `.Load()`; escrita copy-on-write sob `mu` durante o registo
+- `methodTrees` é um array `[methodCount]*node` indexado por constante (0–9), não um `map[string]*node`
+- `sync.RWMutex mu` protege Use/Pre/Handle e introspecção; não é necessário para leituras em `ServeHTTP`
 - Os nós da árvore são apenas lidos após o registo inicial — não suporta registo dinâmico de rotas após iniciar a servir
 
 ### Tipo `Param` vs função `PathParam`
@@ -124,7 +126,7 @@ Go não permite um tipo e uma função com o mesmo nome no mesmo pacote. Por iss
 - Função: `muxmaster.PathParam(r, "name")`
 
 ### Bug corrigido na árvore radix
-A condição `c != ':' && c != '*' && n.nType != param` era incorrecta — impedia a criação de filhos estáticos em nós `param` (ex: `/users/:id/posts`), corrompendo a árvore ao sobrescrever `n.path`. Corrigido para `c != ':' && c != '*'`.
+A condição `c != ':' && c != '*' && n.nType != param` era incorrecta — impedia a criação de filhos estáticos em nós `param` (ex: `/users/:id/posts`), corrompendo a árvore ao sobrescrever `n.path`. Corrigido para `c != ':' && c != '*' && c != '{'` (o `{` adicional cobre os regex params `{name:expr}`).
 
 ## Comandos úteis
 

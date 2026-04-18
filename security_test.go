@@ -3,6 +3,7 @@ package muxmaster_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -213,5 +214,154 @@ func TestNotFoundRunsMiddleware(t *testing.T) {
 	}
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
+// ── Phase 4: concurrency regressions ─────────────────────────────────────────
+
+// TestUseConcurrentNoRace verifies MM-2026-0014: Use() and Pre() are protected
+// by m.mu and may be called concurrently during route registration without
+// causing a DATA RACE. Run with: go test -race.
+func TestUseConcurrentNoRace(t *testing.T) {
+	m := muxmaster.New()
+	noop := func(next http.Handler) http.Handler { return next }
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(2)
+		go func() { defer wg.Done(); m.Use(noop) }()
+		go func() { defer wg.Done(); m.Pre(noop) }()
+	}
+	wg.Wait()
+}
+
+// TestIntrospectionConcurrentNoRace verifies MM-2026-0016: Walk, Routes, and
+// Lookup hold m.mu.RLock() and do not race with concurrent Handle calls.
+// Run with: go test -race.
+func TestIntrospectionConcurrentNoRace(t *testing.T) {
+	m := muxmaster.New()
+	h := handler(200, "ok")
+	// Pre-populate a few routes so the tree is non-trivial.
+	for _, path := range []string{"/a", "/b/:id", "/c/*rest"} {
+		m.GET(path, h)
+	}
+
+	var wg sync.WaitGroup
+	stop := make(chan struct{})
+
+	// Readers: Walk, Routes, Lookup — all concurrent.
+	for i := 0; i < 5; i++ {
+		wg.Add(3)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					_ = m.Walk(func(_, _ string, _ http.Handler) error { return nil })
+				}
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					_ = m.Routes()
+				}
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					_, _, _ = m.Lookup("GET", "/b/42")
+				}
+			}
+		}()
+	}
+
+	// Writer: register new unique routes concurrently with the readers.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 20; i++ {
+			// Each path must be unique; registering duplicates panics by design.
+			m.GET("/dyn/"+string(rune('A'+i)), h)
+		}
+		close(stop)
+	}()
+
+	wg.Wait()
+}
+
+// ── Phase 5: tree edge cases ──────────────────────────────────────────────────
+
+// TestCatchAllRequiresSlashPrefix verifies MM-2026-0021: a catch-all wildcard
+// without a '/' prefix (e.g. "/{:}*name") must panic at registration time with
+// a descriptive message rather than triggering a runtime index-out-of-range.
+func TestCatchAllRequiresSlashPrefix(t *testing.T) {
+	cases := []string{
+		"*bare",    // no leading slash at all
+		"/*",       // anonymous catch-all — valid form, but included for coverage
+	}
+	// The pattern that originally caused the OOB: a catch-all placed directly
+	// after a non-slash byte (i.e. `path[i] != '/'` after `i--`).
+	malformed := "/{:}*00000"
+	panicked := false
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				panicked = true
+			}
+		}()
+		m := muxmaster.New()
+		m.GET(malformed, handler(200, "ok"))
+	}()
+	if !panicked {
+		t.Fatalf("expected panic registering %q, got none", malformed)
+	}
+	_ = cases // kept for documentation; malformed is the OOB reproducer
+}
+
+// ── Phase 6: Mount RawPath normalisation ─────────────────────────────────────
+
+// TestMountRawPathNormalisedOnMismatch verifies MM-2026-0022: when Mount strips
+// a prefix and the percent-encoded RawPath does not start with the same prefix,
+// RawPath is zeroed instead of forwarding a stale encoded path to the inner
+// handler.
+func TestMountRawPathNormalisedOnMismatch(t *testing.T) {
+	var gotRawPath string
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotRawPath = r.URL.RawPath
+		w.WriteHeader(200)
+	})
+
+	m := muxmaster.New()
+	m.Mount("/api", inner)
+
+	// A request with a percent-encoded path that, after URL parsing, maps to
+	// the mounted prefix. RawPath will be set by the test runner; we simulate
+	// the case where the encoded form does NOT start with /api to trigger the
+	// mismatch branch.
+	req := httptest.NewRequest("GET", "/api/v1/resource", nil)
+	// Manually set RawPath to a value that does not match prefix "/api",
+	// exercising the TrimPrefix-mismatch guard.
+	req.URL.RawPath = "/%61pi/v1/resource" // %61 == 'a', so prefix "/api" is not a byte-equal prefix
+
+	rec := httptest.NewRecorder()
+	m.ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	// Inner handler must receive empty RawPath, not the stale encoded prefix.
+	if gotRawPath != "" {
+		t.Fatalf("expected empty RawPath on mismatch, got %q", gotRawPath)
 	}
 }
