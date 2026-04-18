@@ -4,10 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"reflect"
 	"strconv"
-	"sync"
-	"unsafe"
 )
 
 // Param is a single URL path parameter (key + value).
@@ -103,10 +100,10 @@ type requestCtx struct {
 	context.Context
 	params  Params
 	pattern string
-	// small holds param data for routes with ≤3 params without a separate heap alloc.
+	// small holds param data for routes with ≤maxInlineParams params without a separate heap alloc.
 	// params points into small[:n] in the common case, so the slice header and
 	// the backing array share a single allocation (the requestCtx itself).
-	small [3]Param
+	small [maxInlineParams]Param
 }
 
 // Value intercepts the route-params key and falls through to the parent for everything else.
@@ -120,40 +117,6 @@ func (c *requestCtx) Value(key any) any {
 type contextKey struct{}
 
 const maxParams = 16
-
-// rcPool reuses requestCtx objects — avoids one heap alloc per param request.
-// sync.Pool's per-P design wins under real parallel load: attempts at user-space
-// atomic rings (swap / CAS on global slots) regressed parallel param routes by
-// ~20% due to cache line bouncing across cores, even with per-slot padding.
-var rcPool = sync.Pool{New: func() any { return new(requestCtx) }}
-
-// acquireRC / releaseRC: indirection layer — ready to swap in an alternative
-// pool strategy if a future design beats sync.Pool in both serial and parallel.
-func acquireRC() *requestCtx  { return rcPool.Get().(*requestCtx) }
-func releaseRC(rc *requestCtx) { rcPool.Put(rc) }
-
-// reqCtxOffset is the byte offset of the unexported 'ctx context.Context' field
-// inside http.Request. Determined at init via reflect — safe under -race and checkptr.
-var reqCtxOffset uintptr
-
-func init() {
-	t := reflect.TypeOf(http.Request{})
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		if f.Name == "ctx" {
-			reqCtxOffset = f.Offset
-			break
-		}
-	}
-}
-
-// setReqCtx writes ctx into r's unexported ctx field.
-// Safe when r is exclusively owned by the current goroutine (pool get → put pattern).
-// Uses unsafe.Add which is checkptr-safe: the base pointer is a valid allocation and
-// reqCtxOffset is within that allocation's bounds.
-func setReqCtx(r *http.Request, ctx context.Context) {
-	*(*context.Context)(unsafe.Add(unsafe.Pointer(r), reqCtxOffset)) = ctx
-}
 
 // PathParam returns the value of the named path parameter from the request.
 func PathParam(r *http.Request, name string) string {

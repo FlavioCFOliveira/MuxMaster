@@ -94,16 +94,15 @@ func TestReproHPS003_TSRRouteDisclosureBeforeAuth(t *testing.T) {
 	req := httptest.NewRequest("GET", "/admin", nil) // note: no trailing slash
 	mux.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusMovedPermanently {
-		t.Fatalf("expected 301 TSR, got %d", rec.Code)
+	// FIXED (MM-2026-0004): TSR redirect now passes through middleware.
+	// Auth middleware (denyAll) must run and return 403 — no route disclosure.
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 (auth ran on TSR), got %d", rec.Code)
 	}
-	if rec.Header().Get("Location") != "/admin/" {
-		t.Fatalf("expected Location=/admin/, got %q", rec.Header().Get("Location"))
+	if auth == 0 {
+		t.Fatalf("auth middleware did not run on TSR redirect — disclosure still present")
 	}
-	if auth != 0 {
-		t.Fatalf("auth middleware ran (%d) — expected 0 for pre-auth disclosure", auth)
-	}
-	t.Logf("HPS-003 reproduced — TSR leaked route existence with auth_calls=%d", auth)
+	t.Logf("HPS-003 FIXED — TSR passes through middleware (auth_calls=%d, code=%d)", auth, rec.Code)
 }
 
 // ReproHPS004 — HPS-004: auto-OPTIONS discloses registered methods before auth.
@@ -125,15 +124,15 @@ func TestReproHPS004_OPTIONSAllowLeakBeforeAuth(t *testing.T) {
 	req := httptest.NewRequest("OPTIONS", "/admin/config", nil)
 	mux.ServeHTTP(rec, req)
 
-	allow := rec.Header().Get("Allow")
-	if !strings.Contains(allow, "GET") || !strings.Contains(allow, "POST") || !strings.Contains(allow, "DELETE") {
-		t.Fatalf("expected methods in Allow header, got %q", allow)
+	// FIXED (MM-2026-0005): auto-OPTIONS now passes through middleware.
+	// Auth middleware (denyAll) must run and return 403 — no Allow header leak.
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 (auth ran on OPTIONS), got %d", rec.Code)
 	}
-	if auth != 0 {
-		t.Fatalf("auth middleware ran (%d) — expected 0", auth)
+	if auth == 0 {
+		t.Fatalf("auth middleware did not run on auto-OPTIONS — disclosure still present")
 	}
-	t.Logf("HPS-004 reproduced — Allow header %q disclosed without auth (auth_calls=%d)",
-		allow, auth)
+	t.Logf("HPS-004 FIXED — auto-OPTIONS passes through middleware (auth_calls=%d, code=%d)", auth, rec.Code)
 }
 
 // ReproHPS005 — HPS-005: SetHeader accepts raw CR/LF in caller-supplied

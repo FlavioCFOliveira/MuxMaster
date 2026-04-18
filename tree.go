@@ -3,14 +3,16 @@ package muxmaster
 import (
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // paramsBuf is a fixed-size params accumulator used in the getValue hot path.
 // Using a fixed-size struct instead of a []Param slice prevents the backing
 // array from escaping to the heap — the compiler can see the size is bounded.
 // maxInlineParams covers ≥99% of real-world APIs.
-const maxInlineParams = 3
+const maxInlineParams = 8
 
 type paramsBuf struct {
 	count int
@@ -69,6 +71,9 @@ func (n *node) addRoute(path string, handler http.Handler) {
 	}
 
 	fullPath := path
+	if !utf8.ValidString(path) {
+		panic("muxmaster: path contains invalid UTF-8: " + strconv.QuoteToASCII(path))
+	}
 	n.priority++
 
 	if n.path == "" && n.indices == "" {
@@ -120,6 +125,12 @@ walk:
 			}
 
 			if c != ':' && c != '*' && c != '{' {
+				if n.wildChild {
+					seg := strings.SplitN(path, "/", 2)[0]
+					pfx := fullPath[:strings.Index(fullPath, seg)] + n.children[len(n.children)-1].path
+					panic("'" + seg + "' in path '" + fullPath +
+						"' conflicts with existing wildcard '" + pfx + "'")
+				}
 				n.indices += string(c)
 				child := &node{}
 				n.children = append(n.children, child)
@@ -257,8 +268,8 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 		}
 
 		i--
-		if path[i] != '/' {
-			panic("no '/' before catch-all in path '" + fullPath + "'")
+		if i < 0 || path[i] != '/' {
+			panic("muxmaster: catch-all requires a '/' prefix in path '" + fullPath + "'")
 		}
 
 		n.path = path[:i]

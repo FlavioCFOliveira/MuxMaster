@@ -22,14 +22,12 @@
 package muxmaster
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"unsafe"
 )
 
 // anyMethods is the full set of HTTP methods registered by ANY and Group.ANY.
@@ -163,7 +161,7 @@ type Mux struct {
 func New() *Mux {
 	return &Mux{
 		RedirectTrailingSlash:  true,
-		RedirectFixedPath:      true,
+		RedirectFixedPath:      false, // security default — path canonicalization can bypass middleware
 		HandleMethodNotAllowed: true,
 		HandleOPTIONS:          true,
 		// UnescapePathValues is false by default — opt in explicitly if needed.
@@ -451,7 +449,6 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 
 		if handler != nil {
 			if ps.count > 0 {
-				// Inline the param-route hot path: one pool op, no *Request copy.
 				pslice := ps.buf[:ps.count]
 				if m.UnescapePathValues {
 					for i := range pslice {
@@ -460,24 +457,17 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-				// Direct unsafe read of r.ctx field — skips r.Context()'s call+nilcheck.
-				origCtxPtr := (*context.Context)(unsafe.Add(unsafe.Pointer(r), reqCtxOffset))
-				origCtx := *origCtxPtr
-				rc := acquireRC()
-				if origCtx != nil {
-					rc.Context = origCtx
-				} else {
-					rc.Context = context.Background()
+				// r.WithContext passes rc to the new *Request, making rc's lifetime
+				// uncontrollable — goroutines spawned by the handler may read rc.Context
+				// after this handler returns. Pooling is therefore unsafe: we allocate
+				// a fresh requestCtx and let GC collect it when all references drop.
+				// Cost: +1 alloc/op on param routes (MM-2026-0003, race-safe trade-off).
+				rc := &requestCtx{
+					Context: r.Context(),
+					pattern: pattern,
 				}
-				rc.pattern = pattern
 				rc.params = Params(rc.small[:copy(rc.small[:], pslice)])
-				*origCtxPtr = rc
-				handler.ServeHTTP(w, r)
-				*origCtxPtr = origCtx
-				rc.Context = nil
-				rc.params = nil
-				rc.pattern = ""
-				releaseRC(rc)
+				handler.ServeHTTP(w, r.WithContext(rc))
 			} else {
 				// static route — 0 pool ops, 0 allocs
 				handler.ServeHTTP(w, r)
@@ -494,14 +484,22 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 				} else {
 					r.URL.Path = urlPath + "/"
 				}
-				http.Redirect(w, r, r.URL.String(), code)
+				target := r.URL.String()
+				r.URL.Path = urlPath // restore before passing to middleware
+				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Redirect(w, r, target, code)
+				}), m.middleware).ServeHTTP(w, r)
 				return
 			}
 
 			if m.RedirectFixedPath {
 				if fixed, ok := m.cleanedPath(root, urlPath); ok {
 					r.URL.Path = fixed
-					http.Redirect(w, r, r.URL.String(), code)
+					target := r.URL.String()
+					r.URL.Path = urlPath // restore before passing to middleware
+					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						http.Redirect(w, r, target, code)
+					}), m.middleware).ServeHTTP(w, r)
 					return
 				}
 			}
@@ -518,23 +516,12 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		h2, pat2, _ := starRoot.getValue(urlPath, &ps2, m.CaseInsensitive)
 		if h2 != nil {
 			if ps2.count > 0 {
-				origCtxPtr2 := (*context.Context)(unsafe.Add(unsafe.Pointer(r), reqCtxOffset))
-				origCtx2 := *origCtxPtr2
-				rc2 := acquireRC()
-				if origCtx2 != nil {
-					rc2.Context = origCtx2
-				} else {
-					rc2.Context = context.Background()
+				rc2 := &requestCtx{
+					Context: r.Context(),
+					pattern: pat2,
 				}
-				rc2.pattern = pat2
 				rc2.params = Params(rc2.small[:copy(rc2.small[:], ps2.buf[:ps2.count])])
-				*origCtxPtr2 = rc2
-				h2.ServeHTTP(w, r)
-				*origCtxPtr2 = origCtx2
-				rc2.Context = nil
-				rc2.params = nil
-				rc2.pattern = ""
-				releaseRC(rc2)
+				h2.ServeHTTP(w, r.WithContext(rc2))
 			} else {
 				// no params — skip withRoute
 				h2.ServeHTTP(w, r)
@@ -545,31 +532,39 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodOptions && m.HandleOPTIONS {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
-			w.Header().Set("Allow", allow)
-			if m.GlobalOPTIONS != nil {
-				m.GlobalOPTIONS.ServeHTTP(w, r)
-			} else {
-				w.WriteHeader(http.StatusNoContent)
-			}
+			allowStr := allow
+			globalOPTS := m.GlobalOPTIONS
+			wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Allow", allowStr)
+				if globalOPTS != nil {
+					globalOPTS.ServeHTTP(w, r)
+				} else {
+					w.WriteHeader(http.StatusNoContent)
+				}
+			}), m.middleware).ServeHTTP(w, r)
 			return
 		}
 	} else if m.HandleMethodNotAllowed {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
-			w.Header().Set("Allow", allow)
-			if m.MethodNotAllowed != nil {
-				m.MethodNotAllowed.ServeHTTP(w, r)
-			} else {
-				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-			}
+			allowStr := allow
+			methodNotAllowed := m.MethodNotAllowed
+			wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Allow", allowStr)
+				if methodNotAllowed != nil {
+					methodNotAllowed.ServeHTTP(w, r)
+				} else {
+					http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+				}
+			}), m.middleware).ServeHTTP(w, r)
 			return
 		}
 	}
 
-	if m.NotFound != nil {
-		m.NotFound.ServeHTTP(w, r)
-	} else {
-		http.NotFound(w, r)
+	notFound := m.NotFound
+	if notFound == nil {
+		notFound = http.HandlerFunc(http.NotFound)
 	}
+	wrapMiddleware(notFound, m.middleware).ServeHTTP(w, r)
 }
 
 func (m *Mux) recoverPanic(w http.ResponseWriter, r *http.Request) {
