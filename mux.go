@@ -457,7 +457,7 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 
 	if root != nil {
 		// paramsBuf is a fixed-size struct — no slice header, no append, no heap escape.
-		// Zero pool operations for static routes; one pool op (rc) for param routes.
+		// Zero allocs for static routes; 1 alloc (reqBundle) for param routes.
 		var ps paramsBuf
 		handler, pattern, tsr := root.getValue(urlPath, &ps, m.CaseInsensitive)
 
@@ -471,19 +471,33 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-				// r.WithContext passes rc to the new *Request, making rc's lifetime
-				// uncontrollable — goroutines spawned by the handler may read rc.Context
-				// after this handler returns. Pooling is therefore unsafe: we allocate
-				// a fresh requestCtx and let GC collect it when all references drop.
-				// Cost: +1 alloc/op on param routes (MM-2026-0003, race-safe trade-off).
-				rc := &requestCtx{
-					Context: r.Context(),
-					pattern: pattern,
+				if hasReqCtxField {
+					// Fast path: 1 alloc — reqBundle fuses requestCtx + *http.Request clone.
+					// setReqCtxUnsafe sets bundle.req.ctx = &bundle.ctx on the freshly-allocated
+					// bundle before ServeHTTP is called; the write is happens-before any read
+					// by goroutines spawned inside the handler (Go MM §goroutine creation).
+					bundle := &reqBundle{}
+					bundle.ctx.Context = r.Context()
+					bundle.ctx.pattern = pattern
+					n := ps.count
+					for i := range n {
+						bundle.ctx.small[i] = pslice[i]
+					}
+					bundle.ctx.params = Params(bundle.ctx.small[:n])
+					bundle.req = *r
+					setReqCtxUnsafe(&bundle.req, &bundle.ctx)
+					handler.ServeHTTP(w, &bundle.req)
+				} else {
+					// Fallback: 2 allocs — unsafe field offset unavailable (future Go version?).
+					rc := &requestCtx{
+						Context: r.Context(),
+						pattern: pattern,
+					}
+					rc.params = Params(rc.small[:copy(rc.small[:], pslice)])
+					handler.ServeHTTP(w, r.WithContext(rc))
 				}
-				rc.params = Params(rc.small[:copy(rc.small[:], pslice)])
-				handler.ServeHTTP(w, r.WithContext(rc))
 			} else {
-				// static route — 0 pool ops, 0 allocs
+				// static route — 0 allocs
 				handler.ServeHTTP(w, r)
 			}
 			return
@@ -530,12 +544,27 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		h2, pat2, _ := starRoot.getValue(urlPath, &ps2, m.CaseInsensitive)
 		if h2 != nil {
 			if ps2.count > 0 {
-				rc2 := &requestCtx{
-					Context: r.Context(),
-					pattern: pat2,
+				pslice2 := ps2.buf[:ps2.count]
+				if hasReqCtxField {
+					bundle2 := &reqBundle{}
+					bundle2.ctx.Context = r.Context()
+					bundle2.ctx.pattern = pat2
+					n := ps2.count
+					for i := range n {
+						bundle2.ctx.small[i] = pslice2[i]
+					}
+					bundle2.ctx.params = Params(bundle2.ctx.small[:n])
+					bundle2.req = *r
+					setReqCtxUnsafe(&bundle2.req, &bundle2.ctx)
+					h2.ServeHTTP(w, &bundle2.req)
+				} else {
+					rc2 := &requestCtx{
+						Context: r.Context(),
+						pattern: pat2,
+					}
+					rc2.params = Params(rc2.small[:copy(rc2.small[:], pslice2)])
+					h2.ServeHTTP(w, r.WithContext(rc2))
 				}
-				rc2.params = Params(rc2.small[:copy(rc2.small[:], ps2.buf[:ps2.count])])
-				h2.ServeHTTP(w, r.WithContext(rc2))
 			} else {
 				// no params — skip withRoute
 				h2.ServeHTTP(w, r)

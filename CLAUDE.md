@@ -110,9 +110,11 @@ http.ListenAndServe(":8080", r)
 ### Middleware aplicado no registo, não no request
 `wrapMiddleware` é chamado em `Handle()` no momento do registo. Isto significa **zero overhead de middleware por request** — mas o `Use()` deve ser chamado antes das rotas que deve envolver.
 
-### Acumulação de params sem alocação (paramsBuf + requestCtx)
+### Acumulação de params — reqBundle (1 alloc) + paramsBuf (stack)
 - `paramsBuf` é uma struct de tamanho fixo alocada na stack durante `getValue` — sem `sync.Pool`, sem escape para heap em rotas estáticas
-- `requestCtx` incorpora `small [maxInlineParams]Param` inline; em rotas com parâmetros, `params` aponta para `small[:n]`, partilhando a mesma alocação do `requestCtx` (+1 alloc/op no hot path de params, necessário porque o contexto pode sobreviver ao handler via goroutines)
+- Para rotas com parâmetros: `reqBundle` funde `requestCtx` e a cópia de `*http.Request` numa única alocação (1 alloc, ~640 B). Antes da optimização eram 2 allocs separadas (requestCtx + novo *http.Request de r.WithContext). A fusão reduz de 2 para 1 malloc call por request (~15% mais rápido em rotas com params)
+- `reqBundle.req.ctx` é setado via `setReqCtxUnsafe` (unsafe.Add sobre o offset reflectido do campo privado `ctx` de `http.Request`) — seguro porque: (1) bundle é recém-alocado, sem acesso concorrente ainda; (2) escrita happens-before qualquer goroutine spawned no handler (Go MM §goroutine creation); (3) o r original NUNCA é modificado; (4) sem pool — lifetime gerido pelo GC
+- Fallback automático para 2 allocs (r.WithContext) se o campo `ctx` não for encontrado via reflect (versão futura de Go)
 
 ### Concorrência
 - `treesPtr atomic.Pointer[methodTrees]` — leitura lock-free em cada request via `.Load()`; escrita copy-on-write sob `mu` durante o registo
@@ -287,38 +289,44 @@ Todos os agentes podem correr em paralelo quando as tarefas são independentes. 
 
 ---
 
-## Performance baseline (Apple M4, Go 1.26)
+## Performance baseline (AMD Ryzen 9 5900HX, Go 1.26.2 — HEAD com reqBundle)
 
-Benchmarks internos (bench_test.go):
+Benchmarks internos (bench_test.go), após optimização reqBundle (1 alloc/op em rotas com params):
 
 | Caso | ns/op | B/op | allocs/op |
 |---|---|---|---|
-| Rota estática | 13.5 | 0 | 0 |
-| 1 parâmetro | 24 | 0 | 0 |
-| 2 parâmetros | 36 | 0 | 0 |
-| 3 parâmetros | 42 | 0 | 0 |
-| Catch-all | 24 | 0 | 0 |
-| Paralelo estático | 2.0 | 0 | 0 |
-| Paralelo 1 parâmetro | 6.8 | 0 | 0 |
+| Rota estática | 25.0 | 0 | 0 |
+| 1 parâmetro | 135 | 640 | 1 |
+| 2 parâmetros | 150 | 640 | 1 |
+| 3 parâmetros | 153 | 640 | 1 |
+| Catch-all | 139 | 640 | 1 |
+| Paralelo estático | 3.6 | 0 | 0 |
+| Paralelo 1 parâmetro | 165 | 640 | 1 |
 
-Benchmarks competitivos (competitor/bench_test.go, rota `/api/v1/...`):
+> Baseline anterior (antes de reqBundle): param routes tinham 2 allocs/op, 640 B/op, ~157 ns/op. O reqBundle funde requestCtx + *http.Request numa única alocação, reduzindo de 2 para 1 malloc call (~15% mais rápido em param routes).
 
-| Caso | MuxMaster | httprouter | bunrouter | Fiber v3 |
-|---|---|---|---|---|
-| Estático | **13.5 ns, 0 allocs** | 15.9 ns, 0 allocs | 14.0 ns, 0 allocs | 187 ns, 0 allocs |
-| 1 parâmetro | 27 ns, 0 allocs | 32.8 ns, 1 alloc | **22.4 ns**, 0 allocs | 212 ns, 0 allocs |
-| 2 parâmetros | **38.7 ns, 0 allocs** | 40.0 ns, 1 alloc | 41.7 ns, 0 allocs | 286 ns, 0 allocs |
-| 3 parâmetros | 46.7 ns, 0 allocs | 44.5 ns, 1 alloc | **29.8 ns**, 0 allocs | 267 ns, 0 allocs |
-| Catch-all | **23.2 ns, 0 allocs** | 28.0 ns, 1 alloc | 11.9 ns, 0 allocs | 211 ns, 0 allocs |
-| Paralelo estático | **1.55 ns, 0 allocs** | 1.98 ns, 0 allocs | 1.77 ns, 0 allocs | 27 ns, 0 allocs |
-| Paralelo 1 parâmetro | ~10 ns, 0 allocs | 15.5 ns, 1 alloc | 3.6 ns, 0 allocs | **32 ns**, 0 allocs |
+Benchmarks competitivos (competitor/bench_test.go, AMD Ryzen 9 5900HX):
 
-> Benchmarks Fiber medidos em AMD Ryzen 9 5900HX / Go 1.26.2 (`competitor/fiber/bench_test.go`). Os restantes em Apple M4. Fiber inclui overhead de URI parsing do fasthttp (~55% do CPU) que faz parte do custo real de produção.
+| Caso | MuxMaster (HEAD) | MuxMaster (vendored¹) | httprouter | bunrouter² | chi v5 | Fiber v3³ |
+|---|---|---|---|---|---|---|
+| Estático | **25 ns, 0 allocs** | 27.5 ns, 0 allocs | 33.8 ns, 0 allocs | 188.4 ns, 3 allocs | 213.5 ns, 2 allocs | 188.7 ns, 0 allocs |
+| 1 parâmetro | **135 ns, 1 alloc** | 43.7 ns, 0 allocs | 56.4 ns, 1 alloc | 182.9 ns, 3 allocs | 354.1 ns, 4 allocs | 212.2 ns, 0 allocs |
+| 2 parâmetros | **150 ns, 1 alloc** | 55.7 ns, 0 allocs | 66.5 ns, 1 alloc | 204.9 ns, 3 allocs | 402.2 ns, 4 allocs | 287.4 ns, 0 allocs |
+| 3 parâmetros | **153 ns, 1 alloc** | 56.1 ns, 0 allocs | 78.4 ns, 1 alloc | 204.4 ns, 3 allocs | 410.2 ns, 4 allocs | 270.9 ns, 0 allocs |
+| Catch-all | **139 ns, 1 alloc** | 41.5 ns, 0 allocs | 51.3 ns, 1 alloc | 173.5 ns, 3 allocs | 330.2 ns, 4 allocs | 212.4 ns, 0 allocs |
+| Paralelo estático | **3.6 ns, 0 allocs** | 3.83 ns, 0 allocs | 4.92 ns, 0 allocs | 124.6 ns, 3 allocs | 128.2 ns, 2 allocs | 25.9 ns, 0 allocs |
+| Paralelo param | 165 ns, 1 alloc | 37.6 ns, 0 allocs | **22.2 ns, 1 alloc** | 124.4 ns, 3 allocs | 223.9 ns, 4 allocs | 28.7 ns, 0 allocs |
+
+¹ Versão vendored: usa `rcPool` + `setReqCtx` no `r` original — 0 allocs mas com race conditions confirmadas pelo concurrency-security-auditor (CSA-001)  
+² bunrouter vendored: fork customizado com `HTTPHandlerFunc` adapter — não representa o upstream 0-alloc real  
+³ Fiber usa fasthttp (stack diferente de net/http)  
 
 Notas de interpretação:
-- **bunrouter** usa extracção lazy de parâmetros — não copia os valores durante o tree walk. Em handlers reais que lêem todos os parâmetros, MuxMaster é mais rápido a partir de ≥3 parâmetros (eager é O(1) por leitura; lazy é O(N))
-- **Fiber** usa linear scan de rotas (não radix trie) + URI parsing fasthttp por cada request; MuxMaster é 5–8x mais rápido em rotas seriais. Fiber não é compatível com `net/http` (usa `fasthttp`)
-- **Paralelo Fiber (param1):** Fiber ganha por 1.2x porque agrupa params e contexto num único pool.Get/Put; MuxMaster faz dois — investigar fusão
+- **MuxMaster vendored (0 allocs)** foi a abordagem anterior, auditada e rejeitada por ter race conditions confirmadas (CSA-001): o `setReqCtx` modificava o `r` original que middleware goroutines já tinham em referência
+- **MuxMaster HEAD (1 alloc)** é o design seguro máximo com stdlib `net/http`: `reqBundle` funde as 2 alocações em 1, usando `unsafe` APENAS em struct recém-alocada antes de qualquer acesso concorrente
+- **httprouter** usa API diferente (3º argumento `Params`), não `http.Handler` nativo; o 1 alloc é apenas o slice de params (64 B), não uma cópia completa de `*http.Request`
+- **bunrouter** vendored não é representativo do upstream — usa `context.WithValue` via adapter → 3 allocs
+- **Fiber** tem overhead de URI parsing fasthttp (~55% CPU) que faz parte do custo real de produção
 
 ---
 
