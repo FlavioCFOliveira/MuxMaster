@@ -110,10 +110,14 @@ http.ListenAndServe(":8080", r)
 ### Middleware aplicado no registo, não no request
 `wrapMiddleware` é chamado em `Handle()` no momento do registo. Isto significa **zero overhead de middleware por request** — mas o `Use()` deve ser chamado antes das rotas que deve envolver.
 
-### Acumulação de params — reqBundle (1 alloc) + paramsBuf (stack)
+### Acumulação de params — tiered reqBundle (1 alloc) + paramsBuf (stack)
 - `paramsBuf` é uma struct de tamanho fixo alocada na stack durante `getValue` — sem `sync.Pool`, sem escape para heap em rotas estáticas
-- Para rotas com parâmetros: `reqBundle` funde `requestCtx` e a cópia de `*http.Request` numa única alocação (1 alloc, ~640 B). Antes da optimização eram 2 allocs separadas (requestCtx + novo *http.Request de r.WithContext). A fusão reduz de 2 para 1 malloc call por request (~15% mais rápido em rotas com params)
-- `reqBundle.req.ctx` é setado via `setReqCtxUnsafe` (unsafe.Add sobre o offset reflectido do campo privado `ctx` de `http.Request`) — seguro porque: (1) bundle é recém-alocado, sem acesso concorrente ainda; (2) escrita happens-before qualquer goroutine spawned no handler (Go MM §goroutine creation); (3) o r original NUNCA é modificado; (4) sem pool — lifetime gerido pelo GC
+- Para rotas com parâmetros: tiered bundles fundem `requestCtx` e a cópia de `*http.Request` numa única alocação (1 alloc), com tamanho ajustado ao número de params:
+  - 1 param → `reqBundle1` (392B → size class 416B): `requestCtx1` com `small [1]Param`
+  - 2 params → `reqBundle2` (424B → size class 448B): `requestCtx2` com `small [2]Param`
+  - 3+ params → `reqBundle` (456B → size class 480B): `requestCtx` com `small [3]Param` + overflow heap para >3
+- Dispatch é feito por `dispatchParams1`/`dispatchParams2` para 1/2 params, e inline para 3+ (evita call overhead no caso mais comum em APIs REST)
+- `bundle.req.ctx` é setado via `setReqCtxUnsafe` (unsafe.Add sobre o offset reflectido do campo privado `ctx` de `http.Request`) — seguro porque: (1) bundle é recém-alocado, sem acesso concorrente ainda; (2) escrita happens-before qualquer goroutine spawned no handler (Go MM §goroutine creation); (3) o r original NUNCA é modificado; (4) sem pool — lifetime gerido pelo GC
 - Fallback automático para 2 allocs (r.WithContext) se o campo `ctx` não for encontrado via reflect (versão futura de Go)
 
 ### Concorrência
@@ -289,33 +293,34 @@ Todos os agentes podem correr em paralelo quando as tarefas são independentes. 
 
 ---
 
-## Performance baseline (AMD Ryzen 9 5900HX, Go 1.26.2 — HEAD com reqBundle)
+## Performance baseline (AMD Ryzen 9 5900HX, Go 1.26.2 — HEAD com tiered reqBundle)
 
-Benchmarks internos (bench_test.go), após optimização reqBundle (1 alloc/op em rotas com params):
+Benchmarks internos (bench_test.go), após optimização tiered bundles (reqBundle1/2/3 por contagem de params):
 
 | Caso | ns/op | B/op | allocs/op |
 |---|---|---|---|
-| Rota estática | 25.0 | 0 | 0 |
-| 1 parâmetro | 135 | 640 | 1 |
-| 2 parâmetros | 150 | 640 | 1 |
-| 3 parâmetros | 153 | 640 | 1 |
-| Catch-all | 139 | 640 | 1 |
-| Paralelo estático | 3.6 | 0 | 0 |
-| Paralelo 1 parâmetro | 165 | 640 | 1 |
+| Rota estática | 25.3 | 0 | 0 |
+| 1 parâmetro | 112 | 416 | 1 |
+| 2 parâmetros | 130 | 448 | 1 |
+| 3 parâmetros | 141 | 480 | 1 |
+| Catch-all | 109 | 416 | 1 |
+| Paralelo estático | 3.7 | 0 | 0 |
+| Paralelo 1 parâmetro | 108 | 416 | 1 |
 
-> Baseline anterior (antes de reqBundle): param routes tinham 2 allocs/op, 640 B/op, ~157 ns/op. O reqBundle funde requestCtx + *http.Request numa única alocação, reduzindo de 2 para 1 malloc call (~15% mais rápido em param routes).
+> Baseline anterior (reqBundle único 480B): 1 param=135ns/640B, 2=150ns/640B, 3=153ns/640B, catch-all=139ns/640B, paralelo=165ns/640B.
+> Optimização tiered: reqBundle1 (416B), reqBundle2 (448B), reqBundle (480B) — cada tier corresponde à size class exacta do GC. Ganho médio: -17% ns/op, -35% B/op em rotas de 1 param; -13% e -30% em 2 params.
 
 Benchmarks competitivos (competitor/bench_test.go, AMD Ryzen 9 5900HX):
 
 | Caso | MuxMaster (HEAD) | MuxMaster (vendored¹) | httprouter | bunrouter² | chi v5 | Fiber v3³ |
 |---|---|---|---|---|---|---|
 | Estático | **25 ns, 0 allocs** | 27.5 ns, 0 allocs | 33.8 ns, 0 allocs | 188.4 ns, 3 allocs | 213.5 ns, 2 allocs | 188.7 ns, 0 allocs |
-| 1 parâmetro | **135 ns, 1 alloc** | 43.7 ns, 0 allocs | 56.4 ns, 1 alloc | 182.9 ns, 3 allocs | 354.1 ns, 4 allocs | 212.2 ns, 0 allocs |
-| 2 parâmetros | **150 ns, 1 alloc** | 55.7 ns, 0 allocs | 66.5 ns, 1 alloc | 204.9 ns, 3 allocs | 402.2 ns, 4 allocs | 287.4 ns, 0 allocs |
-| 3 parâmetros | **153 ns, 1 alloc** | 56.1 ns, 0 allocs | 78.4 ns, 1 alloc | 204.4 ns, 3 allocs | 410.2 ns, 4 allocs | 270.9 ns, 0 allocs |
-| Catch-all | **139 ns, 1 alloc** | 41.5 ns, 0 allocs | 51.3 ns, 1 alloc | 173.5 ns, 3 allocs | 330.2 ns, 4 allocs | 212.4 ns, 0 allocs |
-| Paralelo estático | **3.6 ns, 0 allocs** | 3.83 ns, 0 allocs | 4.92 ns, 0 allocs | 124.6 ns, 3 allocs | 128.2 ns, 2 allocs | 25.9 ns, 0 allocs |
-| Paralelo param | 165 ns, 1 alloc | 37.6 ns, 0 allocs | **22.2 ns, 1 alloc** | 124.4 ns, 3 allocs | 223.9 ns, 4 allocs | 28.7 ns, 0 allocs |
+| 1 parâmetro | **112 ns, 1 alloc** | 43.7 ns, 0 allocs | 56.4 ns, 1 alloc | 182.9 ns, 3 allocs | 354.1 ns, 4 allocs | 212.2 ns, 0 allocs |
+| 2 parâmetros | **130 ns, 1 alloc** | 55.7 ns, 0 allocs | 66.5 ns, 1 alloc | 204.9 ns, 3 allocs | 402.2 ns, 4 allocs | 287.4 ns, 0 allocs |
+| 3 parâmetros | **141 ns, 1 alloc** | 56.1 ns, 0 allocs | 78.4 ns, 1 alloc | 204.4 ns, 3 allocs | 410.2 ns, 4 allocs | 270.9 ns, 0 allocs |
+| Catch-all | **109 ns, 1 alloc** | 41.5 ns, 0 allocs | 51.3 ns, 1 alloc | 173.5 ns, 3 allocs | 330.2 ns, 4 allocs | 212.4 ns, 0 allocs |
+| Paralelo estático | **3.7 ns, 0 allocs** | 3.83 ns, 0 allocs | 4.92 ns, 0 allocs | 124.6 ns, 3 allocs | 128.2 ns, 2 allocs | 25.9 ns, 0 allocs |
+| Paralelo param | **108 ns, 1 alloc** | 37.6 ns, 0 allocs | 22.2 ns, 1 alloc | 124.4 ns, 3 allocs | 223.9 ns, 4 allocs | 28.7 ns, 0 allocs |
 
 ¹ Versão vendored: usa `rcPool` + `setReqCtx` no `r` original — 0 allocs mas com race conditions confirmadas pelo concurrency-security-auditor (CSA-001)  
 ² bunrouter vendored: fork customizado com `HTTPHandlerFunc` adapter — não representa o upstream 0-alloc real  
@@ -323,7 +328,7 @@ Benchmarks competitivos (competitor/bench_test.go, AMD Ryzen 9 5900HX):
 
 Notas de interpretação:
 - **MuxMaster vendored (0 allocs)** foi a abordagem anterior, auditada e rejeitada por ter race conditions confirmadas (CSA-001): o `setReqCtx` modificava o `r` original que middleware goroutines já tinham em referência
-- **MuxMaster HEAD (1 alloc)** é o design seguro máximo com stdlib `net/http`: `reqBundle` funde as 2 alocações em 1, usando `unsafe` APENAS em struct recém-alocada antes de qualquer acesso concorrente
+- **MuxMaster HEAD (1 alloc)** é o design seguro máximo com stdlib `net/http`: tiered reqBundle (1/2/3 params → 416/448/480B) funde requestCtx + *http.Request numa única alocação, usando `unsafe` APENAS em structs recém-alocadas antes de qualquer acesso concorrente
 - **httprouter** usa API diferente (3º argumento `Params`), não `http.Handler` nativo; o 1 alloc é apenas o slice de params (64 B), não uma cópia completa de `*http.Request`
 - **bunrouter** vendored não é representativo do upstream — usa `context.WithValue` via adapter → 3 allocs
 - **Fiber** tem overhead de URI parsing fasthttp (~55% CPU) que faz parte do custo real de produção

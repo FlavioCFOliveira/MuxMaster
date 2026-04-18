@@ -471,47 +471,48 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-				if hasReqCtxField {
-					// Fast path: 1 alloc — reqBundle fuses requestCtx + *http.Request clone.
-					// setReqCtxUnsafe sets bundle.req.ctx = &bundle.ctx on the freshly-allocated
-					// bundle before ServeHTTP is called; the write is happens-before any read
-					// by goroutines spawned inside the handler (Go MM §goroutine creation).
-					bundle := &reqBundle{}
-					bundle.ctx.Context = r.Context()
-					bundle.ctx.pattern = pattern
-					n := ps.count
-					if n <= bundleInlineMax {
-						for i := range n {
-							bundle.ctx.small[i] = pslice[i]
+				// Tiered bundle dispatch: size class chosen by param count.
+				// 1 param → reqBundle1 (416 B), 2 params → reqBundle2 (448 B),
+				// 3 params → reqBundle (480 B, original path — no function call overhead).
+				switch ps.count {
+				case 1:
+					dispatchParams1(w, r, handler, pattern, pslice[0])
+				case 2:
+					dispatchParams2(w, r, handler, pattern, pslice[0], pslice[1])
+				default:
+					if hasReqCtxField {
+						bundle := &reqBundle{}
+						bundle.ctx.Context = r.Context()
+						bundle.ctx.pattern = pattern
+						n := ps.count
+						if n <= 3 {
+							for i := range n {
+								bundle.ctx.small[i] = pslice[i]
+							}
+							bundle.ctx.params = Params(bundle.ctx.small[:n])
+						} else {
+							overflow := make(Params, n)
+							copy(overflow, pslice)
+							bundle.ctx.params = overflow
 						}
-						bundle.ctx.params = Params(bundle.ctx.small[:n])
+						bundle.req = *r
+						setReqCtxUnsafe(&bundle.req, &bundle.ctx)
+						handler.ServeHTTP(w, &bundle.req)
 					} else {
-						// Overflow: >bundleInlineMax params — allocate a separate slice.
-						overflow := make(Params, n)
-						copy(overflow, pslice)
-						bundle.ctx.params = overflow
-					}
-					bundle.req = *r
-					setReqCtxUnsafe(&bundle.req, &bundle.ctx)
-					handler.ServeHTTP(w, &bundle.req)
-				} else {
-					// Fallback: 2 allocs — unsafe field offset unavailable (future Go version?).
-					rc := &requestCtx{
-						Context: r.Context(),
-						pattern: pattern,
-					}
-					n := ps.count
-					if n <= bundleInlineMax {
-						for i := range n {
-							rc.small[i] = pslice[i]
+						rc := &requestCtx{Context: r.Context(), pattern: pattern}
+						n := ps.count
+						if n <= 3 {
+							for i := range n {
+								rc.small[i] = pslice[i]
+							}
+							rc.params = Params(rc.small[:n])
+						} else {
+							overflow := make(Params, n)
+							copy(overflow, pslice)
+							rc.params = overflow
 						}
-						rc.params = Params(rc.small[:n])
-					} else {
-						overflow := make(Params, n)
-						copy(overflow, pslice)
-						rc.params = overflow
+						handler.ServeHTTP(w, r.WithContext(rc))
 					}
-					handler.ServeHTTP(w, r.WithContext(rc))
 				}
 			} else {
 				// static route — 0 allocs
@@ -562,41 +563,45 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		if h2 != nil {
 			if ps2.count > 0 {
 				pslice2 := ps2.buf[:ps2.count]
-				if hasReqCtxField {
-					bundle2 := &reqBundle{}
-					bundle2.ctx.Context = r.Context()
-					bundle2.ctx.pattern = pat2
-					n := ps2.count
-					if n <= bundleInlineMax {
-						for i := range n {
-							bundle2.ctx.small[i] = pslice2[i]
+				switch ps2.count {
+				case 1:
+					dispatchParams1(w, r, h2, pat2, pslice2[0])
+				case 2:
+					dispatchParams2(w, r, h2, pat2, pslice2[0], pslice2[1])
+				default:
+					if hasReqCtxField {
+						bundle2 := &reqBundle{}
+						bundle2.ctx.Context = r.Context()
+						bundle2.ctx.pattern = pat2
+						n := ps2.count
+						if n <= 3 {
+							for i := range n {
+								bundle2.ctx.small[i] = pslice2[i]
+							}
+							bundle2.ctx.params = Params(bundle2.ctx.small[:n])
+						} else {
+							overflow := make(Params, n)
+							copy(overflow, pslice2)
+							bundle2.ctx.params = overflow
 						}
-						bundle2.ctx.params = Params(bundle2.ctx.small[:n])
+						bundle2.req = *r
+						setReqCtxUnsafe(&bundle2.req, &bundle2.ctx)
+						h2.ServeHTTP(w, &bundle2.req)
 					} else {
-						overflow := make(Params, n)
-						copy(overflow, pslice2)
-						bundle2.ctx.params = overflow
-					}
-					bundle2.req = *r
-					setReqCtxUnsafe(&bundle2.req, &bundle2.ctx)
-					h2.ServeHTTP(w, &bundle2.req)
-				} else {
-					rc2 := &requestCtx{
-						Context: r.Context(),
-						pattern: pat2,
-					}
-					n := ps2.count
-					if n <= bundleInlineMax {
-						for i := range n {
-							rc2.small[i] = pslice2[i]
+						rc2 := &requestCtx{Context: r.Context(), pattern: pat2}
+						n := ps2.count
+						if n <= 3 {
+							for i := range n {
+								rc2.small[i] = pslice2[i]
+							}
+							rc2.params = Params(rc2.small[:n])
+						} else {
+							overflow := make(Params, n)
+							copy(overflow, pslice2)
+							rc2.params = overflow
 						}
-						rc2.params = Params(rc2.small[:n])
-					} else {
-						overflow := make(Params, n)
-						copy(overflow, pslice2)
-						rc2.params = overflow
+						h2.ServeHTTP(w, r.WithContext(rc2))
 					}
-					h2.ServeHTTP(w, r.WithContext(rc2))
 				}
 			} else {
 				// no params — skip withRoute
