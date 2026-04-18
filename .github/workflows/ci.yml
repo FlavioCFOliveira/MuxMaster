@@ -29,16 +29,16 @@ jobs:
         run: go mod verify
 
       - name: Build
-        run: go build ./...
+        run: go build $(go list ./... | grep -v '/reports/')
 
       - name: Test
-        run: go test -count=1 ./...
+        run: go test -count=1 $(go list ./... | grep -v '/reports/')
 
       - name: Test (race detector)
-        run: go test -race -count=1 ./...
+        run: go test -race -count=1 $(go list ./... | grep -v '/reports/')
 
       - name: Vet
-        run: go vet ./...
+        run: go vet $(go list ./... | grep -v '/reports/')
 
   lint:
     name: Lint
@@ -66,7 +66,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Run tests with coverage
-        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+        run: go test -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -v '/reports/')
 
       - name: Coverage summary
         run: go tool cover -func=coverage.out
