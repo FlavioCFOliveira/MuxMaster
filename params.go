@@ -287,6 +287,57 @@ func dispatchParams2Safe(w http.ResponseWriter, r *http.Request, h http.Handler,
 	h.ServeHTTP(w, r.WithContext(rc))
 }
 
+// dispatchWithParams dispatches to handler after params have been extracted.
+// pslice is the filled portion of the paramsBuf, already unescape-decoded by
+// the caller if UnescapePathValues is set. The caller is responsible for
+// unescape so that this function stays independent of *Mux.
+//
+// Case 1 and 2 are delegated to doDispatch1/doDispatch2 (function pointers
+// selected once at init), which allocate the smallest fitting reqBundle tier.
+// Case 3+ uses reqBundle (480 B, size class 480 B) directly.
+func dispatchWithParams(w http.ResponseWriter, r *http.Request, handler http.Handler, pattern string, pslice []Param) {
+	switch len(pslice) {
+	case 1:
+		doDispatch1(w, r, handler, pattern, pslice[0])
+	case 2:
+		doDispatch2(w, r, handler, pattern, pslice[0], pslice[1])
+	default:
+		// 3+ params: use reqBundle (480 B, size class 480 B).
+		n := len(pslice)
+		if hasReqCtxField {
+			bundle := &reqBundle{}
+			bundle.ctx.Context = r.Context()
+			bundle.ctx.pattern = pattern
+			if n <= 3 {
+				for i := range n {
+					bundle.ctx.small[i] = pslice[i]
+				}
+				bundle.ctx.params = Params(bundle.ctx.small[:n])
+			} else {
+				overflow := make(Params, n)
+				copy(overflow, pslice)
+				bundle.ctx.params = overflow
+			}
+			bundle.req = *r
+			setReqCtxUnsafe(&bundle.req, &bundle.ctx)
+			handler.ServeHTTP(w, &bundle.req)
+		} else {
+			rc := &requestCtx{Context: r.Context(), pattern: pattern}
+			if n <= 3 {
+				for i := range n {
+					rc.small[i] = pslice[i]
+				}
+				rc.params = Params(rc.small[:n])
+			} else {
+				overflow := make(Params, n)
+				copy(overflow, pslice)
+				rc.params = overflow
+			}
+			handler.ServeHTTP(w, r.WithContext(rc))
+		}
+	}
+}
+
 // --------------------------------------------------------------------------
 // Public accessors — use type switches ordered by frequency (1-param is
 // most common in REST APIs, then 3-param for deeper paths).

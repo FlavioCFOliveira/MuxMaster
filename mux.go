@@ -476,49 +476,7 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-				// Tiered bundle dispatch: size class chosen by param count.
-				// 1 param → reqBundle1 (416 B), 2 params → reqBundle2 (448 B),
-				// 3 params → reqBundle (480 B, original path — no function call overhead).
-				switch ps.count {
-				case 1:
-					doDispatch1(w, r, handler, pattern, pslice[0])
-				case 2:
-					doDispatch2(w, r, handler, pattern, pslice[0], pslice[1])
-				default:
-					if hasReqCtxField {
-						bundle := &reqBundle{}
-						bundle.ctx.Context = r.Context()
-						bundle.ctx.pattern = pattern
-						n := ps.count
-						if n <= 3 {
-							for i := range n {
-								bundle.ctx.small[i] = pslice[i]
-							}
-							bundle.ctx.params = Params(bundle.ctx.small[:n])
-						} else {
-							overflow := make(Params, n)
-							copy(overflow, pslice)
-							bundle.ctx.params = overflow
-						}
-						bundle.req = *r
-						setReqCtxUnsafe(&bundle.req, &bundle.ctx)
-						handler.ServeHTTP(w, &bundle.req)
-					} else {
-						rc := &requestCtx{Context: r.Context(), pattern: pattern}
-						n := ps.count
-						if n <= 3 {
-							for i := range n {
-								rc.small[i] = pslice[i]
-							}
-							rc.params = Params(rc.small[:n])
-						} else {
-							overflow := make(Params, n)
-							copy(overflow, pslice)
-							rc.params = overflow
-						}
-						handler.ServeHTTP(w, r.WithContext(rc))
-					}
-				}
+				dispatchWithParams(w, r, handler, pattern, pslice)
 			} else {
 				// static route — 0 allocs
 				handler.ServeHTTP(w, r)
@@ -572,46 +530,14 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		if h2 != nil {
 			if ps2.count > 0 {
 				pslice2 := ps2.buf[:ps2.count]
-				switch ps2.count {
-				case 1:
-					doDispatch1(w, r, h2, pat2, pslice2[0])
-				case 2:
-					doDispatch2(w, r, h2, pat2, pslice2[0], pslice2[1])
-				default:
-					if hasReqCtxField {
-						bundle2 := &reqBundle{}
-						bundle2.ctx.Context = r.Context()
-						bundle2.ctx.pattern = pat2
-						n := ps2.count
-						if n <= 3 {
-							for i := range n {
-								bundle2.ctx.small[i] = pslice2[i]
-							}
-							bundle2.ctx.params = Params(bundle2.ctx.small[:n])
-						} else {
-							overflow := make(Params, n)
-							copy(overflow, pslice2)
-							bundle2.ctx.params = overflow
+				if m.UnescapePathValues {
+					for i := range pslice2 {
+						if v, err := url.QueryUnescape(pslice2[i].Value); err == nil {
+							pslice2[i].Value = v
 						}
-						bundle2.req = *r
-						setReqCtxUnsafe(&bundle2.req, &bundle2.ctx)
-						h2.ServeHTTP(w, &bundle2.req)
-					} else {
-						rc2 := &requestCtx{Context: r.Context(), pattern: pat2}
-						n := ps2.count
-						if n <= 3 {
-							for i := range n {
-								rc2.small[i] = pslice2[i]
-							}
-							rc2.params = Params(rc2.small[:n])
-						} else {
-							overflow := make(Params, n)
-							copy(overflow, pslice2)
-							rc2.params = overflow
-						}
-						h2.ServeHTTP(w, r.WithContext(rc2))
 					}
 				}
+				dispatchWithParams(w, r, h2, pat2, pslice2)
 			} else {
 				// no params — skip withRoute
 				h2.ServeHTTP(w, r)
