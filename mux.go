@@ -481,9 +481,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 				// 3 params → reqBundle (480 B, original path — no function call overhead).
 				switch ps.count {
 				case 1:
-					dispatchParams1(w, r, handler, pattern, pslice[0])
+					doDispatch1(w, r, handler, pattern, pslice[0])
 				case 2:
-					dispatchParams2(w, r, handler, pattern, pslice[0], pslice[1])
+					doDispatch2(w, r, handler, pattern, pslice[0], pslice[1])
 				default:
 					if hasReqCtxField {
 						bundle := &reqBundle{}
@@ -574,9 +574,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 				pslice2 := ps2.buf[:ps2.count]
 				switch ps2.count {
 				case 1:
-					dispatchParams1(w, r, h2, pat2, pslice2[0])
+					doDispatch1(w, r, h2, pat2, pslice2[0])
 				case 2:
-					dispatchParams2(w, r, h2, pat2, pslice2[0], pslice2[1])
+					doDispatch2(w, r, h2, pat2, pslice2[0], pslice2[1])
 				default:
 					if hasReqCtxField {
 						bundle2 := &reqBundle{}

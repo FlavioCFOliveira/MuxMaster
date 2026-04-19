@@ -217,51 +217,74 @@ func init() {
 // MUST only be called on a freshly-allocated *http.Request that no other
 // goroutine can access. The write is happens-before any goroutine that
 // ServeHTTP may spawn (Go memory model §goroutine creation).
+//
+//go:nosplit
 func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
 }
 
-// dispatchParams1 allocates a reqBundle1 (size class 416 B) and calls h.
-// Tiered allocation: saves 64 B vs reqBundle for routes with exactly 1 param.
-// Safe: bundle is freshly allocated, no other goroutine can access it before ServeHTTP.
-func dispatchParams1(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
+// doDispatch1 and doDispatch2 are function pointers selected once at init based
+// on whether the unsafe ctx field shortcut is available. This avoids a branch +
+// load of hasReqCtxField on every param-route request.
+var (
+	doDispatch1 func(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param)
+	doDispatch2 func(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param)
+)
+
+func init() {
 	if hasReqCtxField {
-		b := &reqBundle1{}
-		b.ctx.Context = r.Context()
-		b.ctx.pattern = pattern
-		b.ctx.small[0] = p
-		b.ctx.params = Params(b.ctx.small[:1])
-		b.req = *r
-		setReqCtxUnsafe(&b.req, &b.ctx)
-		h.ServeHTTP(w, &b.req)
+		doDispatch1 = dispatchParams1Fast
+		doDispatch2 = dispatchParams2Fast
 	} else {
-		rc := &requestCtx1{Context: r.Context(), pattern: pattern}
-		rc.small[0] = p
-		rc.params = Params(rc.small[:1])
-		h.ServeHTTP(w, r.WithContext(rc))
+		doDispatch1 = dispatchParams1Safe
+		doDispatch2 = dispatchParams2Safe
 	}
 }
 
-// dispatchParams2 allocates a reqBundle2 (size class 448 B) and calls h.
-// Tiered allocation: saves 32 B vs reqBundle for routes with exactly 2 params.
-func dispatchParams2(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param) {
-	if hasReqCtxField {
-		b := &reqBundle2{}
-		b.ctx.Context = r.Context()
-		b.ctx.pattern = pattern
-		b.ctx.small[0] = p0
-		b.ctx.small[1] = p1
-		b.ctx.params = Params(b.ctx.small[:2])
-		b.req = *r
-		setReqCtxUnsafe(&b.req, &b.ctx)
-		h.ServeHTTP(w, &b.req)
-	} else {
-		rc := &requestCtx2{Context: r.Context(), pattern: pattern}
-		rc.small[0] = p0
-		rc.small[1] = p1
-		rc.params = Params(rc.small[:2])
-		h.ServeHTTP(w, r.WithContext(rc))
-	}
+// dispatchParams1Fast allocates a reqBundle1 (size class 416 B) and calls h.
+// Used when the unsafe ctx field shortcut is available (hasReqCtxField == true).
+func dispatchParams1Fast(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
+	b := &reqBundle1{}
+	b.ctx.Context = r.Context()
+	b.ctx.pattern = pattern
+	b.ctx.small[0] = p
+	b.ctx.params = Params(b.ctx.small[:1])
+	b.req = *r
+	setReqCtxUnsafe(&b.req, &b.ctx)
+	h.ServeHTTP(w, &b.req)
+}
+
+// dispatchParams1Safe is the fallback for routes with exactly 1 param when the
+// unsafe ctx field shortcut is unavailable (hasReqCtxField == false).
+func dispatchParams1Safe(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
+	rc := &requestCtx1{Context: r.Context(), pattern: pattern}
+	rc.small[0] = p
+	rc.params = Params(rc.small[:1])
+	h.ServeHTTP(w, r.WithContext(rc))
+}
+
+// dispatchParams2Fast allocates a reqBundle2 (size class 448 B) and calls h.
+// Used when the unsafe ctx field shortcut is available (hasReqCtxField == true).
+func dispatchParams2Fast(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param) {
+	b := &reqBundle2{}
+	b.ctx.Context = r.Context()
+	b.ctx.pattern = pattern
+	b.ctx.small[0] = p0
+	b.ctx.small[1] = p1
+	b.ctx.params = Params(b.ctx.small[:2])
+	b.req = *r
+	setReqCtxUnsafe(&b.req, &b.ctx)
+	h.ServeHTTP(w, &b.req)
+}
+
+// dispatchParams2Safe is the fallback for routes with exactly 2 params when the
+// unsafe ctx field shortcut is unavailable (hasReqCtxField == false).
+func dispatchParams2Safe(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param) {
+	rc := &requestCtx2{Context: r.Context(), pattern: pattern}
+	rc.small[0] = p0
+	rc.small[1] = p1
+	rc.params = Params(rc.small[:2])
+	h.ServeHTTP(w, r.WithContext(rc))
 }
 
 // --------------------------------------------------------------------------
