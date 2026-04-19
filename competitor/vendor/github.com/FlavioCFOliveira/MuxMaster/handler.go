@@ -28,3 +28,34 @@ func Error(code int, err error) HTTPError {
 	}
 	return &httpError{code: code, err: err}
 }
+
+// FastHandler is a high-performance request handler that receives path
+// parameters as a direct argument, bypassing the context allocation overhead
+// of http.Handler routes.
+//
+// Params is valid only for the lifetime of the handler call. If a goroutine
+// is spawned that outlives the handler, copy the Params slice before the
+// handler returns:
+//
+//	func myHandler(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
+//	    ps2 := make(muxmaster.Params, len(ps))
+//	    copy(ps2, ps)
+//	    go func() { use(ps2) }()
+//	}
+//
+// FastHandler routes do not support stdlib middleware
+// (func(http.Handler) http.Handler). Use FastMiddleware instead, or register
+// the route with Handle for full stdlib compatibility.
+type FastHandler func(http.ResponseWriter, *http.Request, Params)
+
+// FastMiddleware wraps a FastHandler, following the same composition model
+// as stdlib middleware but for FastHandler routes only.
+type FastMiddleware func(FastHandler) FastHandler
+
+// wrapFastMiddleware wraps h with each FastMiddleware in order (index 0 is outermost).
+func wrapFastMiddleware(h FastHandler, middleware []FastMiddleware) FastHandler {
+	for i := len(middleware) - 1; i >= 0; i-- {
+		h = middleware[i](h)
+	}
+	return h
+}

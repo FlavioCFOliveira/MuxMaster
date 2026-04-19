@@ -45,7 +45,7 @@ const (
 
 // Field layout is hand-tuned to put the hot-read fields in cache line 0 (0-63).
 // A successful static route match reads only `path` + `handler` — both in CL0.
-// `pattern`, `priority`, `nType`, `wildChild`, `regexp` are cold — CL1.
+// `fast`, `pattern`, `priority`, `nType`, `wildChild`, `regexp` are cold — CL1+.
 type node struct {
 	// --- Cache line 0 (offsets 0-63) ---
 	path     string       // 16 bytes @ 0
@@ -53,14 +53,15 @@ type node struct {
 	indices  string       // 16 bytes @ 32
 	children []*node      // 24 bytes @ 48-71 (crosses into CL1)
 
-	// --- Cache line 1 (offsets 64-103) ---
-	pattern       string         // 16 bytes @ 72 (cold on lookup; set on leaves)
-	priority      uint32         // 4 bytes  @ 88 (written only during registration)
-	nType         nodeType       // 1 byte   @ 92
-	wildChild     bool           // 1 byte   @ 93
-	regexpNameEnd uint8          // 1 byte   @ 94 (end index of param name in path for regexParam nodes)
-	maxParams     uint8          // 1 byte   @ 95 (max wildcard depth in any path through this subtree)
-	regexp        *regexp.Regexp // 8 bytes  @ 96 (regex routes only)
+	// --- Cache line 1+ ---
+	fast          FastHandler    // 16 bytes — nil for normal routes, set for HandleFast routes
+	pattern       string         // 16 bytes (cold on lookup; set on leaves)
+	priority      uint32         // 4 bytes  (written only during registration)
+	nType         nodeType       // 1 byte
+	wildChild     bool           // 1 byte
+	regexpNameEnd uint8          // 1 byte   (end index of param name in path for regexParam nodes)
+	maxParams     uint8          // 1 byte   (max wildcard depth in any path through this subtree)
+	regexp        *regexp.Regexp // 8 bytes  (regex routes only)
 }
 
 // calcPathMaxParams returns the maximum number of path parameters that can be
@@ -83,12 +84,23 @@ func calcPathMaxParams(n *node) uint8 {
 	return mine + childMax
 }
 
-// addRoute registers a handler for the given path, expanding optional segments first.
+// addRoute registers an http.Handler for the given path.
 func (n *node) addRoute(path string, handler http.Handler) {
+	n.addRouteInternal(path, handler, nil)
+}
+
+// addRouteFast registers a FastHandler for the given path.
+func (n *node) addRouteFast(path string, fast FastHandler) {
+	n.addRouteInternal(path, nil, fast)
+}
+
+// addRouteInternal registers either an http.Handler or a FastHandler (exactly
+// one must be non-nil) for the given path, expanding optional segments first.
+func (n *node) addRouteInternal(path string, handler http.Handler, fast FastHandler) {
 	// Expand optional segments before doing anything else.
 	if expanded, ok := expandOptional(path); ok {
-		n.addRoute(expanded[0], handler)
-		n.addRoute(expanded[1], handler)
+		n.addRouteInternal(expanded[0], handler, fast)
+		n.addRouteInternal(expanded[1], handler, fast)
 		// Each recursive call carries its own defer that updates maxParams.
 		return
 	}
@@ -108,7 +120,7 @@ func (n *node) addRoute(path string, handler http.Handler) {
 	n.priority++
 
 	if n.path == "" && n.indices == "" {
-		n.insertChild(path, fullPath, handler)
+		n.insertChild(path, fullPath, handler, fast)
 		n.nType = root
 		return
 	}
@@ -125,6 +137,7 @@ walk:
 				indices:   n.indices,
 				children:  n.children,
 				handler:   n.handler,
+				fast:      n.fast,
 				priority:  n.priority - 1,
 				pattern:   n.pattern, // split child inherits the original pattern
 				regexp:    n.regexp,
@@ -133,6 +146,7 @@ walk:
 			n.indices = string(n.path[i])
 			n.path = path[:i]
 			n.handler = nil
+			n.fast = nil
 			n.pattern = ""
 			n.wildChild = false
 		}
@@ -184,14 +198,15 @@ walk:
 					"' conflicts with existing wildcard '" + pfx + "'")
 			}
 
-			n.insertChild(path, fullPath, handler)
+			n.insertChild(path, fullPath, handler, fast)
 			return
 		}
 
-		if n.handler != nil {
+		if n.handler != nil || n.fast != nil {
 			panic("a handler is already registered for path '" + fullPath + "'")
 		}
 		n.handler = handler
+		n.fast = fast
 		n.pattern = fullPath
 		return
 	}
@@ -217,7 +232,7 @@ func (n *node) incrementChildPrio(pos int) int {
 	return newPos
 }
 
-func (n *node) insertChild(path, fullPath string, handler http.Handler) {
+func (n *node) insertChild(path, fullPath string, handler http.Handler, fast FastHandler) {
 	for {
 		wc, i, valid := findWildcard(path)
 		if i < 0 {
@@ -251,6 +266,7 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 				continue
 			}
 			n.handler = handler
+			n.fast = fast
 			n.pattern = fullPath
 			return
 		}
@@ -286,6 +302,7 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 				continue
 			}
 			n.handler = handler
+			n.fast = fast
 			n.pattern = fullPath
 			return
 		}
@@ -315,6 +332,7 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 			path:     path[i:],
 			nType:    wildcard,
 			handler:  handler,
+			fast:     fast,
 			pattern:  fullPath,
 			priority: 1,
 		}
@@ -324,14 +342,17 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler) {
 
 	n.path = path
 	n.handler = handler
+	n.fast = fast
 	n.pattern = fullPath
 }
 
 // getValue looks up the handler for path.
 // ci enables case-insensitive static prefix matching.
-// Returns the handler, the registered route pattern, and a trailing-slash-redirect hint.
+// Returns the http.Handler (or nil), the FastHandler (or nil), the registered
+// route pattern, and a trailing-slash-redirect hint. Exactly one of handler
+// and fast will be non-nil when a route is found.
 // params may be nil (for static-route fast path) or point to a stack-allocated paramsBuf.
-func (n *node) getValue(path string, params *paramsBuf, ci bool) (handler http.Handler, pattern string, tsr bool) {
+func (n *node) getValue(path string, params *paramsBuf, ci bool) (handler http.Handler, fast FastHandler, pattern string, tsr bool) {
 walk:
 	for {
 		prefix := n.path
@@ -353,7 +374,7 @@ walk:
 			}
 
 			if !n.wildChild {
-				tsr = path == "/" && n.handler != nil
+				tsr = path == "/" && (n.handler != nil || n.fast != nil)
 				return
 			}
 
@@ -375,10 +396,11 @@ walk:
 				}
 				if end == len(path) {
 					handler = n.handler
+					fast = n.fast
 					pattern = n.pattern
-					if handler == nil && len(n.children) == 1 {
+					if handler == nil && fast == nil && len(n.children) == 1 {
 						n = n.children[0]
-						tsr = n.path == "/" && n.handler != nil
+						tsr = n.path == "/" && (n.handler != nil || n.fast != nil)
 					}
 					return
 				}
@@ -410,10 +432,11 @@ walk:
 				}
 				if end == len(path) {
 					handler = n.handler
+					fast = n.fast
 					pattern = n.pattern
-					if handler == nil && len(n.children) == 1 {
+					if handler == nil && fast == nil && len(n.children) == 1 {
 						n = n.children[0]
-						tsr = n.path == "/" && n.handler != nil
+						tsr = n.path == "/" && (n.handler != nil || n.fast != nil)
 					}
 					return
 				}
@@ -430,6 +453,7 @@ walk:
 					params.add(n.path[2:], path)
 				}
 				handler = n.handler
+				fast = n.fast
 				pattern = n.pattern
 				return
 
@@ -440,20 +464,21 @@ walk:
 
 		if prefixMatch(path, prefix, ci) && len(path) == len(prefix) {
 			handler = n.handler
+			fast = n.fast
 			pattern = n.pattern
-			if handler != nil {
+			if handler != nil || fast != nil {
 				return
 			}
 			for j := range len(n.indices) {
 				if n.indices[j] == '/' {
 					n = n.children[j]
-					tsr = (n.path == "/" && n.handler != nil) ||
-						(n.nType == wildcard && n.children[0].handler != nil)
+					tsr = (n.path == "/" && (n.handler != nil || n.fast != nil)) ||
+						(n.nType == wildcard && (n.children[0].handler != nil || n.children[0].fast != nil))
 					return
 				}
 			}
 			tsr = path == "/" ||
-				(len(n.indices) == 1 && n.indices[0] == '/' && n.children[0].handler != nil)
+				(len(n.indices) == 1 && n.indices[0] == '/' && (n.children[0].handler != nil || n.children[0].fast != nil))
 			return
 		}
 
@@ -461,7 +486,7 @@ walk:
 			(len(prefix) == len(path)+1 &&
 				prefix[len(path)] == '/' &&
 				prefixMatch(path, prefix[:len(prefix)-1], ci) &&
-				n.handler != nil))
+				(n.handler != nil || n.fast != nil)))
 		return
 	}
 }
@@ -498,14 +523,15 @@ func foldEq(a, b byte, ci bool) bool {
 }
 
 func (n *node) hasHandler(path string) bool {
-	h, _, _ := n.getValue(path, nil, false)
-	return h != nil
+	h, f, _, _ := n.getValue(path, nil, false)
+	return h != nil || f != nil
 }
 
-// walk visits every leaf node (nodes with a registered handler) in depth-first order.
-func (n *node) walk(fn func(pattern string, handler http.Handler)) {
-	if n.handler != nil && n.pattern != "" {
-		fn(n.pattern, n.handler)
+// walk visits every leaf node (nodes with a registered handler or fast handler)
+// in depth-first order.
+func (n *node) walk(fn func(pattern string, handler http.Handler, fast FastHandler)) {
+	if n.pattern != "" && (n.handler != nil || n.fast != nil) {
+		fn(n.pattern, n.handler, n.fast)
 	}
 	for _, child := range n.children {
 		child.walk(fn)

@@ -174,8 +174,9 @@ type Mux struct {
 	// ResponseWriter, Request, and recovered value.
 	PanicHandler func(http.ResponseWriter, *http.Request, any)
 
-	middleware []func(http.Handler) http.Handler
-	pre        []func(http.Handler) http.Handler
+	middleware     []func(http.Handler) http.Handler
+	pre            []func(http.Handler) http.Handler
+	fastMiddleware []FastMiddleware
 
 	// preHandlerPtr stores the pre-dispatch handler chain built by Pre().
 	// Stored as an atomic pointer so ServeHTTP can read it without a lock.
@@ -296,6 +297,90 @@ func (m *Mux) HandleE(method, pattern string, h HandlerFuncE) {
 		}
 	}))
 }
+
+// UseFast appends one or more FastMiddleware to the chain applied to all
+// HandleFast routes registered after this call. The first middleware added
+// is outermost. Has no effect on routes registered via Handle.
+func (m *Mux) UseFast(mw ...FastMiddleware) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.fastMiddleware = append(m.fastMiddleware, mw...)
+}
+
+// HandleFast registers a FastHandler for the given HTTP method and path.
+//
+// FastHandler routes bypass the context allocation overhead of http.Handler
+// routes. Params are passed as a direct argument — see FastHandler for
+// lifetime guarantees.
+//
+// stdlib middleware (registered via Use) does NOT apply to fast routes.
+// Use UseFast to attach middleware to fast routes instead.
+//
+// Panics on empty method, non-absolute path, nil handler, or route conflict.
+func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
+	switch {
+	case method == "":
+		panic("muxmaster: HTTP method must not be empty")
+	case len(pattern) == 0 || pattern[0] != '/':
+		panic("muxmaster: path must begin with '/' in '" + pattern + "'")
+	case h == nil:
+		panic("muxmaster: handler must not be nil")
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	idx := methodIdx(method)
+	if idx < 0 {
+		panic("muxmaster: unsupported HTTP method '" + method + "'")
+	}
+
+	var trees methodTrees
+	if old := m.treesPtr.Load(); old != nil {
+		trees = *old
+	}
+
+	root := trees[idx]
+	if root == nil {
+		root = new(node)
+		trees[idx] = root
+	}
+	root.addRouteFast(pattern, wrapFastMiddleware(h, m.fastMiddleware))
+	m.treesPtr.Store(&trees)
+}
+
+// GETFast registers a FastHandler for GET requests on pattern.
+func (m *Mux) GETFast(pattern string, h FastHandler) { m.HandleFast(http.MethodGet, pattern, h) }
+
+// HEADFast registers a FastHandler for HEAD requests on pattern.
+func (m *Mux) HEADFast(pattern string, h FastHandler) { m.HandleFast(http.MethodHead, pattern, h) }
+
+// POSTFast registers a FastHandler for POST requests on pattern.
+func (m *Mux) POSTFast(pattern string, h FastHandler) { m.HandleFast(http.MethodPost, pattern, h) }
+
+// PUTFast registers a FastHandler for PUT requests on pattern.
+func (m *Mux) PUTFast(pattern string, h FastHandler) { m.HandleFast(http.MethodPut, pattern, h) }
+
+// PATCHFast registers a FastHandler for PATCH requests on pattern.
+func (m *Mux) PATCHFast(pattern string, h FastHandler) { m.HandleFast(http.MethodPatch, pattern, h) }
+
+// DELETEFast registers a FastHandler for DELETE requests on pattern.
+func (m *Mux) DELETEFast(pattern string, h FastHandler) {
+	m.HandleFast(http.MethodDelete, pattern, h)
+}
+
+// OPTIONSFast registers a FastHandler for OPTIONS requests on pattern.
+func (m *Mux) OPTIONSFast(pattern string, h FastHandler) {
+	m.HandleFast(http.MethodOptions, pattern, h)
+}
+
+// CONNECTFast registers a FastHandler for CONNECT requests on pattern.
+func (m *Mux) CONNECTFast(pattern string, h FastHandler) {
+	m.HandleFast(http.MethodConnect, pattern, h)
+}
+
+// TRACEFast registers a FastHandler for TRACE requests on pattern.
+func (m *Mux) TRACEFast(pattern string, h FastHandler) { m.HandleFast(http.MethodTrace, pattern, h) }
 
 // GET registers a HandlerFunc for GET requests on pattern.
 func (m *Mux) GET(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodGet, pattern, h) }
@@ -602,9 +687,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 		if root.maxParams > 0 {
 			psBuf = &ps
 		}
-		handler, pattern, tsr := root.getValue(urlPath, psBuf, cfg.caseInsensitive)
+		handler, fast, pattern, tsr := root.getValue(urlPath, psBuf, cfg.caseInsensitive)
 
-		if handler != nil {
+		if handler != nil || fast != nil {
 			if ps.count > 0 {
 				pslice := ps.buf[:ps.count]
 				if cfg.unescapePathValues {
@@ -614,10 +699,22 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 						}
 					}
 				}
-				dispatchWithParams(w, r, handler, pattern, pslice)
+				if fast != nil {
+					// FastHandler: allocate a small Params slice (1 alloc ~64 B)
+					// so goroutines spawned in the handler can safely reference params.
+					fps := make(Params, ps.count)
+					copy(fps, pslice)
+					fast(w, r, fps)
+				} else {
+					dispatchWithParams(w, r, handler, pattern, pslice)
+				}
 			} else {
 				// static route — 0 allocs
-				handler.ServeHTTP(w, r)
+				if fast != nil {
+					fast(w, r, nil)
+				} else {
+					handler.ServeHTTP(w, r)
+				}
 			}
 			return
 		}
@@ -664,8 +761,8 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 		if starRoot.maxParams > 0 {
 			ps2Buf = &ps2
 		}
-		h2, pat2, _ := starRoot.getValue(urlPath, ps2Buf, cfg.caseInsensitive)
-		if h2 != nil {
+		h2, f2, pat2, _ := starRoot.getValue(urlPath, ps2Buf, cfg.caseInsensitive)
+		if h2 != nil || f2 != nil {
 			if ps2.count > 0 {
 				pslice2 := ps2.buf[:ps2.count]
 				if cfg.unescapePathValues {
@@ -675,10 +772,19 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 						}
 					}
 				}
-				dispatchWithParams(w, r, h2, pat2, pslice2)
+				if f2 != nil {
+					fps2 := make(Params, ps2.count)
+					copy(fps2, pslice2)
+					f2(w, r, fps2)
+				} else {
+					dispatchWithParams(w, r, h2, pat2, pslice2)
+				}
 			} else {
-				// no params — skip withRoute
-				h2.ServeHTTP(w, r)
+				if f2 != nil {
+					f2(w, r, nil)
+				} else {
+					h2.ServeHTTP(w, r)
+				}
 			}
 			return
 		}
@@ -755,8 +861,8 @@ func (m *Mux) cleanedPath(root *node, p string) (string, bool) {
 	if cleaned == p {
 		return "", false
 	}
-	h, _, _ := root.getValue(cleaned, nil, false)
-	if h != nil {
+	h, f, _, _ := root.getValue(cleaned, nil, false)
+	if h != nil || f != nil {
 		return cleaned, true
 	}
 	return "", false

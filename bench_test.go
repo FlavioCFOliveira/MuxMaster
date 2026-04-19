@@ -158,3 +158,106 @@ func BenchmarkParallelParamRoute(b *testing.B) {
 		}
 	})
 }
+
+// newFastBenchMux builds a Mux using HandleFast for the benchmarked routes.
+func newFastBenchMux() *muxmaster.Mux {
+	nopFast := func(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {}
+	m := muxmaster.New()
+
+	// Static routes — same as newBenchMux
+	m.GET("/", nopHandler)
+	m.GET("/users", nopHandler)
+	m.GET("/users/list", nopHandler)
+	m.GET("/users/search", nopHandler)
+	m.POST("/users", nopHandler)
+	m.GET("/products", nopHandler)
+	m.GET("/products/featured", nopHandler)
+	m.POST("/products", nopHandler)
+	m.GET("/health", nopHandler)
+	m.GET("/metrics", nopHandler)
+
+	// Param routes registered as FastHandler
+	m.GETFast("/users/:id", nopFast)
+	m.PUTFast("/users/:id", nopFast)
+	m.DELETEFast("/users/:id", nopFast)
+	m.GETFast("/users/:id/posts", nopFast)
+	m.GETFast("/users/:id/posts/:pid", nopFast)
+	m.GETFast("/products/:id", nopFast)
+	m.PUTFast("/products/:id", nopFast)
+	m.GETFast("/orgs/:org/repos/:repo/issues/:num", nopFast)
+
+	// Wildcard routes as FastHandler
+	m.GETFast("/static/*filepath", nopFast)
+	m.GETFast("/docs/*path", nopFast)
+
+	return m
+}
+
+// BenchmarkFastStaticRoute measures ServeHTTP for a static fast route.
+// Static routes use the same path as regular Handle routes — 0 allocs.
+func BenchmarkFastStaticRoute(b *testing.B) {
+	m := newFastBenchMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/users/list")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkFastParamRoute1 measures HandleFast dispatch with one path parameter.
+// Target: ≤58 ns, 1 alloc ~64 B.
+func BenchmarkFastParamRoute1(b *testing.B) {
+	m := newFastBenchMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/users/42")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkFastParamRoute2 measures HandleFast dispatch with two path parameters.
+func BenchmarkFastParamRoute2(b *testing.B) {
+	m := newFastBenchMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/users/42/posts/7")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkFastParamRoute3 measures HandleFast dispatch with three path parameters.
+func BenchmarkFastParamRoute3(b *testing.B) {
+	m := newFastBenchMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/orgs/acme/repos/api/issues/123")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkFastParallelParamRoute measures concurrent HandleFast param dispatch.
+func BenchmarkFastParallelParamRoute(b *testing.B) {
+	m := newFastBenchMux()
+	r := benchReq(http.MethodGet, "/users/42")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		w := httptest.NewRecorder()
+		for pb.Next() {
+			m.ServeHTTP(w, r)
+		}
+	})
+}

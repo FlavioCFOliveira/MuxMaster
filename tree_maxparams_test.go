@@ -6,11 +6,12 @@ import (
 	"unsafe"
 )
 
-// TestNodeSizeUnchanged verifies that adding maxParams uint8 did not increase
-// the size of node — it must fit in the padding byte between regexpNameEnd and
-// the regexp pointer (offsets 94 and 96 respectively).
+// TestNodeSizeUnchanged verifies the size of node matches the expected layout.
+// The fast FastHandler field (8 bytes) was added in the HandleFast feature.
+// Nodes exist only at registration time and are never per-request allocated,
+// so the size increase has no impact on hot-path performance.
 func TestNodeSizeUnchanged(t *testing.T) {
-	const want = 104
+	const want = 112
 	if got := unsafe.Sizeof(node{}); got != want {
 		t.Errorf("node size changed: want %d bytes, got %d bytes", want, got)
 	}
@@ -75,7 +76,7 @@ func TestMaxParamsNilBufPassedForStaticTree(t *testing.T) {
 	root.addRoute("/hello", nopHandler)
 
 	// getValue with nil params must work for static routes.
-	h, pattern, tsr := root.getValue("/hello", nil, false)
+	h, _, pattern, tsr := root.getValue("/hello", nil, false)
 	if h == nil {
 		t.Fatal("expected handler for /hello, got nil")
 	}

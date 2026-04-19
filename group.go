@@ -9,15 +9,22 @@ import (
 // Group is a set of routes sharing a common path prefix and middleware stack.
 // Create one via Mux.Group; nest further via Group.Group.
 type Group struct {
-	mux        *Mux
-	prefix     string
-	middleware []func(http.Handler) http.Handler
+	mux            *Mux
+	prefix         string
+	middleware     []func(http.Handler) http.Handler
+	fastMiddleware []FastMiddleware
 }
 
 // Use appends middleware to this group's chain.
 // Must be called before registering routes on the group.
 func (g *Group) Use(middleware ...func(http.Handler) http.Handler) {
 	g.middleware = append(g.middleware, middleware...)
+}
+
+// UseFast appends FastMiddleware to this group's fast-route chain.
+// Must be called before registering HandleFast routes on the group.
+func (g *Group) UseFast(mw ...FastMiddleware) {
+	g.fastMiddleware = append(g.fastMiddleware, mw...)
 }
 
 // Handle registers handler under this group with the given method and path.
@@ -43,6 +50,12 @@ func (g *Group) HandleE(method, path string, h HandlerFuncE) {
 			}
 		}
 	}))
+}
+
+// HandleFast registers a FastHandler under this group with the given method and path.
+// The full path is g.prefix + path. Group FastMiddleware is applied before dispatch.
+func (g *Group) HandleFast(method, path string, h FastHandler) {
+	g.mux.HandleFast(method, g.prefix+path, wrapFastMiddleware(h, g.fastMiddleware))
 }
 
 // GET registers a HandlerFunc for GET requests on path.
@@ -123,18 +136,23 @@ func (g *Group) With(mw ...func(http.Handler) http.Handler) *Group {
 	mwCopy := make([]func(http.Handler) http.Handler, len(g.middleware)+len(mw))
 	copy(mwCopy, g.middleware)
 	copy(mwCopy[len(g.middleware):], mw)
-	return &Group{mux: g.mux, prefix: g.prefix, middleware: mwCopy}
+	fmCopy := make([]FastMiddleware, len(g.fastMiddleware))
+	copy(fmCopy, g.fastMiddleware)
+	return &Group{mux: g.mux, prefix: g.prefix, middleware: mwCopy, fastMiddleware: fmCopy}
 }
 
 // Group returns a sub-group sharing the same mux with an extended prefix.
-// The sub-group starts with a copy of the parent group's middleware.
+// The sub-group starts with a copy of the parent group's middleware stacks.
 func (g *Group) Group(prefix string) *Group {
 	mw := make([]func(http.Handler) http.Handler, len(g.middleware))
 	copy(mw, g.middleware)
+	fm := make([]FastMiddleware, len(g.fastMiddleware))
+	copy(fm, g.fastMiddleware)
 	return &Group{
-		mux:        g.mux,
-		prefix:     g.prefix + prefix,
-		middleware: mw,
+		mux:            g.mux,
+		prefix:         g.prefix + prefix,
+		middleware:     mw,
+		fastMiddleware: fm,
 	}
 }
 
