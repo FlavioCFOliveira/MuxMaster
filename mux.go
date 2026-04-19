@@ -157,7 +157,20 @@ type Mux struct {
 	// preHandlerPtr stores the pre-dispatch handler chain built by Pre().
 	// Stored as an atomic pointer so ServeHTTP can read it without a lock.
 	preHandlerPtr atomic.Pointer[http.Handler]
-	mu            sync.RWMutex // guards Use/Pre/Handle/introspection
+
+	// lazyNotFoundPtr caches the middleware-wrapped not-found handler after
+	// first use. Invalidated by Use() to pick up new middleware.
+	lazyNotFoundPtr atomic.Pointer[http.Handler]
+
+	// methodNotAllowedCache caches wrapped 405 handlers keyed by Allow value.
+	// The Allow string is determined per-path so we key by it. Invalidated by Use().
+	methodNotAllowedCache sync.Map
+
+	// optionsCache caches wrapped OPTIONS handlers keyed by Allow value.
+	// Invalidated by Use().
+	optionsCache sync.Map
+
+	mu sync.RWMutex // guards Use/Pre/Handle/introspection
 }
 
 // New returns a Mux with production-safe defaults enabled.
@@ -177,6 +190,16 @@ func (m *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.middleware = append(m.middleware, middleware...)
+	// Invalidate lazy handler caches — they were built with the old middleware slice.
+	m.lazyNotFoundPtr.Store(nil)
+	m.methodNotAllowedCache.Range(func(k, _ any) bool {
+		m.methodNotAllowedCache.Delete(k)
+		return true
+	})
+	m.optionsCache.Range(func(k, _ any) bool {
+		m.optionsCache.Delete(k)
+		return true
+	})
 }
 
 // Pre registers middleware that runs before dispatch (e.g. before routing).
@@ -410,6 +433,61 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 	m.Handle(http.MethodHead, prefix, h)
 }
 
+// lazyNotFound returns the middleware-wrapped not-found handler, building and
+// caching it on first use. Two concurrent first-callers may both build the
+// handler; the second Store simply overwrites with a functionally identical
+// value — safe because the mux is fully configured before serving begins.
+func (m *Mux) lazyNotFound() http.Handler {
+	if h := m.lazyNotFoundPtr.Load(); h != nil {
+		return *h
+	}
+	notFound := m.NotFound
+	if notFound == nil {
+		notFound = http.HandlerFunc(http.NotFound)
+	}
+	h := wrapMiddleware(notFound, m.middleware)
+	m.lazyNotFoundPtr.Store(&h)
+	return h
+}
+
+// lazyMethodNotAllowed returns the middleware-wrapped 405 handler for the
+// given Allow header value, building and caching it on first use per allow key.
+func (m *Mux) lazyMethodNotAllowed(allow string) http.Handler {
+	if v, ok := m.methodNotAllowedCache.Load(allow); ok {
+		return v.(http.Handler)
+	}
+	methodNotAllowed := m.MethodNotAllowed
+	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Allow", allow)
+		if methodNotAllowed != nil {
+			methodNotAllowed.ServeHTTP(w, r)
+		} else {
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		}
+	}), m.middleware)
+	m.methodNotAllowedCache.Store(allow, h)
+	return h
+}
+
+// lazyOPTIONS returns the middleware-wrapped OPTIONS handler for the given
+// Allow header value, building and caching it on first use per allow key.
+func (m *Mux) lazyOPTIONS(allow string) http.Handler {
+	if v, ok := m.optionsCache.Load(allow); ok {
+		return v.(http.Handler)
+	}
+	globalOPTS := m.GlobalOPTIONS
+	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Allow", allow)
+		if globalOPTS != nil {
+			globalOPTS.ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}), m.middleware)
+	m.optionsCache.Store(allow, h)
+	return h
+}
+
 // ServeHTTP implements http.Handler, dispatching through pre-middleware if set.
 //
 // The fast path (no PanicHandler, no pre-middleware) avoids the defer frame
@@ -548,39 +626,17 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodOptions && m.HandleOPTIONS {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
-			allowStr := allow
-			globalOPTS := m.GlobalOPTIONS
-			wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Allow", allowStr)
-				if globalOPTS != nil {
-					globalOPTS.ServeHTTP(w, r)
-				} else {
-					w.WriteHeader(http.StatusNoContent)
-				}
-			}), m.middleware).ServeHTTP(w, r)
+			m.lazyOPTIONS(allow).ServeHTTP(w, r)
 			return
 		}
 	} else if m.HandleMethodNotAllowed {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
-			allowStr := allow
-			methodNotAllowed := m.MethodNotAllowed
-			wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Allow", allowStr)
-				if methodNotAllowed != nil {
-					methodNotAllowed.ServeHTTP(w, r)
-				} else {
-					http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-				}
-			}), m.middleware).ServeHTTP(w, r)
+			m.lazyMethodNotAllowed(allow).ServeHTTP(w, r)
 			return
 		}
 	}
 
-	notFound := m.NotFound
-	if notFound == nil {
-		notFound = http.HandlerFunc(http.NotFound)
-	}
-	wrapMiddleware(notFound, m.middleware).ServeHTTP(w, r)
+	m.lazyNotFound().ServeHTTP(w, r)
 }
 
 func (m *Mux) recoverPanic(w http.ResponseWriter, r *http.Request) {
