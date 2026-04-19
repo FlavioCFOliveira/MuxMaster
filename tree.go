@@ -59,7 +59,28 @@ type node struct {
 	nType         nodeType       // 1 byte   @ 92
 	wildChild     bool           // 1 byte   @ 93
 	regexpNameEnd uint8          // 1 byte   @ 94 (end index of param name in path for regexParam nodes)
+	maxParams     uint8          // 1 byte   @ 95 (max wildcard depth in any path through this subtree)
 	regexp        *regexp.Regexp // 8 bytes  @ 96 (regex routes only)
+}
+
+// calcPathMaxParams returns the maximum number of path parameters that can be
+// captured along any single path through the subtree rooted at n. It is called
+// once per addRoute invocation (registration time only — not the hot path).
+func calcPathMaxParams(n *node) uint8 {
+	if n == nil {
+		return 0
+	}
+	var mine uint8
+	if n.nType == param || n.nType == regexParam || n.nType == wildcard {
+		mine = 1
+	}
+	var childMax uint8
+	for _, child := range n.children {
+		if v := calcPathMaxParams(child); v > childMax {
+			childMax = v
+		}
+	}
+	return mine + childMax
 }
 
 // addRoute registers a handler for the given path, expanding optional segments first.
@@ -68,6 +89,7 @@ func (n *node) addRoute(path string, handler http.Handler) {
 	if expanded, ok := expandOptional(path); ok {
 		n.addRoute(expanded[0], handler)
 		n.addRoute(expanded[1], handler)
+		// Each recursive call carries its own defer that updates maxParams.
 		return
 	}
 
@@ -75,6 +97,14 @@ func (n *node) addRoute(path string, handler http.Handler) {
 	if !utf8.ValidString(path) {
 		panic("muxmaster: path contains invalid UTF-8: " + strconv.QuoteToASCII(path))
 	}
+
+	// After the route is fully inserted, refresh maxParams on the root node so
+	// that dispatch can skip paramsBuf allocation for purely static trees.
+	// Capture origRoot here — n is reassigned during tree traversal below.
+	// This runs at registration time only — never in the hot path.
+	origRoot := n
+	defer func() { origRoot.maxParams = calcPathMaxParams(origRoot) }()
+
 	n.priority++
 
 	if n.path == "" && n.indices == "" {

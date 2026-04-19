@@ -458,8 +458,13 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 	if root != nil {
 		// paramsBuf is a fixed-size struct — no slice header, no append, no heap escape.
 		// Zero allocs for static routes; 1 alloc (reqBundle) for param routes.
+		// When the tree has no wildcard routes, pass nil to skip zeroing 264 B of stack.
 		var ps paramsBuf
-		handler, pattern, tsr := root.getValue(urlPath, &ps, m.CaseInsensitive)
+		var psBuf *paramsBuf
+		if root.maxParams > 0 {
+			psBuf = &ps
+		}
+		handler, pattern, tsr := root.getValue(urlPath, psBuf, m.CaseInsensitive)
 
 		if handler != nil {
 			if ps.count > 0 {
@@ -559,7 +564,11 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 	}
 	if starRoot != nil {
 		var ps2 paramsBuf
-		h2, pat2, _ := starRoot.getValue(urlPath, &ps2, m.CaseInsensitive)
+		var ps2Buf *paramsBuf
+		if starRoot.maxParams > 0 {
+			ps2Buf = &ps2
+		}
+		h2, pat2, _ := starRoot.getValue(urlPath, ps2Buf, m.CaseInsensitive)
 		if h2 != nil {
 			if ps2.count > 0 {
 				pslice2 := ps2.buf[:ps2.count]
