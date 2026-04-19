@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- `Rebuild()` — resets the frozen configuration snapshot; intended for tests that change Mux flags after first use
+
+### Performance
+- Configuration flags are now frozen into a `muxConfig` snapshot on the first `ServeHTTP` call. Subsequent requests read flags via a single atomic pointer load instead of 6–8 individual struct field loads, eliminating those memory accesses from the hot path.
+
 ## [1.0.0] - 2026-04-17
 
 ### Added

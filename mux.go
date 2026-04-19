@@ -98,11 +98,34 @@ func methodIdx(m string) int {
 	}
 }
 
+// muxConfig is a frozen snapshot of Mux configuration flags, captured on the
+// first ServeHTTP call. Changes to Mux fields after first use are ignored.
+// Use Rebuild to reset the snapshot.
+type muxConfig struct {
+	useRawPath             bool
+	caseInsensitive        bool
+	unescapePathValues     bool
+	redirectTrailingSlash  bool
+	redirectFixedPath      bool
+	handleMethodNotAllowed bool
+	handleOPTIONS          bool
+	hasPanicHandler        bool
+	redirectCode           int
+}
+
 // Mux is a high-performance HTTP request multiplexer.
+//
+// Configuration fields (RedirectTrailingSlash, CaseInsensitive, etc.) are
+// read once and frozen on the first ServeHTTP call. Use Rebuild to reset
+// the snapshot when changing flags after the server has started serving.
 type Mux struct {
 	// treesPtr is loaded atomically on every request — no lock needed after startup.
 	// Written only during route registration under mu (copy-on-write).
 	treesPtr atomic.Pointer[methodTrees]
+
+	// cfg is the frozen config snapshot, populated on the first ServeHTTP call.
+	cfg     atomic.Pointer[muxConfig]
+	cfgOnce sync.Once
 
 	// RedirectTrailingSlash redirects /foo/ → /foo (or /foo → /foo/) when a
 	// handler exists at the alternate path.
@@ -208,7 +231,9 @@ func (m *Mux) Pre(mw ...func(http.Handler) http.Handler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pre = append(m.pre, mw...)
-	h := wrapMiddleware(http.HandlerFunc(m.dispatch), m.pre)
+	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m.dispatch(w, r, m.frozenConfig())
+	}), m.pre)
 	m.preHandlerPtr.Store(&h)
 }
 
@@ -488,39 +513,74 @@ func (m *Mux) lazyOPTIONS(allow string) http.Handler {
 	return h
 }
 
+// frozenConfig returns the frozen configuration snapshot, building and storing
+// it atomically on the first call. Subsequent calls are a single pointer load.
+//
+// The sync.Once ensures that exactly one snapshot is built even under concurrent
+// first calls — each concurrent caller constructs a candidate from the same
+// (pre-serving) field values, but only the winner's copy is stored. Every caller
+// returns the winner's copy via the final Load, guaranteeing consistency.
+func (m *Mux) frozenConfig() *muxConfig {
+	if c := m.cfg.Load(); c != nil {
+		return c
+	}
+	c := &muxConfig{
+		useRawPath:             m.UseRawPath,
+		caseInsensitive:        m.CaseInsensitive,
+		unescapePathValues:     m.UnescapePathValues,
+		redirectTrailingSlash:  m.RedirectTrailingSlash,
+		redirectFixedPath:      m.RedirectFixedPath,
+		handleMethodNotAllowed: m.HandleMethodNotAllowed,
+		handleOPTIONS:          m.HandleOPTIONS,
+		hasPanicHandler:        m.PanicHandler != nil,
+		redirectCode:           m.RedirectCode,
+	}
+	m.cfgOnce.Do(func() { m.cfg.Store(c) })
+	return m.cfg.Load()
+}
+
+// Rebuild resets the frozen configuration snapshot so the next ServeHTTP call
+// re-reads all configuration fields. Intended for tests only — do not call
+// Rebuild while the server is actively serving requests.
+func (m *Mux) Rebuild() {
+	m.cfg.Store(nil)
+	m.cfgOnce = sync.Once{}
+}
+
 // ServeHTTP implements http.Handler, dispatching through pre-middleware if set.
 //
 // The fast path (no PanicHandler, no pre-middleware) avoids the defer frame
 // overhead entirely by going straight to dispatch. Deferred paths are isolated
 // in dispatchWithRecover to keep this function inlineable.
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if m.PanicHandler != nil {
-		m.dispatchWithRecover(w, r)
+	cfg := m.frozenConfig()
+	if cfg.hasPanicHandler {
+		m.dispatchWithRecover(w, r, cfg)
 		return
 	}
 	if ph := m.preHandlerPtr.Load(); ph != nil {
 		(*ph).ServeHTTP(w, r)
 		return
 	}
-	m.dispatch(w, r)
+	m.dispatch(w, r, cfg)
 }
 
 // dispatchWithRecover is the slow-path variant used only when PanicHandler is
 // configured. Kept in a separate function so the common path avoids defer setup.
-func (m *Mux) dispatchWithRecover(w http.ResponseWriter, r *http.Request) {
+func (m *Mux) dispatchWithRecover(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 	defer m.recoverPanic(w, r)
 	if ph := m.preHandlerPtr.Load(); ph != nil {
 		(*ph).ServeHTTP(w, r)
 		return
 	}
-	m.dispatch(w, r)
+	m.dispatch(w, r, cfg)
 }
 
 // dispatch performs route lookup and dispatches to the matched handler.
-func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
+func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 	// Determine the effective URL path.
 	urlPath := r.URL.Path
-	if m.UseRawPath && r.URL.RawPath != "" {
+	if cfg.useRawPath && r.URL.RawPath != "" {
 		urlPath = r.URL.RawPath
 	}
 
@@ -542,12 +602,12 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		if root.maxParams > 0 {
 			psBuf = &ps
 		}
-		handler, pattern, tsr := root.getValue(urlPath, psBuf, m.CaseInsensitive)
+		handler, pattern, tsr := root.getValue(urlPath, psBuf, cfg.caseInsensitive)
 
 		if handler != nil {
 			if ps.count > 0 {
 				pslice := ps.buf[:ps.count]
-				if m.UnescapePathValues {
+				if cfg.unescapePathValues {
 					for i := range pslice {
 						if v, err := url.QueryUnescape(pslice[i].Value); err == nil {
 							pslice[i].Value = v
@@ -563,9 +623,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if r.Method != http.MethodConnect && urlPath != "/" {
-			code := m.redirectCode(r.Method)
+			code := m.resolveRedirectCode(cfg, r.Method)
 
-			if tsr && m.RedirectTrailingSlash {
+			if tsr && cfg.redirectTrailingSlash {
 				if len(urlPath) > 1 && urlPath[len(urlPath)-1] == '/' {
 					r.URL.Path = urlPath[:len(urlPath)-1]
 				} else {
@@ -579,7 +639,7 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if m.RedirectFixedPath {
+			if cfg.redirectFixedPath {
 				if fixed, ok := m.cleanedPath(root, urlPath); ok {
 					r.URL.Path = fixed
 					target := r.URL.String()
@@ -604,11 +664,11 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		if starRoot.maxParams > 0 {
 			ps2Buf = &ps2
 		}
-		h2, pat2, _ := starRoot.getValue(urlPath, ps2Buf, m.CaseInsensitive)
+		h2, pat2, _ := starRoot.getValue(urlPath, ps2Buf, cfg.caseInsensitive)
 		if h2 != nil {
 			if ps2.count > 0 {
 				pslice2 := ps2.buf[:ps2.count]
-				if m.UnescapePathValues {
+				if cfg.unescapePathValues {
 					for i := range pslice2 {
 						if v, err := url.QueryUnescape(pslice2[i].Value); err == nil {
 							pslice2[i].Value = v
@@ -624,12 +684,12 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if r.Method == http.MethodOptions && m.HandleOPTIONS {
+	if r.Method == http.MethodOptions && cfg.handleOPTIONS {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
 			m.lazyOPTIONS(allow).ServeHTTP(w, r)
 			return
 		}
-	} else if m.HandleMethodNotAllowed {
+	} else if cfg.handleMethodNotAllowed {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
 			m.lazyMethodNotAllowed(allow).ServeHTTP(w, r)
 			return
@@ -645,10 +705,11 @@ func (m *Mux) recoverPanic(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// redirectCode returns the appropriate redirect status code for the given method.
-func (m *Mux) redirectCode(method string) int {
-	if m.RedirectCode != 0 {
-		return m.RedirectCode
+// resolveRedirectCode returns the appropriate redirect status code for the given method.
+// cfg.redirectCode is used when non-zero, otherwise the default per-method code is returned.
+func (m *Mux) resolveRedirectCode(cfg *muxConfig, method string) int {
+	if cfg.redirectCode != 0 {
+		return cfg.redirectCode
 	}
 	if method == http.MethodGet || method == http.MethodHead {
 		return http.StatusMovedPermanently
