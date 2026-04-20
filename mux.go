@@ -233,7 +233,7 @@ func (m *Mux) Pre(mw ...func(http.Handler) http.Handler) {
 	defer m.mu.Unlock()
 	m.pre = append(m.pre, mw...)
 	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		m.dispatch(w, r, m.frozenConfig())
+		m.dispatch(w, r, m.config())
 	}), m.pre)
 	m.preHandlerPtr.Store(&h)
 }
@@ -598,17 +598,27 @@ func (m *Mux) lazyOPTIONS(allow string) http.Handler {
 	return h
 }
 
-// frozenConfig returns the frozen configuration snapshot, building and storing
-// it atomically on the first call. Subsequent calls are a single pointer load.
+// config returns the frozen Mux configuration, building it on the first call.
+// The fast path (atomic load of a non-nil pointer) is inlineable; the slow
+// initialisation path is split into frozenConfigSlow to keep this function
+// within the compiler's inline budget.
+func (m *Mux) config() *muxConfig {
+	if c := m.cfg.Load(); c != nil {
+		return c
+	}
+	return m.frozenConfigSlow()
+}
+
+// frozenConfigSlow builds and stores the frozen config snapshot on the first
+// call. Marked noinline so that config() stays within the inline budget.
 //
 // The sync.Once ensures that exactly one snapshot is built even under concurrent
 // first calls — each concurrent caller constructs a candidate from the same
 // (pre-serving) field values, but only the winner's copy is stored. Every caller
 // returns the winner's copy via the final Load, guaranteeing consistency.
-func (m *Mux) frozenConfig() *muxConfig {
-	if c := m.cfg.Load(); c != nil {
-		return c
-	}
+//
+//go:noinline
+func (m *Mux) frozenConfigSlow() *muxConfig {
 	c := &muxConfig{
 		useRawPath:             m.UseRawPath,
 		caseInsensitive:        m.CaseInsensitive,
@@ -638,7 +648,7 @@ func (m *Mux) Rebuild() {
 // overhead entirely by going straight to dispatch. Deferred paths are isolated
 // in dispatchWithRecover to keep this function inlineable.
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cfg := m.frozenConfig()
+	cfg := m.config()
 	if cfg.hasPanicHandler {
 		m.dispatchWithRecover(w, r, cfg)
 		return
@@ -691,21 +701,34 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 
 		if handler != nil || fast != nil {
 			if ps.count > 0 {
-				pslice := ps.buf[:ps.count]
-				if cfg.unescapePathValues {
-					for i := range pslice {
-						if v, err := url.QueryUnescape(pslice[i].Value); err == nil {
-							pslice[i].Value = v
+				if fast != nil {
+					// FastHandler path: allocate exact-sized Params (count * 32B)
+					// and copy from ps.buf. This keeps ps on the stack — ps.buf is
+					// only read via copy() (a builtin), never passed to a function pointer.
+					fps := make(Params, ps.count)
+					if len(ps.overflow) == 0 {
+						copy(fps, ps.buf[:ps.count])
+					} else {
+						copy(fps, ps.buf[:maxParams])
+						copy(fps[maxParams:], ps.overflow)
+					}
+					if cfg.unescapePathValues {
+						for i := range fps {
+							if v, err := url.QueryUnescape(fps[i].Value); err == nil {
+								fps[i].Value = v
+							}
 						}
 					}
-				}
-				if fast != nil {
-					// FastHandler: allocate a small Params slice (1 alloc ~64 B)
-					// so goroutines spawned in the handler can safely reference params.
-					fps := make(Params, ps.count)
-					copy(fps, pslice)
 					fast(w, r, fps)
 				} else {
+					pslice := ps.params()
+					if cfg.unescapePathValues {
+						for i := range pslice {
+							if v, err := url.QueryUnescape(pslice[i].Value); err == nil {
+								pslice[i].Value = v
+							}
+						}
+					}
 					dispatchWithParams(w, r, handler, pattern, pslice)
 				}
 			} else {
@@ -764,19 +787,31 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 		h2, f2, pat2, _ := starRoot.getValue(urlPath, ps2Buf, cfg.caseInsensitive)
 		if h2 != nil || f2 != nil {
 			if ps2.count > 0 {
-				pslice2 := ps2.buf[:ps2.count]
-				if cfg.unescapePathValues {
-					for i := range pslice2 {
-						if v, err := url.QueryUnescape(pslice2[i].Value); err == nil {
-							pslice2[i].Value = v
-						}
-					}
-				}
 				if f2 != nil {
 					fps2 := make(Params, ps2.count)
-					copy(fps2, pslice2)
+					if len(ps2.overflow) == 0 {
+						copy(fps2, ps2.buf[:ps2.count])
+					} else {
+						copy(fps2, ps2.buf[:maxParams])
+						copy(fps2[maxParams:], ps2.overflow)
+					}
+					if cfg.unescapePathValues {
+						for i := range fps2 {
+							if v, err := url.QueryUnescape(fps2[i].Value); err == nil {
+								fps2[i].Value = v
+							}
+						}
+					}
 					f2(w, r, fps2)
 				} else {
+					pslice2 := ps2.params()
+					if cfg.unescapePathValues {
+						for i := range pslice2 {
+							if v, err := url.QueryUnescape(pslice2[i].Value); err == nil {
+								pslice2[i].Value = v
+							}
+						}
+					}
 					dispatchWithParams(w, r, h2, pat2, pslice2)
 				}
 			} else {

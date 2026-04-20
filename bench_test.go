@@ -208,7 +208,7 @@ func BenchmarkFastStaticRoute(b *testing.B) {
 }
 
 // BenchmarkFastParamRoute1 measures HandleFast dispatch with one path parameter.
-// Target: ≤58 ns, 1 alloc ~64 B.
+// Target: 0 allocs, ≤42 ns.
 func BenchmarkFastParamRoute1(b *testing.B) {
 	m := newFastBenchMux()
 	w := httptest.NewRecorder()
