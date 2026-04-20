@@ -8,18 +8,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
-- `Rebuild()` — resets the frozen configuration snapshot; intended for tests that change Mux flags after first use
-
-### Performance
-- Configuration flags are now frozen into a `muxConfig` snapshot on the first `ServeHTTP` call. Subsequent requests read flags via a single atomic pointer load instead of 6–8 individual struct field loads, eliminating those memory accesses from the hot path.
-
-## [1.0.0] - 2026-04-17
-
-### Added
-
 - Radix tree router with O(k) lookup (k = path length)
 - Named path parameters (`:id`), regex-constrained parameters (`{id:[0-9]+}`), and catch-all parameters (`*filepath`)
-- Zero allocations on static routes and routes with up to three path parameters
 - `Mux.Use` — global middleware (applied at registration time, zero per-request overhead)
 - `Mux.Pre` — pre-dispatch middleware (runs before routing)
 - `Mux.Group` / `Mux.Route` — path prefix groups with independent middleware stacks
@@ -37,9 +27,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `CaseInsensitive`, `UseRawPath`, `UnescapePathValues`, `RedirectCode` — opt-in options
 - Custom `NotFound`, `MethodNotAllowed`, `GlobalOPTIONS`, `PanicHandler`, `ErrorHandler`
 - `middleware` sub-package: Logger, Recoverer, CORS, BasicAuth, Compress, Throttle, Timeout, RequestID, RealIP, CleanPath, StripSlashes, NoCache, SetHeader, WithValue
-- `response` helpers: `JSON`, `XML`, `Text`, `Redirect`, `NoContent`
+- Response helpers: `JSON`, `XML`, `Text`, `Redirect`, `NoContent`
 - 100% compatible with `net/http` — implements `http.Handler`
 - Zero external dependencies
+- `FastHandler` / `FastMiddleware` — fast-path handler and middleware types that bypass the standard `http.Handler` chain; intended for trusted internal routes where stdlib middleware overhead is unacceptable
+- `Mux.HandleFast` / `Mux.UseFast` — register `FastHandler` routes and `FastMiddleware` chains
+- Convenience methods `GETFast`, `POSTFast`, `PUTFast`, `PATCHFast`, `DELETEFast`, `HEADFast`, `OPTIONSFast`, `CONNECTFast`, `TRACEFast` (and `Group` equivalents)
+- `Rebuild()` — resets the frozen configuration snapshot; intended for tests that change Mux flags after first use
 
-[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/FlavioCFOliveira/MuxMaster/releases/tag/v1.0.0
+### Performance
+- Zero allocations for static routes; single tiered allocation (416–480 B) for parameterized routes, fusing the request context and `*http.Request` copy into one GC-class-aligned object
+- **Tiered reqBundle allocations** — `reqBundle1` (416 B, 1 param), `reqBundle2` (448 B, 2 params), `reqBundle` (480 B, 3+ params); reduces B/op by 13–35 % vs. a single fixed-size bundle
+- **Configuration snapshot** — Mux flags are frozen into a `muxConfig` snapshot on the first `ServeHTTP` call; subsequent requests use a single atomic pointer load instead of 6–8 struct field reads
+- **FastHandler footprint** — `FastHandler` struct reduced to 32 B (from 128 B) via exact `Params` slice allocation bounded by `maxParams = 3`
+
+[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/commits/main

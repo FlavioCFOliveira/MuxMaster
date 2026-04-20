@@ -7,11 +7,11 @@
 
 **MuxMaster** is a high-performance HTTP router for Go. It is 100% compatible with the standard `net/http` package, requires zero external dependencies, and is built on a radix tree (compressed prefix trie) that delivers O(k) route lookup — where k is the length of the URL path, not the number of registered routes.
 
-The hot path allocates **zero bytes** for static routes and for routes with up to three path parameters, beating httprouter and matching bunrouter on allocations while preserving a familiar, idiomatic Go API.
+The hot path allocates **zero bytes** for static routes and makes a **single tiered allocation** (416–480 B) for parameterized routes — fusing the request context and parameters in one GC-class-aligned object — while preserving a familiar, idiomatic Go API.
 
 ## Why MuxMaster?
 
-- **Zero allocations on the hot path** — static and parameterized routes allocate 0 bytes per request
+- **Zero allocations for static routes** — parameterized routes use a single tiered allocation that fuses request context and parameters, minimising allocator pressure
 - **100% `net/http` compatible** — drop in anywhere `http.Handler` is accepted; works with all existing middleware
 - **Zero external dependencies** — pure standard library; no dependency bloat
 - **Radix tree routing** — O(k) lookup, independent of the total number of registered routes
@@ -543,8 +543,8 @@ r.UseRawPath = false
 r.UnescapePathValues = false
 
 // HTTP redirect code used by RedirectTrailingSlash and RedirectFixedPath.
-// Default: 301
-r.RedirectCode = http.StatusMovedPermanently
+// Default: 0 (auto: 301 for GET/HEAD, 307 for all other methods)
+r.RedirectCode = http.StatusMovedPermanently // override to force a specific code
 ```
 
 ---
@@ -656,17 +656,17 @@ err := r.Walk(func(method, pattern string, handler http.Handler) error {
 
 ## Benchmarks
 
-Benchmarks run on Apple M4, Go 1.26, comparing against the most popular Go HTTP routers. All measurements use the same route set (`/api/v1/...`).
+Benchmarks run on AMD Ryzen 9 5900HX, Go 1.26.2. All measurements use the same route set (`/api/v1/...`).
 
-| Route type          | MuxMaster               | httprouter              | bunrouter               |
+| Route type          | MuxMaster               | httprouter              | chi v5                  |
 |---------------------|-------------------------|-------------------------|-------------------------|
-| Static              | **13.5 ns, 0 allocs**   | 15.9 ns, 0 allocs       | 14.0 ns, 0 allocs       |
-| 1 parameter         | 27 ns, 0 allocs         | 32.8 ns, 1 alloc        | 22.4 ns, 0 allocs       |
-| 2 parameters        | **38.7 ns, 0 allocs**   | 40.0 ns, 1 alloc        | 41.7 ns, 0 allocs       |
-| 3 parameters        | 46.7 ns, 0 allocs       | 44.5 ns, 1 alloc        | **29.8 ns, 0 allocs**   |
-| Catch-all           | **23.2 ns, 0 allocs**   | 28.0 ns, 1 alloc        | 11.9 ns, 0 allocs       |
-| Parallel static     | **1.55 ns, 0 allocs**   | 1.98 ns, 0 allocs       | 1.77 ns, 0 allocs       |
-| Parallel 1 param    | ~10 ns, 0 allocs        | 15.5 ns, 1 alloc        | 3.6 ns, 0 allocs        |
+| Static              | **25 ns, 0 allocs**     | 33.8 ns, 0 allocs       | 213.5 ns, 2 allocs      |
+| 1 parameter         | 112 ns, 1 alloc         | **56.4 ns, 1 alloc**    | 354.1 ns, 4 allocs      |
+| 2 parameters        | 130 ns, 1 alloc         | **66.5 ns, 1 alloc**    | 402.2 ns, 4 allocs      |
+| 3 parameters        | 141 ns, 1 alloc         | **78.4 ns, 1 alloc**    | 410.2 ns, 4 allocs      |
+| Catch-all           | 109 ns, 1 alloc         | **51.3 ns, 1 alloc**    | 330.2 ns, 4 allocs      |
+| Parallel static     | **3.7 ns, 0 allocs**    | 4.92 ns, 0 allocs       | 128.2 ns, 2 allocs      |
+| Parallel 1 param    | 108 ns, 1 alloc         | **22.2 ns, 1 alloc**    | 223.9 ns, 4 allocs      |
 
 Reproduce with:
 
@@ -675,8 +675,9 @@ go test -bench=. -benchmem ./...
 ```
 
 **Notes:**
-- httprouter allocates 1 `Params` slice per parameterized request. MuxMaster stores parameters inline in a pooled struct, reaching zero allocations.
-- bunrouter uses lazy parameter extraction. For routes that read all parameters (which is typical), MuxMaster is faster from ≥ 3 parameters upward because eager extraction is O(1) per read vs. O(n) for lazy.
+- MuxMaster allocates **zero bytes** for static routes and **one tiered allocation** (416–480 B) for parameterized routes. That single allocation fuses the copied `*http.Request` and its context — meaning the router, net/http, and your handler all share one GC object.
+- httprouter's 1 alloc for parameterized routes is only a 64 B `Params` slice; it passes parameters via a third argument outside the `http.Handler` interface, requiring a different handler signature.
+- MuxMaster is **100% `net/http` compatible** — it accepts `http.Handler` directly, works with all existing middleware ecosystems, and requires no handler signature changes.
 
 ---
 

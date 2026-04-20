@@ -1,6 +1,7 @@
 package muxmaster_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -338,6 +339,69 @@ func TestParamsFromContext(t *testing.T) {
 	if rec.Body.String() != "99:go" {
 		t.Fatalf("got %q", rec.Body.String())
 	}
+}
+
+// ── Examples (compiled and verified by go test) ───────────────────────────────
+
+func Example_helloWorld() {
+	r := muxmaster.New()
+	r.GET("/", func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, "Hello, World!")
+	})
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	fmt.Println(rec.Body.String())
+	// Output: Hello, World!
+}
+
+func Example_pathParams() {
+	r := muxmaster.New()
+	r.GET("/users/:id", func(w http.ResponseWriter, req *http.Request) {
+		id := muxmaster.PathParam(req, "id")
+		fmt.Fprint(w, "user="+id)
+	})
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/users/42", nil))
+	fmt.Println(rec.Body.String())
+	// Output: user=42
+}
+
+func Example_middleware() {
+	var order []string
+	mw := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			order = append(order, "mw")
+			next.ServeHTTP(w, req)
+		})
+	}
+
+	r := muxmaster.New()
+	r.Use(mw)
+	r.GET("/ping", func(w http.ResponseWriter, _ *http.Request) {
+		order = append(order, "handler")
+		fmt.Fprint(w, "pong")
+	})
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/ping", nil))
+	fmt.Println(order)
+	// Output: [mw handler]
+}
+
+func Example_groups() {
+	r := muxmaster.New()
+
+	api := r.Group("/api/v1")
+	api.GET("/items", func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, "items")
+	})
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/items", nil))
+	fmt.Println(rec.Body.String())
+	// Output: items
 }
 
 // helpers
