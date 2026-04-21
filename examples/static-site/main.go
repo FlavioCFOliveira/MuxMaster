@@ -171,7 +171,7 @@ func main() {
 	//   • HEAD (automatically — no body but all headers present)
 	//   • Directory index (index.html auto-served for directories)
 	pages.GET("/", serveFile(staticRoot, "/index.html"))
-	pages.HEAD("/", serveFileHead(staticRoot, "/index.html"))
+	pages.HEAD("/", serveFile(staticRoot, "/index.html"))
 
 	// Redirect old URL shape to canonical docs path.
 	r.GET("/doc", func(w http.ResponseWriter, req *http.Request) {
@@ -307,25 +307,6 @@ func serveFile(root http.FileSystem, name string) http.HandlerFunc {
 			return
 		}
 		// http.ServeContent handles ETag, Last-Modified, Range and HEAD transparently.
-		http.ServeContent(w, r, name, stat.ModTime(), f.(io.ReadSeeker))
-	}
-}
-
-// serveFileHead serves only the headers for a file (Content-Type, Content-Length,
-// Last-Modified, ETag) without transferring the body — correct HEAD semantics.
-func serveFileHead(root http.FileSystem, name string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		f, err := root.Open(name)
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		defer f.Close()
-		stat, err := f.Stat()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
 		http.ServeContent(w, r, name, stat.ModTime(), f.(io.ReadSeeker))
 	}
 }

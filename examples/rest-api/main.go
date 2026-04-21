@@ -215,12 +215,6 @@ func main() {
 		_, _ = io.WriteString(w, `{"status":"ok"}`)
 	})
 
-	// HEAD /health — FastHandler for HEAD requests (same but no body).
-	r.HEADFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-	})
-
 	// Standard HandlerFunc: version endpoint reads the injected app version.
 	r.GET("/version", func(w http.ResponseWriter, req *http.Request) {
 		ver, _ := req.Context().Value(appVersionKey{}).(string)
@@ -336,12 +330,7 @@ func main() {
 		MaxAge:         3600,
 	}
 	authors := v1.With(mw.CORS(corsOpts))
-	authors.GET("/authors", store.listAuthors)
-	authors.POSTE("/authors", store.createAuthor)
-	authors.GETE("/authors/:id", store.getAuthor)
-	authors.PUTE("/authors/:id", store.replaceAuthor)
-
-	// XML endpoint: demonstrates mm.XML response helper.
+	// XML endpoint: demonstrates mm.XML response helper + With() scoped CORS.
 	authors.GET("/authors/:id/xml", store.getAuthorXML)
 
 	// ── Categories (Route: inline sub-group definition) ───────────────────────
@@ -472,8 +461,6 @@ func (s *Store) listBooks(w http.ResponseWriter, r *http.Request) {
 		list = append(list, b)
 	}
 	s.mu.RUnlock()
-	// RoutePattern returns the registered pattern that matched (useful for metrics).
-	_ = mm.RoutePattern(r) // e.g. "/api/v1/books"
 	_ = mm.JSON(w, http.StatusOK, list)
 }
 
@@ -664,16 +651,11 @@ func (s *Store) createReview(w http.ResponseWriter, r *http.Request) error {
 	return mm.JSON(w, http.StatusCreated, rev)
 }
 
-// getReview demonstrates Params.Map() (returns all params as map[string]string)
-// and Params.Int() (typed param parsing).
+// getReview demonstrates Params.Int() (typed param parsing) for nested resources.
 func (s *Store) getReview(w http.ResponseWriter, r *http.Request) error {
 	ps := mm.ParamsFromContext(r.Context())
 
-	// Params.Map() — get all path params as a map.
-	m := ps.Map() // {"id": "1", "rid": "5"}
-	_ = m
-
-	// Params.Int() — parse param as int; returns errParamNotFound if absent.
+	// Params.Int() — parse param as int; returns error if absent or non-numeric.
 	bookID, err := ps.Int("id")
 	if err != nil {
 		return mm.Error(http.StatusBadRequest, fmt.Errorf("invalid book id: %w", err))
@@ -682,11 +664,6 @@ func (s *Store) getReview(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return mm.Error(http.StatusBadRequest, fmt.Errorf("invalid review id: %w", err))
 	}
-
-	// Params.Lookup() — returns (value, ok) — zero allocation compared to map lookup.
-	rawID, found := ps.Lookup("id")
-	_ = rawID
-	_ = found
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -699,59 +676,6 @@ func (s *Store) getReview(w http.ResponseWriter, r *http.Request) error {
 }
 
 // ─── Author handlers ──────────────────────────────────────────────────────────
-
-func (s *Store) listAuthors(w http.ResponseWriter, r *http.Request) {
-	s.mu.RLock()
-	list := make([]*Author, 0, len(s.authors))
-	for _, a := range s.authors {
-		list = append(list, a)
-	}
-	s.mu.RUnlock()
-	_ = mm.JSON(w, http.StatusOK, list)
-}
-
-func (s *Store) createAuthor(w http.ResponseWriter, r *http.Request) error {
-	var a Author
-	if err := json.NewDecoder(r.Body).Decode(&a); err != nil {
-		return mm.Error(http.StatusBadRequest, err)
-	}
-	if a.Name == "" {
-		return mm.Error(http.StatusUnprocessableEntity, errors.New("name is required"))
-	}
-	s.mu.Lock()
-	a.ID = s.nextID()
-	s.authors[a.ID] = &a
-	s.mu.Unlock()
-	return mm.JSON(w, http.StatusCreated, a)
-}
-
-func (s *Store) getAuthor(w http.ResponseWriter, r *http.Request) error {
-	id := mm.PathParam(r, "id")
-	s.mu.RLock()
-	a, ok := findAuthorByID(s, id)
-	s.mu.RUnlock()
-	if !ok {
-		return mm.Error(http.StatusNotFound, fmt.Errorf("author %q not found", id))
-	}
-	return mm.JSON(w, http.StatusOK, a)
-}
-
-func (s *Store) replaceAuthor(w http.ResponseWriter, r *http.Request) error {
-	id := mm.PathParam(r, "id")
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	a, ok := findAuthorByID(s, id)
-	if !ok {
-		return mm.Error(http.StatusNotFound, fmt.Errorf("author %q not found", id))
-	}
-	var update Author
-	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
-		return mm.Error(http.StatusBadRequest, err)
-	}
-	update.ID = a.ID
-	s.authors[a.ID] = &update
-	return mm.JSON(w, http.StatusOK, &update)
-}
 
 // getAuthorXML demonstrates mm.XML (XML response helper).
 func (s *Store) getAuthorXML(w http.ResponseWriter, r *http.Request) {

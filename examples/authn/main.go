@@ -137,13 +137,6 @@ func main() {
 		})
 	})
 
-	admin.GET("/users", func(w http.ResponseWriter, _ *http.Request) {
-		_ = mm.JSON(w, http.StatusOK, []map[string]string{
-			{"id": "u1", "username": "alice"},
-			{"id": "u2", "username": "bob"},
-		})
-	})
-
 	// DELETEE: error-returning handler — delegates error formatting to ErrorHandler.
 	admin.DELETEE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
 		id := mm.PathParam(r, "id")

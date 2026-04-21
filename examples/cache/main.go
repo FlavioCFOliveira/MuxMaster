@@ -41,7 +41,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -124,14 +123,10 @@ func (c *Cache) evict() {
 
 // ─── ETag helpers ─────────────────────────────────────────────────────────────
 
-// etagFor returns a weak ETag derived from a SHA-256 hash of the given strings.
+// etagFor returns a weak ETag built from the given strings joined by colon.
 // Weak ETags (W/"...") indicate semantic equivalence — appropriate for JSON.
 func etagFor(parts ...string) string {
-	h := sha256.New()
-	for _, p := range parts {
-		_, _ = io.WriteString(h, p)
-	}
-	return fmt.Sprintf(`W/"%x"`, h.Sum(nil)[:8])
+	return fmt.Sprintf(`W/%q`, strings.Join(parts, ":"))
 }
 
 // checkNotModified writes 304 and returns true when the client's If-None-Match
