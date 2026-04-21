@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Docs v2 — MuxMaster</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header><h1>MuxMaster</h1><nav><a href="/">Home</a></nav></header>
+  <main>
+    <h2>Documentation v2</h2>
+    <p>FastHandler, Groups, Introspection and more.</p>
+    <pre><code>r.GETFast("/metrics", func(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
+    io.WriteString(w, "ok")
+})</code></pre>
+  </main>
+</body>
+</html>

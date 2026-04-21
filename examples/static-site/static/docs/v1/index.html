@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Docs v1 — MuxMaster</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header><h1>MuxMaster</h1><nav><a href="/">Home</a></nav></header>
+  <main>
+    <h2>Documentation v1</h2>
+    <p>Basic routing, middleware and params.</p>
+    <pre><code>r := muxmaster.New()
+r.GET("/users/:id", getUser)
+http.ListenAndServe(":8080", r)</code></pre>
+  </main>
+</body>
+</html>
