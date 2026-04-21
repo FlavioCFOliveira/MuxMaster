@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -1149,4 +1150,99 @@ func TestSetHeaderRejectsCRLF(t *testing.T) {
 			middleware.SetHeader(c.key, c.value)
 		}()
 	}
+}
+
+// ── Example functions ────────────────────────────────────────────────────────
+
+func ExampleAPIKey() {
+	// Authenticate requests by API key with identity lookup.
+	mw := middleware.APIKey(middleware.APIKeyOptions{
+		Keys: map[string]string{
+			"sk_test_abc": "user-123",
+			"sk_test_def": "user-456",
+		},
+		Header: "X-API-Key",
+	})
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		identity, ok := middleware.GetAPIKeyIdentity(r.Context())
+		if ok {
+			fmt.Println(identity)
+		}
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/data", nil)
+	req.Header.Set("X-API-Key", "sk_test_abc")
+
+	mw(inner).ServeHTTP(rec, req)
+	// Output: user-123
+}
+
+func ExampleJWTAuth() {
+	// Validate JWT tokens from the Authorization header.
+	secret := []byte("test-secret")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+	})
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := middleware.GetJWTClaims(r.Context())
+		if ok {
+			fmt.Println(claims.Subject)
+		}
+	})
+
+	// Create a signed HS256 JWT with subject "alice".
+	token := makeHS256JWT(secret, map[string]any{
+		"sub": "alice",
+		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(1 * time.Hour).Unix(),
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/profile", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	mw(inner).ServeHTTP(rec, req)
+	// Output: alice
+}
+
+func ExampleOAuth2Introspect() {
+	// Validate tokens via RFC 7662 introspection endpoint.
+	// In production, use a real OAuth2 introspection endpoint.
+	// This example uses a mock server for demonstration.
+
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Echo back a valid introspection response.
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{
+			"active": true,
+			"sub": "alice",
+			"scope": "read write",
+			"client_id": "app1"
+		}`))
+	}))
+	defer mockServer.Close()
+
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		Endpoint: mockServer.URL,
+		CacheTTL: 0, // Disable caching for this example.
+	})
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp, ok := middleware.GetOAuth2Claims(r.Context())
+		if ok {
+			fmt.Println(resp.Subject)
+		}
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/api/resource", nil)
+	req.Header.Set("Authorization", "Bearer test-token-xyz")
+
+	mw(inner).ServeHTTP(rec, req)
+	// Output: alice
 }

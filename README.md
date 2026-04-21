@@ -691,7 +691,7 @@ r.Rebuild() // resets the frozen config snapshot
 
 ## Included Middleware
 
-The `middleware` sub-package provides 14 production-ready middleware components. Import it separately:
+The `middleware` sub-package provides 17 production-ready middleware components. Import it separately:
 
 ```go
 import "github.com/FlavioCFOliveira/MuxMaster/middleware"
@@ -715,6 +715,9 @@ import "github.com/FlavioCFOliveira/MuxMaster/middleware"
 | `NoCache`          | Sets `Cache-Control: no-cache, no-store`       |
 | `SetHeader`        | Sets arbitrary response headers                |
 | `WithValue`        | Stores a value in the request context          |
+| `APIKey`           | API key authentication with SHA-256 hashing    |
+| `JWTAuth`          | JWT Bearer token validation (HS*/RS*/ES*)      |
+| `OAuth2Introspect` | RFC 7662 token introspection with caching      |
 
 ### Usage examples
 
@@ -759,6 +762,65 @@ r.Use(middleware.SetHeader("X-Content-Type-Options", "nosniff"))
 
 // Store a value in the request context
 r.Use(middleware.WithValue("env", "production"))
+```
+
+### Authentication Middleware
+
+Three authentication middleware components cover the most common scenarios.
+
+#### API Key Authentication
+
+```go
+// Authenticate requests by API key, with identity lookup:
+r.Use(middleware.APIKey(middleware.APIKeyOptions{
+    Keys: map[string]string{
+        "sk_test_abc123": "user-123",   // raw key → identity
+        "sk_test_def456": "user-456",
+    },
+    Header: "X-API-Key",  // default; can be customised
+}))
+
+r.GET("/api/data", func(w http.ResponseWriter, r *http.Request) {
+    identity, _ := middleware.GetAPIKeyIdentity(r.Context())
+    fmt.Fprintf(w, "authenticated as %s\n", identity)
+})
+```
+
+#### JWT Bearer Token Authentication
+
+```go
+// Validate JWT tokens from the Authorization header:
+pubKey, _ := jwt.ReadFile("public.pem")  // *ecdsa.PublicKey or *rsa.PublicKey
+r.Use(middleware.JWTAuth(middleware.JWTOptions{
+    PublicKey:  pubKey,
+    Algorithms: []string{"ES256"},
+    Issuers:    []string{"https://auth.example.com"},
+    Audiences:  []string{"https://api.example.com"},
+    ClockSkew:  5 * time.Second,  // tolerance for exp/nbf
+}))
+
+r.GET("/api/profile", func(w http.ResponseWriter, r *http.Request) {
+    claims, _ := middleware.GetJWTClaims(r.Context())
+    fmt.Fprintf(w, "user: %s\n", claims.Subject)
+})
+```
+
+#### OAuth2 Token Introspection
+
+```go
+// Validate tokens via RFC 7662 introspection (with caching):
+r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
+    Endpoint:     "https://idp.example.com/oauth/introspect",
+    ClientID:     "my_service",
+    ClientSecret: os.Getenv("OAUTH2_SECRET"),
+    CacheTTL:     60 * time.Second,  // cache active tokens
+    MaxCacheSize: 10000,
+}))
+
+r.GET("/api/resource", func(w http.ResponseWriter, r *http.Request) {
+    introspect, _ := middleware.GetOAuth2Claims(r.Context())
+    fmt.Fprintf(w, "scope: %s\n", introspect.Scope)
+})
 ```
 
 ---

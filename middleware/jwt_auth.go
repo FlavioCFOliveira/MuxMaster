@@ -25,12 +25,12 @@ type jwtCtxKey struct{}
 // JWTClaims holds the standard JWT claims extracted from a validated token.
 // Custom claims can be unmarshalled from RawPayload.
 type JWTClaims struct {
-	Subject    string
-	Issuer     string
-	Audience   []string
-	ExpiresAt  time.Time
-	IssuedAt   time.Time
-	NotBefore  time.Time
+	Subject   string
+	Issuer    string
+	Audience  []string
+	ExpiresAt time.Time
+	IssuedAt  time.Time
+	NotBefore time.Time
 	// RawPayload is the decoded JSON payload bytes, available for extracting custom claims.
 	RawPayload []byte
 }
@@ -204,13 +204,13 @@ func GetJWTClaims(ctx context.Context) (*JWTClaims, bool) {
 // ── internal helpers ──────────────────────────────────────────────────────────
 
 var (
-	errJWTInvalid      = errors.New("invalid jwt")
-	errJWTExpired      = errors.New("jwt expired")
-	errJWTNotYetValid  = errors.New("jwt not yet valid")
+	errJWTInvalid     = errors.New("invalid jwt")
+	errJWTExpired     = errors.New("jwt expired")
+	errJWTNotYetValid = errors.New("jwt not yet valid")
 )
 
 type rawJWTHeader struct {
-	Alg  string   `json:"alg"`
+	Alg string `json:"alg"`
 	// Crit lists critical extensions the recipient must understand (RFC 7515 §4.1.11).
 	Crit []string `json:"crit"`
 }

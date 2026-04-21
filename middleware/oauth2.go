@@ -130,8 +130,8 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 
 	doIntrospect := func(ctx context.Context, token string) (*IntrospectResponse, error) {
 		body := url.Values{
-			"token":            {token},
-			"token_type_hint":  {"access_token"},
+			"token":           {token},
+			"token_type_hint": {"access_token"},
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, opts.Endpoint,
 			strings.NewReader(body.Encode()))
@@ -146,7 +146,7 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("introspection endpoint returned %d", resp.StatusCode)
 		}
