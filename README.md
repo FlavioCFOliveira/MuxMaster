@@ -20,8 +20,9 @@ The hot path allocates **zero bytes** for static routes and makes a **single tie
 - **Middleware scopes** — apply middleware globally, to a group, or to a single route
 - **Groups and sub-groups** — organize routes with shared path prefixes and middleware stacks
 - **Error-returning handlers** — `HandlerFuncE` enables centralized error handling without boilerplate
+- **FastHandler routes** — ultra-low-latency alternative that bypasses context allocation; params passed as a direct argument
 - **14 built-in middleware** — logger, CORS, Basic Auth, compression, throttle, timeout, and more
-- **Route introspection** — `Lookup`, `Routes`, and `Walk` for programmatic route inspection
+- **Route introspection** — `Lookup`, `Routes`, `Walk`, and `WalkFast` for programmatic route inspection
 
 ## Contents
 
@@ -30,6 +31,7 @@ The hot path allocates **zero bytes** for static routes and makes a **single tie
 - [Route Syntax](#route-syntax)
 - [Path Parameters](#path-parameters)
 - [Middleware](#middleware)
+- [Fast Routes](#fast-routes)
 - [Groups](#groups)
 - [Mounting Sub-Routers](#mounting-sub-routers)
 - [Static Files](#static-files)
@@ -227,7 +229,22 @@ func auditMiddleware(next http.Handler) http.Handler {
 }
 ```
 
-### Current route pattern
+### The Param type
+
+Each path parameter is a `Param` struct with `Key` and `Value` string fields:
+
+```go
+r.GET("/posts/:year/:month/:slug", func(w http.ResponseWriter, r *http.Request) {
+    ps := muxmaster.ParamsFromContext(r.Context())
+    for _, p := range ps {
+        fmt.Printf("%s=%s\n", p.Key, p.Value)
+    }
+})
+```
+
+### Route pattern
+
+`RoutePattern` returns the registered route pattern that matched the request (e.g. `/users/:id`), or `""` if the request has not been matched yet:
 
 ```go
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -294,6 +311,94 @@ r.Use(requireAuth)
 
 ---
 
+## Fast Routes
+
+`FastHandler` is a high-performance handler type that receives path parameters as a direct argument, bypassing the `context.WithValue` allocation used by standard `http.Handler` routes. Use it on latency-sensitive endpoints where every nanosecond matters.
+
+```go
+type FastHandler func(http.ResponseWriter, *http.Request, Params)
+```
+
+Parameters are valid only for the duration of the handler call. If you spawn a goroutine that outlives the handler, copy the slice first:
+
+```go
+func myFast(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
+    ps2 := make(muxmaster.Params, len(ps))
+    copy(ps2, ps)
+    go func() { process(ps2) }()
+}
+```
+
+### Registering fast routes
+
+Convenience methods exist for all standard HTTP verbs:
+
+```go
+r := muxmaster.New()
+
+r.GETFast("/api/v1/users/:id", func(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
+    id := ps.Get("id")
+    fmt.Fprintf(w, "user: %s\n", id)
+})
+
+r.POSTFast("/api/v1/items", createItemFast)
+r.DELETEFast("/api/v1/items/:id", deleteItemFast)
+
+// Or use HandleFast for any method
+r.HandleFast("GET", "/files/*filepath", serveFilesFast)
+```
+
+Available methods: `GETFast`, `HEADFast`, `POSTFast`, `PUTFast`, `PATCHFast`, `DELETEFast`, `OPTIONSFast`, `CONNECTFast`, `TRACEFast`.
+
+### Fast middleware
+
+`FastHandler` routes do not support stdlib middleware (`func(http.Handler) http.Handler`). Use `FastMiddleware` instead:
+
+```go
+type FastMiddleware func(FastHandler) FastHandler
+
+func loggingFast(next muxmaster.FastHandler) muxmaster.FastHandler {
+    return func(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
+        log.Printf("%s %s", r.Method, r.URL.Path)
+        next(w, r, ps)
+    }
+}
+
+r.UseFast(loggingFast)
+r.GETFast("/api/status", statusFast)
+```
+
+`UseFast` must be called before the fast routes it should wrap, just like `Use` for standard routes.
+
+### Fast routes in groups
+
+Groups support fast routes via `HandleFast` and fast middleware via `UseFast`:
+
+```go
+api := r.Group("/api/v1")
+api.UseFast(loggingFast)
+
+api.HandleFast("GET", "/users/:id", getUserFast)
+api.HandleFast("POST", "/users", createUserFast)
+```
+
+### Performance and trade-offs
+
+| Type | ns/op | B/op | allocs/op |
+|---|---|---|---|
+| Static `http.Handler` | 25 ns | 0 B | 0 |
+| Static `FastHandler` | ~25 ns | 0 B | 0 |
+| 1-param `http.Handler` | 112 ns | 416 B | 1 |
+| 1-param `FastHandler` | ~50 ns | 32 B | 0–1 |
+
+Trade-offs:
+- **Incompatible with stdlib middleware** — use `FastMiddleware` only
+- **Params are not in the request context** — they are passed as a direct argument
+- **`Lookup()` returns `nil` for FastHandler routes** — use `WalkFast` to enumerate them
+- No convenience short-hand methods on `Group` (use `group.HandleFast("GET", ...)`)
+
+---
+
 ## Groups
 
 Groups share a path prefix and an optional middleware stack. All routes registered on a group are prefixed with the group's path and wrapped with the group's middleware (applied after any mux-level middleware).
@@ -344,6 +449,15 @@ r.Route("/api/v1", func(api *muxmaster.Group) {
 ```go
 api.With(requireAdmin).DELETE("/users/:id", deleteUser)
 api.With(throttle).POST("/exports", exportData)
+```
+
+### Register multiple methods on a group
+
+`Match` registers the same handler for a set of HTTP methods:
+
+```go
+api := r.Group("/api/v1")
+api.Match([]string{"GET", "HEAD"}, "/status", statusHandler)
 ```
 
 ---
@@ -461,6 +575,21 @@ r.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
 }
 ```
 
+### Custom OPTIONS handler
+
+`GlobalOPTIONS` replaces the default auto-generated response for OPTIONS requests:
+
+```go
+r.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+    w.WriteHeader(http.StatusNoContent)
+})
+```
+
+By default, when `HandleOPTIONS` is true, MuxMaster responds with `204 No Content` and an `Allow` header listing all registered methods for the matched path.
+
 ---
 
 ## Response Helpers
@@ -546,6 +675,17 @@ r.UnescapePathValues = false
 // Default: 0 (auto: 301 for GET/HEAD, 307 for all other methods)
 r.RedirectCode = http.StatusMovedPermanently // override to force a specific code
 ```
+
+### Resetting configuration
+
+Configuration flags are frozen on the first `ServeHTTP` call. To change a flag after the server has started serving, call `Rebuild()`:
+
+```go
+r.RedirectTrailingSlash = false
+r.Rebuild() // resets the frozen config snapshot
+```
+
+**Warning:** do not call `Rebuild()` while the server is actively serving requests.
 
 ---
 
@@ -645,9 +785,20 @@ for _, route := range routes {
 
 ### Iterate routes with a callback
 
+`Walk` visits every `http.Handler` route. FastHandler routes are skipped — use `WalkFast` to visit them:
+
 ```go
 err := r.Walk(func(method, pattern string, handler http.Handler) error {
     fmt.Printf("%s %s\n", method, pattern)
+    return nil
+})
+```
+
+### Iterate fast routes with a callback
+
+```go
+err := r.WalkFast(func(method, pattern string, handler muxmaster.FastHandler) error {
+    fmt.Printf("%s %s (FastHandler)\n", method, pattern)
     return nil
 })
 ```
