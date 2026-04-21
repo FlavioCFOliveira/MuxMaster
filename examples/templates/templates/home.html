@@ -1,0 +1,23 @@
+{{define "title"}}Home &mdash; MuxMaster Templates{{end}}
+
+{{define "content"}}
+<h1>MuxMaster Templates Example</h1>
+<p>
+    A minimal multi-page website demonstrating server-side HTML rendering with
+    Go's built-in <code>html/template</code> package and MuxMaster routing.
+</p>
+
+<h2>What this example shows</h2>
+<ul class="features">
+    <li><strong>Layout inheritance</strong> — a base template defines the page chrome; page templates fill <code>{{"{{"}}block "content" .{{"}}"}}</code>.</li>
+    <li><strong>Template data</strong> — a <code>PageData</code> struct carries per-request values to every template.</li>
+    <li><strong>POST&ndash;Redirect&ndash;GET</strong> — form submission creates a guestbook entry and redirects back, preventing duplicate submissions on browser refresh.</li>
+    <li><strong>Flash messages</strong> — a transient success banner appears on the first GET after a successful POST.</li>
+    <li><strong>Form re-population</strong> — on validation failure, the form re-renders with submitted values and per-field error messages.</li>
+    <li><strong>Static files</strong> — <code>/static/*</code> serves embedded CSS alongside dynamic routes.</li>
+    <li><strong>Custom 404</strong> — a themed HTML error page instead of Go's plain-text default.</li>
+    <li><strong>Embedded assets</strong> — templates and CSS are compiled into the binary via <code>embed.FS</code>.</li>
+</ul>
+
+<p><a href="/guestbook" class="btn">Sign the Guestbook &rarr;</a></p>
+{{end}}

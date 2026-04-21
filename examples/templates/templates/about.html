@@ -1,0 +1,49 @@
+{{define "title"}}About &mdash; MuxMaster Templates{{end}}
+
+{{define "content"}}
+<h1>About this example</h1>
+
+<div class="about-section">
+    <h2>Project structure</h2>
+    <pre><code>templates/
+    templates/
+        base.html       &lt;-- layout: nav, header, footer, flash
+        home.html       &lt;-- defines "title" and "content" blocks
+        about.html      &lt;-- defines "title" and "content" blocks
+        guestbook.html  &lt;-- defines "title" and "content" blocks
+        404.html        &lt;-- standalone error page
+    static/
+        style.css       &lt;-- embedded stylesheet
+    main.go             &lt;-- router + handlers + template loader</code></pre>
+</div>
+
+<div class="about-section">
+    <h2>How layout inheritance works</h2>
+    <p>
+        <code>base.html</code> defines a template named <code>"base"</code> that contains
+        the page chrome and two <code>block</code> directives:
+    </p>
+    <ul>
+        <li><code>block "title"</code> &mdash; the <code>&lt;title&gt;</code> tag content</li>
+        <li><code>block "content"</code> &mdash; the main body content</li>
+    </ul>
+    <p>
+        Each page template redefines these blocks with <code>define</code>.
+        At startup, every page is pre-parsed into its own
+        <code>*template.Template</code> together with <code>base.html</code>,
+        so each template set contains exactly one definition per block.
+        Rendering calls <code>ExecuteTemplate(w, "base", data)</code>.
+    </p>
+</div>
+
+<div class="about-section">
+    <h2>MuxMaster features used</h2>
+    <ul>
+        <li><code>r.GET</code> / <code>r.POST</code> &mdash; page and form routes</li>
+        <li><code>r.ServeFiles</code> &mdash; embedded static assets</li>
+        <li><code>r.NotFound</code> &mdash; custom 404 handler</li>
+        <li><code>r.Pre(mw.CleanPath())</code> &mdash; URL normalisation before routing</li>
+        <li><code>mw.RequestID</code>, <code>mw.Logger</code>, <code>mw.RecovererWithLogger</code></li>
+    </ul>
+</div>
+{{end}}

@@ -1,0 +1,32 @@
+{{define "base"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{block "title" .}}MuxMaster{{end}}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <a class="brand" href="/">MuxMaster</a>
+            <a href="/">Home</a>
+            <a href="/guestbook">Guestbook</a>
+            <a href="/about">About</a>
+        </nav>
+    </header>
+
+    <main>
+        {{if .Flash}}
+        <div class="flash {{.FlashType}}">{{.Flash}}</div>
+        {{end}}
+
+        {{block "content" .}}{{end}}
+    </main>
+
+    <footer>
+        <p>Powered by <a href="https://github.com/FlavioCFOliveira/MuxMaster">MuxMaster</a> &mdash; a zero-dependency Go HTTP router.</p>
+    </footer>
+</body>
+</html>
+{{end}}
