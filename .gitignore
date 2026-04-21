@@ -34,3 +34,7 @@ go.work.sum
 # Development tooling — not part of the published module
 .claude/
 competitor/
+
+# Example binaries (produced by go build inside examples/)
+examples/rest-api/rest-api
+examples/static-site/static-site
