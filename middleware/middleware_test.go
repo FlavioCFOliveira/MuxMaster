@@ -3,6 +3,13 @@ package middleware_test
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +20,17 @@ import (
 
 	"github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
+
+// makeHS256JWT creates a signed HS256 JWT with the given claims map.
+func makeHS256JWT(secret []byte, claims map[string]any) string {
+	hdr := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS256","typ":"JWT"}`))
+	payload, _ := json.Marshal(claims)
+	pay := base64.RawURLEncoding.EncodeToString(payload)
+	sigInput := hdr + "." + pay
+	mac := hmac.New(sha256.New, secret)
+	mac.Write([]byte(sigInput))
+	return sigInput + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
 
 // serve applies mw around a handler that writes code and body, then fires the request.
 func serve(mw func(http.Handler) http.Handler, method, path string, reqFn func(*http.Request)) *httptest.ResponseRecorder {
@@ -635,6 +653,484 @@ func TestStripSlashes_MultipleTrailing(t *testing.T) {
 			t.Errorf("StripSlashes(%q): got %q, want %q", input, captured, want)
 		}
 	}
+}
+
+// ── APIKey ───────────────────────────────────────────────────────────────────
+
+func TestAPIKey_ValidKeyAllows(t *testing.T) {
+	mw := middleware.APIKey(middleware.APIKeyOptions{
+		Keys: map[string]string{"secret-key-1": "service-a"},
+	})
+	var captured string
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		captured, _ = middleware.GetAPIKeyIdentity(r.Context())
+		w.WriteHeader(http.StatusOK)
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-API-Key", "secret-key-1")
+	mw(inner).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("valid key: got %d, want 200", rec.Code)
+	}
+	if captured != "service-a" {
+		t.Fatalf("identity: got %q, want service-a", captured)
+	}
+}
+
+func TestAPIKey_InvalidKeyRejects(t *testing.T) {
+	mw := middleware.APIKey(middleware.APIKeyOptions{
+		Keys: map[string]string{"valid": "id"},
+	})
+	rec := serve(mw, http.MethodGet, "/", func(req *http.Request) {
+		req.Header.Set("X-API-Key", "wrong-key")
+	})
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("invalid key: got %d, want 401", rec.Code)
+	}
+}
+
+func TestAPIKey_MissingKeyRejects(t *testing.T) {
+	mw := middleware.APIKey(middleware.APIKeyOptions{
+		Keys: map[string]string{"valid": "id"},
+	})
+	rec := serve(mw, http.MethodGet, "/", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("missing key: got %d, want 401", rec.Code)
+	}
+}
+
+func TestAPIKey_CustomExtractFn(t *testing.T) {
+	mw := middleware.APIKey(middleware.APIKeyOptions{
+		Keys: map[string]string{"my-token": "svc"},
+		ExtractFn: func(r *http.Request) string {
+			return r.URL.Query().Get("apikey")
+		},
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/?apikey=my-token", nil)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("custom extract: got %d, want 200", rec.Code)
+	}
+}
+
+func TestAPIKey_CustomHeader(t *testing.T) {
+	mw := middleware.APIKey(middleware.APIKeyOptions{
+		Keys:   map[string]string{"tok": "id"},
+		Header: "X-Custom-Key",
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Custom-Key", "tok")
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("custom header: got %d, want 200", rec.Code)
+	}
+}
+
+func TestAPIKey_PanicsOnEmptyKeys(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("APIKey: expected panic on empty Keys, got none")
+		}
+	}()
+	middleware.APIKey(middleware.APIKeyOptions{Keys: map[string]string{}})
+}
+
+// ── JWTAuth ──────────────────────────────────────────────────────────────────
+
+func TestJWTAuth_ValidHS256(t *testing.T) {
+	secret := []byte("super-secret")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+	})
+	now := time.Now()
+	token := makeHS256JWT(secret, map[string]any{
+		"sub": "user-123",
+		"iss": "test",
+		"exp": now.Add(time.Hour).Unix(),
+		"iat": now.Unix(),
+	})
+	var sub string
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if c, ok := middleware.GetJWTClaims(r.Context()); ok {
+			sub = c.Subject
+		}
+		w.WriteHeader(200)
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	mw(inner).ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("valid token: got %d, want 200", rec.Code)
+	}
+	if sub != "user-123" {
+		t.Fatalf("subject: got %q, want user-123", sub)
+	}
+}
+
+func TestJWTAuth_ExpiredTokenRejects(t *testing.T) {
+	secret := []byte("super-secret")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+	})
+	token := makeHS256JWT(secret, map[string]any{
+		"sub": "user-123",
+		"exp": time.Now().Add(-time.Hour).Unix(),
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expired token: got %d, want 401", rec.Code)
+	}
+}
+
+func TestJWTAuth_InvalidSignatureRejects(t *testing.T) {
+	secret := []byte("super-secret")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+	})
+	// Build token signed with a different key.
+	token := makeHS256JWT([]byte("wrong-secret"), map[string]any{
+		"sub": "attacker",
+		"exp": time.Now().Add(time.Hour).Unix(),
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("bad sig: got %d, want 401", rec.Code)
+	}
+}
+
+func TestJWTAuth_MissingBearerTokenRejects(t *testing.T) {
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     []byte("s"),
+		Algorithms: []string{"HS256"},
+	})
+	rec := serve(mw, http.MethodGet, "/", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("missing token: got %d, want 401", rec.Code)
+	}
+	if got := rec.Header().Get("WWW-Authenticate"); !strings.Contains(got, "Bearer") {
+		t.Fatalf("missing WWW-Authenticate Bearer header: %q", got)
+	}
+}
+
+func TestJWTAuth_WrongAlgorithmRejects(t *testing.T) {
+	// Middleware only allows HS512, token is signed with HS256.
+	secret := []byte("s")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS512"},
+	})
+	token := makeHS256JWT(secret, map[string]any{"exp": time.Now().Add(time.Hour).Unix()})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("wrong alg: got %d, want 401", rec.Code)
+	}
+}
+
+func TestJWTAuth_IssuerCheckFails(t *testing.T) {
+	secret := []byte("s")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+		Issuers:    []string{"trusted"},
+	})
+	token := makeHS256JWT(secret, map[string]any{
+		"iss": "untrusted",
+		"exp": time.Now().Add(time.Hour).Unix(),
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("wrong issuer: got %d, want 401", rec.Code)
+	}
+}
+
+func TestJWTAuth_AudienceCheckPasses(t *testing.T) {
+	secret := []byte("s")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+		Audiences:  []string{"my-service"},
+	})
+	token := makeHS256JWT(secret, map[string]any{
+		"aud": "my-service",
+		"exp": time.Now().Add(time.Hour).Unix(),
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("correct audience: got %d, want 200", rec.Code)
+	}
+}
+
+func TestJWTAuth_ClockSkewAllowsSlightlyExpired(t *testing.T) {
+	secret := []byte("s")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+		ClockSkew:  30 * time.Second,
+	})
+	// Token expired 10s ago — within the 30s skew window.
+	token := makeHS256JWT(secret, map[string]any{
+		"exp": time.Now().Add(-10 * time.Second).Unix(),
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("within skew: got %d, want 200", rec.Code)
+	}
+}
+
+func TestJWTAuth_BearerCaseInsensitive(t *testing.T) {
+	// RFC 7235: auth-scheme is case-insensitive — "bearer" must work as well as "Bearer".
+	secret := []byte("s")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+	})
+	token := makeHS256JWT(secret, map[string]any{"exp": time.Now().Add(time.Hour).Unix()})
+	for _, scheme := range []string{"Bearer ", "bearer ", "BEARER "} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", scheme+token)
+		mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Errorf("scheme %q: got %d, want 200", scheme, rec.Code)
+		}
+	}
+}
+
+func TestJWTAuth_CritHeaderRejects(t *testing.T) {
+	// RFC 7515 §4.1.11: "crit" with any extension must be rejected when not supported.
+	secret := []byte("s")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+	})
+	// Build a JWT with "crit" in the JOSE header.
+	hdrJSON := `{"alg":"HS256","typ":"JWT","crit":["custom_ext"]}`
+	hdr := base64.RawURLEncoding.EncodeToString([]byte(hdrJSON))
+	payJSON, _ := json.Marshal(map[string]any{"exp": time.Now().Add(time.Hour).Unix()})
+	pay := base64.RawURLEncoding.EncodeToString(payJSON)
+	sigInput := hdr + "." + pay
+	mac := hmac.New(sha256.New, secret)
+	mac.Write([]byte(sigInput))
+	token := sigInput + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("crit header: got %d, want 401", rec.Code)
+	}
+}
+
+func TestJWTAuth_ES256WrongCurvePanics(t *testing.T) {
+	// RFC 7518 §3.4: ES256 must use P-256; configuring P-384 key must panic at startup.
+	p384key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if recover() == nil {
+			t.Error("JWTAuth ES256 with P-384 key: expected panic, got none")
+		}
+	}()
+	middleware.JWTAuth(middleware.JWTOptions{
+		PublicKey:  &p384key.PublicKey,
+		Algorithms: []string{"ES256"},
+	})
+}
+
+func TestJWTAuth_PanicsOnEmptyAlgorithms(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("JWTAuth: expected panic on empty Algorithms")
+		}
+	}()
+	middleware.JWTAuth(middleware.JWTOptions{Algorithms: nil})
+}
+
+func TestJWTAuth_RawPayloadAvailable(t *testing.T) {
+	secret := []byte("s")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+	})
+	token := makeHS256JWT(secret, map[string]any{
+		"sub":    "u1",
+		"custom": "value",
+		"exp":    time.Now().Add(time.Hour).Unix(),
+	})
+	var raw []byte
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if c, ok := middleware.GetJWTClaims(r.Context()); ok {
+			raw = c.RawPayload
+		}
+		w.WriteHeader(200)
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	mw(inner).ServeHTTP(rec, req)
+	if !strings.Contains(string(raw), `"custom"`) {
+		t.Fatalf("RawPayload missing custom field: %s", raw)
+	}
+}
+
+// ── OAuth2Introspect ──────────────────────────────────────────────────────────
+
+func TestOAuth2Introspect_ActiveTokenAllows(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"active": true,
+			"sub":    "user-abc",
+			"scope":  "read write",
+		})
+	}))
+	defer srv.Close()
+
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		Endpoint:   srv.URL,
+		CacheTTL:   -1, // disable cache for this test
+		HTTPClient: srv.Client(),
+	})
+	var sub string
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if c, ok := middleware.GetOAuth2Claims(r.Context()); ok {
+			sub = c.Subject
+		}
+		w.WriteHeader(200)
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer some-active-token")
+	mw(inner).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("active token: got %d, want 200", rec.Code)
+	}
+	if sub != "user-abc" {
+		t.Fatalf("subject: got %q, want user-abc", sub)
+	}
+}
+
+func TestOAuth2Introspect_InactiveTokenRejects(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"active": false})
+	}))
+	defer srv.Close()
+
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		Endpoint:   srv.URL,
+		CacheTTL:   -1,
+		HTTPClient: srv.Client(),
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer revoked-token")
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("inactive token: got %d, want 401", rec.Code)
+	}
+}
+
+func TestOAuth2Introspect_MissingTokenRejects(t *testing.T) {
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		Endpoint: "http://unused",
+		CacheTTL: -1,
+	})
+	rec := serve(mw, http.MethodGet, "/", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("missing token: got %d, want 401", rec.Code)
+	}
+	if got := rec.Header().Get("WWW-Authenticate"); !strings.Contains(got, "Bearer") {
+		t.Fatalf("missing WWW-Authenticate: %q", got)
+	}
+}
+
+func TestOAuth2Introspect_CacheHitAvoidsSecondCall(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"active": true,
+			"sub":    "cached-user",
+		})
+	}))
+	defer srv.Close()
+
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		Endpoint:   srv.URL,
+		CacheTTL:   time.Minute,
+		HTTPClient: srv.Client(),
+	})
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })
+	for range 3 {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer same-token")
+		mw(inner).ServeHTTP(rec, req)
+		if rec.Code != 200 {
+			t.Fatalf("cached request: got %d, want 200", rec.Code)
+		}
+	}
+	if calls != 1 {
+		t.Fatalf("introspection endpoint called %d times, want 1 (cache miss only)", calls)
+	}
+}
+
+func TestOAuth2Introspect_EndpointErrorRejects(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		Endpoint:   srv.URL,
+		CacheTTL:   -1,
+		HTTPClient: srv.Client(),
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer some-token")
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("endpoint error: got %d, want 401", rec.Code)
+	}
+}
+
+func TestOAuth2Introspect_PanicsOnEmptyEndpoint(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Error("OAuth2Introspect: expected panic on empty Endpoint")
+		}
+	}()
+	middleware.OAuth2Introspect(middleware.OAuth2Options{Endpoint: ""})
 }
 
 func TestSetHeaderRejectsCRLF(t *testing.T) {

@@ -1,0 +1,244 @@
+package middleware
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
+)
+
+type oauth2CtxKey struct{}
+
+// IntrospectResponse holds the RFC 7662 token introspection response fields.
+type IntrospectResponse struct {
+	Active    bool
+	Subject   string
+	Scope     string
+	ClientID  string
+	Username  string
+	TokenType string
+	ExpiresAt time.Time
+	IssuedAt  time.Time
+	NotBefore time.Time
+	Issuer    string
+	Audience  []string
+}
+
+// OAuth2Options configures the OAuth2Introspect middleware.
+type OAuth2Options struct {
+	// Endpoint is the RFC 7662 introspection URL. Required.
+	Endpoint string
+	// ClientID and ClientSecret authenticate to the introspection endpoint via HTTP Basic.
+	ClientID     string
+	ClientSecret string
+	// CacheTTL is how long active tokens are cached. Default: 60s. Set to -1 to disable.
+	// Cache respects the token's own exp: effective TTL = min(CacheTTL, token.exp - now).
+	// Note: caching means revoked tokens remain valid until TTL expires.
+	CacheTTL time.Duration
+	// MaxCacheSize caps the number of cached active tokens. Default: 10000.
+	MaxCacheSize int
+	// HTTPClient is used for introspection requests. Default: 10s timeout.
+	HTTPClient *http.Client
+	// ExtractFn overrides token extraction. Default: "Authorization: Bearer <token>".
+	ExtractFn func(*http.Request) string
+}
+
+// oauth2Cache is an RWMutex-protected map keyed by sha256(token) to avoid
+// storing raw tokens in memory. Eviction is lazy: on cache-full writes.
+type oauth2Cache struct {
+	mu      sync.RWMutex
+	entries map[[32]byte]*oauth2Entry
+	maxSize int
+}
+
+type oauth2Entry struct {
+	resp   *IntrospectResponse
+	expiry time.Time
+}
+
+func (c *oauth2Cache) get(key [32]byte) (*IntrospectResponse, bool) {
+	c.mu.RLock()
+	e, ok := c.entries[key]
+	c.mu.RUnlock()
+	if !ok || time.Now().After(e.expiry) {
+		return nil, false
+	}
+	return e.resp, true
+}
+
+func (c *oauth2Cache) set(key [32]byte, resp *IntrospectResponse, expiry time.Time) {
+	c.mu.Lock()
+	if len(c.entries) >= c.maxSize {
+		c.evictExpiredLocked()
+		if len(c.entries) >= c.maxSize {
+			c.mu.Unlock()
+			return
+		}
+	}
+	c.entries[key] = &oauth2Entry{resp: resp, expiry: expiry}
+	c.mu.Unlock()
+}
+
+func (c *oauth2Cache) evictExpiredLocked() {
+	now := time.Now()
+	for k, e := range c.entries {
+		if now.After(e.expiry) {
+			delete(c.entries, k)
+		}
+	}
+}
+
+// OAuth2Introspect validates Bearer tokens via RFC 7662 token introspection.
+// Active tokens are cached (keyed by sha256(token)) to avoid per-request network calls.
+// On success, the IntrospectResponse is available via GetOAuth2Claims.
+//
+// Panics if opts.Endpoint is empty.
+func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
+	if opts.Endpoint == "" {
+		panic("middleware: OAuth2Introspect requires a non-empty opts.Endpoint")
+	}
+	cacheTTL := opts.CacheTTL
+	if cacheTTL == 0 {
+		cacheTTL = 60 * time.Second
+	}
+	maxCacheSize := opts.MaxCacheSize
+	if maxCacheSize <= 0 {
+		maxCacheSize = 10000
+	}
+	client := opts.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: 10 * time.Second}
+	}
+	extract := opts.ExtractFn
+	if extract == nil {
+		extract = extractBearerToken
+	}
+
+	var cache *oauth2Cache
+	if cacheTTL > 0 {
+		cache = &oauth2Cache{
+			entries: make(map[[32]byte]*oauth2Entry, 64),
+			maxSize: maxCacheSize,
+		}
+	}
+
+	doIntrospect := func(ctx context.Context, token string) (*IntrospectResponse, error) {
+		body := url.Values{
+			"token":            {token},
+			"token_type_hint":  {"access_token"},
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, opts.Endpoint,
+			strings.NewReader(body.Encode()))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if opts.ClientID != "" {
+			req.SetBasicAuth(opts.ClientID, opts.ClientSecret)
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("introspection endpoint returned %d", resp.StatusCode)
+		}
+		var raw struct {
+			Active    bool        `json:"active"`
+			Sub       string      `json:"sub"`
+			Scope     string      `json:"scope"`
+			ClientID  string      `json:"client_id"`
+			Username  string      `json:"username"`
+			TokenType string      `json:"token_type"`
+			Exp       int64       `json:"exp"`
+			Iat       int64       `json:"iat"`
+			Nbf       int64       `json:"nbf"`
+			Iss       string      `json:"iss"`
+			Aud       jwtAudClaim `json:"aud"`
+		}
+		// Limit to 64 KB to prevent memory exhaustion from oversized responses.
+		if err := json.NewDecoder(io.LimitReader(resp.Body, 65536)).Decode(&raw); err != nil {
+			return nil, err
+		}
+		ir := &IntrospectResponse{
+			Active:    raw.Active,
+			Subject:   raw.Sub,
+			Scope:     raw.Scope,
+			ClientID:  raw.ClientID,
+			Username:  raw.Username,
+			TokenType: raw.TokenType,
+			Issuer:    raw.Iss,
+			Audience:  []string(raw.Aud),
+		}
+		if raw.Exp != 0 {
+			ir.ExpiresAt = time.Unix(raw.Exp, 0)
+		}
+		if raw.Iat != 0 {
+			ir.IssuedAt = time.Unix(raw.Iat, 0)
+		}
+		if raw.Nbf != 0 {
+			ir.NotBefore = time.Unix(raw.Nbf, 0)
+		}
+		return ir, nil
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := extract(r)
+			if token == "" {
+				w.Header().Set("WWW-Authenticate", `Bearer realm="api"`)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+
+			tokenKey := sha256.Sum256([]byte(token))
+
+			if cache != nil {
+				if resp, ok := cache.get(tokenKey); ok {
+					if !resp.Active {
+						w.Header().Set("WWW-Authenticate", `Bearer realm="api", error="invalid_token"`)
+						http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+						return
+					}
+					next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), oauth2CtxKey{}, resp)))
+					return
+				}
+			}
+
+			resp, err := doIntrospect(r.Context(), token)
+			if err != nil {
+				w.Header().Set("WWW-Authenticate", `Bearer realm="api", error="invalid_token"`)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+			if !resp.Active {
+				w.Header().Set("WWW-Authenticate", `Bearer realm="api", error="invalid_token"`)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
+
+			if cache != nil {
+				expiry := time.Now().Add(cacheTTL)
+				if !resp.ExpiresAt.IsZero() && resp.ExpiresAt.Before(expiry) {
+					expiry = resp.ExpiresAt
+				}
+				cache.set(tokenKey, resp, expiry)
+			}
+
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), oauth2CtxKey{}, resp)))
+		})
+	}
+}
+
+// GetOAuth2Claims returns the IntrospectResponse injected by the OAuth2Introspect middleware.
+func GetOAuth2Claims(ctx context.Context) (*IntrospectResponse, bool) {
+	c, ok := ctx.Value(oauth2CtxKey{}).(*IntrospectResponse)
+	return c, ok
+}
