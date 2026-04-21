@@ -38,3 +38,6 @@ competitor/
 # Example binaries (produced by go build inside examples/)
 examples/rest-api/rest-api
 examples/static-site/static-site
+examples/authn/authn
+examples/jwt/jwt
+examples/cache/cache
