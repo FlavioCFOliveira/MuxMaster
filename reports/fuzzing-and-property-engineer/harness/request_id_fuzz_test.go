@@ -2,9 +2,9 @@
 // X-Request-ID header to the response header verbatim.
 //
 // Invariants:
-//   1. Never panics on any input header value.
-//   2. When the output is NOT empty, it must equal the input (pin of current
-//      behaviour).
+//  1. Never panics on any input header value.
+//  2. When the output is NOT empty, it must equal the input (pin of current
+//     behaviour).
 //
 // FPE-001 / H-004 tracked separately: CR/LF in the client-supplied X-Request-ID
 // is reflected verbatim by the middleware. The stdlib http.Header.Set refuses

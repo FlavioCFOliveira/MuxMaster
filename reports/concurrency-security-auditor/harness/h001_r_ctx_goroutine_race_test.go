@@ -46,9 +46,9 @@ func TestH001_HandlerGoroutineReadsRequestContext(t *testing.T) {
 	r := mm.New()
 
 	var (
-		observedEmpty  int64
+		observedEmpty    int64
 		observedMismatch int64
-		observed       sync.Map
+		observed         sync.Map
 	)
 
 	r.GET("/a/:id", func(w http.ResponseWriter, req *http.Request) {
@@ -70,7 +70,7 @@ func TestH001_HandlerGoroutineReadsRequestContext(t *testing.T) {
 	})
 
 	const (
-		workers = 64
+		workers   = 64
 		perWorker = 500
 	)
 

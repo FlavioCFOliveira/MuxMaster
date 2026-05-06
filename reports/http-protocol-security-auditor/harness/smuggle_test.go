@@ -100,7 +100,7 @@ func TestSmugglingVariants(t *testing.T) {
 		},
 		{
 			name: "bare_lf_line_term",
-			raw: "POST / HTTP/1.1\nHost: " + host + "\nConnection: close\n\n",
+			raw:  "POST / HTTP/1.1\nHost: " + host + "\nConnection: close\n\n",
 		},
 		{
 			name: "bare_cr_in_headers",
@@ -121,7 +121,7 @@ func TestSmugglingVariants(t *testing.T) {
 		},
 		{
 			name: "crlf_in_request_target",
-			raw: "GET /\r\n\r\nGET /smuggled HTTP/1.1\r\nHost: " + host + "\r\n\r\n",
+			raw:  "GET /\r\n\r\nGET /smuggled HTTP/1.1\r\nHost: " + host + "\r\n\r\n",
 		},
 		{
 			name: "percent_encoded_traversal",
@@ -162,15 +162,15 @@ func TestSmugglingVariants(t *testing.T) {
 		},
 		{
 			name: "oversize_method",
-			raw: strings.Repeat("A", 1024) + " / HTTP/1.1\r\nHost: " + host + "\r\n\r\n",
+			raw:  strings.Repeat("A", 1024) + " / HTTP/1.1\r\nHost: " + host + "\r\n\r\n",
 		},
 		{
 			name: "oversize_target",
-			raw: "GET /" + strings.Repeat("a", 1<<15) + " HTTP/1.1\r\nHost: " + host + "\r\n\r\n",
+			raw:  "GET /" + strings.Repeat("a", 1<<15) + " HTTP/1.1\r\nHost: " + host + "\r\n\r\n",
 		},
 		{
 			name: "connect_method",
-			raw: "CONNECT evil.com:443 HTTP/1.1\r\nHost: " + host + "\r\n\r\n",
+			raw:  "CONNECT evil.com:443 HTTP/1.1\r\nHost: " + host + "\r\n\r\n",
 		},
 	}
 

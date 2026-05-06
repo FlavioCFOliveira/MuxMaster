@@ -9,15 +9,15 @@
 //  1. "user exists, wrong password"  vs  "user does not exist"
 //     - "alice" is in the credentials map; "charlie" is not.
 //     - The middleware path for "alice" runs the map lookup, then
-//       subtle.ConstantTimeCompare, then the WWW-Authenticate header write.
+//     subtle.ConstantTimeCompare, then the WWW-Authenticate header write.
 //     - The middleware path for "charlie" skips subtle.ConstantTimeCompare
-//       (map lookup misses) and goes directly to the 401 path.
+//     (map lookup misses) and goes directly to the 401 path.
 //     - Hypothesis H_1 (leak): the two paths are distinguishable in mean or
-//       distribution at N = 5e5 samples, tripled.
+//     distribution at N = 5e5 samples, tripled.
 //
 //  2. "wrong password, same length"  vs  "wrong password, different length"
 //     - Both users exist; both passwords miss subtle.ConstantTimeCompare; we
-//       verify that the compare itself is constant-time.
+//     verify that the compare itself is constant-time.
 //
 // Interleaving is used so that CPU-freq drift cancels across A/B pairs.
 // p99 trim is applied before Welch to reduce GC/preemption noise.
@@ -88,7 +88,7 @@ func TestTiming_H002_UserEnumeration(t *testing.T) {
 
 	// Interleave to cancel drift.
 	w := httptest.NewRecorder()
-	existReq := mkReq("alice", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")   // user exists, wrong pw
+	existReq := mkReq("alice", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")      // user exists, wrong pw
 	nonexistReq := mkReq("charlie", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx") // user absent
 
 	// Precompute and reuse one recorder to avoid allocating in the hot loop.

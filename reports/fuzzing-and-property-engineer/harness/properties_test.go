@@ -5,17 +5,18 @@
 // with rapid's shrink-to-minimal-counterexample driver.
 //
 // Covered invariants:
-//   I-04 : Group prefix composition — for any sequence of prefixes P1..Pn
-//          registered via nested Groups with leaf L, a request at
-//          concat(P1..Pn, L) is routed to the handler.
-//   I-05 : Middleware order preserved — Use(m1, m2, m3) wraps handlers so
-//          that m1 runs outermost and m3 innermost (classic chi/gin contract).
-//   I-07 : Handle is idempotent modulo route-conflict panic — calling Handle
-//          with an accepted (method, pattern) twice produces a consistent
-//          conflict panic rather than silent corruption.
-//   H-012: paramsBuf overflow — routes with more than maxInlineParams (3)
-//          parameters are either serviced correctly or rejected with a
-//          clear signal; silent drop is forbidden.
+//
+//	I-04 : Group prefix composition — for any sequence of prefixes P1..Pn
+//	       registered via nested Groups with leaf L, a request at
+//	       concat(P1..Pn, L) is routed to the handler.
+//	I-05 : Middleware order preserved — Use(m1, m2, m3) wraps handlers so
+//	       that m1 runs outermost and m3 innermost (classic chi/gin contract).
+//	I-07 : Handle is idempotent modulo route-conflict panic — calling Handle
+//	       with an accepted (method, pattern) twice produces a consistent
+//	       conflict panic rather than silent corruption.
+//	H-012: paramsBuf overflow — routes with more than maxInlineParams (3)
+//	       parameters are either serviced correctly or rejected with a
+//	       clear signal; silent drop is forbidden.
 package harness
 
 import (

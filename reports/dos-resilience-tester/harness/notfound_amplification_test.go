@@ -15,8 +15,9 @@ import (
 // churn is higher.
 //
 // Baseline (established from root bench_test.go):
-//   StaticRoute — 24 ns, 0 allocs
-//   NotFound    — 250 ns, 3 allocs, 105 B
+//
+//	StaticRoute — 24 ns, 0 allocs
+//	NotFound    — 250 ns, 3 allocs, 105 B
 //
 // So a 404 costs 10x the ns AND 3 allocs where a static route is zero.
 // Under a 404 flood from an attacker, GC pressure grows while legit routes

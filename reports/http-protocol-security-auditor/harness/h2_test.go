@@ -33,7 +33,7 @@ func TestH2SmokeRequest(t *testing.T) {
 	defer srv.Close()
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
 		ForceAttemptHTTP2: true,
 	}
 	// ForceAttemptHTTP2 only works if TLS is in play (our case via StartTLS).

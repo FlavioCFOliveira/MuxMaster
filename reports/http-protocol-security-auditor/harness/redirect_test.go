@@ -65,26 +65,26 @@ func TestRedirectMatrix(t *testing.T) {
 	// Path list — a mix of legitimate and hostile inputs.
 	// The first element of the pair is a label for the CSV.
 	paths := [][2]string{
-		{"tsr_basic", "/admin/"},                                             // TSR to /admin
-		{"tsr_a_b_c_slash", "/a/b/c/"},                                       // TSR to /a/b/c
-		{"fixed_dot_slash", "/./admin"},                                      // RedirectFixedPath
-		{"double_slash_admin", "//admin"},                                    // ambiguous — path.Clean → /admin
-		{"slash_slash_evil", "//evil.com/foo"},                               // H-007 open redirect
-		{"dot_dot_evil", "/x/../evil.com/foo"},                               // path.Clean reveals /evil.com/foo
-		{"triple_slash", "///admin"},                                         // path.Clean → /admin
-		{"encoded_crlf_in_path", "/admin%0D%0ASet-Cookie:%20evil=1%0D%0A"},   // CRLF injection attempt
-		{"literal_crlf_in_path", "/admin\r\n"},                               // stdlib should reject at request line
-		{"ansi_in_path", "/\x1b[2Jadmin"},                                    // ANSI escape
-		{"backslash_host", "/\\evil.com/"},                                   // backslash confusion
-		{"admin_mixed_case", "/ADMIN"},                                       // mixed-case for RedirectFixedPath
-		{"tsr_with_slash_slash", "/admin//"},                                 // trailing double slash
-		{"fragment_in_target", "/./admin#x"},                                 // fragment handling
-		{"query_encoded_crlf", "/admin?x=%0D%0AFoo:%20bar"},                  // CRLF in query
-		{"tab_in_path", "/admin\t"},                                          // horizontal tab
-		{"null_in_path", "/admin\x00"},                                       // null byte
-		{"slash_dot_dot_slash", "/../admin"},                                 // climb + clean
-		{"very_long_path", "/admin/" + strings.Repeat("A", 4096)},            // long path
-		{"percent_encoded_slash", "/admin%2f"},                               // encoded slash
+		{"tsr_basic", "/admin/"},                                           // TSR to /admin
+		{"tsr_a_b_c_slash", "/a/b/c/"},                                     // TSR to /a/b/c
+		{"fixed_dot_slash", "/./admin"},                                    // RedirectFixedPath
+		{"double_slash_admin", "//admin"},                                  // ambiguous — path.Clean → /admin
+		{"slash_slash_evil", "//evil.com/foo"},                             // H-007 open redirect
+		{"dot_dot_evil", "/x/../evil.com/foo"},                             // path.Clean reveals /evil.com/foo
+		{"triple_slash", "///admin"},                                       // path.Clean → /admin
+		{"encoded_crlf_in_path", "/admin%0D%0ASet-Cookie:%20evil=1%0D%0A"}, // CRLF injection attempt
+		{"literal_crlf_in_path", "/admin\r\n"},                             // stdlib should reject at request line
+		{"ansi_in_path", "/\x1b[2Jadmin"},                                  // ANSI escape
+		{"backslash_host", "/\\evil.com/"},                                 // backslash confusion
+		{"admin_mixed_case", "/ADMIN"},                                     // mixed-case for RedirectFixedPath
+		{"tsr_with_slash_slash", "/admin//"},                               // trailing double slash
+		{"fragment_in_target", "/./admin#x"},                               // fragment handling
+		{"query_encoded_crlf", "/admin?x=%0D%0AFoo:%20bar"},                // CRLF in query
+		{"tab_in_path", "/admin\t"},                                        // horizontal tab
+		{"null_in_path", "/admin\x00"},                                     // null byte
+		{"slash_dot_dot_slash", "/../admin"},                               // climb + clean
+		{"very_long_path", "/admin/" + strings.Repeat("A", 4096)},          // long path
+		{"percent_encoded_slash", "/admin%2f"},                             // encoded slash
 	}
 
 	// Matrix columns.

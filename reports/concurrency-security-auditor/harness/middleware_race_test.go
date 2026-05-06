@@ -35,10 +35,10 @@ import (
 // a counter race.
 func TestThrottleCounterRace(t *testing.T) {
 	const (
-		limit    = 8
-		backlog  = 100
-		workers  = 64
-		per      = 32
+		limit   = 8
+		backlog = 100
+		workers = 64
+		per     = 32
 	)
 
 	var active int64

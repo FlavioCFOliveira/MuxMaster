@@ -109,13 +109,13 @@ func main() {
 	r := mm.New()
 
 	// Configuration flags (explicit for documentation purposes).
-	r.RedirectTrailingSlash = true   // /books/ → /books
-	r.RedirectFixedPath = false      // security default — keeps middleware auth intact
-	r.HandleMethodNotAllowed = true  // 405 with Allow header
-	r.HandleOPTIONS = true           // automatic OPTIONS + Allow header
-	r.CaseInsensitive = false        // strict case matching
-	r.UseRawPath = false             // use decoded path for matching
-	r.UnescapePathValues = false     // raw param values; opt-in if you need %2F decoded
+	r.RedirectTrailingSlash = true  // /books/ → /books
+	r.RedirectFixedPath = false     // security default — keeps middleware auth intact
+	r.HandleMethodNotAllowed = true // 405 with Allow header
+	r.HandleOPTIONS = true          // automatic OPTIONS + Allow header
+	r.CaseInsensitive = false       // strict case matching
+	r.UseRawPath = false            // use decoded path for matching
+	r.UnescapePathValues = false    // raw param values; opt-in if you need %2F decoded
 
 	// ── Custom error / fallback handlers ─────────────────────────────────────
 
@@ -243,9 +243,9 @@ func main() {
 		}
 		handler, params, found := r.Lookup(method, path)
 		type result struct {
-			Found   bool          `json:"found"`
-			Handler string        `json:"handler,omitempty"`
-			Params  mm.Params     `json:"params,omitempty"`
+			Found   bool      `json:"found"`
+			Handler string    `json:"handler,omitempty"`
+			Params  mm.Params `json:"params,omitempty"`
 		}
 		name := ""
 		if handler != nil {
@@ -259,7 +259,7 @@ func main() {
 	v1 := r.Group("/api/v1")
 	v1.Use(
 		// Per-request timeout: handlers that exceed 30 s get a cancelled context.
-		mw.Timeout(30 * time.Second),
+		mw.Timeout(30*time.Second),
 
 		// Per-IP throttle: max 50 concurrent requests per client IP.
 		mw.ThrottlePerIP(50, 10*time.Second, nil),

@@ -108,7 +108,7 @@ func TestSec_CORS_WhitelistStrict(t *testing.T) {
 		"https://attacker.com",
 		"https://example.com.attacker.com",
 		"https://example.comEVIL",
-		"http://example.com", // scheme mismatch
+		"http://example.com",  // scheme mismatch
 		"https://Example.Com", // case
 		"null",
 	} {
@@ -197,16 +197,16 @@ func TestSec_CORS_CRLFInOrigin(t *testing.T) {
 	h := mw(corsInner())
 
 	payloads := map[string]string{
-		"crlf":       "https://evil.com\r\nSet-Cookie: evil=1",
-		"lf":         "https://evil.com\nSet-Cookie: evil=1",
-		"cr":         "https://evil.com\rX: y",
-		"null_byte":  "https://evil.com\x00X-Zero: y",
-		"tab":        "https://evil.com\tTab",
-		"long_16k":   "https://" + strings.Repeat("a", 16*1024),
-		"bom":        "\uFEFFhttps://evil.com",
-		"utf8_high":  "https://evil.com\u2028",
-		"space":      "https://evil .com",
-		"ansi":       "https://evil.com\x1b[2J",
+		"crlf":      "https://evil.com\r\nSet-Cookie: evil=1",
+		"lf":        "https://evil.com\nSet-Cookie: evil=1",
+		"cr":        "https://evil.com\rX: y",
+		"null_byte": "https://evil.com\x00X-Zero: y",
+		"tab":       "https://evil.com\tTab",
+		"long_16k":  "https://" + strings.Repeat("a", 16*1024),
+		"bom":       "\uFEFFhttps://evil.com",
+		"utf8_high": "https://evil.com\u2028",
+		"space":     "https://evil .com",
+		"ansi":      "https://evil.com\x1b[2J",
 	}
 
 	for name, payload := range payloads {
@@ -318,10 +318,10 @@ func TestSec_CORS_NoOriginPasses(t *testing.T) {
 
 func TestSec_CORS_Matrix(t *testing.T) {
 	origins := []string{
-		"https://trusted.com",   // whitelisted
-		"https://attacker.com",  // not whitelisted
-		"null",                  // null origin
-		"",                      // no origin
+		"https://trusted.com",  // whitelisted
+		"https://attacker.com", // not whitelisted
+		"null",                 // null origin
+		"",                     // no origin
 	}
 	methods := []string{"GET", "POST", "OPTIONS"}
 	credentials := []bool{false, true}

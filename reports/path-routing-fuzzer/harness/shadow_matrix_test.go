@@ -21,10 +21,10 @@ import (
 // generated from attacker-controlled requests.
 func TestShadowMatrix_StaticAfterParam(t *testing.T) {
 	scenarios := []struct {
-		name        string
-		firstParam  string // registered first
-		secondStat  string // registered after
-		dispatchPs  []string
+		name       string
+		firstParam string // registered first
+		secondStat string // registered after
+		dispatchPs []string
 	}{
 		{"basic_a", "/a/:x", "/a/b", []string{"/a/b", "/a/c"}},
 		{"depth2", "/u/:id", "/u/me", []string{"/u/me", "/u/42"}},

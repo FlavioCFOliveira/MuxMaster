@@ -627,9 +627,9 @@ func TestTiered_RoutePattern_AllTiers_Concurrent(t *testing.T) {
 	var bad int64
 
 	patterns := map[string]string{
-		"/rp1/:id":       "1",
-		"/rp2/:a/:b":     "2",
-		"/rp3/:x/:y/:z":  "3",
+		"/rp1/:id":      "1",
+		"/rp2/:a/:b":    "2",
+		"/rp3/:x/:y/:z": "3",
 	}
 	for pat := range patterns {
 		pat := pat

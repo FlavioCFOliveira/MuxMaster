@@ -107,19 +107,19 @@ func TestSec_RequestID_ControlCharReflection(t *testing.T) {
 	h := mw(inner)
 
 	payloads := map[string]string{
-		"crlf":        "abc\r\nX-Smuggled: yes",
-		"lf":          "abc\nX-Smuggled: yes",
-		"cr":          "abc\rsmuggled",
-		"tab":         "abc\tdef",
-		"nul":         "abc\x00def",
-		"bel":         "abc\x07",
-		"ansi":        "abc\x1b[2Jcls",
-		"long_4k":     strings.Repeat("a", 4096),
-		"long_64k":    strings.Repeat("a", 64*1024),
-		"long_1mb":    strings.Repeat("a", 1024*1024),
-		"vertical":    "abc\x0bdef",
-		"multi_crlf":  "a\r\nb\r\nc\r\nd",
-		"utf8":        "abc\u202eunicode",
+		"crlf":       "abc\r\nX-Smuggled: yes",
+		"lf":         "abc\nX-Smuggled: yes",
+		"cr":         "abc\rsmuggled",
+		"tab":        "abc\tdef",
+		"nul":        "abc\x00def",
+		"bel":        "abc\x07",
+		"ansi":       "abc\x1b[2Jcls",
+		"long_4k":    strings.Repeat("a", 4096),
+		"long_64k":   strings.Repeat("a", 64*1024),
+		"long_1mb":   strings.Repeat("a", 1024*1024),
+		"vertical":   "abc\x0bdef",
+		"multi_crlf": "a\r\nb\r\nc\r\nd",
+		"utf8":       "abc\u202eunicode",
 	}
 
 	for name, p := range payloads {

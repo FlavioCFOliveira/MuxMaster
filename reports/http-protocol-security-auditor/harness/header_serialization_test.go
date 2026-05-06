@@ -29,7 +29,7 @@ func TestHeaderSerializationDefence(t *testing.T) {
 		{"ansi", "a\x1b[31mb"},
 		{"tab", "a\tb"},
 		{"del", "a\x7fb"},
-		{"utf8", "a\xe4\xbd\xa0b"},          // UTF-8 "你" in header value
+		{"utf8", "a\xe4\xbd\xa0b"}, // UTF-8 "你" in header value
 		{"space", "a b"},
 		{"valid_alnum", "abc123"},
 		{"empty", ""},

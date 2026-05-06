@@ -46,7 +46,7 @@ func TestH018_RequestCtxFieldType(t *testing.T) {
 			"The unsafe.Add pattern will corrupt data.", fType)
 	}
 	if fOff == 0 {
-		t.Fatalf("H-018 SUSPICIOUS: http.Request.ctx is at offset 0 — this is legitimate "+
+		t.Fatalf("H-018 SUSPICIOUS: http.Request.ctx is at offset 0 — this is legitimate " +
 			"only if context.Context is the first field. Verify by inspecting the " +
 			"http.Request struct layout.")
 	}

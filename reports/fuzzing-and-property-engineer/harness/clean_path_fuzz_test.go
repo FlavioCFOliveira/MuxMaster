@@ -1,9 +1,9 @@
 // FuzzCleanPath — invariant I-02: CleanPath middleware applies path.Clean.
 //
 // Invariants:
-//   1. Idempotent  : applying CleanPath twice equals applying once.
-//   2. Bounded     : the output length never exceeds the input length.
-//   3. No panic    : for any byte sequence.
+//  1. Idempotent  : applying CleanPath twice equals applying once.
+//  2. Bounded     : the output length never exceeds the input length.
+//  3. No panic    : for any byte sequence.
 //
 // The middleware wraps path.Clean of stdlib. We replay the same semantics by
 // running a ServeHTTP through the middleware and observing the effective path

@@ -35,7 +35,7 @@ func TestSec_CleanPath_NormalisationMatrix(t *testing.T) {
 		// The URL parser would have decoded %2e%2e → .. before entering here if the
 		// request reaches via httptest. So test both states of r.URL.Path.
 		{"/%2e%2e/b", "/%2e%2e/b"}, // not decoded by path.Clean — it sees textual %2e
-		{"/.%2e/b", "/.%2e/b"},      // same
+		{"/.%2e/b", "/.%2e/b"},     // same
 
 		// Already-clean paths pass through (with exact matching).
 		{"/a/b", "/a/b"},

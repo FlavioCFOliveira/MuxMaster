@@ -65,9 +65,9 @@ func callFor(m http.Handler, path string) func() {
 func TestTiming_H011_RouteExistence(t *testing.T) {
 	m := buildMux()
 	registered := callFor(m, "/api/v1/users")
-	similar := callFor(m, "/api/v1/pictures")      // shares /api/v1/ prefix
+	similar := callFor(m, "/api/v1/pictures")       // shares /api/v1/ prefix
 	random := callFor(m, "/totally-random-xyz-999") // unrelated
-	hidden := callFor(m, "/api/v1/admin/secret")   // registered, likely undisclosed
+	hidden := callFor(m, "/api/v1/admin/secret")    // registered, likely undisclosed
 
 	cleanup := PreparePinned()
 	defer cleanup()
@@ -159,9 +159,9 @@ func TestTiming_RedirectFixedPath_Oracle(t *testing.T) {
 		runtime.GOOS+"/"+runtime.GOARCH, runtime.Version(), nSamples, nRuns)
 
 	pairs := []struct {
-		name    string
-		fA, fB  func()
-		label   string
+		name   string
+		fA, fB func()
+		label  string
 	}{
 		{"canon_vs_noncanon", canon, nonCanon, "canonicalisable 404 vs double-slash 404 that doesn't match"},
 		{"canon_vs_plain", canon, plain, "canonicalisable 404 (reveals hidden route) vs plain 404"},

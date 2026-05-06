@@ -111,4 +111,4 @@ func (d *dummyRW) Header() http.Header {
 	return d.hdr
 }
 func (d *dummyRW) Write(p []byte) (int, error) { return len(p), nil }
-func (d *dummyRW) WriteHeader(status int)       { d.status = status }
+func (d *dummyRW) WriteHeader(status int)      { d.status = status }
