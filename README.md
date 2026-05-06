@@ -1,8 +1,14 @@
+<p align="center">
+  <img src="assets/logo-muxmaster.png" alt="MuxMaster" width="250">
+</p>
+
 # MuxMaster
 
 [![CI](https://github.com/FlavioCFOliveira/MuxMaster/actions/workflows/ci.yml/badge.svg)](https://github.com/FlavioCFOliveira/MuxMaster/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/FlavioCFOliveira/MuxMaster.svg)](https://pkg.go.dev/github.com/FlavioCFOliveira/MuxMaster)
 [![Go Report Card](https://goreportcard.com/badge/github.com/FlavioCFOliveira/MuxMaster)](https://goreportcard.com/report/github.com/FlavioCFOliveira/MuxMaster)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/FlavioCFOliveira/MuxMaster)](https://github.com/FlavioCFOliveira/MuxMaster/blob/main/go.mod)
+[![Latest Release](https://img.shields.io/github/v/release/FlavioCFOliveira/MuxMaster)](https://github.com/FlavioCFOliveira/MuxMaster/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **MuxMaster** is a high-performance HTTP router for Go. It is 100% compatible with the standard `net/http` package, requires zero external dependencies, and is built on a radix tree (compressed prefix trie) that delivers O(k) route lookup — where k is the length of the URL path, not the number of registered routes.
