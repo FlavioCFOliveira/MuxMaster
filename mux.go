@@ -754,7 +754,7 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 				target := r.URL.String()
 				r.URL.Path = urlPath // restore before passing to middleware
 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					http.Redirect(w, r, target, code)
+					http.Redirect(w, r, target, code) //#nosec G710 -- target is a same-origin path (TSR canonicalisation only mutates path; host/scheme untouched). Audited as H-007 (refuted) in /reports/overview/findings.md.
 				}), m.middleware).ServeHTTP(w, r)
 				return
 			}
@@ -765,7 +765,7 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 					target := r.URL.String()
 					r.URL.Path = urlPath // restore before passing to middleware
 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						http.Redirect(w, r, target, code)
+						http.Redirect(w, r, target, code) //#nosec G710 -- target is the cleaned same-origin path; path.Clean reduces leading "//evil" to "/evil" producing a relative same-origin Location. Audited as H-007 (refuted) in /reports/overview/findings.md.
 					}), m.middleware).ServeHTTP(w, r)
 					return
 				}

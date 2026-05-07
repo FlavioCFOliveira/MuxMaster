@@ -310,7 +310,11 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler, fast Fas
 				n.path = path[:i]
 				path = path[i:]
 			}
-			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+			nameEnd := 1 + colonIdx
+			if nameEnd > 255 {
+				panic("muxmaster: regex param name exceeds 255 bytes in '" + fullPath + "'")
+			}
+			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(nameEnd)}
 			// Append: preserve existing static children so they remain reachable via n.indices.
 			n.children = append(n.children, child)
 			n.wildChild = true
