@@ -162,8 +162,13 @@ type Mux struct {
 	// UseRawPath uses r.URL.RawPath for matching when set and non-empty.
 	UseRawPath bool
 
-	// UnescapePathValues percent-decodes path parameter values before storing them.
-	// Defaults to false — opt in explicitly if you need it.
+	// UnescapePathValues percent-decodes path parameter values before storing
+	// them. Only takes effect when UseRawPath is also true: when UseRawPath is
+	// false (the default) net/http already decodes the URL path during parsing
+	// and a second decode would corrupt values containing literal '%XX' (the
+	// PRF-2026-0006 double-decode that let %2520 bypass space-blocking input
+	// validators). Set both UseRawPath and UnescapePathValues to retrieve
+	// decoded values from the original raw path bytes.
 	UnescapePathValues bool
 
 	// RedirectCode overrides the default redirect status code (301/307).
@@ -775,9 +780,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 						copy(fps, ps.buf[:maxParams])
 						copy(fps[maxParams:], ps.overflow)
 					}
-					if cfg.unescapePathValues {
+					if cfg.unescapePathValues && cfg.useRawPath {
 						for i := range fps {
-							if v, err := url.QueryUnescape(fps[i].Value); err == nil {
+							if v, err := url.PathUnescape(fps[i].Value); err == nil {
 								fps[i].Value = v
 							}
 						}
@@ -785,9 +790,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 					fast(w, r, fps)
 				} else {
 					pslice := ps.params()
-					if cfg.unescapePathValues {
+					if cfg.unescapePathValues && cfg.useRawPath {
 						for i := range pslice {
-							if v, err := url.QueryUnescape(pslice[i].Value); err == nil {
+							if v, err := url.PathUnescape(pslice[i].Value); err == nil {
 								pslice[i].Value = v
 							}
 						}
@@ -864,9 +869,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 						copy(fps2, ps2.buf[:maxParams])
 						copy(fps2[maxParams:], ps2.overflow)
 					}
-					if cfg.unescapePathValues {
+					if cfg.unescapePathValues && cfg.useRawPath {
 						for i := range fps2 {
-							if v, err := url.QueryUnescape(fps2[i].Value); err == nil {
+							if v, err := url.PathUnescape(fps2[i].Value); err == nil {
 								fps2[i].Value = v
 							}
 						}
@@ -874,9 +879,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 					f2(w, r, fps2)
 				} else {
 					pslice2 := ps2.params()
-					if cfg.unescapePathValues {
+					if cfg.unescapePathValues && cfg.useRawPath {
 						for i := range pslice2 {
-							if v, err := url.QueryUnescape(pslice2[i].Value); err == nil {
+							if v, err := url.PathUnescape(pslice2[i].Value); err == nil {
 								pslice2[i].Value = v
 							}
 						}
