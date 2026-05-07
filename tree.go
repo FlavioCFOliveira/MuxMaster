@@ -218,7 +218,7 @@ walk:
 				if n.wildChild {
 					seg := strings.SplitN(path, "/", 2)[0]
 					pfx := fullPath[:strings.Index(fullPath, seg)] + n.children[len(n.children)-1].path
-					panic("'" + seg + "' in path '" + fullPath +
+					panic("muxmaster: '" + seg + "' in path '" + fullPath +
 						"' conflicts with existing wildcard '" + pfx + "'")
 				}
 				n.indices += string([]byte{c}) // raw byte, not rune (PRF-2026-0009)
@@ -239,7 +239,7 @@ walk:
 
 				seg := strings.SplitN(path, "/", 2)[0]
 				pfx := fullPath[:strings.Index(fullPath, seg)] + n.path
-				panic("'" + seg + "' in path '" + fullPath +
+				panic("muxmaster: '" + seg + "' in path '" + fullPath +
 					"' conflicts with existing wildcard '" + pfx + "'")
 			}
 
@@ -248,7 +248,7 @@ walk:
 		}
 
 		if n.handler != nil || n.fast != nil {
-			panic("a handler is already registered for path '" + fullPath + "'")
+			panic("muxmaster: a handler is already registered for path '" + fullPath + "'")
 		}
 		n.handler = handler
 		n.fast = fast
@@ -284,10 +284,10 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler, fast Fas
 			break
 		}
 		if !valid {
-			panic("only one wildcard per path segment is allowed in '" + fullPath + "'")
+			panic("muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'")
 		}
 		if len(wc) < 2 {
-			panic("wildcards must be named in path '" + fullPath + "'")
+			panic("muxmaster: wildcards must be named in path '" + fullPath + "'")
 		}
 
 		if wc[0] == ':' {
@@ -358,10 +358,10 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler, fast Fas
 
 		// Catch-all '*'
 		if i+len(wc) != len(path) {
-			panic("catch-all routes are only allowed at the end of the path in '" + fullPath + "'")
+			panic("muxmaster: catch-all routes are only allowed at the end of the path in '" + fullPath + "'")
 		}
 		if len(n.path) > 0 && n.path[len(n.path)-1] == '/' {
-			panic("catch-all conflicts with existing handler for the path root in '" + fullPath + "'")
+			panic("muxmaster: catch-all conflicts with existing handler for the path root in '" + fullPath + "'")
 		}
 
 		i--
