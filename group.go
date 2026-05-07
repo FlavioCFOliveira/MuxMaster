@@ -174,9 +174,13 @@ func (g *Group) Route(prefix string, fn func(*Group)) {
 	fn(sub)
 }
 
-// Mount attaches h at g.prefix+prefix, stripping the full prefix before forwarding.
+// Mount attaches h at g.prefix+prefix, stripping the full prefix before
+// forwarding. The group's stdlib middleware (registered via Use) wraps the
+// mounted handler so authentication, logging, etc. apply to every request
+// reaching h — without this wrapping a Group with BasicAuth/JWTAuth would
+// silently leave the mounted handler unprotected (MSR-2026-0062).
 func (g *Group) Mount(prefix string, h http.Handler) {
-	g.mux.mountAt(g.prefix+prefix, h)
+	g.mux.mountAt(g.prefix+prefix, wrapMiddleware(h, g.middleware))
 }
 
 // ServeFiles serves static files from root under the given prefix pattern.
