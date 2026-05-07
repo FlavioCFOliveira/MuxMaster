@@ -166,7 +166,12 @@ walk:
 				regexp:    n.regexp,
 			}
 			n.children = []*node{child}
-			n.indices = string(n.path[i])
+			// Wrap the raw byte in a single-element []byte to avoid the
+			// rune-coercion path of string(byte) which would re-encode any
+			// non-ASCII byte (>= 0x80) as a 2-byte UTF-8 sequence and
+			// desynchronise len(n.indices) from len(n.children) — see
+			// PRF-2026-0009 for the multi-byte panic this fix prevents.
+			n.indices = string([]byte{n.path[i]})
 			n.path = path[:i]
 			n.handler = nil
 			n.fast = nil
@@ -199,7 +204,7 @@ walk:
 					panic("'" + seg + "' in path '" + fullPath +
 						"' conflicts with existing wildcard '" + pfx + "'")
 				}
-				n.indices += string(c)
+				n.indices += string([]byte{c}) // raw byte, not rune (PRF-2026-0009)
 				child := &node{}
 				n.children = append(n.children, child)
 				n.incrementChildPrio(len(n.indices) - 1)
