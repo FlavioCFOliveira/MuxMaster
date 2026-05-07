@@ -316,8 +316,13 @@ func (m *Mux) UseFast(mw ...FastMiddleware) {
 // routes. Params are passed as a direct argument — see FastHandler for
 // lifetime guarantees.
 //
-// stdlib middleware (registered via Use) does NOT apply to fast routes.
-// Use UseFast to attach middleware to fast routes instead.
+// SECURITY: stdlib middleware (registered via Use) does NOT apply to fast
+// routes. This includes the Recoverer middleware — a panic in a FastHandler
+// is NOT recovered by middleware.Recoverer, regardless of the order Use was
+// called. Set Mux.PanicHandler to recover panics on the FastHandler path:
+// PanicHandler is invoked from dispatchWithRecover and covers both
+// http.Handler and FastHandler routes. Use UseFast to attach FastMiddleware
+// to fast routes; FastMiddleware runs on the FastHandler dispatch path.
 //
 // Panics on empty method, non-absolute path, nil handler, or route conflict.
 func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
