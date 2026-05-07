@@ -95,6 +95,29 @@ func (g *gzipResponseWriter) close() {
 // Responses smaller than 1024 bytes are passed through uncompressed.
 // Uses streaming compression — memory usage is bounded regardless of response size.
 // Panics on invalid compression level.
+//
+// SECURITY (BREACH / DOS-2026-0006): do NOT echo user-controlled input
+// alongside a secret (OAuth2 scope, CSRF token, session ID, JWT) inside a
+// gzip-compressed response body. Compression amplifies tiny size differences
+// that depend on whether the user's input matches a prefix of the secret —
+// this is the BREACH oracle (Cohen's d > 10 measured in
+// reports/dos-resilience-tester/harness/breach_oracle_test.go), letting an
+// attacker recover the secret character-by-character with ~2 requests per
+// character.
+//
+// Mitigations, in order of preference:
+//
+//  1. Do not compress endpoints that echo user input near secrets — wrap
+//     them with a different middleware chain that excludes Compress.
+//  2. Move secrets out of the response body (set them in headers, cookies,
+//     or separate API endpoints not reachable via attacker-controlled input).
+//  3. Add variable-length random padding (>= 256 bytes, length randomised
+//     per request) to the response body. Validated by
+//     TestBREACHOracleWithRandomPadding (Cohen's d drops below 0.03).
+//
+// MuxMaster cannot apply these mitigations on the operator's behalf because
+// they require knowledge of which fields are secret vs user-controlled.
+// See SECURITY.md "BREACH mitigation" for the full pattern.
 func Compress(level int) func(http.Handler) http.Handler {
 	pool := &sync.Pool{
 		New: func() any {

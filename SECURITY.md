@@ -90,13 +90,49 @@ r.Use(
 )
 ```
 
-### BREACH Compression Oracle (MM-2026-0030)
+### BREACH Compression Oracle (MM-2026-0030 / DOS-2026-0006)
 
-`middleware.Compress` does not mitigate the BREACH attack. If your application
-reflects user-controlled input alongside secret values in the same response
-body **and** compression is enabled, an attacker may be able to recover the
-secret via a compression oracle. Mitigations: disable compression for sensitive
-endpoints, or ensure secrets and reflected input are never in the same response.
+`middleware.Compress` does not mitigate the BREACH attack. Confirmed in
+`reports/dos-resilience-tester/harness/breach_oracle_test.go` with a Cohen's
+d effect size of ~10.3 — an attacker controlling one URL/query parameter
+that is echoed alongside a secret in a gzip-compressed response can recover
+each character of the secret with ~2 requests on average.
+
+**Mitigations**, in decreasing order of safety:
+
+1. **Do not compress endpoints that echo user-controlled input near secrets.**
+   The simplest fix: register `middleware.Compress` only on routes that do
+   not echo attacker-controlled data into the body, or build a separate
+   middleware chain for sensitive endpoints.
+
+2. **Move secrets out of the response body.** Put OAuth2 scopes, CSRF
+   tokens, session IDs and JWTs in headers, cookies, or dedicated endpoints
+   that are never reachable via attacker-controlled input.
+
+3. **Variable-length random padding.** If 1 and 2 are not feasible, append
+   a random-length (>= 256 bytes, length randomised per request) random
+   payload to the response body. Validated by
+   `TestBREACHOracleWithRandomPadding`: with this scheme the oracle's
+   Cohen's d drops below 0.03 (negligible). Fixed-length padding is **not**
+   sufficient — the random content compresses to similar sizes per request.
+
+Example mitigation pattern (variable-length random padding):
+
+```go
+func tokenInfo(w http.ResponseWriter, r *http.Request) {
+    q := r.URL.Query().Get("q")
+    padN := 256 + rand.Intn(256) // length itself is randomised
+    pad := make([]byte, padN)
+    _, _ = rand.Read(pad)
+    body := fmt.Sprintf(`{"scope":"%s","query":"%s","pad":"%x"}`,
+        oauthScope, q, pad)
+    _, _ = io.WriteString(w, body)
+}
+```
+
+MuxMaster cannot apply these mitigations on the operator's behalf because
+they require domain knowledge of which response fields are secret vs
+user-controlled.
 
 ### Registration Panics Leave Tree Inconsistent (MM-2026-0033)
 
