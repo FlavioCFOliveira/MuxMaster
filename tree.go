@@ -117,9 +117,26 @@ func (n *node) addRouteFast(path string, fast FastHandler) {
 	n.addRouteInternal(path, nil, fast)
 }
 
+// maxOptionalSegments caps the number of optional segments in a single
+// pattern. Each optional segment doubles the number of expanded routes, so a
+// pattern with N optional segments creates 2^N routes. The cap of 8 keeps
+// expansion bounded at 256 calls — enough for realistic templates while
+// blocking the DoS vector documented as MM-2026-0050 / PRF-2026-0007 where
+// an attacker controlling pattern registration could submit
+// /a{/:1}{/:2}…{/:20} (~2^20 expansions, multi-second registration).
+const maxOptionalSegments = 8
+
 // addRouteInternal registers either an http.Handler or a FastHandler (exactly
 // one must be non-nil) for the given path, expanding optional segments first.
 func (n *node) addRouteInternal(path string, handler http.Handler, fast FastHandler) {
+	// Bound optional-segment expansion before recursing — each {/:name}
+	// doubles the number of registrations, so cap the count to keep the
+	// total expansion at 2^maxOptionalSegments.
+	if c := countOptionalSegments(path); c > maxOptionalSegments {
+		panic("muxmaster: pattern '" + path + "' has " + strconv.Itoa(c) +
+			" optional segments; the maximum is " + strconv.Itoa(maxOptionalSegments) +
+			" to prevent exponential addRoute time complexity (DoS).")
+	}
 	// Expand optional segments before doing anything else.
 	if expanded, ok := expandOptional(path); ok {
 		n.addRouteInternal(expanded[0], handler, fast)
@@ -630,6 +647,29 @@ func findWildcard(path string) (token string, start int, valid bool) {
 		}
 	}
 	return "", -1, false
+}
+
+// countOptionalSegments returns how many {/:name[:expr]} optional segments
+// appear in path. Used to bound the 2^N expansion performed by recursive
+// expandOptional calls.
+func countOptionalSegments(path string) int {
+	count := 0
+	for i := 0; i < len(path); {
+		j := strings.Index(path[i:], "{/:")
+		if j < 0 {
+			break
+		}
+		i += j
+		closing := strings.Index(path[i:], "}")
+		if closing < 0 {
+			// Unclosed { — addRouteInternal/expandOptional will panic with a
+			// dedicated message; do not double-count here.
+			break
+		}
+		count++
+		i += closing + 1
+	}
+	return count
 }
 
 // expandOptional detects a {/:name} or {/:name:expr} optional segment and returns
