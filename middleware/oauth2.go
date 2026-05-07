@@ -57,6 +57,57 @@ type oauth2Cache struct {
 	maxSize int
 }
 
+// oauth2Inflight is an in-process singleflight group keyed by sha256(token).
+// Concurrent requests for the same token coalesce into a single upstream
+// introspection call, preventing the cache-stampede DoS amplification
+// against the IDP (DOS-OAUTH2-001 / rmp #8). Stdlib-only — no dependency
+// on golang.org/x/sync.
+type oauth2Inflight struct {
+	mu    sync.Mutex
+	calls map[[32]byte]*oauth2InflightCall
+}
+
+type oauth2InflightCall struct {
+	done chan struct{}
+	resp *IntrospectResponse
+	err  error
+}
+
+// do coalesces concurrent calls for key into a single fn() invocation. The
+// leader runs fn(); followers wait on the leader's done channel or on ctx
+// cancellation, whichever fires first. The leader's result is shared with
+// every follower that does not cancel.
+func (g *oauth2Inflight) do(
+	ctx context.Context,
+	key [32]byte,
+	fn func() (*IntrospectResponse, error),
+) (*IntrospectResponse, error) {
+	g.mu.Lock()
+	if c, ok := g.calls[key]; ok {
+		g.mu.Unlock()
+		select {
+		case <-c.done:
+			return c.resp, c.err
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	c := &oauth2InflightCall{done: make(chan struct{})}
+	if g.calls == nil {
+		g.calls = make(map[[32]byte]*oauth2InflightCall)
+	}
+	g.calls[key] = c
+	g.mu.Unlock()
+
+	c.resp, c.err = fn()
+
+	g.mu.Lock()
+	delete(g.calls, key)
+	g.mu.Unlock()
+	close(c.done)
+	return c.resp, c.err
+}
+
 type oauth2Entry struct {
 	resp   *IntrospectResponse
 	expiry time.Time
@@ -127,6 +178,11 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 			maxSize: maxCacheSize,
 		}
 	}
+
+	// Singleflight coalesces concurrent introspection calls for the same
+	// token into a single upstream request — defends against cache-stampede
+	// DoS amplification against the IDP (DOS-OAUTH2-001).
+	inflight := &oauth2Inflight{}
 
 	doIntrospect := func(ctx context.Context, token string) (*IntrospectResponse, error) {
 		body := url.Values{
@@ -212,7 +268,17 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 				}
 			}
 
-			resp, err := doIntrospect(r.Context(), token)
+			resp, err := inflight.do(r.Context(), tokenKey, func() (*IntrospectResponse, error) {
+				// Re-check the cache under the singleflight leader: another
+				// concurrent leader for the same token may have populated
+				// the cache between our miss above and acquiring leadership.
+				if cache != nil {
+					if cached, ok := cache.get(tokenKey); ok {
+						return cached, nil
+					}
+				}
+				return doIntrospect(r.Context(), token)
+			})
 			if err != nil {
 				w.Header().Set("WWW-Authenticate", `Bearer realm="api", error="invalid_token"`)
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
