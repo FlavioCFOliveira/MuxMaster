@@ -158,6 +158,48 @@ r.Use(middleware.ThrottlePerIP(50, ts, nil))   // then
 A `slog.Warn` is emitted at construction time when `ThrottlePerIP` is
 called with a nil keyFn.
 
+### Accepted Timing Oracles (TSC-2026-0001..0007)
+
+The timing-and-side-channel analyst sprint catalogued seven sub-microsecond
+to low-microsecond timing differences. The following are accepted as
+architectural or stdlib-derived; mitigation requires either Go runtime
+changes (out of MuxMaster's scope) or invasive padding that would degrade
+valid-request latency. Operators concerned about LAN-adjacent statistical
+attacks should rate-limit aggressively and monitor for prefix-scan probes.
+
+- **TSC-2026-0001 (BasicAuth valid vs invalid password, 890 ns).** The
+  `map[string][32]byte` credential lookup uses `runtime.mapaccess2_faststr`
+  which is not constant time. The post-auth code path (`next.ServeHTTP` vs
+  `http.Error+WWW-Authenticate`) also dominates the visible delta.
+  Constant-time comparison of the hashed credentials is already used; the
+  remaining oracle is the map shape.
+
+- **TSC-2026-0002 (BasicAuth user-exists vs not-exists, 61 ns).** Same
+  root cause as TSC-0001 — the hashedCreds map lookup leaks existence.
+  Effect size is sub-microsecond and impractical over WAN.
+
+- **TSC-2026-0004 (APIKey hit vs miss, 1141 ns).** The
+  `map[[32]byte]string` lookup leaks key existence with a similar
+  magnitude. A constant-time alternative requires iterating every
+  registered key with `subtle.ConstantTimeCompare`, which is O(n) per
+  request — only worthwhile for very small key sets.
+
+- **TSC-2026-0005 (Route existence, 923 ns) — MM-2026-0026 magnitude
+  update.** Registered vs unregistered paths take measurably different
+  time inside the radix tree. Already documented as the
+  "Route-Existence Timing Oracle" earlier in this file.
+
+- **TSC-2026-0006 (ECDSA zero-sig vs random-sig, 1234 ns).** Stdlib
+  `ecdsa.Verify` returns at slightly different times depending on
+  signature shape. The signature is rejected either way; the oracle
+  only reveals that the signature is zero, which is publicly observable
+  in the request anyway.
+
+- **TSC-2026-0007 (OAuth2 cache hit active vs inactive, 143 µs).** The
+  401 vs 200 response paths differ in execution length by design. The
+  timing difference reveals nothing beyond what the HTTP status code
+  already exposes.
+
 ### JWT Mixed-Family Algorithms (TSC-2026-0003)
 
 `JWTAuth` configured with HS\* and RS\*/ES\* algorithms in the same
