@@ -420,3 +420,60 @@ func stringContains(s, sub string) bool {
 	}
 	return false
 }
+
+// TestTwoPhaseRegistrationPanic_LiveTreeIntact verifies that a panic during
+// route registration leaves the previously-published tree intact — readers
+// concurrently serving requests must not observe partial mutation
+// (MM-2026-0033 / rmp #13). The test:
+//   1. Registers a working route /ok and confirms it serves 200.
+//   2. Attempts to register a pattern that panics during expansion (more
+//      than maxOptionalSegments=8 optional segments).
+//   3. Asserts the live tree still serves /ok and that the failed pattern
+//      is NOT registered.
+func TestTwoPhaseRegistrationPanic_LiveTreeIntact(t *testing.T) {
+	r := muxmaster.New()
+	r.GET("/ok", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Sanity: /ok serves before the panic.
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest("GET", "/ok", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("pre-panic /ok status = %d, want 200", rec.Code)
+	}
+
+	// Attempt a pattern that panics inside addRoute (segment cap).
+	bad := "/a"
+	for i := 0; i < 12; i++ {
+		bad += "{/:p}"
+	}
+	bad += "/end"
+	panicked := false
+	func() {
+		defer func() {
+			if recv := recover(); recv != nil {
+				panicked = true
+			}
+		}()
+		r.GET(bad, func(w http.ResponseWriter, _ *http.Request) {})
+	}()
+	if !panicked {
+		t.Fatalf("expected panic registering oversized optional pattern")
+	}
+
+	// Live tree must still serve /ok and must NOT have registered the
+	// partial bad pattern (e.g. /a or /a/end).
+	rec = httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest("GET", "/ok", nil))
+	if rec.Code != http.StatusOK {
+		t.Errorf("post-panic /ok status = %d, want 200 (tree corruption)", rec.Code)
+	}
+	for _, p := range []string{"/a", "/a/end", "/a/x/end"} {
+		rec = httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest("GET", p, nil))
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("post-panic %q status = %d, want 404 (partial route registered — two-phase regression)", p, rec.Code)
+		}
+	}
+}

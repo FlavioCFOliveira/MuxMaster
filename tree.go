@@ -107,6 +107,40 @@ func calcPathMaxParams(n *node) uint8 {
 	return mine + childMax
 }
 
+// cloneTree returns a deep copy of the radix subtree rooted at n. The clone
+// shares immutable string and Handler/FastHandler values with the original
+// (those are never mutated in place by addRoute), but allocates fresh node
+// structs and children slices so that mutations on the clone are invisible
+// to readers still holding the previous tree pointer. Used by Handle and
+// HandleFast to make registration two-phase: addRoute mutates the clone;
+// only on success does treesPtr.Store publish it. A panic mid-addRoute
+// discards the clone and the live tree remains intact (MM-2026-0033).
+func cloneTree(n *node) *node {
+	if n == nil {
+		return nil
+	}
+	c := &node{
+		path:          n.path,
+		handler:       n.handler,
+		indices:       n.indices,
+		fast:          n.fast,
+		pattern:       n.pattern,
+		priority:      n.priority,
+		nType:         n.nType,
+		wildChild:     n.wildChild,
+		regexpNameEnd: n.regexpNameEnd,
+		maxParams:     n.maxParams,
+		regexp:        n.regexp,
+	}
+	if len(n.children) > 0 {
+		c.children = make([]*node, len(n.children))
+		for i, ch := range n.children {
+			c.children[i] = cloneTree(ch)
+		}
+	}
+	return c
+}
+
 // addRoute registers an http.Handler for the given path.
 func (n *node) addRoute(path string, handler http.Handler) {
 	n.addRouteInternal(path, handler, nil)

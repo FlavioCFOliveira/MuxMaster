@@ -283,11 +283,17 @@ func (m *Mux) Handle(method, pattern string, handler http.Handler) {
 		panic("muxmaster: unsupported HTTP method '" + method + "'")
 	}
 
-	// Copy-on-write: load current array, clone, mutate, then store atomically.
-	// Readers in ServeHTTP/dispatch never need a lock — they just load the pointer.
+	// Two-phase copy-on-write (MM-2026-0033): deep-clone the affected tree
+	// root into a new methodTrees array, mutate the clone, then publish via
+	// atomic.Pointer.Store. If addRoute panics mid-mutation, the clone is
+	// discarded and the previous live tree remains intact — eliminating the
+	// "tree corruption after registration panic" class of bugs.
 	var trees methodTrees
 	if old := m.treesPtr.Load(); old != nil {
 		trees = *old
+	}
+	if trees[idx] != nil {
+		trees[idx] = cloneTree(trees[idx])
 	}
 
 	root := trees[idx]
@@ -363,9 +369,13 @@ func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
 		panic("muxmaster: unsupported HTTP method '" + method + "'")
 	}
 
+	// Two-phase copy-on-write (MM-2026-0033) — see Handle for rationale.
 	var trees methodTrees
 	if old := m.treesPtr.Load(); old != nil {
 		trees = *old
+	}
+	if trees[idx] != nil {
+		trees[idx] = cloneTree(trees[idx])
 	}
 
 	root := trees[idx]
@@ -537,10 +547,18 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 		r2.URL.Path = p
 		if r.URL.RawPath != "" {
 			trimmed := strings.TrimPrefix(r.URL.RawPath, prefix)
-			if len(trimmed) == len(r.URL.RawPath) {
+			switch {
+			case len(trimmed) == len(r.URL.RawPath):
 				// TrimPrefix didn't match — zero RawPath to prevent stale encoded prefix.
 				r2.URL.RawPath = ""
-			} else {
+			case trimmed != "" && trimmed[0] != '/':
+				// HPS-2026-0001: prefix matched a leading byte of an encoded
+				// segment (e.g. /api%2fusers trimmed against /api leaves
+				// %2fusers — not a rooted path). Zero RawPath rather than
+				// publish a non-rooted URL that would violate the url.URL
+				// contract and confuse downstream handlers.
+				r2.URL.RawPath = ""
+			default:
 				r2.URL.RawPath = trimmed
 			}
 		}
