@@ -160,7 +160,16 @@ func main() {
 		})
 	})
 
-	// GlobalOPTIONS: custom preflight response (adds CORS headers globally).
+	// GlobalOPTIONS: default preflight response for routes without an explicit
+	// CORS middleware. Only fires for paths that have no registered OPTIONS
+	// handler AND no path-scoped CORS middleware that already set the headers.
+	//
+	// Precedence: when a Group is wrapped with mw.CORS (see /authors below),
+	// the group's CORS middleware runs first and sets Access-Control-Allow-*
+	// headers; if it short-circuits the request (typical preflight handling),
+	// GlobalOPTIONS never fires for that path. For paths NOT under a CORS
+	// middleware, GlobalOPTIONS provides this permissive default. Pick one
+	// strategy per path — never rely on both layering for the same route.
 	r.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", w.Header().Get("Allow"))

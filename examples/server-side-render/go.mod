@@ -1,4 +1,4 @@
-module example/templates
+module example/server-side-render
 
 go 1.26
 

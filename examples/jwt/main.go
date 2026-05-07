@@ -1,9 +1,11 @@
-// Package main demonstrates JWT authentication with MuxMaster using only the
-// Go standard library (no external JWT package).
+// Package main demonstrates JWT authentication with MuxMaster using the
+// built-in middleware.JWTAuth for token validation.
 //
-// The token format is a standard compact JWS: header.payload.signature, where
-// the signature is HMAC-SHA256. Constant-time comparison (hmac.Equal) prevents
-// timing attacks on the signature.
+// MuxMaster validates tokens but intentionally does not issue them — token
+// issuance is application-specific (which user-store, which TTL, which
+// custom claims). This example issues compact HS256 JWTs by hand using
+// only crypto/hmac + crypto/sha256, then delegates validation to
+// middleware.JWTAuth on every protected route.
 //
 // Endpoints:
 //
@@ -43,32 +45,34 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
+	"os/signal"
+	"syscall"
 	"time"
 
 	mm "github.com/FlavioCFOliveira/MuxMaster"
 	mw "github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
 
-// ─── JWT ─────────────────────────────────────────────────────────────────────
+// ─── JWT issuance (token signing) ─────────────────────────────────────────────
+//
+// The standard library does not ship a JWT issuer; the application owns
+// issuance because it owns the user store, TTL policy, and custom claims.
+// Validation is delegated to middleware.JWTAuth (see /api group below).
 
-// Claims is the JWT payload. Only HS256 is supported.
-type Claims struct {
-	Sub  string `json:"sub"`  // user ID
-	Name string `json:"name"` // username
+// tokenPayload is the JWT payload. Standard claims (`sub`, `iat`, `exp`) are
+// validated by middleware.JWTAuth; the non-standard `name` claim is read by
+// handlers via the RawPayload field of mw.JWTClaims.
+type tokenPayload struct {
+	Sub  string `json:"sub"`  // subject — user ID
+	Name string `json:"name"` // custom claim — username
 	IAT  int64  `json:"iat"`  // issued at (Unix seconds)
 	EXP  int64  `json:"exp"`  // expires at (Unix seconds)
 }
 
-var (
-	errTokenInvalid = errors.New("token invalid")
-	errTokenExpired = errors.New("token expired")
-)
-
-// issueToken builds and signs a JWT for the given user with the given TTL.
+// issueToken builds and signs an HS256 JWT for the given user with the given TTL.
 func issueToken(userID, username string, secret []byte, ttl time.Duration) (string, error) {
 	now := time.Now()
-	return signToken(Claims{
+	return signToken(tokenPayload{
 		Sub:  userID,
 		Name: username,
 		IAT:  now.Unix(),
@@ -76,9 +80,8 @@ func issueToken(userID, username string, secret []byte, ttl time.Duration) (stri
 	}, secret)
 }
 
-// signToken encodes Claims as a compact JWT string (header.payload.signature).
-func signToken(c Claims, secret []byte) (string, error) {
-	// The header is constant for HS256 — no need to encode it dynamically.
+// signToken encodes a payload as a compact JWT string (header.payload.signature).
+func signToken(c tokenPayload, secret []byte) (string, error) {
 	const rawHeader = `{"alg":"HS256","typ":"JWT"}`
 	hdr := base64.RawURLEncoding.EncodeToString([]byte(rawHeader))
 
@@ -94,72 +97,6 @@ func signToken(c Claims, secret []byte) (string, error) {
 	sig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 
 	return signingInput + "." + sig, nil
-}
-
-// validateToken parses a compact JWT string, verifies its HMAC-SHA256 signature
-// with constant-time comparison, and checks the expiry claim.
-func validateToken(token string, secret []byte) (*Claims, error) {
-	parts := strings.SplitN(token, ".", 3)
-	if len(parts) != 3 {
-		return nil, errTokenInvalid
-	}
-
-	signingInput := parts[0] + "." + parts[1]
-	mac := hmac.New(sha256.New, secret)
-	_, _ = io.WriteString(mac, signingInput)
-	expected := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
-
-	// hmac.Equal uses constant-time comparison — prevents timing attacks.
-	if !hmac.Equal([]byte(parts[2]), []byte(expected)) {
-		return nil, errTokenInvalid
-	}
-
-	raw, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return nil, errTokenInvalid
-	}
-	var c Claims
-	if err := json.Unmarshal(raw, &c); err != nil {
-		return nil, errTokenInvalid
-	}
-	if time.Now().Unix() > c.EXP {
-		return nil, errTokenExpired
-	}
-	return &c, nil
-}
-
-// ─── JWT middleware ───────────────────────────────────────────────────────────
-
-type claimsKey struct{}
-
-// requireJWT validates the Bearer token in the Authorization header and stores
-// the parsed Claims in the request context. Applies to every route in /api.
-func requireJWT(secret []byte) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			raw := r.Header.Get("Authorization")
-			if !strings.HasPrefix(raw, "Bearer ") {
-				_ = mm.JSON(w, http.StatusUnauthorized, errMsg("missing Bearer token"))
-				return
-			}
-			claims, err := validateToken(strings.TrimPrefix(raw, "Bearer "), secret)
-			switch {
-			case errors.Is(err, errTokenExpired):
-				_ = mm.JSON(w, http.StatusUnauthorized, errMsg("token expired"))
-			case err != nil:
-				_ = mm.JSON(w, http.StatusUnauthorized, errMsg("token invalid"))
-			default:
-				ctx := context.WithValue(r.Context(), claimsKey{}, claims)
-				next.ServeHTTP(w, r.WithContext(ctx))
-			}
-		})
-	}
-}
-
-// claimsFromCtx returns the Claims injected by requireJWT, or nil.
-func claimsFromCtx(r *http.Request) *Claims {
-	c, _ := r.Context().Value(claimsKey{}).(*Claims)
-	return c
 }
 
 // ─── User store ───────────────────────────────────────────────────────────────
@@ -189,6 +126,19 @@ func envOr(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// usernameFromClaims extracts the non-standard "name" claim from the validated
+// token payload exposed by middleware.JWTAuth via JWTClaims.RawPayload.
+func usernameFromClaims(c *mw.JWTClaims) string {
+	var custom struct {
+		Name string `json:"name"`
+	}
+	if c == nil || len(c.RawPayload) == 0 {
+		return ""
+	}
+	_ = json.Unmarshal(c.RawPayload, &custom)
+	return custom.Name
 }
 
 // ─── main ─────────────────────────────────────────────────────────────────────
@@ -252,55 +202,87 @@ func main() {
 	})
 
 	// POST /auth/refresh — accept a valid token and return a new one with a
-	// fresh expiry, without requiring the user to log in again.
-	r.POSTE("/auth/refresh", func(w http.ResponseWriter, r *http.Request) error {
-		raw := r.Header.Get("Authorization")
-		if !strings.HasPrefix(raw, "Bearer ") {
-			return mm.Error(http.StatusUnauthorized, errors.New("missing Bearer token"))
+	// fresh expiry. The incoming token must validate via the same JWTAuth
+	// middleware used by /api routes; we apply it inline to this single route
+	// rather than to a /auth group so /auth/login stays public.
+	refresh := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := mw.GetJWTClaims(r.Context())
+		if !ok {
+			_ = mm.JSON(w, http.StatusUnauthorized, errMsg("missing claims"))
+			return
 		}
-		claims, err := validateToken(strings.TrimPrefix(raw, "Bearer "), secret)
+		token, err := issueToken(claims.Subject, usernameFromClaims(claims), secret, tokenTTL)
 		if err != nil {
-			return mm.Error(http.StatusUnauthorized, err)
+			_ = mm.JSON(w, http.StatusInternalServerError, errMsg(err.Error()))
+			return
 		}
-		token, err := issueToken(claims.Sub, claims.Name, secret, tokenTTL)
-		if err != nil {
-			return err
-		}
-		return mm.JSON(w, http.StatusOK, map[string]string{"token": token})
+		_ = mm.JSON(w, http.StatusOK, map[string]string{"token": token})
 	})
+	jwtAuth := mw.JWTAuth(mw.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS256"},
+	})
+	r.Handle(http.MethodPost, "/auth/refresh", jwtAuth(refresh))
 
 	// ── Protected /api group ──────────────────────────────────────────────────
 	//
-	// requireJWT runs before every handler in this group. If the token is
-	// missing, invalid, or expired, the handler never runs.
+	// middleware.JWTAuth validates the Bearer token before any handler runs:
+	//   - signature verified with constant-time HMAC comparison
+	//   - exp / nbf checked against time.Now() with optional ClockSkew
+	//   - alg whitelist enforced (only HS256 here)
+	//   - RFC 7515 §4.1.11 "crit" header rejected
+	// On success, JWTClaims is injected into the request context.
 
 	api := r.Group("/api")
-	api.Use(requireJWT(secret))
+	api.Use(jwtAuth)
 
 	// GET /api/me — return the claims extracted from the token.
 	api.GET("/me", func(w http.ResponseWriter, r *http.Request) {
-		c := claimsFromCtx(r)
+		c, _ := mw.GetJWTClaims(r.Context())
 		_ = mm.JSON(w, http.StatusOK, map[string]any{
-			"user_id":  c.Sub,
-			"username": c.Name,
-			"issued":   time.Unix(c.IAT, 0).UTC().Format(time.RFC3339),
-			"expires":  time.Unix(c.EXP, 0).UTC().Format(time.RFC3339),
+			"user_id":  c.Subject,
+			"username": usernameFromClaims(c),
+			"issued":   c.IssuedAt.UTC().Format(time.RFC3339),
+			"expires":  c.ExpiresAt.UTC().Format(time.RFC3339),
 		})
 	})
 
 	// GET /api/secret — a resource only accessible with a valid token.
 	api.GET("/secret", func(w http.ResponseWriter, r *http.Request) {
-		c := claimsFromCtx(r)
+		c, _ := mw.GetJWTClaims(r.Context())
 		_ = mm.JSON(w, http.StatusOK, map[string]string{
-			"message":  "you have access, " + c.Name,
+			"message":  "you have access, " + usernameFromClaims(c),
 			"trace_id": mw.GetRequestID(r.Context()),
 		})
 	})
 
-	// ── Start ─────────────────────────────────────────────────────────────────
-	log.Info("listening", "addr", ":8080")
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Error("server error", "err", err)
-		os.Exit(1)
+	// ── Server with hardened timeouts (SECURITY.md MM-2026-0024) ─────────────
+	srv := &http.Server{
+		Addr:              ":8080",
+		Handler:           r,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
+
+	go func() {
+		log.Info("listening", "addr", srv.Addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("server error", "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("shutdown error", "err", err)
+	}
+	log.Info("server stopped")
 }

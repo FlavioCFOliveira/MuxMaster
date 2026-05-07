@@ -1,7 +1,13 @@
-// Package main demonstrates two authentication strategies with MuxMaster:
+// Package main demonstrates two authentication strategies with MuxMaster
+// using the built-in middleware:
 //
-//  1. HTTP Basic Auth via the built-in middleware.BasicAuth — protects /admin routes.
-//  2. API key middleware (X-API-Key header) — protects /api routes.
+//  1. HTTP Basic Auth via middleware.BasicAuth — protects /admin routes,
+//     composed with middleware.ThrottlePerIP to mitigate online brute-force
+//     (per SECURITY.md MM-2026-0027).
+//
+//  2. API key middleware via middleware.APIKey — protects /api routes.
+//     Keys are SHA-256 hashed at construction time, so the per-request cost
+//     is one hash plus a [32]byte map lookup.
 //
 // Public routes need no credentials. Protected routes return 401 when
 // credentials are missing or wrong.
@@ -32,49 +38,24 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	mm "github.com/FlavioCFOliveira/MuxMaster"
 	mw "github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
 
-// ─── API key store ────────────────────────────────────────────────────────────
-
-// apiKeys maps X-API-Key values to the owner's display name.
-// In production, query a database or a secrets manager instead.
+// apiKeys maps X-API-Key values to the owner identity passed into the request
+// context by middleware.APIKey. In production, populate this from a database
+// or a secrets manager and rebuild the middleware on rotation.
 var apiKeys = map[string]string{
 	"key-alice": "alice",
 	"key-bob":   "bob",
 }
 
-// ownerKey is the context key used by requireAPIKey to carry the owner name.
-type ownerKey struct{}
-
-// requireAPIKey is a middleware that reads X-API-Key, looks it up in apiKeys,
-// and stores the owner's name in the request context.
-// Unknown keys are rejected with 401 before the handler runs.
-func requireAPIKey(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := r.Header.Get("X-API-Key")
-		owner, ok := apiKeys[key]
-		if !ok {
-			_ = mm.JSON(w, http.StatusUnauthorized, errMsg("missing or invalid X-API-Key"))
-			return
-		}
-		ctx := context.WithValue(r.Context(), ownerKey{}, owner)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-// ownerFromCtx returns the API key owner stored by requireAPIKey, or "".
-func ownerFromCtx(r *http.Request) string {
-	v, _ := r.Context().Value(ownerKey{}).(string)
-	return v
-}
-
 // errMsg builds a one-field JSON error payload.
 func errMsg(msg string) map[string]string { return map[string]string{"error": msg} }
-
-// ─── main ─────────────────────────────────────────────────────────────────────
 
 func main() {
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -112,23 +93,29 @@ func main() {
 		_, _ = io.WriteString(w, `{"status":"ok"}`)
 	})
 
-	r.GET("/", func(w http.ResponseWriter, r *http.Request) {
+	r.GET("/", func(w http.ResponseWriter, _ *http.Request) {
 		_ = mm.JSON(w, http.StatusOK, map[string]string{
 			"hint": "try GET /admin/dashboard (Basic Auth) or GET /api/profile (X-API-Key)",
 		})
 	})
 
-	// ── Admin group — HTTP Basic Auth ─────────────────────────────────────────
+	// ── Admin group — HTTP Basic Auth + per-IP rate limit ─────────────────────
 	//
-	// mw.BasicAuth uses crypto/subtle.ConstantTimeCompare internally, so the
-	// comparison time is the same whether the username or the password is wrong.
+	// SECURITY.md MM-2026-0027 — BasicAuth has no built-in rate limiting; an
+	// attacker can attempt unlimited credentials. Compose it with ThrottlePerIP
+	// (10 concurrent requests per IP, 5 s queue timeout) to mitigate online
+	// brute-force. Order matters: throttle is registered first so it sees the
+	// request before the auth check.
 	//
 	// Credentials: admin / s3cr3t  or  viewer / readonly
 	admin := r.Group("/admin")
-	admin.Use(mw.BasicAuth("Admin Area", map[string]string{
-		"admin":  "s3cr3t",
-		"viewer": "readonly",
-	}))
+	admin.Use(
+		mw.ThrottlePerIP(10, 5*time.Second, nil),
+		mw.BasicAuth("Admin Area", map[string]string{
+			"admin":  "s3cr3t",
+			"viewer": "readonly",
+		}),
+	)
 
 	admin.GET("/dashboard", func(w http.ResponseWriter, r *http.Request) {
 		_ = mm.JSON(w, http.StatusOK, map[string]any{
@@ -147,16 +134,23 @@ func main() {
 		return nil
 	})
 
-	// ── API group — X-API-Key header ──────────────────────────────────────────
+	// ── API group — X-API-Key header via middleware.APIKey ────────────────────
 	//
-	// requireAPIKey stores the key owner in the context so handlers can
-	// personalise responses without re-querying the key store.
+	// middleware.APIKey hashes every key with SHA-256 at construction time, so
+	// per-request cost is one SHA-256 hash plus a [32]byte map lookup — no
+	// per-request iteration or string comparison. The identity associated with
+	// the matched key is injected into the request context and retrieved via
+	// middleware.GetAPIKeyIdentity.
 	api := r.Group("/api")
-	api.Use(requireAPIKey)
+	api.Use(mw.APIKey(mw.APIKeyOptions{
+		Keys: apiKeys,
+		// Header defaults to "X-API-Key"; override here if you need a different one.
+	}))
 
 	api.GET("/profile", func(w http.ResponseWriter, r *http.Request) {
+		owner, _ := mw.GetAPIKeyIdentity(r.Context())
 		_ = mm.JSON(w, http.StatusOK, map[string]string{
-			"owner":    ownerFromCtx(r),
+			"owner":    owner,
 			"trace_id": mw.GetRequestID(r.Context()),
 		})
 	})
@@ -169,10 +163,38 @@ func main() {
 		return mm.JSON(w, http.StatusOK, map[string]string{"id": id, "name": "Widget " + id})
 	})
 
-	// ── Start ─────────────────────────────────────────────────────────────────
-	log.Info("listening", "addr", ":8080")
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Error("server error", "err", err)
-		os.Exit(1)
+	// ── Server with hardened timeouts ─────────────────────────────────────────
+	//
+	// SECURITY.md MM-2026-0024 — MuxMaster is an http.Handler and does not
+	// configure the http.Server timeouts itself. Set them explicitly to mitigate
+	// Slowloris and similar slow-read/slow-write attacks.
+	srv := &http.Server{
+		Addr:              ":8080",
+		Handler:           r,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1 MiB
 	}
+
+	go func() {
+		log.Info("listening", "addr", srv.Addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("server error", "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	// Graceful shutdown on SIGINT / SIGTERM.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("shutdown error", "err", err)
+	}
+	log.Info("server stopped")
 }

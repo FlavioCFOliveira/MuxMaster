@@ -277,9 +277,18 @@ func main() {
 		http.Redirect(w, r, "/guestbook?ok=1", http.StatusSeeOther)
 	})
 
-	// ── Start ─────────────────────────────────────────────────────────────────
-	log.Info("listening", "addr", ":8080", "url", "http://localhost:8080")
-	if err := http.ListenAndServe(":8080", r); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	// ── Server with hardened timeouts (SECURITY.md MM-2026-0024) ─────────────
+	srv := &http.Server{
+		Addr:              ":8080",
+		Handler:           r,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+	}
+	log.Info("listening", "addr", srv.Addr, "url", "http://localhost:8080")
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("server error", "err", err)
 		os.Exit(1)
 	}
