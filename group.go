@@ -40,11 +40,13 @@ func (g *Group) HandleFunc(method, path string, h http.HandlerFunc) {
 
 // HandleE registers a HandlerFuncE under this group.
 // Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
+// The error handler is read from the frozen muxConfig at request time —
+// see Mux.HandleE for the rationale (CSA-2026-0052).
 func (g *Group) HandleE(method, path string, h HandlerFuncE) {
 	g.Handle(method, path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := h(w, r); err != nil {
-			if g.mux.ErrorHandler != nil {
-				g.mux.ErrorHandler(w, r, err)
+			if eh := g.mux.config().errorHandler; eh != nil {
+				eh(w, r, err)
 			} else {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}

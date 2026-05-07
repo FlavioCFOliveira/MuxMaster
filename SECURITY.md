@@ -18,13 +18,21 @@ You will receive an acknowledgement within 72 hours. We aim to release a fix
 within 14 days for critical issues and 30 days for others. We will credit you
 in the release notes unless you prefer to remain anonymous.
 
-## Thread-Safety Contract (MM-2026-0017)
+## Thread-Safety Contract (MM-2026-0017 / CSA-2026-0052)
 
 All public `Mux` fields (`PanicHandler`, `NotFound`, `MethodNotAllowed`,
-`RedirectTrailingSlash`, `RedirectFixedPath`, etc.) **must be set before the
-first call to `ServeHTTP`**. Mutating these fields after the server starts
-serving is a data race and produces undefined behaviour. This mirrors the
-contract of `net/http.Server`.
+`GlobalOPTIONS`, `ErrorHandler`, `RedirectTrailingSlash`, `RedirectFixedPath`,
+`CaseInsensitive`, `UseRawPath`, `UnescapePathValues`, `RedirectCode`,
+`HandleMethodNotAllowed`, `HandleOPTIONS`) **must be set before the first
+call to `ServeHTTP`**. On the first request these values are atomically
+captured into a frozen `muxConfig` snapshot and every subsequent dispatch
+reads from that snapshot — direct field mutation after serving begins is
+ignored by the dispatch path and races with the snapshot's first read.
+
+To reconfigure handlers after serving starts, mutate the field and then call
+`Mux.Rebuild()`. `Rebuild()` atomically resets the snapshot and the lazy
+NotFound/405/OPTIONS handler caches so the next request re-reads every
+field. `Rebuild()` is safe to call concurrently with `ServeHTTP`.
 
 `Use()` and `Pre()` are safe to call concurrently with `Handle()` during
 route registration (before serving), but must not be called concurrently with

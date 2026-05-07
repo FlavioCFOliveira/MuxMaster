@@ -111,6 +111,17 @@ type muxConfig struct {
 	handleOPTIONS          bool
 	hasPanicHandler        bool
 	redirectCode           int
+
+	// Snapshotted public handler fields (CSA-2026-0052). Reads from these
+	// frozen copies replace direct m.NotFound / m.MethodNotAllowed /
+	// m.GlobalOPTIONS / m.PanicHandler / m.ErrorHandler reads in the
+	// dispatch path, eliminating the data race against post-startup
+	// mutation.
+	notFound         http.Handler
+	methodNotAllowed http.Handler
+	globalOPTIONS    http.Handler
+	panicHandler     func(http.ResponseWriter, *http.Request, any)
+	errorHandler     func(http.ResponseWriter, *http.Request, error)
 }
 
 // Mux is a high-performance HTTP request multiplexer.
@@ -289,11 +300,14 @@ func (m *Mux) HandleFunc(method, pattern string, h http.HandlerFunc) {
 
 // HandleE registers a HandlerFuncE for the given method and path.
 // Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
+// The error handler is read from the frozen muxConfig snapshot at request
+// time, eliminating the data race against post-startup mutation of
+// m.ErrorHandler (CSA-2026-0052).
 func (m *Mux) HandleE(method, pattern string, h HandlerFuncE) {
 	m.Handle(method, pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := h(w, r); err != nil {
-			if m.ErrorHandler != nil {
-				m.ErrorHandler(w, r, err)
+			if eh := m.config().errorHandler; eh != nil {
+				eh(w, r, err)
 			} else {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
@@ -555,11 +569,14 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 // caching it on first use. Two concurrent first-callers may both build the
 // handler; the second Store simply overwrites with a functionally identical
 // value — safe because the mux is fully configured before serving begins.
-func (m *Mux) lazyNotFound() http.Handler {
+//
+// Reads cfg.notFound (the frozen snapshot) instead of m.NotFound to avoid
+// racing concurrent post-startup mutation (CSA-2026-0052).
+func (m *Mux) lazyNotFound(cfg *muxConfig) http.Handler {
 	if h := m.lazyNotFoundPtr.Load(); h != nil {
 		return *h
 	}
-	notFound := m.NotFound
+	notFound := cfg.notFound
 	if notFound == nil {
 		notFound = http.HandlerFunc(http.NotFound)
 	}
@@ -573,11 +590,12 @@ func (m *Mux) lazyNotFound() http.Handler {
 
 // lazyMethodNotAllowed returns the middleware-wrapped 405 handler for the
 // given Allow header value, building and caching it on first use per allow key.
-func (m *Mux) lazyMethodNotAllowed(allow string) http.Handler {
+// Reads cfg.methodNotAllowed (frozen snapshot) — see CSA-2026-0052.
+func (m *Mux) lazyMethodNotAllowed(cfg *muxConfig, allow string) http.Handler {
 	if v, ok := m.methodNotAllowedCache.Load(allow); ok {
 		return v.(http.Handler)
 	}
-	methodNotAllowed := m.MethodNotAllowed
+	methodNotAllowed := cfg.methodNotAllowed
 	m.mu.RLock()
 	mw := m.middleware
 	m.mu.RUnlock()
@@ -595,11 +613,12 @@ func (m *Mux) lazyMethodNotAllowed(allow string) http.Handler {
 
 // lazyOPTIONS returns the middleware-wrapped OPTIONS handler for the given
 // Allow header value, building and caching it on first use per allow key.
-func (m *Mux) lazyOPTIONS(allow string) http.Handler {
+// Reads cfg.globalOPTIONS (frozen snapshot) — see CSA-2026-0052.
+func (m *Mux) lazyOPTIONS(cfg *muxConfig, allow string) http.Handler {
 	if v, ok := m.optionsCache.Load(allow); ok {
 		return v.(http.Handler)
 	}
-	globalOPTS := m.GlobalOPTIONS
+	globalOPTS := cfg.globalOPTIONS
 	m.mu.RLock()
 	mw := m.middleware
 	m.mu.RUnlock()
@@ -646,6 +665,11 @@ func (m *Mux) frozenConfigSlow() *muxConfig {
 		handleOPTIONS:          m.HandleOPTIONS,
 		hasPanicHandler:        m.PanicHandler != nil,
 		redirectCode:           m.RedirectCode,
+		notFound:               m.NotFound,
+		methodNotAllowed:       m.MethodNotAllowed,
+		globalOPTIONS:          m.GlobalOPTIONS,
+		panicHandler:           m.PanicHandler,
+		errorHandler:           m.ErrorHandler,
 	}
 	// Retry loop guards against a concurrent Rebuild() racing with our CAS:
 	// Rebuild may Store(nil) between a losing CAS and the subsequent Load,
@@ -660,13 +684,25 @@ func (m *Mux) frozenConfigSlow() *muxConfig {
 	}
 }
 
-// Rebuild resets the frozen configuration snapshot so the next ServeHTTP call
-// re-reads all configuration fields. Safe to call concurrently with ServeHTTP:
-// the reset is a single atomic Store(nil), and the next config() call will
-// re-initialise via CompareAndSwap. Intended for tests and dynamic
-// reconfiguration scenarios.
+// Rebuild resets the frozen configuration snapshot and the lazy NotFound /
+// MethodNotAllowed / OPTIONS handler caches so the next ServeHTTP call
+// re-reads every configuration field and rebuilds the wrapped handlers.
+//
+// Safe to call concurrently with ServeHTTP: every reset is a single atomic
+// operation, and the next config() / lazyNotFound() / lazyMethodNotAllowed()
+// / lazyOPTIONS() call re-initialises via CompareAndSwap or sync.Map
+// re-population. Intended for tests and dynamic reconfiguration scenarios.
 func (m *Mux) Rebuild() {
 	m.cfg.Store(nil)
+	m.lazyNotFoundPtr.Store(nil)
+	m.methodNotAllowedCache.Range(func(k, _ any) bool {
+		m.methodNotAllowedCache.Delete(k)
+		return true
+	})
+	m.optionsCache.Range(func(k, _ any) bool {
+		m.optionsCache.Delete(k)
+		return true
+	})
 }
 
 // ServeHTTP implements http.Handler, dispatching through pre-middleware if set.
@@ -690,7 +726,7 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // dispatchWithRecover is the slow-path variant used only when PanicHandler is
 // configured. Kept in a separate function so the common path avoids defer setup.
 func (m *Mux) dispatchWithRecover(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
-	defer m.recoverPanic(w, r)
+	defer m.recoverPanic(cfg, w, r)
 	if ph := m.preHandlerPtr.Load(); ph != nil {
 		(*ph).ServeHTTP(w, r)
 		return
@@ -860,22 +896,22 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 
 	if r.Method == http.MethodOptions && cfg.handleOPTIONS {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
-			m.lazyOPTIONS(allow).ServeHTTP(w, r)
+			m.lazyOPTIONS(cfg, allow).ServeHTTP(w, r)
 			return
 		}
 	} else if cfg.handleMethodNotAllowed {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
-			m.lazyMethodNotAllowed(allow).ServeHTTP(w, r)
+			m.lazyMethodNotAllowed(cfg, allow).ServeHTTP(w, r)
 			return
 		}
 	}
 
-	m.lazyNotFound().ServeHTTP(w, r)
+	m.lazyNotFound(cfg).ServeHTTP(w, r)
 }
 
-func (m *Mux) recoverPanic(w http.ResponseWriter, r *http.Request) {
+func (m *Mux) recoverPanic(cfg *muxConfig, w http.ResponseWriter, r *http.Request) {
 	if rcv := recover(); rcv != nil {
-		m.PanicHandler(w, r, rcv)
+		cfg.panicHandler(w, r, rcv)
 	}
 }
 
