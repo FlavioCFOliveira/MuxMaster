@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log/slog"
 	"net"
 	"net/http"
 	"net/netip"
@@ -9,12 +10,27 @@ import (
 
 // RealIP overwrites r.RemoteAddr with the client IP from X-Forwarded-For or
 // X-Real-IP. Only mutates RemoteAddr when the direct peer is within one of
-// the trusted CIDR prefixes. Call with no arguments to trust all peers
-// (backward-compatible but insecure — only use behind a known single proxy).
+// the trusted CIDR prefixes.
+//
+// SECURITY (MSR-2026-0055): calling RealIP() with no CIDRs trusts every
+// peer — any client can spoof the X-Forwarded-For / X-Real-IP header and
+// the router will accept it as the real client IP. This is only safe behind
+// a single trusted proxy that strips inbound XFF; in any other deployment
+// it is a trivial spoofing primitive that defeats ThrottlePerIP and
+// IP-based access controls. The middleware emits a slog.Warn at
+// construction time when called without CIDRs so the misconfiguration is
+// visible in startup logs. ALWAYS pass the proxy CIDR list explicitly in
+// production.
 //
 // IP values are validated via netip.ParseAddr, which rejects CRLF injection
-// and malformed addresses.
+// and malformed addresses, and IPv6 zone IDs are stripped via WithZone("")
+// (FPE-2026-003 / FPE-2026-003b).
 func RealIP(trustedCIDRs ...*netip.Prefix) func(http.Handler) http.Handler {
+	if len(trustedCIDRs) == 0 {
+		slog.Default().Warn("RealIP: called with no trusted CIDRs — every peer can spoof " +
+			"X-Forwarded-For / X-Real-IP. This is only safe behind a single trusted " +
+			"proxy that strips inbound XFF. See SECURITY.md \"RealIP misconfiguration\".")
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if len(trustedCIDRs) > 0 {

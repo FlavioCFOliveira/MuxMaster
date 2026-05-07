@@ -86,6 +86,40 @@ response (path exists, wrong method) is ~440 ns. This is intrinsic to radix
 tree lookup and is present in httprouter, chi, and bunrouter as well. If this
 is a concern, use a WAF or add uniform response delays via middleware.
 
+### RealIP misconfiguration (MSR-2026-0055)
+
+`middleware.RealIP()` called with no trusted-proxy CIDR list trusts every
+peer — any client can spoof `X-Forwarded-For` / `X-Real-IP` and the router
+will accept it as the real client IP. This is only safe behind a single
+trusted proxy that strips inbound XFF; in any other deployment it is a
+trivial spoofing primitive that defeats `ThrottlePerIP` and IP-based
+access controls. Always pass the proxy CIDR list explicitly:
+
+```go
+proxyCIDR := netip.MustParsePrefix("10.0.0.0/8")
+r.Use(middleware.RealIP(&proxyCIDR))
+```
+
+A `slog.Warn` is emitted at construction time when `RealIP()` is called
+without CIDRs.
+
+### RealIP + ThrottlePerIP ordering (DOS-2026-0002)
+
+`middleware.ThrottlePerIP` with a nil `keyFn` keys on `r.RemoteAddr`. If
+`RealIP` is not registered (or is registered AFTER `ThrottlePerIP`), every
+request behind a reverse proxy carries the LB's own address as
+`RemoteAddr` and the per-IP limit collapses to a global rate limit. Always
+register `RealIP` first so `r.RemoteAddr` reflects the true client IP
+before throttling decisions are made:
+
+```go
+r.Use(middleware.RealIP(&proxyCIDR))           // first
+r.Use(middleware.ThrottlePerIP(50, ts, nil))   // then
+```
+
+A `slog.Warn` is emitted at construction time when `ThrottlePerIP` is
+called with a nil keyFn.
+
 ### JWT Mixed-Family Algorithms (TSC-2026-0003)
 
 `JWTAuth` configured with HS\* and RS\*/ES\* algorithms in the same

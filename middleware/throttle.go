@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log/slog"
 	"net"
 	"net/http"
 	"sync"
@@ -67,12 +68,26 @@ func ThrottleAllBacklog(limit int, backlog int, timeout time.Duration) func(http
 // keyFn extracts the rate-limit key from the request; if nil, the host part
 // of r.RemoteAddr is used. limit is the maximum concurrent requests per key;
 // timeout is how long a request waits for a slot before receiving 503.
+//
+// SECURITY (DOS-2026-0002): when keyFn is nil, ThrottlePerIP keys on
+// r.RemoteAddr — which is whatever the TCP peer's address is unless RealIP
+// has previously rewritten it. Behind a load balancer that does not strip
+// the LB's own address from RemoteAddr, every request appears to come from
+// the LB and the per-IP limit degrades to a global rate limit. RealIP
+// (with explicit trusted-proxy CIDRs) MUST be registered BEFORE
+// ThrottlePerIP for per-client limits to be effective. See SECURITY.md
+// "RealIP + ThrottlePerIP ordering".
+//
 // Panics if limit <= 0.
 func ThrottlePerIP(limit int, timeout time.Duration, keyFn func(*http.Request) string) func(http.Handler) http.Handler {
 	if limit <= 0 {
 		panic("middleware: ThrottlePerIP limit must be > 0")
 	}
 	if keyFn == nil {
+		slog.Default().Warn("ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is " +
+			"registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise " +
+			"the per-IP limit degrades to a global rate limit behind any reverse proxy. " +
+			"See SECURITY.md \"RealIP + ThrottlePerIP ordering\".")
 		keyFn = func(r *http.Request) string {
 			host, _, _ := net.SplitHostPort(r.RemoteAddr)
 			return host
