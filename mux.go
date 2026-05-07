@@ -558,7 +558,10 @@ func (m *Mux) lazyNotFound() http.Handler {
 	if notFound == nil {
 		notFound = http.HandlerFunc(http.NotFound)
 	}
-	h := wrapMiddleware(notFound, m.middleware)
+	m.mu.RLock()
+	mw := m.middleware
+	m.mu.RUnlock()
+	h := wrapMiddleware(notFound, mw)
 	m.lazyNotFoundPtr.Store(&h)
 	return h
 }
@@ -570,6 +573,9 @@ func (m *Mux) lazyMethodNotAllowed(allow string) http.Handler {
 		return v.(http.Handler)
 	}
 	methodNotAllowed := m.MethodNotAllowed
+	m.mu.RLock()
+	mw := m.middleware
+	m.mu.RUnlock()
 	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", allow)
 		if methodNotAllowed != nil {
@@ -577,7 +583,7 @@ func (m *Mux) lazyMethodNotAllowed(allow string) http.Handler {
 		} else {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		}
-	}), m.middleware)
+	}), mw)
 	m.methodNotAllowedCache.Store(allow, h)
 	return h
 }
@@ -589,6 +595,9 @@ func (m *Mux) lazyOPTIONS(allow string) http.Handler {
 		return v.(http.Handler)
 	}
 	globalOPTS := m.GlobalOPTIONS
+	m.mu.RLock()
+	mw := m.middleware
+	m.mu.RUnlock()
 	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", allow)
 		if globalOPTS != nil {
@@ -596,7 +605,7 @@ func (m *Mux) lazyOPTIONS(allow string) http.Handler {
 		} else {
 			w.WriteHeader(http.StatusNoContent)
 		}
-	}), m.middleware)
+	}), mw)
 	m.optionsCache.Store(allow, h)
 	return h
 }
@@ -766,9 +775,12 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 				}
 				target := r.URL.String()
 				r.URL.Path = urlPath // restore before passing to middleware
+				m.mu.RLock()
+				mw := m.middleware
+				m.mu.RUnlock()
 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					http.Redirect(w, r, target, code) //#nosec G710 -- target is a same-origin path (TSR canonicalisation only mutates path; host/scheme untouched). Audited as H-007 (refuted) in /reports/overview/findings.md.
-				}), m.middleware).ServeHTTP(w, r)
+				}), mw).ServeHTTP(w, r)
 				return
 			}
 
@@ -777,9 +789,12 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 					r.URL.Path = fixed
 					target := r.URL.String()
 					r.URL.Path = urlPath // restore before passing to middleware
+					m.mu.RLock()
+					mw := m.middleware
+					m.mu.RUnlock()
 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						http.Redirect(w, r, target, code) //#nosec G710 -- target is the cleaned same-origin path; path.Clean reduces leading "//evil" to "/evil" producing a relative same-origin Location. Audited as H-007 (refuted) in /reports/overview/findings.md.
-					}), m.middleware).ServeHTTP(w, r)
+					}), mw).ServeHTTP(w, r)
 					return
 				}
 			}
