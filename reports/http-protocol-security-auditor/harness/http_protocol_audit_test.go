@@ -293,23 +293,38 @@ func TestHPS0003_Mount_RawPath_Asymmetry(t *testing.T) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// HPS-2026-0004: CORS Origin reflection with empty AllowedOrigins
+// HPS-2026-0004 / HPS-2026-0003: CORS empty AllowedOrigins panics at construction
 // ──────────────────────────────────────────────────────────────────────────────
-// Attack (hypothesis #4): When AllowedOrigins is empty, the CORS middleware
-// calls next.ServeHTTP without setting CORS headers but also without rejecting.
-// This "silent permissive" behaviour may be surprising to operators who expect
-// an empty list to mean "deny all".
+// Originally: an empty AllowedOrigins resulted in silent pass-through, a
+// misconfiguration trap. Fixed (rmp #17): CORS now panics at construction
+// when AllowedOrigins is nil/empty so the misconfiguration is caught at boot.
+// This test guards the regression.
 
 func TestHPS0004_CORS_EmptyOriginsList_SilentPermissive(t *testing.T) {
+	defer func() {
+		rec := recover()
+		if rec == nil {
+			t.Fatalf("expected panic from CORS with nil AllowedOrigins; got none — regression of HPS-2026-0003")
+		}
+		msg, _ := rec.(string)
+		if !strings.Contains(msg, "AllowedOrigins") {
+			t.Errorf("panic message missing AllowedOrigins context: %v", rec)
+		}
+	}()
+	_ = middleware.CORS(middleware.CORSOptions{AllowedOrigins: nil})
+}
+
+// TestHPS0004_CORS_NonMatchingOrigin verifies the path that DOES build
+// correctly: a configured origin allowlist that the request does not match.
+// The handler is called (per CORS spec for simple requests) but ACAO is not set.
+func TestHPS0004_CORS_NonMatchingOrigin(t *testing.T) {
 	handlerCalled := false
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handlerCalled = true
 		w.WriteHeader(200)
 	})
-
-	// Case 1: AllowedOrigins is nil — empty slice
 	corsHandler := middleware.CORS(middleware.CORSOptions{
-		AllowedOrigins: nil,
+		AllowedOrigins: []string{"https://trusted.com"},
 	})(next)
 
 	req := httptest.NewRequest("GET", "/", nil)
@@ -317,36 +332,11 @@ func TestHPS0004_CORS_EmptyOriginsList_SilentPermissive(t *testing.T) {
 	rec := httptest.NewRecorder()
 	corsHandler.ServeHTTP(rec, req)
 
-	acao := rec.Header().Get("Access-Control-Allow-Origin")
-	t.Logf("Case: empty AllowedOrigins + Origin: evil.com => ACAO=%q, handlerCalled=%v, status=%d",
-		acao, handlerCalled, rec.Code)
-
-	// Document the behaviour: this is a design choice, not necessarily a bug.
-	// The concern is whether operators understand that nil AllowedOrigins = pass-through.
-	if acao == "" && handlerCalled {
-		t.Logf("INFO HPS-2026-0004: AllowedOrigins=nil results in pass-through (no CORS headers, handler called).")
-		t.Logf("This is silent-permissive behaviour: Origin header is not blocked, handler runs normally.")
-		t.Logf("If operator intent was 'deny all Cross-Origin requests', this is a misconfiguration trap.")
-		t.Logf("Recommended: document this behaviour explicitly in CORS godoc.")
-	} else if acao != "" {
-		t.Logf("INFO: ACAO header set to %q with empty AllowedOrigins list", acao)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("non-matching origin should return 403, got %d (handlerCalled=%v)", rec.Code, handlerCalled)
 	}
-
-	// Case 2: AllowedOrigins has entries but origin doesn't match
-	corsHandler2 := middleware.CORS(middleware.CORSOptions{
-		AllowedOrigins: []string{"https://trusted.com"},
-	})(next)
-
-	handlerCalled = false
-	req2 := httptest.NewRequest("GET", "/", nil)
-	req2.Header.Set("Origin", "https://evil.com")
-	rec2 := httptest.NewRecorder()
-	corsHandler2.ServeHTTP(rec2, req2)
-
-	t.Logf("Case: AllowedOrigins=[trusted.com] + Origin: evil.com => status=%d, handlerCalled=%v",
-		rec2.Code, handlerCalled)
-	if rec2.Code == 200 && rec2.Header().Get("Access-Control-Allow-Origin") == "" {
-		t.Logf("PASS: handler called without CORS headers for non-allowed origin (correct for non-preflight)")
+	if rec.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Errorf("ACAO should not be set for non-allowed origin")
 	}
 }
 

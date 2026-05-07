@@ -28,6 +28,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode/utf8"
 )
 
 // anyMethods is the full set of HTTP methods registered by ANY and Group.ANY.
@@ -517,6 +518,11 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 	}
 	if len(prefix) == 0 || prefix[0] != '/' {
 		panic("muxmaster: Mount prefix must begin with '/'")
+	}
+	if !utf8.ValidString(prefix) {
+		// FPE-2026-002: a tree.go panic on invalid UTF-8 leaks the internal
+		// "*mux_mount" param name. Validate up-front with a clean message.
+		panic("muxmaster: Mount prefix contains invalid UTF-8")
 	}
 	prefix = strings.TrimRight(prefix, "/")
 

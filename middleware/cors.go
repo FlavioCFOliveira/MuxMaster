@@ -28,7 +28,17 @@ type CORSOptions struct {
 }
 
 // CORS handles Cross-Origin Resource Sharing. Panics on invalid configuration.
+//
+// SECURITY: AllowedOrigins must be set explicitly. Passing nil or an empty
+// slice is a misconfiguration trap (HPS-2026-0003): the middleware would
+// silently let cross-origin requests through with no ACAO header, hiding
+// the issue from the operator. We panic at construction time so the
+// misconfiguration is caught at boot.
 func CORS(opts CORSOptions) func(http.Handler) http.Handler {
+	if len(opts.AllowedOrigins) == 0 {
+		panic("middleware: CORS requires a non-empty AllowedOrigins (use []string{\"*\"} for wildcard, " +
+			"or an explicit allowlist; nil silently allows traffic with no Access-Control-Allow-Origin)")
+	}
 	for _, o := range opts.AllowedOrigins {
 		if o == "*" && opts.AllowCredentials {
 			panic(`middleware: CORS AllowCredentials must not be true when AllowedOrigins contains "*"`)
@@ -72,6 +82,10 @@ func CORS(opts CORSOptions) func(http.Handler) http.Handler {
 				h.Set("Access-Control-Allow-Origin", "*")
 			} else {
 				h.Set("Access-Control-Allow-Origin", origin)
+				// MM-2026-0051: any per-origin response must carry Vary: Origin
+				// so caches do not serve a response intended for origin A to a
+				// client from origin B.
+				h.Add("Vary", "Origin")
 			}
 			if opts.AllowCredentials {
 				h.Set("Access-Control-Allow-Credentials", "true")

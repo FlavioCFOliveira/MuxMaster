@@ -56,6 +56,24 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 // commit flushes the sniff buffer and sets decided=true.
 func (g *gzipResponseWriter) commit() error {
 	g.decided = true
+	hdr := g.ResponseWriter.Header()
+	// MSR-2026-0060: Vary: Accept-Encoding must always be emitted when this
+	// middleware is in scope, even if the response was too small to compress
+	// — otherwise a CDN may serve the small uncompressed body to a client
+	// that expected (and would receive) gzip on the next byte-larger response.
+	hdr.Add("Vary", "Accept-Encoding")
+	// MM-2026-0053: skip compression for already-compressed payload types.
+	// The size of the wrapped body can grow slightly under double-compression
+	// and the CPU cost is wasted.
+	if isAlreadyCompressedMIME(hdr.Get("Content-Type")) || hdr.Get("Content-Encoding") != "" {
+		g.skip = true
+		if g.status != 0 {
+			g.ResponseWriter.WriteHeader(g.status)
+		}
+		_, err := g.ResponseWriter.Write(g.buf)
+		g.buf = nil
+		return err
+	}
 	if len(g.buf) < minCompressSize {
 		g.skip = true
 		if g.status != 0 {
@@ -65,9 +83,8 @@ func (g *gzipResponseWriter) commit() error {
 		g.buf = nil
 		return err
 	}
-	g.ResponseWriter.Header().Set("Content-Encoding", "gzip")
-	g.ResponseWriter.Header().Del("Content-Length")
-	g.ResponseWriter.Header().Add("Vary", "Accept-Encoding")
+	hdr.Set("Content-Encoding", "gzip")
+	hdr.Del("Content-Length")
 	if g.status != 0 {
 		g.ResponseWriter.WriteHeader(g.status)
 	}
@@ -76,6 +93,34 @@ func (g *gzipResponseWriter) commit() error {
 	_, err := g.gz.Write(g.buf)
 	g.buf = nil
 	return err
+}
+
+// isAlreadyCompressedMIME returns true for content types whose payloads are
+// already compressed at rest — applying gzip provides no meaningful size
+// reduction and may slightly inflate the body. Match is prefix-based so
+// charset suffixes (e.g. "image/png; charset=binary") are handled.
+func isAlreadyCompressedMIME(ct string) bool {
+	if ct == "" {
+		return false
+	}
+	// Trim parameters (everything after ';').
+	if i := strings.IndexByte(ct, ';'); i >= 0 {
+		ct = ct[:i]
+	}
+	ct = strings.TrimSpace(strings.ToLower(ct))
+	switch ct {
+	case "image/jpeg", "image/png", "image/gif", "image/webp", "image/avif",
+		"image/heic", "image/heif",
+		"video/mp4", "video/webm", "video/ogg", "video/quicktime",
+		"audio/mpeg", "audio/ogg", "audio/aac", "audio/flac", "audio/webm",
+		"application/zip", "application/x-gzip", "application/gzip",
+		"application/x-bzip2", "application/x-xz", "application/zstd",
+		"application/x-7z-compressed", "application/x-rar-compressed",
+		"application/pdf",
+		"font/woff", "font/woff2":
+		return true
+	}
+	return false
 }
 
 // close is called after the handler returns.

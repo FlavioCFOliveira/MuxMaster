@@ -47,11 +47,14 @@ func APIKey(opts APIKeyOptions) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			raw := extract(r)
 			if raw == "" {
+				// MM-2026-0052: RFC 7235 §3.1 requires WWW-Authenticate on 401.
+				w.Header().Set("WWW-Authenticate", `ApiKey realm="api"`)
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 			id, ok := hashed[sha256.Sum256([]byte(raw))]
 			if !ok {
+				w.Header().Set("WWW-Authenticate", `ApiKey realm="api", error="invalid_key"`)
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
