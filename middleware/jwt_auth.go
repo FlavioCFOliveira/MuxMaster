@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"hash"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"strings"
@@ -36,6 +37,15 @@ type JWTClaims struct {
 }
 
 // JWTOptions configures the JWTAuth middleware.
+//
+// SECURITY (TSC-2026-0003): mixing algorithm families (HS* with RS* or ES*)
+// in Algorithms leaks the algorithm path via response latency. HMAC verifies
+// in ~1 µs, RSA-2048 verifies in ~300 µs, and an attacker submitting tokens
+// with different alg labels can determine which path the server runs from
+// the response time alone — narrowing the attack surface for
+// algorithm-confusion attacks (RFC 8725 §3.1). Configure each endpoint
+// with a single algorithm family. JWTAuth emits a slog.Warn at construction
+// time when a mixed-family Algorithms list is detected.
 type JWTOptions struct {
 	// Secret is the HMAC signing key, required for HS256, HS384, HS512.
 	Secret []byte
@@ -43,6 +53,7 @@ type JWTOptions struct {
 	PublicKey crypto.PublicKey
 	// Algorithms lists accepted signing algorithms. Must be non-empty.
 	// Supported: HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512.
+	// SEE the SECURITY note on JWTOptions about mixing families.
 	Algorithms []string
 	// Issuers, if non-empty, restricts accepted "iss" claim values.
 	Issuers []string
@@ -83,8 +94,29 @@ func JWTAuth(opts JWTOptions) func(http.Handler) http.Handler {
 	}
 
 	allowedAlgs := make(map[string]struct{}, len(opts.Algorithms))
+	var hasHMAC, hasRSA, hasECDSA bool
 	for _, alg := range opts.Algorithms {
 		allowedAlgs[alg] = struct{}{}
+		switch {
+		case strings.HasPrefix(alg, "HS"):
+			hasHMAC = true
+		case strings.HasPrefix(alg, "RS"):
+			hasRSA = true
+		case strings.HasPrefix(alg, "ES"):
+			hasECDSA = true
+		}
+	}
+	families := 0
+	for _, b := range []bool{hasHMAC, hasRSA, hasECDSA} {
+		if b {
+			families++
+		}
+	}
+	if families > 1 {
+		slog.Default().Warn("JWTAuth: Algorithms mixes algorithm families — "+
+			"timing oracle (TSC-2026-0003) leaks alg path via response latency; "+
+			"configure one family per endpoint.",
+			slog.Any("algorithms", opts.Algorithms))
 	}
 	issuers := make(map[string]struct{}, len(opts.Issuers))
 	for _, iss := range opts.Issuers {

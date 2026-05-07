@@ -86,6 +86,17 @@ response (path exists, wrong method) is ~440 ns. This is intrinsic to radix
 tree lookup and is present in httprouter, chi, and bunrouter as well. If this
 is a concern, use a WAF or add uniform response delays via middleware.
 
+### JWT Mixed-Family Algorithms (TSC-2026-0003)
+
+`JWTAuth` configured with HS\* and RS\*/ES\* algorithms in the same
+`Algorithms` list leaks the algorithm code-path via response latency
+(HMAC verifies in ~1 µs, RSA-2048 in ~300 µs). An attacker submitting
+tokens labelled with different `alg` values can determine which path the
+server runs from the response time alone, narrowing the attack surface for
+algorithm-confusion attacks (RFC 8725 §3.1). Configure each endpoint with
+a single algorithm family. Mixed-family configuration emits a `slog.Warn`
+at construction time.
+
 ### BasicAuth Brute-Force (MM-2026-0027)
 
 `middleware.BasicAuth` does not rate-limit authentication attempts. Compose it
