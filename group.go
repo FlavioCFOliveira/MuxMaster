@@ -54,7 +54,19 @@ func (g *Group) HandleE(method, path string, h HandlerFuncE) {
 
 // HandleFast registers a FastHandler under this group with the given method and path.
 // The full path is g.prefix + path. Group FastMiddleware is applied before dispatch.
+//
+// SECURITY: panics if the group has stdlib middleware registered via Use().
+// Stdlib middleware is incompatible with the FastHandler dispatch path —
+// silently mixing them would let HandleFast routes bypass authentication,
+// authorisation, logging or any other Use()-registered middleware. Operators
+// must use UseFast() for FastHandler routes, or Handle() for routes that
+// should run through the stdlib middleware chain.
 func (g *Group) HandleFast(method, path string, h FastHandler) {
+	if len(g.middleware) > 0 {
+		panic("muxmaster: HandleFast route registered on a Group with stdlib middleware (Use) — " +
+			"stdlib middleware does not run on the FastHandler path. " +
+			"Use UseFast() for fast routes, or Handle() for stdlib-middleware-wrapped routes.")
+	}
 	g.mux.HandleFast(method, g.prefix+path, wrapFastMiddleware(h, g.fastMiddleware))
 }
 
