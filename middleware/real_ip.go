@@ -45,12 +45,12 @@ func RealIP(trustedCIDRs ...*netip.Prefix) func(http.Handler) http.Handler {
 				candidate = strings.TrimSpace(candidate)
 				// netip.ParseAddr rejects CRLF, spaces, and garbage.
 				if addr, err := netip.ParseAddr(candidate); err == nil {
-					r.RemoteAddr = addr.String()
+					r.RemoteAddr = addr.WithZone("").String()
 				}
 			} else if xri := r.Header.Get("X-Real-IP"); xri != "" {
 				candidate := strings.TrimSpace(xri)
 				if addr, err := netip.ParseAddr(candidate); err == nil {
-					r.RemoteAddr = addr.String()
+					r.RemoteAddr = addr.WithZone("").String()
 				}
 			}
 			next.ServeHTTP(w, r)
