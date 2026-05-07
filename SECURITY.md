@@ -86,6 +86,44 @@ response (path exists, wrong method) is ~440 ns. This is intrinsic to radix
 tree lookup and is present in httprouter, chi, and bunrouter as well. If this
 is a concern, use a WAF or add uniform response delays via middleware.
 
+### Path normalisation accepted behaviour (PRF-2026-0001..0005)
+
+The following routing behaviours are intentional and documented as operator
+responsibilities — they are not router defects:
+
+- **`%61dmin` matches `/admin`** when `UseRawPath=false` (the default).
+  `net/http` decodes `%61` to `a` during URL parsing per RFC 3986 §6.2.2.2,
+  so the router sees `/admin`. To enforce byte-exact path matching set
+  `r.UseRawPath = true` — patterns then match against `r.URL.RawPath`,
+  which preserves the percent-encoded form (PRF-2026-0002).
+
+- **Catch-all `*filepath` parameters carry raw bytes**, including any
+  `..` traversal sequences. The router does NOT sanitise catch-all values
+  — that is the boundary between router and storage backend. Handlers
+  serving files MUST call `path.Clean` and must reject paths that escape
+  their root (e.g. via `filepath.IsLocal` or by checking
+  `filepath.Rel(root, joined)`). `Mux.ServeFiles` already delegates to
+  `http.FileServer` which performs path cleaning (PRF-2026-0005).
+
+- **Static routes must be registered before sibling wildcards.** Calling
+  `r.GET("/users/:id", h)` and then `r.GET("/users/active", h)` panics
+  because `:id` already claims the wildcard slot at that depth. Register
+  the more-specific static route first; this matches httprouter's
+  behaviour (PRF-2026-0003).
+
+- **`RedirectFixedPath=true` discloses route existence via the redirect
+  status.** The default is `false` precisely because path cleaning before
+  dispatch can convert non-existent paths into observable hits. Leave the
+  default unless you understand the disclosure trade-off (PRF-2026-0004).
+
+- **`middleware.CleanPath` (registered via `Pre`) normalises dot segments
+  before dispatch.** It does NOT bypass authentication — middleware
+  registered via `Use` still wraps the dispatched handler — but it can
+  cause requests to land on a different handler than the raw path
+  suggests. CleanPath is intended for clients that emit `/foo/../bar`
+  and similar; do not use it on endpoints where the literal path is
+  semantically meaningful (PRF-2026-0001).
+
 ### RealIP misconfiguration (MSR-2026-0055)
 
 `middleware.RealIP()` called with no trusted-proxy CIDR list trusts every
