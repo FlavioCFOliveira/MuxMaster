@@ -124,6 +124,54 @@ responsibilities — they are not router defects:
   and similar; do not use it on endpoints where the literal path is
   semantically meaningful (PRF-2026-0001).
 
+### OAuth2 introspection cache poisoning (MSR-2026-0063)
+
+The `OAuth2Introspect` middleware caches the introspection response
+(keyed by sha256 of the bearer token) for `CacheTTL` seconds. If the IDP
+revokes a token mid-cache-window, MuxMaster continues to honour the
+cached `active=true` response until the cache entry expires — a blast
+radius of up to `CacheTTL`. For high-security endpoints, set
+`OAuth2Options.CacheTTL = -1` to disable caching entirely; every request
+will hit the introspection endpoint, but the singleflight group
+(DOS-OAUTH2-001 fix) coalesces concurrent calls for the same token, so
+the IDP load growth is bounded by distinct-token concurrency rather
+than total request rate.
+
+### Timeout middleware preemption (DOS-2026-0003)
+
+`middleware.Timeout` cancels the request context after the configured
+duration but does NOT preempt the handler goroutine. Go has no
+preemption primitive for blocked syscalls — a handler that ignores
+`ctx.Done()` will continue running to completion, regardless of the
+timeout. Under load this accumulates goroutines and exhausts memory or
+upstream connections.
+
+Handlers MUST observe `ctx.Done()` on every blocking call (DB, network,
+file I/O). Use the `*Context` variants of stdlib APIs (`sql.DB.QueryContext`,
+HTTP request bodies via `r.Context()`, etc.).
+
+### Compress sniff-buffer per-connection memory (DOS-2026-0007)
+
+`middleware.Compress` buffers up to 8 KiB per stalled connection while
+sniffing whether the response body is large enough to be compressed.
+Total memory under attack is `N × 8 KiB` for N concurrent stalled
+connections. The middleware does not enforce a per-connection timeout;
+operators MUST set `http.Server.ReadHeaderTimeout`,
+`http.Server.WriteTimeout` and a connection cap on the listener to
+bound this exposure.
+
+### Reflect-based ctx field offset (MM-2026-0035)
+
+The tiered `reqBundle` optimisation (1 alloc per request with parameters)
+relies on `unsafe.Add` over the offset of the private `ctx` field of
+`*http.Request`, derived once via reflection at `init()`. If a future Go
+version removes or renames the field, the offset cannot be resolved and
+MuxMaster automatically falls back to `r.WithContext` (2 allocs per
+request) without crashing. The fallback is exercised in
+`reports/concurrency-security-auditor/harness/h018_reqctx_offset_test.go`
+as part of the CSA harness. CI should cross-build against `gotip`
+periodically to surface drift before a stable Go release.
+
 ### RealIP misconfiguration (MSR-2026-0055)
 
 `middleware.RealIP()` called with no trusted-proxy CIDR list trusts every

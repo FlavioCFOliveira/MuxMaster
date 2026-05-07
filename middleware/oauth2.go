@@ -37,7 +37,13 @@ type OAuth2Options struct {
 	// ClientID and ClientSecret authenticate to the introspection endpoint via HTTP Basic.
 	ClientID     string
 	ClientSecret string
-	// CacheTTL is how long active tokens are cached. Default: 60s. Set to -1 to disable.
+	// CacheTTL is how long active tokens are cached. Default: 60s.
+	// Set to -1 (or any negative value) to disable caching entirely — every
+	// request hits the introspection endpoint, eliminating the cache-poisoning
+	// blast radius (MSR-2026-0063) at the cost of higher IDP load. Use
+	// disabled caching for high-security endpoints; the singleflight group
+	// (DOS-OAUTH2-001 fix) still coalesces concurrent introspection calls
+	// for the same token.
 	// Cache respects the token's own exp: effective TTL = min(CacheTTL, token.exp - now).
 	// Note: caching means revoked tokens remain valid until TTL expires.
 	CacheTTL time.Duration
@@ -127,6 +133,17 @@ func (c *oauth2Cache) set(key [32]byte, resp *IntrospectResponse, expiry time.Ti
 	c.mu.Lock()
 	if len(c.entries) >= c.maxSize {
 		c.evictExpiredLocked()
+		// DOS-2026-0005: when no expired entries are evictable, fall back to
+		// evicting the entry with the soonest expiry so the cache cannot be
+		// permanently filled with long-lived tokens. This is approximate LRU
+		// (oldest-by-expiry) but bounded and stdlib-only — a true LRU would
+		// require a doubly-linked list per access.
+		if len(c.entries) >= c.maxSize {
+			c.evictSoonestExpiryLocked()
+		}
+		// Defence in depth: if we still cannot make room (impossible with
+		// the eviction above unless maxSize is 0), bail out rather than
+		// growing unbounded.
 		if len(c.entries) >= c.maxSize {
 			c.mu.Unlock()
 			return
@@ -134,6 +151,27 @@ func (c *oauth2Cache) set(key [32]byte, resp *IntrospectResponse, expiry time.Ti
 	}
 	c.entries[key] = &oauth2Entry{resp: resp, expiry: expiry}
 	c.mu.Unlock()
+}
+
+// evictSoonestExpiryLocked removes the entry with the earliest expiry time —
+// the closest analogue to LRU we can compute without per-access timestamps.
+// Caller must hold c.mu.Lock().
+func (c *oauth2Cache) evictSoonestExpiryLocked() {
+	var (
+		victim     [32]byte
+		earliest   time.Time
+		hasVictim  bool
+	)
+	for k, e := range c.entries {
+		if !hasVictim || e.expiry.Before(earliest) {
+			victim = k
+			earliest = e.expiry
+			hasVictim = true
+		}
+	}
+	if hasVictim {
+		delete(c.entries, victim)
+	}
 }
 
 func (c *oauth2Cache) evictExpiredLocked() {

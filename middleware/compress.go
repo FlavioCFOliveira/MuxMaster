@@ -141,6 +141,13 @@ func (g *gzipResponseWriter) close() {
 // Uses streaming compression — memory usage is bounded regardless of response size.
 // Panics on invalid compression level.
 //
+// OPERATIONAL (DOS-2026-0007): the compress middleware buffers up to 8 KiB
+// per stalled connection while sniffing whether the response is large
+// enough to compress. Operators MUST configure http.Server.ReadHeaderTimeout
+// and http.Server.WriteTimeout (and a connection cap via a Listener limit)
+// to bound the total memory held by N stalled connections; the middleware
+// itself does not enforce a per-connection timeout.
+//
 // SECURITY (BREACH / DOS-2026-0006): do NOT echo user-controlled input
 // alongside a secret (OAuth2 scope, CSRF token, session ID, JWT) inside a
 // gzip-compressed response body. Compression amplifies tiny size differences
