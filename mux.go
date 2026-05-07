@@ -124,8 +124,11 @@ type Mux struct {
 	treesPtr atomic.Pointer[methodTrees]
 
 	// cfg is the frozen config snapshot, populated on the first ServeHTTP call.
-	cfg     atomic.Pointer[muxConfig]
-	cfgOnce sync.Once
+	// Initialisation is single-shot via atomic CAS — no sync.Once is needed
+	// because the CAS is itself the once-guard, and Rebuild() resets the
+	// snapshot via a single atomic Store(nil), avoiding the struct-write race
+	// that a sync.Once reset would introduce.
+	cfg atomic.Pointer[muxConfig]
 
 	// RedirectTrailingSlash redirects /foo/ → /foo (or /foo → /foo/) when a
 	// handler exists at the alternate path.
@@ -612,10 +615,10 @@ func (m *Mux) config() *muxConfig {
 // frozenConfigSlow builds and stores the frozen config snapshot on the first
 // call. Marked noinline so that config() stays within the inline budget.
 //
-// The sync.Once ensures that exactly one snapshot is built even under concurrent
-// first calls — each concurrent caller constructs a candidate from the same
-// (pre-serving) field values, but only the winner's copy is stored. Every caller
-// returns the winner's copy via the final Load, guaranteeing consistency.
+// The atomic CompareAndSwap is itself the once-guard: every concurrent caller
+// constructs a candidate from the same (pre-serving) field values, but only
+// the winner's copy is stored. Losers discard their candidate and Load the
+// winner's copy, guaranteeing all callers observe the same snapshot.
 //
 //go:noinline
 func (m *Mux) frozenConfigSlow() *muxConfig {
@@ -630,16 +633,26 @@ func (m *Mux) frozenConfigSlow() *muxConfig {
 		hasPanicHandler:        m.PanicHandler != nil,
 		redirectCode:           m.RedirectCode,
 	}
-	m.cfgOnce.Do(func() { m.cfg.Store(c) })
-	return m.cfg.Load()
+	// Retry loop guards against a concurrent Rebuild() racing with our CAS:
+	// Rebuild may Store(nil) between a losing CAS and the subsequent Load,
+	// which would otherwise return nil and crash the dispatch path.
+	for {
+		if m.cfg.CompareAndSwap(nil, c) {
+			return c
+		}
+		if existing := m.cfg.Load(); existing != nil {
+			return existing
+		}
+	}
 }
 
 // Rebuild resets the frozen configuration snapshot so the next ServeHTTP call
-// re-reads all configuration fields. Intended for tests only — do not call
-// Rebuild while the server is actively serving requests.
+// re-reads all configuration fields. Safe to call concurrently with ServeHTTP:
+// the reset is a single atomic Store(nil), and the next config() call will
+// re-initialise via CompareAndSwap. Intended for tests and dynamic
+// reconfiguration scenarios.
 func (m *Mux) Rebuild() {
 	m.cfg.Store(nil)
-	m.cfgOnce = sync.Once{}
 }
 
 // ServeHTTP implements http.Handler, dispatching through pre-middleware if set.
