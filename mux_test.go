@@ -788,6 +788,140 @@ func TestTwoPhaseRegistrationPanic_LiveTreeIntact(t *testing.T) {
 	}
 }
 
+// COV-2026-008 — Introspection: Lookup, Routes, Walk, WalkFast.
+func TestIntrospection_Lookup(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.GET("/users/:id", handler(http.StatusOK, "ok"))
+
+	h, ps, ok := r.Lookup(http.MethodGet, "/users/42")
+	if !ok || h == nil {
+		t.Fatalf("Lookup failed")
+	}
+	if v, _ := ps.Lookup("id"); v != "42" {
+		t.Errorf("param id=%q want 42", v)
+	}
+
+	// Empty path
+	if _, _, ok := r.Lookup(http.MethodGet, ""); ok {
+		t.Error("empty path should fail")
+	}
+	// No leading slash
+	if _, _, ok := r.Lookup(http.MethodGet, "users/42"); ok {
+		t.Error("path without leading slash should fail")
+	}
+	// Unknown method
+	if _, _, ok := r.Lookup("BREW", "/users/42"); ok {
+		t.Error("unknown method should fail")
+	}
+	// Empty mux
+	r2 := muxmaster.New()
+	if _, _, ok := r2.Lookup(http.MethodGet, "/x"); ok {
+		t.Error("empty mux should fail Lookup")
+	}
+	// Path not registered
+	if _, _, ok := r.Lookup(http.MethodGet, "/missing"); ok {
+		t.Error("unregistered path should fail")
+	}
+}
+
+func TestIntrospection_Routes(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.GET("/a", handler(http.StatusOK, ""))
+	r.POST("/b/:id", handler(http.StatusOK, ""))
+	r.HandleFast(http.MethodDelete, "/c", func(_ http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {})
+
+	infos := r.Routes()
+	if len(infos) < 3 {
+		t.Errorf("Routes returned %d, want >=3", len(infos))
+	}
+	patterns := make(map[string]bool)
+	for _, ri := range infos {
+		patterns[ri.Method+" "+ri.Pattern] = true
+		if ri.Handler == "" {
+			t.Errorf("missing Handler name for %s %s", ri.Method, ri.Pattern)
+		}
+	}
+	for _, want := range []string{"GET /a", "POST /b/:id", "DELETE /c"} {
+		if !patterns[want] {
+			t.Errorf("missing route %q in Routes()", want)
+		}
+	}
+
+	// Empty mux
+	if r2 := muxmaster.New(); len(r2.Routes()) != 0 {
+		t.Error("empty mux should return zero routes")
+	}
+}
+
+func TestIntrospection_Walk(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.GET("/a", handler(http.StatusOK, ""))
+	r.POST("/b", handler(http.StatusOK, ""))
+	r.HandleFast(http.MethodDelete, "/c", func(_ http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {})
+
+	visited := []string{}
+	err := r.Walk(func(method, pattern string, _ http.Handler) error {
+		visited = append(visited, method+" "+pattern)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Walk should NOT visit DELETE /c (FastHandler)
+	for _, v := range visited {
+		if strings.Contains(v, "/c") {
+			t.Errorf("Walk visited fast route: %q", v)
+		}
+	}
+	if len(visited) < 2 {
+		t.Errorf("expected ≥2 stdlib routes, got %d", len(visited))
+	}
+
+	// Walk error short-circuits
+	wantErr := fmt.Errorf("stop")
+	err = r.Walk(func(_, _ string, _ http.Handler) error { return wantErr })
+	if err != wantErr {
+		t.Errorf("Walk did not propagate error: %v", err)
+	}
+
+	// Empty mux
+	if err := muxmaster.New().Walk(func(_, _ string, _ http.Handler) error { return nil }); err != nil {
+		t.Error("empty mux Walk should not error")
+	}
+}
+
+func TestIntrospection_WalkFast(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.GET("/a", handler(http.StatusOK, ""))
+	r.HandleFast(http.MethodGet, "/fast", func(_ http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {})
+
+	visited := []string{}
+	if err := r.WalkFast(func(method, pattern string, _ muxmaster.FastHandler) error {
+		visited = append(visited, method+" "+pattern)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(visited) != 1 || visited[0] != "GET /fast" {
+		t.Errorf("WalkFast visited=%v", visited)
+	}
+
+	// Error propagation
+	wantErr := fmt.Errorf("stop-fast")
+	if err := r.WalkFast(func(_, _ string, _ muxmaster.FastHandler) error { return wantErr }); err != wantErr {
+		t.Errorf("WalkFast did not propagate")
+	}
+
+	// Empty mux
+	if err := muxmaster.New().WalkFast(func(_, _ string, _ muxmaster.FastHandler) error { return nil }); err != nil {
+		t.Error("empty mux WalkFast should not error")
+	}
+}
+
 // COV-2026-007 — Mux customisable hooks.
 func TestMux_NotFound_DefaultAndCustom(t *testing.T) {
 	t.Parallel()
