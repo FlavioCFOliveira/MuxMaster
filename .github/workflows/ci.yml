@@ -49,6 +49,27 @@ jobs:
         shell: bash
         run: go vet $(go list ./... | grep -v '/reports/')
 
+  test-arm64:
+    name: Test (linux/arm64)
+    runs-on: ubuntu-latest
+    # CI-2026-006: separate ARM64 job using QEMU emulation to validate
+    # atomics + unsafe.Add behaviour on a different memory model. Slower
+    # than native arm64 runners but available on free-tier minutes.
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Test in arm64 container
+        run: |
+          docker run --rm --platform=linux/arm64 \
+            -v "$PWD:/work" -w /work \
+            -e CGO_ENABLED=0 \
+            golang:1.26 \
+            sh -c 'go test -count=1 $(go list ./... | grep -v "/reports/")'
+
   lint:
     name: Lint (golangci-lint)
     runs-on: ubuntu-latest
