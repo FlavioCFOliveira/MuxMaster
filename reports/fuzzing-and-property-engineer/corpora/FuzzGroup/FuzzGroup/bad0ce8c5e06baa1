@@ -1,0 +1,4 @@
+go test fuzz v1
+string("/벲")
+string("\xe7")
+string("\x93\xc3")

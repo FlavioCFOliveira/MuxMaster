@@ -1,115 +1,179 @@
-package harness
+//go:build race
 
-// H-027 — Introspection (Walk / Routes / Lookup) concurrent with Handle.
-//
-// introspection.go loads `trees := m.treesPtr.Load()` atomically, but the
-// tree roots themselves are MUTATED in place by addRoute (children slice,
-// indices string, handler field). A concurrent Walk can therefore observe
-// torn state; under -race, this should surface as a data race.
-//
-// The docs state that dynamic registration after serving is UB. This test
-// does NOT imply MuxMaster must support dynamic reg — it simply proves
-// whether introspection is safe against it. If unsafe, the report MUST
-// document the constraint and/or propose a guard.
+// h027_introspection_race_test.go — CSA harness for Hypothesis H-I
+// Introspection (Lookup, Walk, WalkFast, Routes) vs concurrent ServeHTTP.
+// The RWMutex in Lookup/Walk protects tree traversal while Handle COW-atomics
+// protect ServeHTTP. Validates no torn reads under mixed introspection + serving.
+
+package muxmaster_test
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"sync"
-	"sync/atomic"
 	"testing"
-	"time"
 
 	mm "github.com/FlavioCFOliveira/MuxMaster"
 )
 
-// TestH027_WalkVsHandleRace interleaves Handle with Walk and Lookup. Any
-// concurrent access to tree fields will be caught by -race as a Write vs Read
-// race on node.children, node.indices, or node.handler.
-func TestH027_WalkVsHandleRace(t *testing.T) {
-	t.Skip("documented limitation: dynamic route registration after serving is unsupported — see SECURITY.md")
-	if testing.Short() {
-		t.Skip("skipping in -short")
-	}
-
+// TestLookup_VsConcurrentServe confirms Lookup and ServeHTTP can run concurrently
+// without data races. Lookup acquires RLock; Handle (during registration) acquires Lock.
+// ServeHTTP reads via atomic load — they are orthogonal.
+func TestLookup_VsConcurrentServe(t *testing.T) {
+	t.Parallel()
 	r := mm.New()
-	// Seed with a few routes so Walk has something to iterate.
-	for i := range 8 {
-		r.GET(fmt.Sprintf("/seed/%d", i), func(w http.ResponseWriter, req *http.Request) {})
+	for i := range 100 {
+		i := i
+		r.GET(fmt.Sprintf("/resource/%d/:id", i), func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
 	}
 
-	var stop atomic.Bool
+	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
 
-	// Goroutine A: continuous registration of new routes (dynamic).
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		i := 0
-		for !stop.Load() {
-			// Use a fresh, non-conflicting path each iteration.
-			path := fmt.Sprintf("/dyn/%d/sub/%d", i%64, i)
-			// Defensive: addRoute panics on conflict. We use a unique i so no
-			// conflict occurs. If unique path collides, rethrow as failure.
-			func() {
-				defer func() {
-					if rcv := recover(); rcv != nil {
-						t.Errorf("H-027: addRoute panicked on unique path %q: %v", path, rcv)
-					}
-				}()
-				r.GET(path, func(w http.ResponseWriter, req *http.Request) {})
-			}()
-			i++
-			if i%64 == 0 {
-				time.Sleep(time.Microsecond)
+	// ServeHTTP goroutines.
+	for g := 0; g < n*4; g++ {
+		wg.Add(1)
+		go func(g int) {
+			defer wg.Done()
+			for i := 0; i < 20000; i++ {
+				path := fmt.Sprintf("/resource/%d/x", (g*i)%100)
+				req := httptest.NewRequest("GET", path, nil)
+				w := httptest.NewRecorder()
+				r.ServeHTTP(w, req)
 			}
-		}
-	}()
+		}(g)
+	}
 
-	// Goroutine B: continuous Walk.
+	// Lookup goroutines.
+	for g := 0; g < n*2; g++ {
+		wg.Add(1)
+		go func(g int) {
+			defer wg.Done()
+			for i := 0; i < 10000; i++ {
+				path := fmt.Sprintf("/resource/%d/val", (g*i)%100)
+				_, _, _ = r.Lookup("GET", path)
+			}
+		}(g)
+	}
+
+	wg.Wait()
+}
+
+// TestWalk_VsConcurrentServe confirms Walk/WalkFast/Routes do not race with
+// concurrent ServeHTTP calls.
+func TestWalk_VsConcurrentServe(t *testing.T) {
+	t.Parallel()
+	r := mm.New()
+	for i := range 50 {
+		i := i
+		r.GET(fmt.Sprintf("/a/%d/:id", i), func(w http.ResponseWriter, req *http.Request) {})
+		r.GETFast(fmt.Sprintf("/b/%d/:id", i), func(w http.ResponseWriter, req *http.Request, ps mm.Params) {})
+	}
+
+	n := runtime.GOMAXPROCS(0)
+	var wg sync.WaitGroup
+
+	for g := 0; g < n*4; g++ {
+		wg.Add(1)
+		go func(g int) {
+			defer wg.Done()
+			for i := 0; i < 10000; i++ {
+				path := fmt.Sprintf("/a/%d/v", (g*i)%50)
+				r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path, nil))
+				path2 := fmt.Sprintf("/b/%d/v", (g*i)%50)
+				r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path2, nil))
+			}
+		}(g)
+	}
+
+	for g := 0; g < n*2; g++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < 2000; i++ {
+				_ = r.Routes()
+				_ = r.Walk(func(method, pattern string, handler http.Handler) error {
+					return nil
+				})
+				_ = r.WalkFast(func(method, pattern string, handler mm.FastHandler) error {
+					return nil
+				})
+			}
+		}()
+	}
+
+	wg.Wait()
+}
+
+// TestWalk_StopIteration confirms that Walk and WalkFast stop iteration on error.
+func TestWalk_StopIteration(t *testing.T) {
+	r := mm.New()
+	for i := range 20 {
+		r.GET(fmt.Sprintf("/x/%d", i), func(w http.ResponseWriter, req *http.Request) {})
+	}
+
+	sentinel := errors.New("stop")
+	count := 0
+	err := r.Walk(func(method, pattern string, handler http.Handler) error {
+		count++
+		if count >= 5 {
+			return sentinel
+		}
+		return nil
+	})
+	if err != sentinel {
+		t.Errorf("Walk did not stop on error: got %v, want sentinel", err)
+	}
+	if count != 5 {
+		t.Errorf("Walk called fn %d times after error, want 5", count)
+	}
+}
+
+// TestIntrospection_RouteSnapshot verifies Routes() returns a coherent snapshot
+// even under concurrent Handle() registration (COW + atomic Store).
+func TestIntrospection_RouteSnapshot(t *testing.T) {
+	t.Parallel()
+	r := mm.New()
+	for i := range 50 {
+		i := i
+		r.GET(fmt.Sprintf("/init/%d", i), func(w http.ResponseWriter, req *http.Request) {})
+	}
+
+	n := runtime.GOMAXPROCS(0)
+	var wg sync.WaitGroup
+
+	// Routes snapshot goroutines.
+	for g := 0; g < n*2; g++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < 1000; i++ {
+				infos := r.Routes()
+				if len(infos) < 50 {
+					// Might see up to 50+extra from dynamic registrations below.
+					// But never less than 50.
+					t.Errorf("Routes snapshot has only %d routes (expected >= 50)", len(infos))
+					return
+				}
+			}
+		}()
+	}
+
+	// Dynamic registration goroutine (simulates late registration — documented unsupported,
+	// but must not panic or corrupt; it must COW-safely).
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for !stop.Load() {
-			_ = r.Walk(func(method, pattern string, h http.Handler) error {
-				_ = method
-				_ = pattern
-				_ = h
-				return nil
-			})
+		for i := 50; i < 100; i++ {
+			i := i
+			r.GET(fmt.Sprintf("/late/%d", i), func(w http.ResponseWriter, req *http.Request) {})
 		}
 	}()
 
-	// Goroutine C: continuous Routes.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for !stop.Load() {
-			_ = r.Routes()
-		}
-	}()
-
-	// Goroutine D: continuous Lookup.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for !stop.Load() {
-			_, _, _ = r.Lookup(http.MethodGet, "/seed/0")
-		}
-	}()
-
-	// Goroutine E: continuous ServeHTTP.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for !stop.Load() {
-			req := httptest.NewRequest(http.MethodGet, "/seed/0", nil)
-			r.ServeHTTP(httptest.NewRecorder(), req)
-		}
-	}()
-
-	time.Sleep(2 * time.Second)
-	stop.Store(true)
 	wg.Wait()
 }

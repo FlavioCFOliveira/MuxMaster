@@ -1,0 +1,52 @@
+Results:
+
+Golang errors in file: [./group.go]:
+
+  > [line 0 : column 0] - importing dir "./group.go": cannot find package "." in:
+	group.go
+
+
+Golang errors in file: [./handler.go]:
+
+  > [line 0 : column 0] - importing dir "./handler.go": cannot find package "." in:
+	handler.go
+
+
+Golang errors in file: [./introspection.go]:
+
+  > [line 0 : column 0] - importing dir "./introspection.go": cannot find package "." in:
+	introspection.go
+
+
+Golang errors in file: [./mux.go]:
+
+  > [line 0 : column 0] - importing dir "./mux.go": cannot find package "." in:
+	mux.go
+
+
+Golang errors in file: [./params.go]:
+
+  > [line 0 : column 0] - importing dir "./params.go": cannot find package "." in:
+	params.go
+
+
+Golang errors in file: [./response.go]:
+
+  > [line 0 : column 0] - importing dir "./response.go": cannot find package "." in:
+	response.go
+
+
+Golang errors in file: [./tree.go]:
+
+  > [line 0 : column 0] - importing dir "./tree.go": cannot find package "." in:
+	tree.go
+
+
+
+[1;36mSummary:[0m
+  Gosec  : dev
+  Files  : 18
+  Lines  : 1926
+  Nosec  : 0
+  Issues : [1;32m0[0m
+

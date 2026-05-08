@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/ݻ\xd1\xf7\xfc\xef\xd1\xf7\xc1")

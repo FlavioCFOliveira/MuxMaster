@@ -1,0 +1,6 @@
+mux.go:31:	"sync/atomic"
+mux.go:137:	treesPtr atomic.Pointer[methodTrees]
+mux.go:144:	cfg atomic.Pointer[muxConfig]
+mux.go:228:	preHandlerPtr atomic.Pointer[http.Handler]
+mux.go:232:	lazyNotFoundPtr atomic.Pointer[http.Handler]
+mux.go:347:	// atomic.Pointer.Store. If addRoute panics mid-mutation, the clone is

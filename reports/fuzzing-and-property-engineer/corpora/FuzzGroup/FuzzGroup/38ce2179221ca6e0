@@ -1,0 +1,4 @@
+go test fuzz v1
+string("/\xf2\x96\x85")
+string("\x89")
+string("0")

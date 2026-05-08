@@ -1,2 +1,0 @@
-go test fuzz v1
-string("/{:ǚǹ\\\\\\p\x1bj\x9a!\r\xbc}")

@@ -1,0 +1,2 @@
+go test fuzz v1
+string("0{0,1000\x99\x16\x180000")

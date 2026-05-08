@@ -1,0 +1,12 @@
+params.go:204:	t := reflect.TypeOf(http.Request{})
+params.go:205:	ctxType := reflect.TypeOf((*context.Context)(nil)).Elem()
+introspection.go:144:	v := reflect.ValueOf(h)
+introspection.go:145:	if v.Kind() == reflect.Func {
+introspection.go:155:	if f := runtime.FuncForPC(reflect.ValueOf(h).Pointer()); f != nil {
+middleware/with_value.go:25:	if reflect.TypeOf(key).Kind() == reflect.String {
+params.go:204:	t := reflect.TypeOf(http.Request{})
+params.go:205:	ctxType := reflect.TypeOf((*context.Context)(nil)).Elem()
+introspection.go:144:	v := reflect.ValueOf(h)
+introspection.go:145:	if v.Kind() == reflect.Func {
+introspection.go:155:	if f := runtime.FuncForPC(reflect.ValueOf(h).Pointer()); f != nil {
+middleware/with_value.go:25:	if reflect.TypeOf(key).Kind() == reflect.String {

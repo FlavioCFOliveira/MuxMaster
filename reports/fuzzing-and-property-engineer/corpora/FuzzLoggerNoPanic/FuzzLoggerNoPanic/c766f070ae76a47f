@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/norpmaM/path\x9eQČ\n\x04\xe3p\x1ca\x9f\xb7\xa3SЋuЅ\xbe-\xbe")

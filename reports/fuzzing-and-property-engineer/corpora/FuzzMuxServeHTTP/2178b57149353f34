@@ -1,3 +1,0 @@
-go test fuzz v1
-string("GET")
-string("0/0/0/0/0/0/%/0/0")

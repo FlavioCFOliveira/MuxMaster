@@ -1,0 +1,7 @@
+# 2026/05/07 19:23:45.907446 [TestProp_CDXMatrix_UsePanicsOnHandleFast] [rapid] draw n: 1
+# 2026/05/07 19:23:45.907455 [TestProp_CDXMatrix_UsePanicsOnHandleFast] I-CDX-01: n=1 Use() middlewares + HandleFast did not panic
+# 
+v0.4.8#16981929322371321725
+0x0
+0x0
+0x0

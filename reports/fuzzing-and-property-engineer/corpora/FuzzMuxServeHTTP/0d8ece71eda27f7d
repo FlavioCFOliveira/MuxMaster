@@ -1,3 +1,0 @@
-go test fuzz v1
-string("")
-string("?\xbd\xe1\xb90\xcc\xfc\xfd")

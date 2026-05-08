@@ -1,0 +1,15 @@
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/tree_maxparams_test.go:15:	if got := unsafe.Sizeof(node{}); got != want {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:35:		if got := unsafe.Sizeof(requestCtx1{}); got != want {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:43:		if got := unsafe.Sizeof(reqBundle1{}); got != want {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:50:		if got := unsafe.Sizeof(requestCtx2{}); got != want {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:58:		if got := unsafe.Sizeof(reqBundle2{}); got != want {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:65:		if got := unsafe.Sizeof(requestCtx{}); got != want {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:73:		if got := unsafe.Sizeof(reqBundle{}); got != want {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:88:		if off := unsafe.Offsetof(reqBundle1{}.ctx); off != 0 {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:94:		wantOff := unsafe.Sizeof(requestCtx1{}) // 88
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:95:		if got := unsafe.Offsetof(reqBundle1{}.req); got != wantOff {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:101:		wantOff := unsafe.Sizeof(requestCtx2{}) // 120
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:102:		if got := unsafe.Offsetof(reqBundle2{}.req); got != wantOff {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:108:		wantOff := unsafe.Sizeof(requestCtx{}) // 152
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/layout_test.go:109:		if got := unsafe.Offsetof(reqBundle{}.req); got != wantOff {
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223:	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx

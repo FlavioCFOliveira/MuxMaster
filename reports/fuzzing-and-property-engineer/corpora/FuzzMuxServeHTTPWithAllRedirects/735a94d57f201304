@@ -1,3 +1,0 @@
-go test fuzz v1
-string("𒒐𒒐𐐒")
-string("0")

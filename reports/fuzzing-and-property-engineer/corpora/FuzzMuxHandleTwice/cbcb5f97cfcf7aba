@@ -1,3 +1,0 @@
-go test fuzz v1
-string("/\x890000:0}")
-string("0")

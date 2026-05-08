@@ -1,3 +1,0 @@
-go test fuzz v1
-string("0\xc5\xc5\xc5\xc50")
-string("0")

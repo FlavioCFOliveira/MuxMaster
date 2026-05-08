@@ -1,0 +1,2 @@
+go test fuzz v1
+string("\xf4\x87\a\t\tꆼ쿼\n\a\a\nᮑ\n\t\a\a鎻\n\xe9\xad\xe8\x85\a\t\n\a\n\n\n\a")

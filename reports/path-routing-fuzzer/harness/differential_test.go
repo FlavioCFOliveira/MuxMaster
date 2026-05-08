@@ -1,263 +1,566 @@
-package fuzz
+package harness
 
 import (
-	"encoding/csv"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	mmmw "github.com/FlavioCFOliveira/MuxMaster/middleware"
+	chi "github.com/go-chi/chi/v5"
+	"github.com/julienschmidt/httprouter"
+	mm "github.com/FlavioCFOliveira/MuxMaster"
+	bunrouter "github.com/uptrace/bunrouter"
 )
 
-// TestDifferentialTable walks every corpus line through the four routers
-// and writes a CSV evidence file documenting the (router -> result) map.
-// Security-material divergences (traversal reaching /admin*) cause the
-// test to fail; everything else is logged as an informational row.
-func TestDifferentialTable(t *testing.T) {
-	files, _ := filepath.Glob(filepath.Join("..", "corpora", "*.txt"))
-	if len(files) == 0 {
-		t.Skip("no corpora")
-	}
-	outDir := filepath.Join("..", "evidence", "2026-04-17")
-	_ = os.MkdirAll(outDir, 0o755)
-	out, err := os.Create(filepath.Join(outDir, "differential.csv"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer out.Close()
-	w := csv.NewWriter(out)
-	defer w.Flush()
-	_ = w.Write([]string{
-		"corpus", "path",
-		"muxmaster_status", "muxmaster_handler", "muxmaster_loc",
-		"httprouter_status", "httprouter_handler", "httprouter_loc",
-		"chi_status", "chi_handler", "chi_loc",
-		"bunrouter_status", "bunrouter_handler", "bunrouter_loc",
-		"divergence_class",
+// routeResult captures the routing outcome from a single router.
+type routeResult struct {
+	status  int
+	handler string // "matched", "notfound", "405", "redirect", "options"
+	param   string // first path param value if any
+}
+
+// --- MuxMaster oracle ---
+
+func buildMuxMaster() *mm.Mux {
+	r := mm.New()
+	r.RedirectTrailingSlash = true
+	r.RedirectFixedPath = false
+
+	r.GET("/admin", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("X-Handler", "admin")
+		w.WriteHeader(200)
 	})
+	r.GET("/users/:id", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("X-Handler", "users_id")
+		w.Header().Set("X-Param-id", mm.PathParam(req, "id"))
+		w.WriteHeader(200)
+	})
+	r.GET("/static/*filepath", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("X-Handler", "static")
+		w.Header().Set("X-Param-filepath", mm.PathParam(req, "filepath"))
+		w.WriteHeader(200)
+	})
+	r.GET("/api/v1/items/:id/children/:cid", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("X-Handler", "items_children")
+		w.Header().Set("X-Param-id", mm.PathParam(req, "id"))
+		w.WriteHeader(200)
+	})
+	r.GET("/public", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("X-Handler", "public")
+		w.WriteHeader(200)
+	})
+	return r
+}
 
-	var bypasses []string
-	var crlfLocs []string
-	var divCount int
-	var totalLines int
+func queryMuxMaster(mux *mm.Mux, path string) (res routeResult) {
+	defer func() {
+		if rc := recover(); rc != nil {
+			res = routeResult{status: 0, handler: "panic", param: fmt.Sprintf("%v", rc)}
+		}
+	}()
+	req := httptest.NewRequest("GET", "http://x"+path, nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+	res.status = w.Code
+	switch w.Code {
+	case 200:
+		res.handler = "matched"
+	case 301, 302, 307, 308:
+		res.handler = "redirect"
+	case 404:
+		res.handler = "notfound"
+	case 405:
+		res.handler = "405"
+	default:
+		res.handler = fmt.Sprintf("status%d", w.Code)
+	}
+	res.param = w.Header().Get("X-Param-id")
+	if res.param == "" {
+		res.param = w.Header().Get("X-Param-filepath")
+	}
+	return res
+}
 
-	for _, file := range files {
-		name := filepath.Base(file)
-		lines := loadSeedsFromPath(t, file)
-		for _, raw := range lines {
-			totalLines++
-			if !isAcceptablePath(raw) {
-				continue
+// --- httprouter oracle ---
+
+func buildHTTPRouter() *httprouter.Router {
+	r := httprouter.New()
+	r.GET("/admin", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		w.Header().Set("X-Handler", "admin")
+		w.WriteHeader(200)
+	})
+	r.GET("/users/:id", func(w http.ResponseWriter, _ *http.Request, ps httprouter.Params) {
+		w.Header().Set("X-Handler", "users_id")
+		w.Header().Set("X-Param-id", ps.ByName("id"))
+		w.WriteHeader(200)
+	})
+	r.GET("/static/*filepath", func(w http.ResponseWriter, _ *http.Request, ps httprouter.Params) {
+		w.Header().Set("X-Handler", "static")
+		w.Header().Set("X-Param-filepath", ps.ByName("filepath"))
+		w.WriteHeader(200)
+	})
+	r.GET("/api/v1/items/:id/children/:cid", func(w http.ResponseWriter, _ *http.Request, ps httprouter.Params) {
+		w.Header().Set("X-Handler", "items_children")
+		w.Header().Set("X-Param-id", ps.ByName("id"))
+		w.WriteHeader(200)
+	})
+	r.GET("/public", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+		w.Header().Set("X-Handler", "public")
+		w.WriteHeader(200)
+	})
+	return r
+}
+
+func queryHTTPRouter(r *httprouter.Router, path string) (res routeResult) {
+	defer func() {
+		if rc := recover(); rc != nil {
+			res = routeResult{status: 0, handler: "panic", param: fmt.Sprintf("%v", rc)}
+		}
+	}()
+	req := httptest.NewRequest("GET", "http://x"+path, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	res.status = w.Code
+	switch w.Code {
+	case 200:
+		res.handler = "matched"
+	case 301, 302, 307, 308:
+		res.handler = "redirect"
+	case 404:
+		res.handler = "notfound"
+	case 405:
+		res.handler = "405"
+	default:
+		res.handler = fmt.Sprintf("status%d", w.Code)
+	}
+	res.param = w.Header().Get("X-Param-id")
+	if res.param == "" {
+		res.param = w.Header().Get("X-Param-filepath")
+	}
+	return res
+}
+
+// --- chi oracle ---
+
+func buildChi() *chi.Mux {
+	r := chi.NewMux()
+	r.Get("/admin", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("X-Handler", "admin")
+		w.WriteHeader(200)
+	})
+	r.Get("/users/{id}", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("X-Handler", "users_id")
+		w.Header().Set("X-Param-id", chi.URLParam(req, "id"))
+		w.WriteHeader(200)
+	})
+	r.Get("/static/*", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("X-Handler", "static")
+		w.Header().Set("X-Param-filepath", chi.URLParam(req, "*"))
+		w.WriteHeader(200)
+	})
+	r.Get("/api/v1/items/{id}/children/{cid}", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("X-Handler", "items_children")
+		w.Header().Set("X-Param-id", chi.URLParam(req, "id"))
+		w.WriteHeader(200)
+	})
+	r.Get("/public", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("X-Handler", "public")
+		w.WriteHeader(200)
+	})
+	return r
+}
+
+func queryChi(r *chi.Mux, path string) (res routeResult) {
+	defer func() {
+		if rc := recover(); rc != nil {
+			res = routeResult{status: 0, handler: "panic", param: fmt.Sprintf("%v", rc)}
+		}
+	}()
+	req := httptest.NewRequest("GET", "http://x"+path, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	res.status = w.Code
+	switch w.Code {
+	case 200:
+		res.handler = "matched"
+	case 301, 302, 307, 308:
+		res.handler = "redirect"
+	case 404:
+		res.handler = "notfound"
+	case 405:
+		res.handler = "405"
+	default:
+		res.handler = fmt.Sprintf("status%d", w.Code)
+	}
+	res.param = w.Header().Get("X-Param-id")
+	if res.param == "" {
+		res.param = w.Header().Get("X-Param-filepath")
+	}
+	return res
+}
+
+// --- bunrouter oracle ---
+
+func buildBunRouter() *bunrouter.Router {
+	r := bunrouter.New()
+	r.GET("/admin", func(w http.ResponseWriter, req bunrouter.Request) error {
+		w.Header().Set("X-Handler", "admin")
+		w.WriteHeader(200)
+		return nil
+	})
+	r.GET("/users/:id", func(w http.ResponseWriter, req bunrouter.Request) error {
+		w.Header().Set("X-Handler", "users_id")
+		w.Header().Set("X-Param-id", req.Param("id"))
+		w.WriteHeader(200)
+		return nil
+	})
+	r.GET("/static/*filepath", func(w http.ResponseWriter, req bunrouter.Request) error {
+		w.Header().Set("X-Handler", "static")
+		w.Header().Set("X-Param-filepath", req.Param("filepath"))
+		w.WriteHeader(200)
+		return nil
+	})
+	r.GET("/api/v1/items/:id/children/:cid", func(w http.ResponseWriter, req bunrouter.Request) error {
+		w.Header().Set("X-Handler", "items_children")
+		w.Header().Set("X-Param-id", req.Param("id"))
+		w.WriteHeader(200)
+		return nil
+	})
+	r.GET("/public", func(w http.ResponseWriter, req bunrouter.Request) error {
+		w.Header().Set("X-Handler", "public")
+		w.WriteHeader(200)
+		return nil
+	})
+	return r
+}
+
+func queryBunRouter(r *bunrouter.Router, path string) (res routeResult) {
+	// bunrouter panics on certain malformed paths (e.g. //double-slash). Recover
+	// and treat as "panic" result so we can report it as a competitor finding.
+	defer func() {
+		if rc := recover(); rc != nil {
+			res = routeResult{status: 0, handler: "panic", param: fmt.Sprintf("%v", rc)}
+		}
+	}()
+	req := httptest.NewRequest("GET", "http://x"+path, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	res = routeResult{status: w.Code}
+	switch w.Code {
+	case 200:
+		res.handler = "matched"
+	case 301, 302, 307, 308:
+		res.handler = "redirect"
+	case 404:
+		res.handler = "notfound"
+	case 405:
+		res.handler = "405"
+	default:
+		res.handler = fmt.Sprintf("status%d", w.Code)
+	}
+	res.param = w.Header().Get("X-Param-id")
+	if res.param == "" {
+		res.param = w.Header().Get("X-Param-filepath")
+	}
+	return res
+}
+
+// =============================================================================
+// Differential corpus table
+// =============================================================================
+
+// divergenceClass classifies a divergence as a security finding or documented
+// behaviour difference.
+func divergenceClass(path string, mm, hr, ch, bun routeResult) string {
+	// A competitor panic is always noteworthy.
+	if bun.handler == "panic" {
+		return "COMPETITOR-PANIC:bunrouter"
+	}
+	allMatch := mm.handler == hr.handler && mm.handler == ch.handler && mm.handler == bun.handler
+	if allMatch {
+		return ""
+	}
+	// Documented: chi strips trailing slash by default; httprouter redirects.
+	if strings.HasSuffix(path, "/") {
+		return "documented-trailing-slash"
+	}
+	// Documented: bunrouter 0-alloc uses different param encoding.
+	// Documented: chi uses different wildcard syntax (*).
+	// If MuxMaster says "matched" but all others say "notfound" — security finding.
+	if mm.handler == "matched" && hr.handler == "notfound" && ch.handler == "notfound" {
+		return "SECURITY:muxmaster-matches-where-others-404"
+	}
+	// If MuxMaster says "notfound" but all others match — possibly missing route.
+	if mm.handler == "notfound" && hr.handler == "matched" && ch.handler == "matched" {
+		return "muxmaster-404-where-others-match"
+	}
+	// Redirect divergence: MuxMaster redirects but others 404.
+	if mm.handler == "redirect" && hr.handler == "notfound" {
+		return "mm-redirect-where-hr-404"
+	}
+	return "divergence"
+}
+
+func TestDifferential_CorpusPaths(t *testing.T) {
+	mmRouter := buildMuxMaster()
+	hrRouter := buildHTTPRouter()
+	chiRouter := buildChi()
+	bunRouter := buildBunRouter()
+
+	type testCase struct {
+		path string
+		// securityCritical = true means any divergence where MM matches is a finding.
+		securityCritical bool
+	}
+
+	cases := []testCase{
+		// --- Control paths (all must match) ---
+		{"/admin", false},
+		{"/users/123", false},
+		{"/static/image.png", false},
+		{"/api/v1/items/42/children/99", false},
+		{"/public", false},
+
+		// --- Traversal attacks (all must 404 or redirect, NOT match /admin) ---
+		{"/../admin", true},
+		{"/users/../admin", true},
+		{"/users/1/../admin", true},
+		{"/static/../admin", true},
+		{"/./admin", true},
+		{"/%2e%2e/admin", true},
+		{"/%2E%2E/admin", true},
+		{"/..%2fadmin", true},
+		{"/users/%2e%2e/admin", true},
+		{"/static/..%2fadmin", true},
+		{"/static/%2e%2e/admin", true},
+
+		// --- Encoding attacks ---
+		{"/%61dmin", false},       // %61 = 'a' — should 404 (no pre-routing decode)
+		{"/ad%6din", false},       // %6d = 'm'
+		{"/%2561dmin", false},     // double-encoded
+		// Note: null bytes are tested separately in hypotheses_test.go;
+		// httptest.NewRequest rejects them before reaching the router.
+
+		// --- Structural ---
+		{"//admin", false},
+		{"///admin", false},
+		{"/admin//", false},
+		{"/admin;param", false},
+		{"/admin#fragment", false}, // fragment should not reach server
+
+		// --- Param attacks ---
+		{"/users/1%2f2", false},   // %2f = '/' in param
+		{"/users/", false},        // empty param after slash
+		{"/users", false},         // missing param (TSR candidate)
+
+		// --- Unicode ---
+		{"/аdmin", false}, // Cyrillic а ≠ Latin a
+
+		// --- Wildcard ---
+		{"/static/", false},  // empty filepath (TSR candidate)
+		{"/static", false},   // missing slash (TSR candidate)
+		{"/static/a/b/c", false},
+		{"/static/../../etc/passwd", true},
+	}
+
+	type divRecord struct {
+		path  string
+		mm    routeResult
+		hr    routeResult
+		chi   routeResult
+		bun   routeResult
+		class string
+	}
+
+	var divergences []divRecord
+	var securityFindings []divRecord
+
+	for _, tc := range cases {
+		mmR := queryMuxMaster(mmRouter, tc.path)
+		hrR := queryHTTPRouter(hrRouter, tc.path)
+		chiR := queryChi(chiRouter, tc.path)
+		bunR := queryBunRouter(bunRouter, tc.path)
+
+		class := divergenceClass(tc.path, mmR, hrR, chiR, bunR)
+		if class != "" {
+			rec := divRecord{tc.path, mmR, hrR, chiR, bunR, class}
+			divergences = append(divergences, rec)
+			if strings.HasPrefix(class, "SECURITY") || tc.securityCritical {
+				if mmR.handler == "matched" {
+					securityFindings = append(securityFindings, rec)
+				}
 			}
-			res := routeAll(raw)
-			cls := classifyDivergence(raw, res)
-			if cls != "equivalent" && cls != "all-404" && cls != "all-matched-same" {
-				divCount++
+		}
+	}
+
+	// Report all divergences.
+	for _, d := range divergences {
+		t.Logf("DIV [%s] path=%q mm=%s hr=%s chi=%s bun=%s",
+			d.class, d.path,
+			d.mm.handler, d.hr.handler, d.chi.handler, d.bun.handler)
+	}
+
+	// Fail on security-critical divergences where MM matched.
+	for _, d := range securityFindings {
+		t.Errorf("PRF-DIFF SECURITY: path=%q MuxMaster matched (%d) but competitors did not (hr=%s chi=%s bun=%s)",
+			d.path, d.mm.status, d.hr.handler, d.chi.handler, d.bun.handler)
+	}
+
+	t.Logf("Differential summary: %d paths tested, %d divergences, %d security findings",
+		len(cases), len(divergences), len(securityFindings))
+}
+
+// =============================================================================
+// Fuzz harness: GetValue must not panic
+// =============================================================================
+
+func FuzzGetValue(f *testing.F) {
+	// Seed corpus.
+	seeds := []string{
+		"/admin", "/users/123", "/static/img.png",
+		"/../admin", "/users/../admin", "/%2e%2e/admin",
+		"/..%2fadmin", "/%61dmin", "/%252e%252e/admin",
+		"/аdmin", "/admin\x00", "//admin",
+		"/users/1%2f2", "/static/../../etc/passwd",
+		"/admin;param", "", "/", "//", "///",
+		"/users/", "/static/", "/api/v1/items/1/children/",
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+
+	mmRouter := buildMuxMaster()
+
+	f.Fuzz(func(t *testing.T, path string) {
+		// Skip invalid UTF-8.
+		for i := 0; i < len(path); i++ {
+			if path[i] > 127 {
+				// Check multi-byte validity.
+				if !isValidUTF8Prefix(path) {
+					t.Skip()
+					return
+				}
+				break
 			}
-			_ = w.Write([]string{
-				name, raw,
-				itoa(res[rkMuxMaster].status), res[rkMuxMaster].handlerID, res[rkMuxMaster].location,
-				itoa(res[rkHTTPRouter].status), res[rkHTTPRouter].handlerID, res[rkHTTPRouter].location,
-				itoa(res[rkChi].status), res[rkChi].handlerID, res[rkChi].location,
-				itoa(res[rkBunRouter].status), res[rkBunRouter].handlerID, res[rkBunRouter].location,
-				cls,
+		}
+		if len(path) > 8192 {
+			t.Skip()
+			return
+		}
+
+		defer func() {
+			if r := recover(); r != nil {
+				t.Fatalf("PANIC path=%q: %v", path, r)
+			}
+		}()
+
+		mmR := queryMuxMaster(mmRouter, path)
+
+		// Invariant: traversal to /admin must never succeed.
+		if containsTraversal(path) && mmR.handler == "matched" {
+			// Check which handler was matched.
+			req := httptest.NewRequest("GET", "http://x"+path, nil)
+			w := httptest.NewRecorder()
+			mmRouter.ServeHTTP(w, req)
+			if w.Header().Get("X-Handler") == "admin" {
+				t.Fatalf("FUZZ-INVARIANT: traversal path %q reached /admin handler", path)
+			}
+		}
+	})
+}
+
+func isValidUTF8Prefix(s string) bool {
+	for i := 0; i < len(s); {
+		if s[i] < 0x80 {
+			i++
+			continue
+		}
+		// Simplified: check leading byte.
+		b := s[i]
+		var size int
+		switch {
+		case b < 0xC0:
+			return false // continuation byte at start
+		case b < 0xE0:
+			size = 2
+		case b < 0xF0:
+			size = 3
+		default:
+			size = 4
+		}
+		if i+size > len(s) {
+			return false
+		}
+		for j := 1; j < size; j++ {
+			if s[i+j]&0xC0 != 0x80 {
+				return false
+			}
+		}
+		i += size
+	}
+	return true
+}
+
+// =============================================================================
+// Fuzz harness: addRoute must not panic for valid patterns
+// =============================================================================
+
+func FuzzAddRoute(f *testing.F) {
+	seeds := []string{
+		"/admin", "/users/:id", "/static/*filepath",
+		"/api/v1/:version/items/:id",
+		"/a{/:b}", "/a{/:b}{/:c}",
+		"/a{/:b}{/:c}{/:d}",
+		"/{name:[a-z]+}/profile",
+		"/a/b/c/d/e/f/g",
+	}
+	for _, s := range seeds {
+		f.Add(s)
+	}
+
+	f.Fuzz(func(t *testing.T, pattern string) {
+		if len(pattern) == 0 || pattern[0] != '/' {
+			t.Skip()
+		}
+		if len(pattern) > 512 {
+			t.Skip()
+		}
+
+		panicked := false
+		var panicMsg interface{}
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					panicked = true
+					panicMsg = r
+				}
+			}()
+			r := mm.New()
+			r.GET(pattern, func(w http.ResponseWriter, req *http.Request) {
+				w.WriteHeader(200)
 			})
-			for _, r := range res {
-				if strings.ContainsAny(r.location, "\r\n") {
-					crlfLocs = append(crlfLocs, raw)
+		}()
+
+		if panicked {
+			// Panics for invalid patterns (conflict, unclosed brace, etc.) are acceptable.
+			msg := fmt.Sprintf("%v", panicMsg)
+			// Only report unexpected panics — not documented conflict/validation panics.
+			unexpected := true
+			for _, expected := range []string{
+				"conflicts with", "only one wildcard", "wildcards must be named",
+				"catch-all routes", "catch-all conflicts", "catch-all requires",
+				"already registered", "invalid UTF-8", "unclosed {", "regex param",
+				"invalid regexp", "optional segments",
+			} {
+				if strings.Contains(msg, expected) {
+					unexpected = false
+					break
 				}
 			}
-			// Classify muxmaster-only traversal acceptance.
-			if containsDotDotSegment(raw) {
-				h := res[rkMuxMaster].handlerID
-				if h == "admin" || h == "admin.panel" || h == "admin.panel.settings" {
-					bypasses = append(bypasses, fmt.Sprintf("path=%q handler=%q", raw, h))
-				}
+			if unexpected {
+				t.Fatalf("FUZZ-ADDROUTE UNEXPECTED PANIC pattern=%q: %v", pattern, panicMsg)
 			}
 		}
-	}
-	t.Logf("differential: %d total lines processed, %d divergences", totalLines, divCount)
-	if len(crlfLocs) > 0 {
-		t.Errorf("%d inputs produced CRLF in Location: %v", len(crlfLocs), crlfLocs[:min(5, len(crlfLocs))])
-	}
-	if len(bypasses) > 0 {
-		t.Errorf("muxmaster accepted %d traversal paths onto /admin*: %v",
-			len(bypasses), bypasses[:min(10, len(bypasses))])
-	}
-}
-
-// classifyDivergence labels a result-tuple with one of:
-//   - equivalent: every router reached the same handler
-//   - all-404: all routers rejected
-//   - all-matched-same: all routed to same symbolic handler
-//   - status-split: status codes differ
-//   - handler-split: different handlers matched
-//   - location-split: redirect target disagreements
-//   - muxmaster-unique-match: only muxmaster accepted
-//   - muxmaster-unique-reject: muxmaster is the only reject
-func classifyDivergence(path string, res [rkCount]routeResult) string {
-	var allRejected = true
-	var uniqueMatch = false
-	for _, r := range res {
-		if r.status >= 200 && r.status < 300 {
-			allRejected = false
-		}
-	}
-	if allRejected {
-		return "all-404"
-	}
-
-	// Same handler for all matched routers?
-	sameHandler := true
-	ref := res[rkMuxMaster].handlerID
-	for _, r := range res {
-		if r.handlerID != ref {
-			sameHandler = false
-			break
-		}
-	}
-	if sameHandler {
-		return "all-matched-same"
-	}
-
-	mmMatched := res[rkMuxMaster].matched
-	othersMatched := 0
-	for i, r := range res {
-		if i == int(rkMuxMaster) {
-			continue
-		}
-		if r.matched {
-			othersMatched++
-		}
-	}
-	if mmMatched && othersMatched == 0 {
-		return "muxmaster-unique-match"
-	}
-	if !mmMatched && othersMatched >= 2 {
-		return "muxmaster-unique-reject"
-	}
-	_ = uniqueMatch
-	return "handler-split"
-}
-
-func loadSeedsFromPath(t *testing.T, p string) []string {
-	t.Helper()
-	b, err := os.ReadFile(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var out []string
-	for _, line := range strings.Split(string(b), "\n") {
-		line = strings.TrimRight(line, "\r")
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		out = append(out, decodeEscapes(line))
-	}
-	return out
-}
-
-func itoa(i int) string { return fmt.Sprintf("%d", i) }
-
-// TestMiddlewareInteractionMatrix builds a 2×2×2×2 matrix of
-// (clean_path, strip_slashes, RedirectTrailingSlash, RedirectFixedPath)
-// and for each combination records how every corpus payload is routed.
-// Output is a CSV at evidence/2026-04-17/middleware-matrix.csv. The test
-// asserts that no combination allows a ".."-bearing payload to reach
-// /admin*.
-func TestMiddlewareInteractionMatrix(t *testing.T) {
-	outDir := filepath.Join("..", "evidence", "2026-04-17")
-	_ = os.MkdirAll(outDir, 0o755)
-	out, err := os.Create(filepath.Join(outDir, "middleware-matrix.csv"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer out.Close()
-	w := csv.NewWriter(out)
-	defer w.Flush()
-	_ = w.Write([]string{
-		"clean_path", "strip_slashes", "redirectTS", "redirectFP",
-		"path", "status", "handler", "location", "verdict",
 	})
-
-	files, _ := filepath.Glob(filepath.Join("..", "corpora", "*.txt"))
-	var corpus []string
-	for _, f := range files {
-		lines := loadSeedsFromPath(t, f)
-		// Bound the corpus so the matrix stays in a tolerable size.
-		// We pick the first N from every file and rely on curation.
-		if len(lines) > 60 {
-			lines = lines[:60]
-		}
-		corpus = append(corpus, lines...)
-	}
-
-	var bypassCount int
-	for _, cp := range []bool{false, true} {
-		for _, ss := range []bool{false, true} {
-			for _, rts := range []bool{false, true} {
-				for _, rfp := range []bool{false, true} {
-					m := buildMuxMaster(rts, rfp, false, false, false)
-					var h http.Handler = m
-					if ss {
-						h = mmmw.StripSlashes()(h)
-					}
-					if cp {
-						h = mmmw.CleanPath()(h)
-					}
-					for _, p := range corpus {
-						if !isAcceptablePath(p) {
-							continue
-						}
-						req := buildRequest(p)
-						if req == nil {
-							continue
-						}
-						rec := httptest.NewRecorder()
-						func() {
-							defer func() { _ = recover() }()
-							h.ServeHTTP(rec, req)
-						}()
-						res := rec.Result()
-						handlerID := res.Header.Get("X-Handler")
-						loc := res.Header.Get("Location")
-						verdict := "ok"
-						if containsDotDotSegment(p) && (handlerID == "admin" || handlerID == "admin.panel" || handlerID == "admin.panel.settings") {
-							verdict = "BYPASS"
-							bypassCount++
-						}
-						if strings.ContainsAny(loc, "\r\n") {
-							verdict = "CRLF-LOC"
-						}
-						_ = w.Write([]string{
-							btoa(cp), btoa(ss), btoa(rts), btoa(rfp),
-							p, fmt.Sprintf("%d", res.StatusCode), handlerID, loc, verdict,
-						})
-						res.Body.Close()
-					}
-				}
-			}
-		}
-	}
-	if bypassCount > 0 {
-		t.Errorf("%d middleware combinations allowed a traversal bypass onto /admin*", bypassCount)
-	}
-}
-
-func btoa(b bool) string {
-	if b {
-		return "1"
-	}
-	return "0"
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

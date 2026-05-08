@@ -1,0 +1,4 @@
+go test fuzz v1
+string("/000\x05\x0100\x06ؠ\x18")
+string("0000000000")
+string("000000")

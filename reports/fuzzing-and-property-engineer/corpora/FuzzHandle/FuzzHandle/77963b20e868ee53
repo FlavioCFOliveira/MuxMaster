@@ -1,0 +1,3 @@
+go test fuzz v1
+string("TRACE")
+string("/0000\xf2\xf2\xf2\xf2\xf2\xf2\xf2\xf2")

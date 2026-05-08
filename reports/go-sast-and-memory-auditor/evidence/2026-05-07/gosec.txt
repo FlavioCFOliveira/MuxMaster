@@ -1,0 +1,290 @@
+Results:
+
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go:297] - G115 (CWE-190): integer overflow conversion int -> uint8 (Confidence: MEDIUM, Severity: HIGH)
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go:297] - G115 (CWE-190): integer overflow conversion int -> uint8 (Confidence: MEDIUM, Severity: HIGH)
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go:297] - G115 (CWE-190): integer overflow conversion int -> uint8 (Confidence: MEDIUM, Severity: HIGH)
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go:297] - G115 (CWE-190): integer overflow conversion int -> uint8 (Confidence: MEDIUM, Severity: HIGH)
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go:297] - G115 (CWE-190): integer overflow conversion int -> uint8 (Confidence: MEDIUM, Severity: HIGH)
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go:297] - G115 (CWE-190): integer overflow conversion int -> uint8 (Confidence: MEDIUM, Severity: HIGH)
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go:297] - G115 (CWE-190): integer overflow conversion int -> uint8 (Confidence: MEDIUM, Severity: HIGH)
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go:297] - G115 (CWE-190): integer overflow conversion int -> uint8 (Confidence: MEDIUM, Severity: HIGH)
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:618] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:618] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:618] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:618] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:618] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:618] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:618] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:618] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:607] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:607] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:607] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:607] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:607] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:607] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:607] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go:607] - G710 (CWE): Open redirect via taint analysis (Confidence: HIGH, Severity: MEDIUM)
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go:221] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go:221] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go:221] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go:221] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go:221] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go:221] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go:221] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+[/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go:221] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+Summary:
+  Gosec  : dev
+  Files  : 130
+  Lines  : 40942
+  Nosec  : 16
+  Issues : 40
+

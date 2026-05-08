@@ -1,3 +1,0 @@
-go test fuzz v1
-string("GET")
-string("/{:\xe4\x84\xff}")

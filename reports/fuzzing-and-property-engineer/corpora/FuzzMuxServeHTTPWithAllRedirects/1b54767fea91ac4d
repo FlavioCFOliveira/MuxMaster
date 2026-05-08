@@ -1,3 +1,0 @@
-go test fuzz v1
-string("0ד\xe10\x16\xe6000000")
-string("/users//")

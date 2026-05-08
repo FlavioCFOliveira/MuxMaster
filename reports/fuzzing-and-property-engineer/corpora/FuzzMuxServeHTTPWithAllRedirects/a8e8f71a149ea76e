@@ -1,3 +1,0 @@
-go test fuzz v1
-string("GET")
-string("/u\x7f0/00/00000/00/")

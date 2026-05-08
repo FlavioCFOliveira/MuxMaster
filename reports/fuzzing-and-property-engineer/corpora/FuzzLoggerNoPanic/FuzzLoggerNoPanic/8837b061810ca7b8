@@ -1,0 +1,2 @@
+go test fuzz v1
+string("ttt\x02\x02\x02\x02\x02\x02\x021mE3C")

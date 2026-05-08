@@ -1,0 +1,2 @@
+go test fuzz v1
+string("䦦Ґ䇗\xef\xa40")

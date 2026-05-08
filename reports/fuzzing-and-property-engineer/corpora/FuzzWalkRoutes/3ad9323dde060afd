@@ -1,4 +1,0 @@
-go test fuzz v1
-string("0")
-string("/{:00\x91}")
-string("0")

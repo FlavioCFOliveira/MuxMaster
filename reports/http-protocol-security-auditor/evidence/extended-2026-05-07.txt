@@ -1,0 +1,125 @@
+## Extended Protocol Security Audit Evidence — 2026-05-07
+Commit: e30ae946f634cbec54c0ae9445cbf3787ca24f31
+Go: go1.26.2 linux/amd64
+Harness: reports/http-protocol-security-auditor/harness/hps_extended_2026_test.go
+
+### Summary: 17 extended attack classes tested
+Pass: 16 | Fail: 1 (all failures = HPS-2026-0005 open redirect, already registered)
+
+=== HPS-EXT-01: Trailer header injection — PASS ===
+Payload: POST /upload HTTP/1.1 + chunked body + Trailer: X-Checksum containing CRLF
+Result: Response headers contain only Date, Content-Length, Content-Type, Connection
+X-Injected not present. CRLF in trailer value NOT reflected.
+capturedTrailer="evil" (net/http parsed the first trailer value correctly; the CRLF
+injection was neutralised at the framing layer).
+
+=== HPS-EXT-02: Host header confusion in redirect Location — PASS ===
+Tested hosts: localhost, localhost:8080, evil.com, user:pass@evil.com, evil.com/extra,
+              [::1], evil.com\r\nX-Via: injection
+Result: All redirect Locations are path-only ("/admin"), no external host, no CRLF.
+Key: r.URL.Host was NOT set in these tests (r.Host was set). When r.URL.Host is absent,
+r.URL.String() returns just the path. See HPS-EXT-13 / HPS-2026-0005 for the case where
+r.URL.Host IS set (absolute-form URI from proxy).
+
+=== HPS-EXT-03: CONNECT method dispatch — PASS ===
+CONNECT without a handler → 405 Method Not Allowed (not routed to GET handler)
+CONNECT with registered handler → handler reached correctly
+No method aliasing.
+
+=== HPS-EXT-04: TRACE + non-standard verbs — PASS ===
+TRACE not auto-handled → 405 (handler returns "Method Not Allowed" body, not echoed headers)
+TRACE does NOT echo Authorization header in response body.
+PROPFIND (WebDAV) → 405 (no panic, no routing confusion)
+Registered TRACE handler → reached correctly.
+
+=== HPS-EXT-05: Malformed method via raw TCP — PASS ===
+Empty method (" /admin HTTP/1.1"): 400 Bad Request
+Leading space in method (" GET /admin"): 400 Bad Request
+Tab in method ("GET\t/admin"): 400 Bad Request
+All malformed method request lines rejected by net/http framing layer before reaching MuxMaster.
+Lowercase method "get": net/http accepts it but MuxMaster does not route to the GET handler (404)
+— this is correct RFC 9110 §9.1 behaviour (methods are case-sensitive).
+
+=== HPS-EXT-06: HTTP Parameter Pollution in query string — PASS ===
+Logger format: "timestamp METHOD path status duration" — RawQuery is NOT logged.
+Encoded CRLF in query (%0d%0aX-Injected:yes): not reflected in log output.
+Duplicate params, array notation, mixed case, null byte in value: all handled correctly.
+No log injection via query string.
+
+=== HPS-EXT-07: Path param injection (CRLF in captured param value) — PASS ===
+Path /users/evil%0d%0a/profile: capturedID="evil\r\n"
+MuxMaster does NOT write param values into response headers.
+No response header contains CRLF from path param.
+(Handler echoes to body — that is handler's responsibility to sanitise, not MuxMaster's.)
+
+=== HPS-EXT-08: Keep-alive connection state isolation — PASS ===
+Two pipelined requests on same connection — no cross-request data contamination.
+Paths processed correctly: /req/first, /req/second independent.
+
+=== HPS-EXT-09: H2 :authority vs Host header — PASS ===
+When r.URL.Host is NOT set (which is the typical H2 path in net/http):
+Redirect Location is path-only "/admin" — no host injection possible.
+Key distinction: H2 requests via net/http do NOT set r.URL.Host; they set r.Host only.
+r.URL.String() returns just "/path" when r.URL.Host is empty → safe.
+The HPS-2026-0005 vulnerability only applies when r.URL.Host IS populated (proxy absolute-form URI).
+
+=== HPS-EXT-10: Logger r.RemoteAddr sanitisation — PASS ===
+Logger format does NOT include RemoteAddr field.
+Log output: "2026-05-07T19:08:03+01:00 GET /path 200 10.477µs"
+Malicious RemoteAddr="127.0.0.1:1234\nFAKE-LOG: injected" does NOT appear in log output.
+Exactly 1 log line per request.
+
+=== HPS-EXT-11: CORS wildcard+credentials panic — PASS ===
+CORS(AllowedOrigins=["*"], AllowCredentials=true) → panics at construction with message:
+"middleware: CORS AllowCredentials must not be true when AllowedOrigins contains \"*\""
+Catch-at-boot pattern prevents the misconfiguration from reaching production.
+
+=== HPS-EXT-12: Double percent-encoding bypass — PASS ===
+/admin%252fsecret → 404 (net/http decodes once: %25 → %, then %2f stays as literal %2f,
+  no second decode of %2f → path = "/admin%2fsecret" → no match)
+Triple-encoded: 404
+/admin%2F%2F%2Fsecret: 404 (multiple slashes don't match the registered route)
+No double-decode path in MuxMaster or net/http URL parser.
+
+=== HPS-EXT-13: Absolute-form URI open redirect confirmation — FAIL (HPS-2026-0005) ===
+r.URL = {Scheme:"http", Host:"evil.com", Path:"/admin/"} → Location: "http://evil.com/admin"
+This is the SAME finding as HPS-2026-0005, already registered as task #145 (sev=7, BACKLOG).
+See evidence in hps_2026_openredirect_test.go and the original harness for full details.
+
+Root cause confirmed: mux.go line 931 and 945:
+  target := r.URL.String()
+When r.URL.Scheme="http" and r.URL.Host="evil.com" (set by net/http for proxy absolute-form URI):
+  r.URL.String() = "http://evil.com" + path
+  http.Redirect emits Location: http://evil.com/admin
+
+Confirmed vector: net/http DOES set r.URL.Host when server receives absolute-form URI
+  from a proxy or direct HTTP/1.1 CONNECT-style client:
+  GET http://evil.com/admin/ HTTP/1.1 → r.URL.Host = "evil.com" (confirmed by proxycheck.go)
+
+Fix: replace r.URL.String() with:
+  (&url.URL{Path: newPath, RawQuery: r.URL.RawQuery}).String()
+
+=== HPS-EXT-14: OPTIONS does not bypass Pre middleware — PASS ===
+Pre middleware registered, auto-OPTIONS (HandleOPTIONS=true) triggered.
+preCalled=true → Pre middleware ran for auto-OPTIONS request.
+Status=204, Allow="GET, OPTIONS".
+Pre middleware correctly applied to OPTIONS (unlike Use middleware which uses lazyOPTIONS).
+
+=== HPS-EXT-15: SetHeader Vary preservation — PASS ===
+SetHeader("Vary","Origin") outer + inner handler.Add("Vary","Accept-Encoding")
+Result: Vary=[Origin Accept-Encoding] — both values present.
+SetHeader.Set() runs before next, then inner.Add() appends.
+Note: If ordering is reversed (inner Set overwrites outer Set), Vary may be incomplete.
+This is documented in set_header.go and is operator responsibility.
+
+=== HPS-EXT-16: h2c Upgrade rejected — PASS ===
+GET /resource + "Connection: Upgrade, HTTP2-Settings" + "Upgrade: h2c"
+Response: HTTP/1.1 200 OK (server returns normal 200, ignores upgrade headers)
+No "101 Switching Protocols" — net/http does not support h2c upgrade by default.
+Not vulnerable to CVE-2023-39323 class h2c smuggling.
+
+=== HPS-EXT-17: CORS Vary: Origin present for specific origins — PASS ===
+CORS with AllowedOrigins=["https://trusted.com","https://other.com"]
+Request from https://trusted.com → ACAO="https://trusted.com" Vary="Origin"
+Vary: Origin correctly present when a specific (non-wildcard) origin is reflected.
+CDN cache poisoning via missing Vary: Origin prevented.

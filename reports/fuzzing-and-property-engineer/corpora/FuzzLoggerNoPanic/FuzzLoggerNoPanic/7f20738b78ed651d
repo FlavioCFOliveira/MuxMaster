@@ -1,0 +1,2 @@
+go test fuzz v1
+string("\x82p6\x1c\xa9\b\xe9\x03/)[31mESC")

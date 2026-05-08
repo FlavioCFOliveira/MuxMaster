@@ -650,6 +650,7 @@ func TestSec_OAuth2_CacheStaleActiveAfterExpiry(t *testing.T) {
 	defer server.Close()
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		AllowInsecureEndpoint: true,
 		Endpoint: server.URL,
 		CacheTTL: 100 * time.Millisecond,
 	})
@@ -686,6 +687,7 @@ func TestSec_OAuth2_InactiveTokenCached_NotAccepted(t *testing.T) {
 	defer server.Close()
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		AllowInsecureEndpoint: true,
 		Endpoint: server.URL,
 		CacheTTL: 60 * time.Second,
 	})
@@ -717,6 +719,7 @@ func TestSec_OAuth2_RevocationLag_Documented(t *testing.T) {
 	defer server.Close()
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		AllowInsecureEndpoint: true,
 		Endpoint: server.URL,
 		CacheTTL: 60 * time.Second, // long cache TTL
 	})
@@ -742,6 +745,7 @@ func TestSec_OAuth2_EndpointErrorReturns401(t *testing.T) {
 	defer server.Close()
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		AllowInsecureEndpoint: true,
 		Endpoint: server.URL,
 		CacheTTL: -1,
 	})
@@ -765,6 +769,7 @@ func TestSec_OAuth2_ResponseBodyLimitedTo64KB(t *testing.T) {
 	defer server.Close()
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		AllowInsecureEndpoint: true,
 		Endpoint: server.URL,
 		CacheTTL: -1,
 	})
@@ -784,7 +789,7 @@ func TestSec_OAuth2_MissingTokenReturns401WithWWWAuth(t *testing.T) {
 	}))
 	defer server.Close()
 
-	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{Endpoint: server.URL})
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{AllowInsecureEndpoint: true, Endpoint: server.URL})
 	rec := serve(mw, "GET", "/", nil)
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("missing token: got %d want 401", rec.Code)
@@ -843,28 +848,21 @@ func TestSec_CORS_OriginReflectionWithWhitelist(t *testing.T) {
 }
 
 func TestSec_CORS_EmptyAllowedOrigins_SilentPermissive(t *testing.T) {
-	// Hypothesis #4: when AllowedOrigins is empty, the CORS middleware falls through
-	// to next.ServeHTTP WITHOUT setting CORS headers. This is "silent permissive"
-	// — the request is allowed but no CORS headers are added (no restriction enforced).
-	mw := middleware.CORS(middleware.CORSOptions{
-		AllowedOrigins: []string{}, // empty
+	// MSR-2026-0058 RESOLVED: CORS now panics on empty AllowedOrigins (fail-closed at
+	// construction time), preventing the "silent permissive" misconfiguration trap.
+	// This test asserts the fail-closed panic behaviour is present.
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Error("MSR-2026-0058 regression: CORS with empty AllowedOrigins must panic at construction; no panic observed")
+		} else {
+			t.Logf("MSR-2026-0058 FIXED: CORS panics on empty AllowedOrigins: %v", r)
+		}
+	}()
+	// This call must panic.
+	_ = middleware.CORS(middleware.CORSOptions{
+		AllowedOrigins: []string{},
 	})
-	rec := serve(mw, "GET", "/", func(r *http.Request) {
-		r.Header.Set("Origin", "https://attacker.com")
-	})
-	acao := rec.Header().Get("Access-Control-Allow-Origin")
-	// The request proceeds but no ACAO header is added — browser blocks the read.
-	// This is technically correct per CORS spec (no ACAO = blocked), but may
-	// surprise operators who expected a 403. Document the behavior.
-	if acao != "" {
-		t.Logf("Note: empty AllowedOrigins with Origin header: ACAO=%q, status=%d", acao, rec.Code)
-	}
-	// MSR-FINDING-MEDIUM: silent pass-through may confuse operators expecting rejection.
-	if rec.Code == http.StatusOK {
-		t.Logf("MSR-FINDING-MEDIUM: CORS with empty AllowedOrigins silently passes request (no 403). " +
-			"This is safe (browser blocks) but may not match operator intent. " +
-			"Recommend documenting or optionally rejecting with 403.")
-	}
 }
 
 func TestSec_CORS_WildcardEmitsLiteralStar(t *testing.T) {

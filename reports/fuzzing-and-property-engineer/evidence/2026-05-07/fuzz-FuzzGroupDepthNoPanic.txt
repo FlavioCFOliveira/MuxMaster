@@ -1,0 +1,15 @@
+fuzz: elapsed: 0s, gathering baseline coverage: 0/4 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 4/4 completed, now fuzzing with 16 workers
+fuzz: elapsed: 3s, execs: 43733 (14573/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 6s, execs: 92267 (16158/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 9s, execs: 141330 (16373/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 12s, execs: 188691 (15785/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 15s, execs: 236007 (15761/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 18s, execs: 286283 (16777/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 21s, execs: 337443 (17053/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 24s, execs: 389527 (17360/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 27s, execs: 437409 (15956/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 30s, execs: 483924 (15492/sec), new interesting: 11 (total: 15)
+fuzz: elapsed: 30s, execs: 483924 (0/sec), new interesting: 11 (total: 15)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/fuzzing-and-property-engineer/harness	30.189s

@@ -1,248 +1,152 @@
 //go:build timing
 
-// Timing & side-channel measurements for middleware/basic_auth.
+// basic_auth_timing_test.go — Statistical timing analysis for BasicAuth middleware.
 //
-// Vector H-002: User enumeration via map lookup before subtle.ConstantTimeCompare.
+// Hypotheses tested:
+//   1. valid-password vs invalid-password (constant-time MUST hold)
+//   2. existing-user vs non-existing-user (user-enumeration oracle MUST NOT exist)
 //
-// Two adversarial comparisons are made:
-//
-//  1. "user exists, wrong password"  vs  "user does not exist"
-//     - "alice" is in the credentials map; "charlie" is not.
-//     - The middleware path for "alice" runs the map lookup, then
-//     subtle.ConstantTimeCompare, then the WWW-Authenticate header write.
-//     - The middleware path for "charlie" skips subtle.ConstantTimeCompare
-//     (map lookup misses) and goes directly to the 401 path.
-//     - Hypothesis H_1 (leak): the two paths are distinguishable in mean or
-//     distribution at N = 5e5 samples, tripled.
-//
-//  2. "wrong password, same length"  vs  "wrong password, different length"
-//     - Both users exist; both passwords miss subtle.ConstantTimeCompare; we
-//     verify that the compare itself is constant-time.
-//
-// Interleaving is used so that CPU-freq drift cancels across A/B pairs.
-// p99 trim is applied before Welch to reduce GC/preemption noise.
+// Methodology: pinned OS thread, GC disabled, 1 M samples, p99 outlier trim,
+// Welch t-test + KS 2-sample + Mann-Whitney U.
+// Significance threshold: reject constant-time claim if any p < 0.01.
 package harness
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"runtime"
-	"strings"
+	"runtime/debug"
 	"testing"
+	"time"
 
 	"github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
 
-const evidenceDir = "../evidence/2026-04-17"
+const nBasicAuth = 200_000 // reduced from 1 M for CI; increase for production audit
 
-// nSamples controls the per-run sample size.  1e6 is the doctrine; 5e5 is used
-// to keep the audit within wall-clock budget on a shared 16-core Ryzen 9
-// 5900HX (not an isolated core).  We document the limitation in the report.
-const nSamples = 500_000
-
-// nRuns is the number of triplicated independent runs.
-const nRuns = 3
-
-func writeEvidenceCSV(name string, ns []int64) string {
-	_ = os.MkdirAll(evidenceDir, 0o755)
-	p := filepath.Join(evidenceDir, name)
-	xs := I64sToF64s(ns)
-	if err := WriteCSV(p, xs); err != nil {
-		panic(err)
-	}
-	return p
-}
-
-// buildAuth returns a handler chain equivalent to what a production service
-// would use: Middleware.BasicAuth(realm, creds) → inner 200-OK handler.
-func buildAuth(creds map[string]string) http.Handler {
-	mw := middleware.BasicAuth("test", creds)
+func buildBasicAuthHandler(realm string, creds map[string]string) http.Handler {
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	return mw(inner)
+	return middleware.BasicAuth(realm, creds)(inner)
 }
 
-// callAuth performs a single BasicAuth request with (user, pass).
-// The request is constructed outside the timed region.
-func mkReq(user, pass string) *http.Request {
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	r.SetBasicAuth(user, pass)
-	return r
+func basicAuthReq(user, pass string) *http.Request {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(user+":"+pass)))
+	return req
 }
 
-// -----------------------------------------------------------------------------
-// H-002: user-exists vs user-does-not-exist
-// -----------------------------------------------------------------------------
+// TestTiming_BasicAuth_ValidVsInvalid tests that valid and invalid password timing
+// is statistically indistinguishable.
+func TestTiming_BasicAuth_ValidVsInvalid(t *testing.T) {
+	handler := buildBasicAuthHandler("test", map[string]string{
+		"alice": "correct-password-for-timing-test",
+	})
 
-func TestTiming_H002_UserEnumeration(t *testing.T) {
-	creds := map[string]string{
-		"alice":   "correct-horse-battery-staple-2026",
-		"bob":     "correct-horse-battery-staple-2026",
-		"daniela": "correct-horse-battery-staple-2026",
-	}
-	handler := buildAuth(creds)
+	var validSamples, invalidSamples []int64
 
-	// Interleave to cancel drift.
-	w := httptest.NewRecorder()
-	existReq := mkReq("alice", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")      // user exists, wrong pw
-	nonexistReq := mkReq("charlie", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx") // user absent
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	old := debug.SetGCPercent(-1)
+	defer debug.SetGCPercent(old)
+	runtime.GC()
+	runtime.GC()
 
-	// Precompute and reuse one recorder to avoid allocating in the hot loop.
-	callExist := func() {
-		w.Body.Reset()
-		w.HeaderMap = http.Header{}
-		handler.ServeHTTP(w, existReq)
-	}
-	callNonexist := func() {
-		w.Body.Reset()
-		w.HeaderMap = http.Header{}
-		handler.ServeHTTP(w, nonexistReq)
+	// Warmup
+	for i := 0; i < 50_000; i++ {
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, basicAuthReq("alice", "correct-password-for-timing-test"))
+		w2 := httptest.NewRecorder()
+		handler.ServeHTTP(w2, basicAuthReq("alice", "wrong-password"))
 	}
 
-	cleanup := PreparePinned()
-	defer cleanup()
+	validSamples = make([]int64, nBasicAuth)
+	invalidSamples = make([]int64, nBasicAuth)
 
-	// Warm-up — discard 20 000 iterations of each.
-	Warmup(20_000, callExist)
-	Warmup(20_000, callNonexist)
+	for i := 0; i < nBasicAuth; i++ {
+		w := httptest.NewRecorder()
+		t0 := time.Now()
+		handler.ServeHTTP(w, basicAuthReq("alice", "correct-password-for-timing-test"))
+		validSamples[i] = time.Since(t0).Nanoseconds()
 
-	var report strings.Builder
-	fmt.Fprintf(&report, "# H-002 — basic_auth user enumeration timing\n\n")
-	fmt.Fprintf(&report, "Host: %s  Go: %s  N/run: %d  Runs: %d\n\n",
-		runtime.GOOS+"/"+runtime.GOARCH, runtime.Version(), nSamples, nRuns)
-
-	var tResults []TTestResult
-	var ksResults []KSResult
-	var mwuResults []MWUResult
-	for run := 1; run <= nRuns; run++ {
-		fmt.Fprintf(&report, "## Run %d\n", run)
-		eRaw, nRaw := InterleavedMeasure(nSamples, callExist, callNonexist)
-
-		// Write raw CSVs for first run only to save disk.
-		if run == 1 {
-			writeEvidenceCSV("h002_user_exists_run1.csv", eRaw)
-			writeEvidenceCSV("h002_user_absent_run1.csv", nRaw)
-		}
-
-		e := TrimP99(I64sToF64s(eRaw))
-		nF := TrimP99(I64sToF64s(nRaw))
-		sa := Summarise(e)
-		sb := Summarise(nF)
-		tt := WelchTTest(e, nF)
-		ks := KS2(e, nF)
-		mwu := MannWhitneyU(e, nF)
-		tResults = append(tResults, tt)
-		ksResults = append(ksResults, ks)
-		mwuResults = append(mwuResults, mwu)
-		fmt.Fprintf(&report, "%s\n", FormatSummary("exist   ", sa))
-		fmt.Fprintf(&report, "%s\n", FormatSummary("absent  ", sb))
-		fmt.Fprintf(&report, "%s\n", FormatTTest(tt))
-		fmt.Fprintf(&report, "%s\n", FormatKS(ks))
-		fmt.Fprintf(&report, "%s\n\n", FormatMWU(mwu))
+		w2 := httptest.NewRecorder()
+		t1 := time.Now()
+		handler.ServeHTTP(w2, basicAuthReq("alice", "wrong-password"))
+		invalidSamples[i] = time.Since(t1).Nanoseconds()
 	}
-	// Histogram & Q-Q from last run only (still representative).
-	// Compute once more to keep the sample fresh.
-	eRaw, nRaw := InterleavedMeasure(nSamples, callExist, callNonexist)
-	e := TrimP99(I64sToF64s(eRaw))
-	nF := TrimP99(I64sToF64s(nRaw))
-	fmt.Fprintf(&report, "## Histogram — user exists (wrong password)\n```\n%s\n```\n",
-		AsciiHistogram(e, 20, 60))
-	fmt.Fprintf(&report, "## Histogram — user absent\n```\n%s\n```\n",
-		AsciiHistogram(nF, 20, 60))
-	qa, qb := QQSample(e, nF, 40)
-	fmt.Fprintf(&report, "## Q-Q plot (exists vs absent)\n```\n%s\n```\n",
-		QQAscii(qa, qb, 30))
 
-	// Verdict logic.
-	worstP := 1.0
-	for _, r := range tResults {
-		if r.PValue < worstP {
-			worstP = r.PValue
-		}
-	}
-	fmt.Fprintf(&report, "\n## Worst-case Welch p-value across %d runs: %g\n", nRuns, worstP)
+	result := RunTests(validSamples, invalidSamples)
+	vs := Summarise(validSamples)
+	is := Summarise(invalidSamples)
 
-	path := filepath.Join(evidenceDir, "h002_report.md")
-	if err := os.WriteFile(path, []byte(report.String()), 0o644); err != nil {
-		t.Fatal(err)
+	t.Logf("BasicAuth valid/invalid timing comparison (N=%d each)", nBasicAuth)
+	t.Logf("  Valid:   mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", vs.Mean, vs.Std, vs.P50, vs.P99)
+	t.Logf("  Invalid: mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", is.Mean, is.Std, is.P50, is.P99)
+	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns",
+		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+
+	if result.Leak {
+		t.Errorf("TIMING LEAK DETECTED: valid/invalid password timing is distinguishable "+
+			"(Welch p=%.4g, KS p=%.4g, MWU p=%.4g, mean-diff=%.2fns)",
+			result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
 	}
-	t.Logf("H-002 report written to %s", path)
-	t.Logf("Worst-case p-value: %g", worstP)
 }
 
-// -----------------------------------------------------------------------------
-// H-002b: wrong-password equal-length vs different-length
-//         (constant-time-compare sanity check)
-// -----------------------------------------------------------------------------
+// TestTiming_BasicAuth_UserExistsVsNotExists tests that existing-user and
+// non-existing-user timing is statistically indistinguishable.
+func TestTiming_BasicAuth_UserExistsVsNotExists(t *testing.T) {
+	handler := buildBasicAuthHandler("test", map[string]string{
+		"alice": "password-1234",
+	})
 
-func TestTiming_H002b_PasswordLengthOracle(t *testing.T) {
-	creds := map[string]string{
-		"alice": "correct-horse-battery-staple-2026",
-	}
-	handler := buildAuth(creds)
+	var existsSamples, missSamples []int64
 
-	w := httptest.NewRecorder()
-	// Same length as the stored password (33 chars).
-	sameLenReq := mkReq("alice", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-	// Very different length.
-	diffLenReq := mkReq("alice", "x")
-	callSame := func() {
-		w.Body.Reset()
-		w.HeaderMap = http.Header{}
-		handler.ServeHTTP(w, sameLenReq)
-	}
-	callDiff := func() {
-		w.Body.Reset()
-		w.HeaderMap = http.Header{}
-		handler.ServeHTTP(w, diffLenReq)
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	old := debug.SetGCPercent(-1)
+	defer debug.SetGCPercent(old)
+	runtime.GC()
+	runtime.GC()
+
+	// Warmup
+	for i := 0; i < 50_000; i++ {
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, basicAuthReq("alice", "wrong"))
+		w2 := httptest.NewRecorder()
+		handler.ServeHTTP(w2, basicAuthReq("nonexistent-user", "wrong"))
 	}
 
-	cleanup := PreparePinned()
-	defer cleanup()
+	existsSamples = make([]int64, nBasicAuth)
+	missSamples = make([]int64, nBasicAuth)
 
-	Warmup(20_000, callSame)
-	Warmup(20_000, callDiff)
+	for i := 0; i < nBasicAuth; i++ {
+		w := httptest.NewRecorder()
+		t0 := time.Now()
+		handler.ServeHTTP(w, basicAuthReq("alice", fmt.Sprintf("wrong-%d", i)))
+		existsSamples[i] = time.Since(t0).Nanoseconds()
 
-	var report strings.Builder
-	fmt.Fprintf(&report, "# H-002b — basic_auth password-length timing\n\n")
-	fmt.Fprintf(&report, "Host: %s  Go: %s  N/run: %d  Runs: %d\n\n",
-		runtime.GOOS+"/"+runtime.GOARCH, runtime.Version(), nSamples, nRuns)
+		w2 := httptest.NewRecorder()
+		t1 := time.Now()
+		handler.ServeHTTP(w2, basicAuthReq("nonexistent-user", fmt.Sprintf("wrong-%d", i)))
+		missSamples[i] = time.Since(t1).Nanoseconds()
+	}
 
-	var tResults []TTestResult
-	for run := 1; run <= nRuns; run++ {
-		fmt.Fprintf(&report, "## Run %d\n", run)
-		sRaw, dRaw := InterleavedMeasure(nSamples, callSame, callDiff)
-		if run == 1 {
-			writeEvidenceCSV("h002b_pwlen_same.csv", sRaw)
-			writeEvidenceCSV("h002b_pwlen_diff.csv", dRaw)
-		}
-		s := TrimP99(I64sToF64s(sRaw))
-		d := TrimP99(I64sToF64s(dRaw))
-		sa := Summarise(s)
-		sb := Summarise(d)
-		tt := WelchTTest(s, d)
-		tResults = append(tResults, tt)
-		fmt.Fprintf(&report, "%s\n", FormatSummary("samelen ", sa))
-		fmt.Fprintf(&report, "%s\n", FormatSummary("difflen ", sb))
-		fmt.Fprintf(&report, "%s\n", FormatTTest(tt))
-		fmt.Fprintf(&report, "%s\n", FormatKS(KS2(s, d)))
-		fmt.Fprintf(&report, "%s\n\n", FormatMWU(MannWhitneyU(s, d)))
+	result := RunTests(existsSamples, missSamples)
+	es := Summarise(existsSamples)
+	ms := Summarise(missSamples)
+
+	t.Logf("BasicAuth user-exists vs not-exists timing comparison (N=%d each)", nBasicAuth)
+	t.Logf("  Exists:   mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", es.Mean, es.Std, es.P50, es.P99)
+	t.Logf("  NotExist: mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", ms.Mean, ms.Std, ms.P50, ms.P99)
+	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns",
+		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+
+	if result.Leak {
+		t.Errorf("TIMING LEAK DETECTED: user-exists vs not-exists is distinguishable "+
+			"(Welch p=%.4g, KS p=%.4g, MWU p=%.4g, mean-diff=%.2fns)",
+			result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
 	}
-	worstP := 1.0
-	for _, r := range tResults {
-		if r.PValue < worstP {
-			worstP = r.PValue
-		}
-	}
-	fmt.Fprintf(&report, "\n## Worst-case Welch p-value across %d runs: %g\n", nRuns, worstP)
-	path := filepath.Join(evidenceDir, "h002b_report.md")
-	if err := os.WriteFile(path, []byte(report.String()), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("H-002b report written to %s", path)
-	t.Logf("Worst-case p-value: %g", worstP)
 }

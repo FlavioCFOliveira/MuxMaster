@@ -1,0 +1,27 @@
+=== RUN   TestH2_RapidReset_CVE202344487
+    h2_attack_test.go:107: Baseline goroutines: 3
+    h2_attack_test.go:132: Flood complete: succeeded=0 cancelled=500
+    h2_attack_test.go:138: Goroutines after flood: 3 (delta=+0 from baseline 3)
+    h2_attack_test.go:154: PASS: goroutine count bounded after Rapid Reset flood (after=3 max=115)
+    h2_attack_test.go:170: PASS: server responsive after flood (status=200 body="ok")
+--- PASS: TestH2_RapidReset_CVE202344487 (0.68s)
+=== RUN   TestH2_HPACKBombing
+    h2_attack_test.go:238: HPACK bomb: 200 requests × 50 headers × 4096 B = total headers payload ~39 MB
+    h2_attack_test.go:241: Heap in-use: before=2824 KB after=5112 KB delta=2288 KB (rejected=0)
+    h2_attack_test.go:250: PASS: heap growth bounded at 2288 KB (limit 50 MB)
+    h2_attack_test.go:259: PASS: server responsive after HPACK bomb (status=200)
+--- PASS: TestH2_HPACKBombing (2.35s)
+=== RUN   TestH2_ContinuationFlood_CVE202427316
+    h2_attack_test.go:335: CONTINUATION flood: 150 total requests × 200 headers × 512 B
+    h2_attack_test.go:337: Heap delta: +2272 KB; goroutine delta: +6 (errors=0)
+    h2_attack_test.go:347: PASS: heap growth bounded at 2272 KB after CONTINUATION flood
+    h2_attack_test.go:355: PASS: goroutine count bounded after CONTINUATION flood (after=9 max=59)
+    h2_attack_test.go:365: PASS: server responsive after CONTINUATION flood (status=200)
+--- PASS: TestH2_ContinuationFlood_CVE202427316 (1.33s)
+=== RUN   TestH2_RoutingParityWithH1
+    h2_attack_test.go:416: H2 response: status=200 body="proto=2"
+    h2_attack_test.go:425: H1 response: status=200 body="proto=1"
+    h2_attack_test.go:431: PASS: H2 and H1 routing produce same status code (200)
+--- PASS: TestH2_RoutingParityWithH1 (0.01s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/http-protocol-security-auditor/harness/h2harness	(cached)

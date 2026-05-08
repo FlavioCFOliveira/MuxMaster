@@ -1,0 +1,27 @@
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/go.mod file and found 1 package
+Scanning dir .
+Scanning /data/dev/github.com/FlavioCFOliveira/MuxMaster/ at commit e30ae946f634cbec54c0ae9445cbf3787ca24f31
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/authn/go.mod file and found 2 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/cache/go.mod file and found 2 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/jwt/go.mod file and found 2 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/oauth2/go.mod file and found 2 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/rest-api/go.mod file and found 2 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/server-side-render/go.mod file and found 2 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/static-site/go.mod file and found 2 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/go.mod file and found 1 package
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/dos-resilience-tester/harness/go.mod file and found 2 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/fuzzing-and-property-engineer/harness/go.mod file and found 3 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/http-protocol-security-auditor/harness/h2harness/go.mod file and found 4 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/middleware-security-reviewer/harness/go.mod file and found 2 packages
+Scanned /data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/path-routing-fuzzer/harness/go.mod file and found 5 packages
+Scanning directory for vendored libs: /data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/path-routing-fuzzer/harness/vendor
+Scanning potential vendored dir: /data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/path-routing-fuzzer/harness/vendor/github.com
+Filtered 12 local package/s from the scan.
++------------------------------+------+-----------+------------------+---------+-----------------------------------------------------------------+
+| OSV URL                      | CVSS | ECOSYSTEM | PACKAGE          | VERSION | SOURCE                                                          |
++------------------------------+------+-----------+------------------+---------+-----------------------------------------------------------------+
+| Uncalled vulnerabilities     |      |           |                  |         |                                                                 |
++------------------------------+------+-----------+------------------+---------+-----------------------------------------------------------------+
+| https://osv.dev/GO-2026-4440 |      | Go        | golang.org/x/net | 0.38.0  | reports/http-protocol-security-auditor/harness/h2harness/go.mod |
+| https://osv.dev/GO-2026-4441 |      | Go        | golang.org/x/net | 0.38.0  | reports/http-protocol-security-auditor/harness/h2harness/go.mod |
++------------------------------+------+-----------+------------------+---------+-----------------------------------------------------------------+

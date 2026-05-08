@@ -1,0 +1,620 @@
+[gosec] 2026/05/07 14:13:26 Including rules: default
+[gosec] 2026/05/07 14:13:26 Excluding rules: default
+[gosec] 2026/05/07 14:13:26 Including analyzers: default
+[gosec] 2026/05/07 14:13:26 Excluding analyzers: default
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/cache
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-ad8a16ae
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/jwt
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/concurrency-security-auditor/evidence/2026-04-17/CSA-001
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-ad8a16ae/middleware
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/rest-api
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/concurrency-security-auditor/harness
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/concurrency-security-auditor/evidence/2026-04-17/CSA-003
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/go-sast-and-memory-auditor/harness
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/server-side-render
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/concurrency-security-auditor/harness
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-a8b0d718
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-a8b0d718/middleware
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/middleware
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/concurrency-security-auditor/evidence/2026-04-17/CSA-002
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/concurrency-security-auditor/evidence/2026-04-17/CSA-004
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/dos-resilience-tester/harness
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/http-protocol-security-auditor/harness
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/competitor/fiber
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/static-site
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/middleware-security-reviewer/harness
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/timing-and-sidechannel-analyst/harness
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/fuzzing-and-property-engineer/harness
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/authn
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/reports/path-routing-fuzzer/harness
+[gosec] 2026/05/07 14:13:26 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/competitor
+[gosec] 2026/05/07 14:13:26 Checking package: dosharness
+[gosec] 2026/05/07 14:13:26 Checking package: fiber_bench
+[gosec] 2026/05/07 14:13:26 Checking package: harness
+[gosec] 2026/05/07 14:13:26 Checking package: bench
+[gosec] 2026/05/07 14:13:26 Checking package: muxmaster
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/group.go
+[gosec] 2026/05/07 14:13:26 Checking package: muxmaster
+[gosec] 2026/05/07 14:13:26 Checking package: muxmaster
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/group.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/group.go
+[gosec] 2026/05/07 14:13:26 Checking package: muxmaster
+[gosec] 2026/05/07 14:13:26 Checking package: muxmaster
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/group.go
+[gosec] 2026/05/07 14:13:26 Checking package: muxmaster
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/group.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/handler.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/introspection.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/handler.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/handler.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/handler.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/introspection.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/introspection.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/introspection.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/handler.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/07 14:13:26 Checking package: muxmaster
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/introspection.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/group.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/handler.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/introspection.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/response.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/response.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/response.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/response.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/response.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/response.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/07 14:13:26 Checking package: muxmaster
+[gosec] 2026/05/07 14:13:26 Checking package: muxmaster
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/group.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/group.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/handler.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/handler.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/introspection.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/introspection.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/response.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/response.go
+[gosec] 2026/05/07 14:13:26 Checking package: middleware
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/api_key.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/basic_auth.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/clean_path.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/compress.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/cors.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/doc.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/jwt_auth.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/logger.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/no_cache.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/oauth2.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/real_ip.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/recoverer.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/request_id.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/set_header.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/strip_slashes.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/throttle.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/timeout.go
+[gosec] 2026/05/07 14:13:26 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/with_value.go
+{
+	"Golang errors": {},
+	"Issues": [
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint8",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go",
+			"code": "296: \t\t\t}\n297: \t\t\tchild := \u0026node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}\n298: \t\t\t// Append: preserve existing static children so they remain reachable via n.indices.\n",
+			"line": "297",
+			"column": "80",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint8",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go",
+			"code": "296: \t\t\t}\n297: \t\t\tchild := \u0026node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}\n298: \t\t\t// Append: preserve existing static children so they remain reachable via n.indices.\n",
+			"line": "297",
+			"column": "80",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint8",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go",
+			"code": "296: \t\t\t}\n297: \t\t\tchild := \u0026node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}\n298: \t\t\t// Append: preserve existing static children so they remain reachable via n.indices.\n",
+			"line": "297",
+			"column": "80",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint8",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go",
+			"code": "296: \t\t\t}\n297: \t\t\tchild := \u0026node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}\n298: \t\t\t// Append: preserve existing static children so they remain reachable via n.indices.\n",
+			"line": "297",
+			"column": "80",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint8",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go",
+			"code": "296: \t\t\t}\n297: \t\t\tchild := \u0026node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}\n298: \t\t\t// Append: preserve existing static children so they remain reachable via n.indices.\n",
+			"line": "297",
+			"column": "80",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint8",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go",
+			"code": "296: \t\t\t}\n297: \t\t\tchild := \u0026node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}\n298: \t\t\t// Append: preserve existing static children so they remain reachable via n.indices.\n",
+			"line": "297",
+			"column": "80",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint8",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go",
+			"code": "296: \t\t\t}\n297: \t\t\tchild := \u0026node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}\n298: \t\t\t// Append: preserve existing static children so they remain reachable via n.indices.\n",
+			"line": "297",
+			"column": "80",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint8",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/tree.go",
+			"code": "296: \t\t\t}\n297: \t\t\tchild := \u0026node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}\n298: \t\t\t// Append: preserve existing static children so they remain reachable via n.indices.\n",
+			"line": "297",
+			"column": "80",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "617: \t\t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n618: \t\t\t\t\t\thttp.Redirect(w, r, target, code)\n619: \t\t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "618",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "617: \t\t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n618: \t\t\t\t\t\thttp.Redirect(w, r, target, code)\n619: \t\t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "618",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "617: \t\t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n618: \t\t\t\t\t\thttp.Redirect(w, r, target, code)\n619: \t\t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "618",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "617: \t\t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n618: \t\t\t\t\t\thttp.Redirect(w, r, target, code)\n619: \t\t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "618",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "617: \t\t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n618: \t\t\t\t\t\thttp.Redirect(w, r, target, code)\n619: \t\t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "618",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "617: \t\t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n618: \t\t\t\t\t\thttp.Redirect(w, r, target, code)\n619: \t\t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "618",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "617: \t\t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n618: \t\t\t\t\t\thttp.Redirect(w, r, target, code)\n619: \t\t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "618",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "617: \t\t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n618: \t\t\t\t\t\thttp.Redirect(w, r, target, code)\n619: \t\t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "618",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "606: \t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n607: \t\t\t\t\thttp.Redirect(w, r, target, code)\n608: \t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "607",
+			"column": "19",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "606: \t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n607: \t\t\t\t\thttp.Redirect(w, r, target, code)\n608: \t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "607",
+			"column": "19",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "606: \t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n607: \t\t\t\t\thttp.Redirect(w, r, target, code)\n608: \t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "607",
+			"column": "19",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "606: \t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n607: \t\t\t\t\thttp.Redirect(w, r, target, code)\n608: \t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "607",
+			"column": "19",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "606: \t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n607: \t\t\t\t\thttp.Redirect(w, r, target, code)\n608: \t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "607",
+			"column": "19",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "606: \t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n607: \t\t\t\t\thttp.Redirect(w, r, target, code)\n608: \t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "607",
+			"column": "19",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "606: \t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n607: \t\t\t\t\thttp.Redirect(w, r, target, code)\n608: \t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "607",
+			"column": "19",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": null,
+			"rule_id": "G710",
+			"details": "Open redirect via taint analysis",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/mux.go",
+			"code": "606: \t\t\t\twrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n607: \t\t\t\t\thttp.Redirect(w, r, target, code)\n608: \t\t\t\t}), m.middleware).ServeHTTP(w, r)\n",
+			"line": "607",
+			"column": "19",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "242",
+				"url": "https://cwe.mitre.org/data/definitions/242.html"
+			},
+			"rule_id": "G103",
+			"details": "Use of unsafe calls should be audited",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go",
+			"code": "222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {\n223: \t*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx\n224: }\n",
+			"line": "223",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "242",
+				"url": "https://cwe.mitre.org/data/definitions/242.html"
+			},
+			"rule_id": "G103",
+			"details": "Use of unsafe calls should be audited",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go",
+			"code": "220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {\n221: \t*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx\n222: }\n",
+			"line": "221",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "242",
+				"url": "https://cwe.mitre.org/data/definitions/242.html"
+			},
+			"rule_id": "G103",
+			"details": "Use of unsafe calls should be audited",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go",
+			"code": "220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {\n221: \t*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx\n222: }\n",
+			"line": "221",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "242",
+				"url": "https://cwe.mitre.org/data/definitions/242.html"
+			},
+			"rule_id": "G103",
+			"details": "Use of unsafe calls should be audited",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go",
+			"code": "220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {\n221: \t*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx\n222: }\n",
+			"line": "221",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "242",
+				"url": "https://cwe.mitre.org/data/definitions/242.html"
+			},
+			"rule_id": "G103",
+			"details": "Use of unsafe calls should be audited",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go",
+			"code": "220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {\n221: \t*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx\n222: }\n",
+			"line": "221",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "242",
+				"url": "https://cwe.mitre.org/data/definitions/242.html"
+			},
+			"rule_id": "G103",
+			"details": "Use of unsafe calls should be audited",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go",
+			"code": "220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {\n221: \t*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx\n222: }\n",
+			"line": "221",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "242",
+				"url": "https://cwe.mitre.org/data/definitions/242.html"
+			},
+			"rule_id": "G103",
+			"details": "Use of unsafe calls should be audited",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go",
+			"code": "220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {\n221: \t*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx\n222: }\n",
+			"line": "221",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "242",
+				"url": "https://cwe.mitre.org/data/definitions/242.html"
+			},
+			"rule_id": "G103",
+			"details": "Use of unsafe calls should be audited",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go",
+			"code": "220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {\n221: \t*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx\n222: }\n",
+			"line": "221",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "242",
+				"url": "https://cwe.mitre.org/data/definitions/242.html"
+			},
+			"rule_id": "G103",
+			"details": "Use of unsafe calls should be audited",
+			"file": "/data/dev/github.com/FlavioCFOliveira/MuxMaster/.claude/worktrees/agent-aed0d206/params.go",
+			"code": "220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {\n221: \t*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx\n222: }\n",
+			"line": "221",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		}
+	],
+	"Stats": {
+		"files": 81,
+		"lines": 20895,
+		"nosec": 2,
+		"found": 33
+	},
+	"GosecVersion": "dev"
+}

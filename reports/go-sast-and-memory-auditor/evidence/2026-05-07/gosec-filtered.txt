@@ -1,0 +1,373 @@
+[gosec] 2026/05/07 18:58:53 Including rules: default
+[gosec] 2026/05/07 18:58:53 Excluding rules: default
+[gosec] 2026/05/07 18:58:53 Including analyzers: default
+[gosec] 2026/05/07 18:58:53 Excluding analyzers: default
+[gosec] 2026/05/07 18:58:53 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/oauth2
+[gosec] 2026/05/07 18:58:53 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/server-side-render
+[gosec] 2026/05/07 18:58:53 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/cache
+[gosec] 2026/05/07 18:58:53 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/competitor
+[gosec] 2026/05/07 18:58:53 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster
+[gosec] 2026/05/07 18:58:53 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware
+[gosec] 2026/05/07 18:58:53 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/rest-api
+[gosec] 2026/05/07 18:58:53 Checking package: harness
+[gosec] 2026/05/07 18:58:53 Checking package: bench
+[gosec] 2026/05/07 18:58:54 Checking package: harness
+[gosec] 2026/05/07 18:58:54 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/competitor/fiber
+[gosec] 2026/05/07 18:58:54 Checking package: harness
+[gosec] 2026/05/07 18:58:54 Checking package: harness
+[gosec] 2026/05/07 18:58:54 Checking package: fiber_bench
+[gosec] 2026/05/07 18:58:54 Checking package: harness
+[gosec] 2026/05/07 18:58:54 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/jwt
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking package: middleware
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/api_key.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/basic_auth.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/clean_path.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/compress.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/cors.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/doc.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/jwt_auth.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/logger.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/no_cache.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/oauth2.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/real_ip.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/recoverer.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/request_id.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/set_header.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/strip_slashes.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/throttle.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/timeout.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/with_value.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking package: dosharness
+[gosec] 2026/05/07 18:58:54 Checking package: h2harness
+[gosec] 2026/05/07 18:58:54 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/authn
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/07 18:58:54 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/examples/static-site
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/07 18:58:54 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/07 18:58:54 Checking package: muxmaster
+Results:
+
+
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+    296: 			}
+  > 297: 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+    298: 			// Append: preserve existing static children so they remain reachable via n.indices.
+
+Autofix: 
+
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    617: 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 618: 						http.Redirect(w, r, target, code)
+    619: 					}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+    606: 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  > 607: 					http.Redirect(w, r, target, code)
+    608: 				}), m.middleware).ServeHTTP(w, r)
+
+Autofix: 
+
+[[37;40m/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223[0m] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[[37;40m/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223[0m] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[[37;40m/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223[0m] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[[37;40m/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223[0m] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[[37;40m/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223[0m] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[[37;40m/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223[0m] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[[37;40m/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223[0m] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+[[37;40m/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:223[0m] - G103 (CWE-242): Use of unsafe calls should be audited (Confidence: HIGH, Severity: LOW)
+    222: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 223: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    224: }
+
+Autofix: 
+
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+    220: func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
+  > 221: 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+    222: }
+
+Autofix: 
+
+[1;36mSummary:[0m
+  Gosec  : dev
+  Files  : 130
+  Lines  : 40942
+  Nosec  : 16
+  Issues : [1;31m40[0m
+

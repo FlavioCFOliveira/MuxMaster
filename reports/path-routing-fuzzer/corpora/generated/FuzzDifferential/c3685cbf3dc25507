@@ -1,2 +1,0 @@
-go test fuzz v1
-string("//Api/v1/items/0000000000000000")

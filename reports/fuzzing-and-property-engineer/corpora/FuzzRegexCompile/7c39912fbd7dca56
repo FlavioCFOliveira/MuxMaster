@@ -1,2 +1,0 @@
-go test fuzz v1
-string("([a-xa0[2-Z])*")

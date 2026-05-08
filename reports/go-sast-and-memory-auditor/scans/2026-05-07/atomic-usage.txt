@@ -1,0 +1,6 @@
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go:30:	"sync/atomic"
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go:136:	treesPtr atomic.Pointer[methodTrees]
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go:143:	cfg atomic.Pointer[muxConfig]
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go:203:	preHandlerPtr atomic.Pointer[http.Handler]
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go:207:	lazyNotFoundPtr atomic.Pointer[http.Handler]
+/data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go:288:	// atomic.Pointer.Store. If addRoute panics mid-mutation, the clone is

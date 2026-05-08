@@ -1,3 +1,0 @@
-go test fuzz v1
-string("")
-string("0\xb500000000000000000000")

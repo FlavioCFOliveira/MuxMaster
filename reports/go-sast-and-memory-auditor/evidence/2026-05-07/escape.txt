@@ -1,0 +1,1755 @@
+middleware/jwt_auth.go:244:32: inlining call to errors.New
+middleware/jwt_auth.go:245:32: inlining call to errors.New
+middleware/jwt_auth.go:246:32: inlining call to errors.New
+middleware/api_key.go:39:63: inlining call to http.Header.Get
+middleware/api_key.go:51:19: inlining call to http.Header.Set
+middleware/api_key.go:57:19: inlining call to http.Header.Set
+middleware/api_key.go:61:63: inlining call to http.(*Request).Context
+middleware/api_key.go:61:35: inlining call to http.(*Request).WithContext
+middleware/api_key.go:51:19: inlining call to textproto.MIMEHeader.Set
+middleware/api_key.go:57:19: inlining call to textproto.MIMEHeader.Set
+middleware/api_key.go:61:63: inlining call to context.Background
+middleware/basic_auth.go:20:29: inlining call to strings.NewReplacer
+middleware/basic_auth.go:50:39: inlining call to subtle.ConstantTimeCompare
+middleware/basic_auth.go:55:18: inlining call to http.Header.Set
+middleware/basic_auth.go:50:39: inlining call to subtle.ConstantTimeCompare
+middleware/basic_auth.go:55:18: inlining call to textproto.MIMEHeader.Set
+middleware/basic_auth.go:50:39: inlining call to constanttime.ByteEq
+middleware/clean_path.go:24:27: inlining call to http.(*Request).Context
+middleware/clean_path.go:33:47: inlining call to url.PathUnescape
+middleware/clean_path.go:24:27: inlining call to context.Background
+middleware/compress.go:107:27: inlining call to strings.IndexByte
+middleware/compress.go:107:27: inlining call to stringslite.IndexByte
+middleware/compress.go:64:9: inlining call to http.Header.Add
+middleware/compress.go:68:36: inlining call to http.Header.Get
+middleware/compress.go:68:64: inlining call to http.Header.Get
+middleware/compress.go:86:9: inlining call to http.Header.Set
+middleware/compress.go:87:9: inlining call to http.Header.Del
+middleware/compress.go:92:12: inlining call to gzip.(*Writer).Reset
+middleware/compress.go:64:9: inlining call to textproto.MIMEHeader.Add
+middleware/compress.go:86:9: inlining call to textproto.MIMEHeader.Set
+middleware/compress.go:87:9: inlining call to textproto.MIMEHeader.Del
+middleware/compress.go:188:37: inlining call to http.Header.Get
+middleware/compress.go:188:24: inlining call to strings.Contains
+middleware/compress.go:188:24: inlining call to strings.Index
+middleware/cors.go:71:26: inlining call to http.Header.Get
+middleware/cors.go:77:21: inlining call to isValidOrigin
+middleware/cors.go:92:10: inlining call to http.Header.Set
+middleware/cors.go:94:10: inlining call to http.Header.Set
+middleware/cors.go:98:10: inlining call to http.Header.Add
+middleware/cors.go:101:10: inlining call to http.Header.Set
+middleware/cors.go:104:10: inlining call to http.Header.Set
+middleware/cors.go:108:11: inlining call to http.Header.Set
+middleware/cors.go:111:11: inlining call to http.Header.Set
+middleware/cors.go:114:50: inlining call to strconv.Itoa
+middleware/cors.go:114:11: inlining call to http.Header.Set
+middleware/cors.go:92:10: inlining call to textproto.MIMEHeader.Set
+middleware/cors.go:94:10: inlining call to textproto.MIMEHeader.Set
+middleware/cors.go:98:10: inlining call to textproto.MIMEHeader.Add
+middleware/cors.go:101:10: inlining call to textproto.MIMEHeader.Set
+middleware/cors.go:104:10: inlining call to textproto.MIMEHeader.Set
+middleware/cors.go:108:11: inlining call to textproto.MIMEHeader.Set
+middleware/cors.go:111:11: inlining call to textproto.MIMEHeader.Set
+middleware/cors.go:114:50: inlining call to strconv.Itoa
+middleware/cors.go:114:11: inlining call to textproto.MIMEHeader.Set
+middleware/jwt_auth.go:87:19: inlining call to hmac.Equal
+middleware/jwt_auth.go:87:19: inlining call to subtle.ConstantTimeCompare
+middleware/jwt_auth.go:87:19: inlining call to subtle.ConstantTimeCompare
+middleware/jwt_auth.go:87:19: inlining call to constanttime.ByteEq
+middleware/jwt_auth.go:386:28: inlining call to big.(*Int).SetBytes
+middleware/jwt_auth.go:387:28: inlining call to big.(*Int).SetBytes
+middleware/jwt_auth.go:395:22: inlining call to http.Header.Get
+middleware/jwt_auth.go:286:36: inlining call to strings.Cut
+middleware/jwt_auth.go:290:39: inlining call to strings.Cut
+middleware/jwt_auth.go:339:40: inlining call to time.Unix
+middleware/jwt_auth.go:342:56: inlining call to time.Unix
+middleware/jwt_auth.go:370:31: inlining call to time.Unix
+middleware/jwt_auth.go:373:30: inlining call to time.Unix
+middleware/jwt_auth.go:376:31: inlining call to time.Unix
+middleware/jwt_auth.go:339:40: inlining call to time.unixTime
+middleware/jwt_auth.go:342:56: inlining call to time.unixTime
+middleware/jwt_auth.go:370:31: inlining call to time.unixTime
+middleware/jwt_auth.go:373:30: inlining call to time.unixTime
+middleware/jwt_auth.go:376:31: inlining call to time.unixTime
+middleware/jwt_auth.go:106:25: inlining call to strings.HasPrefix
+middleware/jwt_auth.go:108:25: inlining call to strings.HasPrefix
+middleware/jwt_auth.go:110:25: inlining call to strings.HasPrefix
+middleware/jwt_auth.go:121:15: inlining call to slog.Default
+middleware/jwt_auth.go:124:12: inlining call to slog.Any
+middleware/jwt_auth.go:121:22: inlining call to slog.(*Logger).Warn
+middleware/jwt_auth.go:143:39: inlining call to newJWTHMACPool
+middleware/jwt_auth.go:148:39: inlining call to newJWTHMACPool
+middleware/jwt_auth.go:153:39: inlining call to newJWTHMACPool
+middleware/jwt_auth.go:163:33: inlining call to elliptic.P256
+middleware/jwt_auth.go:171:33: inlining call to elliptic.P384
+middleware/jwt_auth.go:179:33: inlining call to elliptic.P521
+middleware/jwt_auth.go:106:25: inlining call to stringslite.HasPrefix
+middleware/jwt_auth.go:108:25: inlining call to stringslite.HasPrefix
+middleware/jwt_auth.go:110:25: inlining call to stringslite.HasPrefix
+middleware/jwt_auth.go:121:15: inlining call to atomic.(*Pointer[go.shape.struct { log/slog.handler log/slog.Handler }]).Load
+middleware/jwt_auth.go:121:22: inlining call to context.Background
+middleware/jwt_auth.go:163:33: inlining call to sync.(*Once).Do
+middleware/jwt_auth.go:171:33: inlining call to sync.(*Once).Do
+middleware/jwt_auth.go:179:33: inlining call to sync.(*Once).Do
+middleware/jwt_auth.go:163:33: inlining call to atomic.(*Bool).Load
+middleware/jwt_auth.go:171:33: inlining call to atomic.(*Bool).Load
+middleware/jwt_auth.go:179:33: inlining call to atomic.(*Bool).Load
+middleware/jwt_auth.go:220:19: inlining call to http.Header.Set
+middleware/jwt_auth.go:226:19: inlining call to http.Header.Set
+middleware/jwt_auth.go:230:63: inlining call to http.(*Request).Context
+middleware/jwt_auth.go:230:35: inlining call to http.(*Request).WithContext
+middleware/jwt_auth.go:220:19: inlining call to textproto.MIMEHeader.Set
+middleware/jwt_auth.go:226:19: inlining call to textproto.MIMEHeader.Set
+middleware/jwt_auth.go:230:63: inlining call to context.Background
+middleware/logger.go:33:27: inlining call to strconv.QuoteToASCII
+middleware/logger.go:33:27: inlining call to strconv.quoteWith
+middleware/no_cache.go:13:9: inlining call to http.Header.Set
+middleware/no_cache.go:14:9: inlining call to http.Header.Set
+middleware/no_cache.go:15:9: inlining call to http.Header.Set
+middleware/no_cache.go:16:9: inlining call to http.Header.Set
+middleware/no_cache.go:17:9: inlining call to http.Header.Set
+middleware/no_cache.go:13:9: inlining call to textproto.MIMEHeader.Set
+middleware/no_cache.go:14:9: inlining call to textproto.MIMEHeader.Set
+middleware/no_cache.go:15:9: inlining call to textproto.MIMEHeader.Set
+middleware/no_cache.go:16:9: inlining call to textproto.MIMEHeader.Set
+middleware/no_cache.go:17:9: inlining call to textproto.MIMEHeader.Set
+middleware/oauth2.go:101:11: inlining call to sync.(*Mutex).Lock
+middleware/oauth2.go:103:14: inlining call to sync.(*Mutex).Unlock
+middleware/oauth2.go:116:13: inlining call to sync.(*Mutex).Unlock
+middleware/oauth2.go:120:11: inlining call to sync.(*Mutex).Lock
+middleware/oauth2.go:122:13: inlining call to sync.(*Mutex).Unlock
+middleware/oauth2.go:101:11: inlining call to sync.(*Mutex).Lock
+middleware/oauth2.go:103:14: inlining call to sync.(*Mutex).Unlock
+middleware/oauth2.go:116:13: inlining call to sync.(*Mutex).Unlock
+middleware/oauth2.go:120:11: inlining call to sync.(*Mutex).Lock
+middleware/oauth2.go:122:13: inlining call to sync.(*Mutex).Unlock
+middleware/oauth2.go:133:12: inlining call to sync.(*RWMutex).RLock
+middleware/oauth2.go:135:14: inlining call to sync.(*RWMutex).RUnlock
+middleware/oauth2.go:133:12: inlining call to atomic.(*Int32).Add
+middleware/oauth2.go:135:14: inlining call to atomic.(*Int32).Add
+middleware/oauth2.go:215:12: inlining call to slog.Warn
+middleware/oauth2.go:215:12: inlining call to slog.Default
+middleware/oauth2.go:215:12: inlining call to context.Background
+middleware/oauth2.go:215:12: inlining call to atomic.(*Pointer[go.shape.struct { log/slog.handler log/slog.Handler }]).Load
+middleware/oauth2.go:254:21: inlining call to strings.NewReader
+middleware/oauth2.go:258:17: inlining call to http.Header.Set
+middleware/oauth2.go:262:25: inlining call to http.(*Client).Do
+middleware/oauth2.go:268:26: inlining call to fmt.Errorf
+middleware/oauth2.go:284:43: inlining call to io.LimitReader
+middleware/oauth2.go:284:28: inlining call to json.NewDecoder
+middleware/oauth2.go:298:28: inlining call to time.Unix
+middleware/oauth2.go:301:27: inlining call to time.Unix
+middleware/oauth2.go:304:28: inlining call to time.Unix
+middleware/oauth2.go:258:17: inlining call to textproto.MIMEHeader.Set
+middleware/oauth2.go:268:26: inlining call to errors.New
+middleware/oauth2.go:298:28: inlining call to time.unixTime
+middleware/oauth2.go:301:27: inlining call to time.unixTime
+middleware/oauth2.go:304:28: inlining call to time.unixTime
+middleware/oauth2.go:313:19: inlining call to http.Header.Set
+middleware/oauth2.go:323:21: inlining call to http.Header.Set
+middleware/oauth2.go:327:65: inlining call to http.(*Request).Context
+middleware/oauth2.go:327:37: inlining call to http.(*Request).WithContext
+middleware/oauth2.go:332:38: inlining call to http.(*Request).Context
+middleware/oauth2.go:344:19: inlining call to http.Header.Set
+middleware/oauth2.go:349:19: inlining call to http.Header.Set
+middleware/oauth2.go:356:30: inlining call to time.Time.IsZero
+middleware/oauth2.go:362:63: inlining call to http.(*Request).Context
+middleware/oauth2.go:362:35: inlining call to http.(*Request).WithContext
+middleware/oauth2.go:313:19: inlining call to textproto.MIMEHeader.Set
+middleware/oauth2.go:323:21: inlining call to textproto.MIMEHeader.Set
+middleware/oauth2.go:327:65: inlining call to context.Background
+middleware/oauth2.go:332:38: inlining call to context.Background
+middleware/oauth2.go:344:19: inlining call to textproto.MIMEHeader.Set
+middleware/oauth2.go:349:19: inlining call to textproto.MIMEHeader.Set
+middleware/oauth2.go:362:63: inlining call to context.Background
+middleware/oauth2.go:341:34: inlining call to http.(*Request).Context
+middleware/oauth2.go:341:34: inlining call to context.Background
+middleware/real_ip.go:94:24: inlining call to strings.Split
+middleware/real_ip.go:108:26: inlining call to selectXFFRightmost.func1
+middleware/real_ip.go:119:22: inlining call to selectXFFRightmost.func1
+middleware/real_ip.go:46:15: inlining call to slog.Default
+middleware/real_ip.go:46:22: inlining call to slog.(*Logger).Warn
+middleware/real_ip.go:46:15: inlining call to atomic.(*Pointer[go.shape.struct { log/slog.handler log/slog.Handler }]).Load
+middleware/real_ip.go:46:22: inlining call to context.Background
+middleware/real_ip.go:72:26: inlining call to http.Header.Get
+middleware/real_ip.go:76:33: inlining call to http.Header.Get
+middleware/recoverer.go:32:15: inlining call to slog.Any
+middleware/recoverer.go:33:18: inlining call to slog.String
+middleware/recoverer.go:34:18: inlining call to slog.String
+middleware/recoverer.go:35:18: inlining call to slog.String
+middleware/recoverer.go:31:18: inlining call to slog.(*Logger).Error
+middleware/recoverer.go:33:18: inlining call to slog.StringValue
+middleware/recoverer.go:34:18: inlining call to slog.StringValue
+middleware/recoverer.go:35:18: inlining call to slog.StringValue
+middleware/recoverer.go:31:18: inlining call to context.Background
+middleware/recoverer.go:14:41: inlining call to slog.Default
+middleware/recoverer.go:14:28: inlining call to RecovererWithLogger
+middleware/recoverer.go:14:41: inlining call to atomic.(*Pointer[go.shape.struct { log/slog.handler log/slog.Handler }]).Load
+middleware/request_id.go:35:22: inlining call to http.Header.Get
+middleware/request_id.go:36:22: inlining call to validRequestID
+middleware/request_id.go:39:28: inlining call to hex.EncodeToString
+middleware/request_id.go:41:38: inlining call to http.(*Request).Context
+middleware/request_id.go:42:18: inlining call to http.Header.Set
+middleware/request_id.go:43:35: inlining call to http.(*Request).WithContext
+middleware/request_id.go:39:28: inlining call to hex.EncodedLen
+middleware/request_id.go:39:28: inlining call to hex.Encode
+middleware/request_id.go:41:38: inlining call to context.Background
+middleware/request_id.go:42:18: inlining call to textproto.MIMEHeader.Set
+middleware/set_header.go:29:24: inlining call to strings.ContainsAny
+middleware/set_header.go:30:79: inlining call to strconv.QuoteToASCII
+middleware/set_header.go:32:24: inlining call to strings.ContainsAny
+middleware/set_header.go:33:81: inlining call to strconv.QuoteToASCII
+middleware/set_header.go:30:79: inlining call to strconv.quoteWith
+middleware/set_header.go:33:81: inlining call to strconv.quoteWith
+middleware/set_header.go:37:18: inlining call to http.Header.Set
+middleware/set_header.go:37:18: inlining call to textproto.MIMEHeader.Set
+middleware/strip_slashes.go:21:28: inlining call to http.(*Request).Context
+middleware/strip_slashes.go:21:28: inlining call to context.Background
+middleware/throttle.go:45:20: inlining call to time.(*Timer).Stop
+middleware/throttle.go:64:24: inlining call to ThrottleBacklog
+middleware/throttle.go:108:15: inlining call to slog.Default
+middleware/throttle.go:108:22: inlining call to slog.(*Logger).Warn
+middleware/throttle.go:108:15: inlining call to atomic.(*Pointer[go.shape.struct { log/slog.handler log/slog.Handler }]).Load
+middleware/throttle.go:108:22: inlining call to context.Background
+middleware/throttle.go:127:10: inlining call to sync.(*Mutex).Lock
+middleware/throttle.go:132:12: inlining call to sync.(*Mutex).Unlock
+middleware/throttle.go:127:10: inlining call to sync.(*Mutex).Lock
+middleware/throttle.go:132:12: inlining call to sync.(*Mutex).Unlock
+middleware/throttle.go:139:10: inlining call to sync.(*Mutex).Lock
+middleware/throttle.go:143:14: inlining call to sync.(*Mutex).Unlock
+middleware/throttle.go:154:12: inlining call to sync.(*Mutex).Unlock
+middleware/throttle.go:139:10: inlining call to sync.(*Mutex).Lock
+middleware/throttle.go:143:14: inlining call to sync.(*Mutex).Unlock
+middleware/throttle.go:154:12: inlining call to sync.(*Mutex).Unlock
+middleware/throttle.go:167:20: inlining call to time.(*Timer).Stop
+middleware/timeout.go:25:48: inlining call to http.(*Request).Context
+middleware/timeout.go:27:35: inlining call to http.(*Request).WithContext
+middleware/timeout.go:25:48: inlining call to context.Background
+middleware/with_value.go:25:19: inlining call to reflect.TypeOf
+middleware/with_value.go:26:15: inlining call to slog.Default
+middleware/with_value.go:28:12: inlining call to slog.Any
+middleware/with_value.go:26:22: inlining call to slog.(*Logger).Warn
+middleware/with_value.go:25:19: inlining call to abi.TypeOf
+middleware/with_value.go:25:19: inlining call to reflect.toType
+middleware/with_value.go:26:15: inlining call to atomic.(*Pointer[go.shape.struct { log/slog.handler log/slog.Handler }]).Load
+middleware/with_value.go:26:22: inlining call to context.Background
+middleware/with_value.go:25:19: inlining call to abi.NoEscape
+middleware/with_value.go:25:19: inlining call to reflect.toRType
+middleware/with_value.go:32:63: inlining call to http.(*Request).Context
+middleware/with_value.go:32:35: inlining call to http.(*Request).WithContext
+middleware/with_value.go:32:63: inlining call to context.Background
+middleware/with_value.go:25:29: inlining call to reflect.(*rtype).Kind
+middleware/with_value.go:25:29: inlining call to abi.(*Type).Kind
+/usr/local/go/src/unique/handle.go:26:6: inlining call to unique.Handle[go.shape.struct { net/netip.isV6 bool; net/netip.zoneV6 string }].Value
+/usr/local/go/src/sync/atomic/type.go:67:6: inlining call to atomic.(*Pointer[go.shape.struct { sync.poolDequeue; sync.next sync/atomic.Pointer[sync.poolChainElt]; sync.prev sync/atomic.Pointer[sync.poolChainElt] }]).CompareAndSwap
+/usr/local/go/src/sync/atomic/type.go:64:6: inlining call to atomic.(*Pointer[go.shape.struct { sync.poolDequeue; sync.next sync/atomic.Pointer[sync.poolChainElt]; sync.prev sync/atomic.Pointer[sync.poolChainElt] }]).Swap
+/usr/local/go/src/sync/atomic/type.go:61:6: inlining call to atomic.(*Pointer[go.shape.struct { sync.poolDequeue; sync.next sync/atomic.Pointer[sync.poolChainElt]; sync.prev sync/atomic.Pointer[sync.poolChainElt] }]).Store
+/usr/local/go/src/sync/atomic/type.go:58:6: inlining call to atomic.(*Pointer[go.shape.struct { sync.poolDequeue; sync.next sync/atomic.Pointer[sync.poolChainElt]; sync.prev sync/atomic.Pointer[sync.poolChainElt] }]).Load
+<autogenerated>:1: inlining call to unique.Handle[go.shape.struct { net/netip.isV6 bool; net/netip.zoneV6 string }].Value
+<autogenerated>:1: inlining call to sync.(*poolDequeue).pack
+<autogenerated>:1: inlining call to sync.(*poolDequeue).unpack
+<autogenerated>:1: inlining call to reflect.flag.kind
+<autogenerated>:1: inlining call to reflect.flag.kind
+<autogenerated>:1: inlining call to reflect.flag.mustBe
+<autogenerated>:1: inlining call to reflect.flag.kind
+<autogenerated>:1: inlining call to reflect.flag.mustBe
+<autogenerated>:1: inlining call to reflect.flag.kind
+<autogenerated>:1: inlining call to reflect.flag.mustBeAssignable
+<autogenerated>:1: inlining call to reflect.flag.mustBeAssignable
+<autogenerated>:1: inlining call to reflect.flag.mustBeExported
+<autogenerated>:1: inlining call to reflect.flag.mustBeExported
+<autogenerated>:1: inlining call to reflect.flag.ro
+<autogenerated>:1: inlining call to reflect.flag.ro
+middleware/api_key.go:31:9: "middleware: APIKey requires at least one key in opts.Keys" escapes to heap in APIKey:
+middleware/api_key.go:51:19: []string{...} escapes to heap in APIKey.func2.1:
+middleware/api_key.go:57:19: []string{...} escapes to heap in APIKey.func2.1:
+middleware/api_key.go:61:79: apiKeyCtxKey{} escapes to heap in APIKey.func2.1:
+middleware/api_key.go:61:83: id escapes to heap in APIKey.func2.1:
+middleware/api_key.go:61:35: "nil context" escapes to heap in APIKey.func2.1:
+middleware/api_key.go:61:63: context.backgroundCtx{} escapes to heap in APIKey.func2.1:
+middleware/api_key.go:61:35: new(http.Request) escapes to heap in APIKey.func2.1:
+middleware/api_key.go:47:27: func literal escapes to heap in APIKey.func2:
+middleware/api_key.go:39:13: func literal escapes to heap in APIKey:
+middleware/api_key.go:42:16: make(map[[32]byte]string, len(opts.Keys)) escapes to heap in APIKey:
+middleware/api_key.go:46:9: func literal escapes to heap in APIKey:
+middleware/api_key.go:31:9: "middleware: APIKey requires at least one key in opts.Keys" escapes to heap
+middleware/api_key.go:39:13: func literal escapes to heap
+middleware/api_key.go:42:16: make(map[[32]byte]string, len(opts.Keys)) escapes to heap
+middleware/api_key.go:46:9: func literal escapes to heap
+middleware/api_key.go:47:27: func literal escapes to heap
+middleware/api_key.go:51:19: []string{...} escapes to heap
+middleware/api_key.go:57:19: []string{...} escapes to heap
+middleware/api_key.go:61:63: context.backgroundCtx{} escapes to heap
+middleware/api_key.go:61:79: apiKeyCtxKey{} escapes to heap
+middleware/api_key.go:61:83: id escapes to heap
+middleware/api_key.go:61:35: "nil context" escapes to heap
+middleware/api_key.go:61:35: new(http.Request) escapes to heap
+middleware/api_key.go:69:34: apiKeyCtxKey{} escapes to heap in GetAPIKeyIdentity:
+middleware/api_key.go:69:34: apiKeyCtxKey{} escapes to heap
+middleware/basic_auth.go:17:9: "middleware: BasicAuth requires non-nil credentials map" escapes to heap in BasicAuth:
+middleware/basic_auth.go:20:29: "strings.NewReplacer: odd argument count" escapes to heap in BasicAuth:
+middleware/basic_auth.go:55:18: []string{...} escapes to heap in BasicAuth.func1.1:
+middleware/basic_auth.go:20:29: &strings.Replacer{...} escapes to heap in BasicAuth:
+middleware/basic_auth.go:55:60: "Basic realm=\"" + realm + "\"" escapes to heap in BasicAuth.func1.1:
+middleware/basic_auth.go:20:29: append(([]string)(nil), strings.oldnew...) escapes to heap in BasicAuth:
+middleware/basic_auth.go:33:27: func literal escapes to heap in BasicAuth.func1:
+middleware/basic_auth.go:24:21: make(map[string][32]byte, len(creds)) escapes to heap in BasicAuth:
+middleware/basic_auth.go:32:9: func literal escapes to heap in BasicAuth:
+middleware/basic_auth.go:17:9: "middleware: BasicAuth requires non-nil credentials map" escapes to heap
+middleware/basic_auth.go:20:29: "strings.NewReplacer: odd argument count" escapes to heap
+middleware/basic_auth.go:20:29: &strings.Replacer{...} escapes to heap
+middleware/basic_auth.go:20:29: append escapes to heap
+middleware/basic_auth.go:24:21: make(map[string][32]byte, len(creds)) escapes to heap
+middleware/basic_auth.go:32:9: func literal escapes to heap
+middleware/basic_auth.go:33:27: func literal escapes to heap
+middleware/basic_auth.go:55:60: "Basic realm=\"" + realm + "\"" escapes to heap
+middleware/basic_auth.go:55:18: []string{...} escapes to heap
+middleware/clean_path.go:24:27: context.backgroundCtx{} escapes to heap in CleanPath.func1.1:
+middleware/clean_path.go:15:27: func literal escapes to heap in CleanPath.func1:
+middleware/clean_path.go:15:27: func literal escapes to heap
+middleware/clean_path.go:24:27: context.backgroundCtx{} escapes to heap
+middleware/clean_path.go:14:9: func literal escapes to heap in CleanPath:
+middleware/clean_path.go:14:9: func literal escapes to heap
+middleware/compress.go:64:9: append(textproto.h[textproto.key], textproto.value) escapes to heap in (*gzipResponseWriter).commit:
+middleware/compress.go:86:9: []string{...} escapes to heap in (*gzipResponseWriter).commit:
+middleware/compress.go:64:9: append escapes to heap
+middleware/compress.go:86:9: []string{...} escapes to heap
+middleware/compress.go:39:17: append(g.buf, b...) escapes to heap in (*gzipResponseWriter).Write:
+middleware/compress.go:43:16: append(g.buf, b[:room]...) escapes to heap in (*gzipResponseWriter).Write:
+middleware/compress.go:39:17: append escapes to heap
+middleware/compress.go:43:16: append escapes to heap
+middleware/compress.go:178:46: "middleware: invalid gzip level: " + err.Error() escapes to heap in Compress.func1:
+middleware/compress.go:178:46: "middleware: invalid gzip level: " + err.Error() escapes to heap in Compress.func1:
+middleware/compress.go:174:10: &sync.Pool{...} escapes to heap in Compress:
+middleware/compress.go:192:11: &gzipResponseWriter{...} escapes to heap in Compress.func2.1:
+middleware/compress.go:175:8: func literal escapes to heap in Compress:
+middleware/compress.go:187:27: func literal escapes to heap in Compress.func2:
+middleware/compress.go:186:9: func literal escapes to heap in Compress:
+middleware/compress.go:174:10: &sync.Pool{...} escapes to heap
+middleware/compress.go:175:8: func literal escapes to heap
+middleware/compress.go:178:46: "middleware: invalid gzip level: " + err.Error() escapes to heap
+middleware/compress.go:178:46: "middleware: invalid gzip level: " + err.Error() escapes to heap
+middleware/compress.go:186:9: func literal escapes to heap
+middleware/compress.go:187:27: func literal escapes to heap
+middleware/compress.go:192:11: &gzipResponseWriter{...} escapes to heap
+middleware/cors.go:49:100: "middleware: CORS requires a non-empty AllowedOrigins (use []string{\... escapes to heap in CORS:
+middleware/cors.go:54:10: "middleware: CORS AllowCredentials must not be true when AllowedOrigi... escapes to heap in CORS:
+middleware/cors.go:92:10: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:94:10: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:98:10: append(textproto.h[textproto.key], textproto.value) escapes to heap in CORS.func1.1:
+middleware/cors.go:101:10: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:104:10: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:108:11: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:111:11: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:114:11: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:70:27: func literal escapes to heap in CORS.func1:
+middleware/cors.go:57:24: make(map[string]bool, len(opts.AllowedOrigins)) escapes to heap in CORS:
+middleware/cors.go:69:9: func literal escapes to heap in CORS:
+middleware/cors.go:49:100: "middleware: CORS requires a non-empty AllowedOrigins (use []string{\... escapes to heap
+middleware/cors.go:54:10: "middleware: CORS AllowCredentials must not be true when AllowedOrigi... escapes to heap
+middleware/cors.go:57:24: make(map[string]bool, len(opts.AllowedOrigins)) escapes to heap
+middleware/cors.go:69:9: func literal escapes to heap
+middleware/cors.go:70:27: func literal escapes to heap
+middleware/cors.go:92:10: []string{...} escapes to heap
+middleware/cors.go:94:10: []string{...} escapes to heap
+middleware/cors.go:98:10: append escapes to heap
+middleware/cors.go:101:10: []string{...} escapes to heap
+middleware/cors.go:104:10: []string{...} escapes to heap
+middleware/cors.go:108:11: []string{...} escapes to heap
+middleware/cors.go:111:11: []string{...} escapes to heap
+middleware/cors.go:114:11: []string{...} escapes to heap
+middleware/jwt_auth.go:78:9: &jwtHMACPool{...} escapes to heap in newJWTHMACPool:
+middleware/jwt_auth.go:78:40: func literal escapes to heap in newJWTHMACPool:
+middleware/jwt_auth.go:78:9: &jwtHMACPool{...} escapes to heap
+middleware/jwt_auth.go:78:40: func literal escapes to heap
+middleware/jwt_auth.go:300:6: hdr escapes to heap in parseAndValidateJWT:
+middleware/jwt_auth.go:321:31: ([]byte)(signingInput) escapes to heap in parseAndValidateJWT:
+middleware/jwt_auth.go:330:6: raw escapes to heap in parseAndValidateJWT:
+middleware/jwt_auth.go:363:12: &JWTClaims{...} escapes to heap in parseAndValidateJWT:
+middleware/jwt_auth.go:300:6: moved to heap: hdr
+middleware/jwt_auth.go:330:6: moved to heap: raw
+middleware/jwt_auth.go:321:31: ([]byte)(signingInput) escapes to heap
+middleware/jwt_auth.go:363:12: &JWTClaims{...} escapes to heap
+middleware/jwt_auth.go:98:9: "middleware: JWTAuth requires at least one algorithm in opts.Algorithms" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:141:11: "middleware: JWTAuth HS256 requires opts.Secret" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:146:11: "middleware: JWTAuth HS384 requires opts.Secret" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:151:11: "middleware: JWTAuth HS512 requires opts.Secret" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:156:40: "middleware: JWTAuth " + alg + " requires opts.PublicKey to be *rsa.PublicKey" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:156:40: "middleware: JWTAuth " + alg + " requires opts.PublicKey to be *rsa.PublicKey" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:161:11: "middleware: JWTAuth ES256 requires opts.PublicKey to be *ecdsa.Publi... escapes to heap in JWTAuth:
+middleware/jwt_auth.go:164:11: "middleware: JWTAuth ES256 requires a P-256 public key (RFC 7518 §3.4)" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:169:11: "middleware: JWTAuth ES384 requires opts.PublicKey to be *ecdsa.Publi... escapes to heap in JWTAuth:
+middleware/jwt_auth.go:172:11: "middleware: JWTAuth ES384 requires a P-384 public key (RFC 7518 §3.4)" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:177:11: "middleware: JWTAuth ES512 requires opts.PublicKey to be *ecdsa.Publi... escapes to heap in JWTAuth:
+middleware/jwt_auth.go:180:11: "middleware: JWTAuth ES512 requires a P-521 public key (RFC 7518 §3.4)" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:183:56: "middleware: JWTAuth unsupported algorithm: " + alg escapes to heap in JWTAuth:
+middleware/jwt_auth.go:183:56: "middleware: JWTAuth unsupported algorithm: " + alg escapes to heap in JWTAuth:
+middleware/jwt_auth.go:220:19: []string{...} escapes to heap in JWTAuth.func2.1:
+middleware/jwt_auth.go:226:19: []string{...} escapes to heap in JWTAuth.func2.1:
+middleware/jwt_auth.go:230:76: jwtCtxKey{} escapes to heap in JWTAuth.func2.1:
+middleware/jwt_auth.go:230:35: "nil context" escapes to heap in JWTAuth.func2.1:
+middleware/jwt_auth.go:121:22: context.backgroundCtx{} escapes to heap in JWTAuth:
+middleware/jwt_auth.go:143:39: &jwtHMACPool{...} escapes to heap in JWTAuth:
+middleware/jwt_auth.go:148:39: &jwtHMACPool{...} escapes to heap in JWTAuth:
+middleware/jwt_auth.go:153:39: &jwtHMACPool{...} escapes to heap in JWTAuth:
+middleware/jwt_auth.go:124:12: ~r0 escapes to heap in JWTAuth:
+middleware/jwt_auth.go:230:63: context.backgroundCtx{} escapes to heap in JWTAuth.func2.1:
+middleware/jwt_auth.go:230:35: new(http.Request) escapes to heap in JWTAuth.func2.1:
+middleware/jwt_auth.go:153:39: func literal escapes to heap in JWTAuth:
+middleware/jwt_auth.go:148:39: func literal escapes to heap in JWTAuth:
+middleware/jwt_auth.go:143:39: func literal escapes to heap in JWTAuth:
+middleware/jwt_auth.go:124:31: opts.Algorithms escapes to heap in JWTAuth:
+middleware/jwt_auth.go:217:27: func literal escapes to heap in JWTAuth.func2:
+middleware/jwt_auth.go:101:21: make(map[string]struct {}, len(opts.Algorithms)) escapes to heap in JWTAuth:
+middleware/jwt_auth.go:126:17: make(map[string]struct {}, len(opts.Issuers)) escapes to heap in JWTAuth:
+middleware/jwt_auth.go:130:19: make(map[string]struct {}, len(opts.Audiences)) escapes to heap in JWTAuth:
+middleware/jwt_auth.go:189:14: func literal escapes to heap in JWTAuth:
+middleware/jwt_auth.go:136:19: make(map[string]*jwtHMACPool) escapes to heap in JWTAuth:
+middleware/jwt_auth.go:216:9: func literal escapes to heap in JWTAuth:
+middleware/jwt_auth.go:98:9: "middleware: JWTAuth requires at least one algorithm in opts.Algorithms" escapes to heap
+middleware/jwt_auth.go:101:21: make(map[string]struct {}, len(opts.Algorithms)) escapes to heap
+middleware/jwt_auth.go:124:12: ~r0 escapes to heap
+middleware/jwt_auth.go:124:31: opts.Algorithms escapes to heap
+middleware/jwt_auth.go:121:22: context.backgroundCtx{} escapes to heap
+middleware/jwt_auth.go:126:17: make(map[string]struct {}, len(opts.Issuers)) escapes to heap
+middleware/jwt_auth.go:130:19: make(map[string]struct {}, len(opts.Audiences)) escapes to heap
+middleware/jwt_auth.go:136:19: make(map[string]*jwtHMACPool) escapes to heap
+middleware/jwt_auth.go:141:11: "middleware: JWTAuth HS256 requires opts.Secret" escapes to heap
+middleware/jwt_auth.go:143:39: &jwtHMACPool{...} escapes to heap
+middleware/jwt_auth.go:143:39: func literal escapes to heap
+middleware/jwt_auth.go:146:11: "middleware: JWTAuth HS384 requires opts.Secret" escapes to heap
+middleware/jwt_auth.go:148:39: &jwtHMACPool{...} escapes to heap
+middleware/jwt_auth.go:148:39: func literal escapes to heap
+middleware/jwt_auth.go:151:11: "middleware: JWTAuth HS512 requires opts.Secret" escapes to heap
+middleware/jwt_auth.go:153:39: &jwtHMACPool{...} escapes to heap
+middleware/jwt_auth.go:153:39: func literal escapes to heap
+middleware/jwt_auth.go:156:40: "middleware: JWTAuth " + alg + " requires opts.PublicKey to be *rsa.PublicKey" escapes to heap
+middleware/jwt_auth.go:156:40: "middleware: JWTAuth " + alg + " requires opts.PublicKey to be *rsa.PublicKey" escapes to heap
+middleware/jwt_auth.go:161:11: "middleware: JWTAuth ES256 requires opts.PublicKey to be *ecdsa.Publi... escapes to heap
+middleware/jwt_auth.go:164:11: "middleware: JWTAuth ES256 requires a P-256 public key (RFC 7518 §3.4)" escapes to heap
+middleware/jwt_auth.go:169:11: "middleware: JWTAuth ES384 requires opts.PublicKey to be *ecdsa.Publi... escapes to heap
+middleware/jwt_auth.go:172:11: "middleware: JWTAuth ES384 requires a P-384 public key (RFC 7518 §3.4)" escapes to heap
+middleware/jwt_auth.go:177:11: "middleware: JWTAuth ES512 requires opts.PublicKey to be *ecdsa.Publi... escapes to heap
+middleware/jwt_auth.go:180:11: "middleware: JWTAuth ES512 requires a P-521 public key (RFC 7518 §3.4)" escapes to heap
+middleware/jwt_auth.go:183:56: "middleware: JWTAuth unsupported algorithm: " + alg escapes to heap
+middleware/jwt_auth.go:183:56: "middleware: JWTAuth unsupported algorithm: " + alg escapes to heap
+middleware/jwt_auth.go:189:14: func literal escapes to heap
+middleware/jwt_auth.go:216:9: func literal escapes to heap
+middleware/jwt_auth.go:217:27: func literal escapes to heap
+middleware/jwt_auth.go:220:19: []string{...} escapes to heap
+middleware/jwt_auth.go:226:19: []string{...} escapes to heap
+middleware/jwt_auth.go:230:63: context.backgroundCtx{} escapes to heap
+middleware/jwt_auth.go:230:76: jwtCtxKey{} escapes to heap
+middleware/jwt_auth.go:230:35: "nil context" escapes to heap
+middleware/jwt_auth.go:230:35: new(http.Request) escapes to heap
+middleware/jwt_auth.go:237:30: jwtCtxKey{} escapes to heap in GetJWTClaims:
+middleware/jwt_auth.go:237:30: jwtCtxKey{} escapes to heap
+middleware/jwt_auth.go:260:7: s escapes to heap in (*jwtAudClaim).UnmarshalJSON:
+middleware/jwt_auth.go:264:19: jwtAudClaim{...} escapes to heap in (*jwtAudClaim).UnmarshalJSON:
+middleware/jwt_auth.go:260:7: moved to heap: s
+middleware/jwt_auth.go:264:19: jwtAudClaim{...} escapes to heap
+middleware/logger.go:33:27: string(strconv.appendQuotedWith(make([]byte, 0, 3 * len(strconv.s) / 2), strconv.s, strconv.quote, strconv.ASCIIonly, strconv.graphicOnly)) escapes to heap in sanitiseForLog:
+middleware/logger.go:33:27: string(strconv.appendQuotedWith(make([]byte, 0, 3 * len(strconv.s) / 2), strconv.s, strconv.quote, strconv.ASCIIonly, strconv.graphicOnly)) escapes to heap
+middleware/logger.go:40:9: "middleware: Logger requires a non-nil writer" escapes to heap in Logger:
+middleware/logger.go:45:11: &statusRecorder{...} escapes to heap in Logger.func1.1:
+middleware/logger.go:48:22: time.Time.Format(time.Now(), "2006-01-02T15:04:05Z07:00") escapes to heap in Logger.func1.1:
+middleware/logger.go:49:19: sanitiseForLog(r.Method) escapes to heap in Logger.func1.1:
+middleware/logger.go:50:19: sanitiseForLog(r.URL.Path) escapes to heap in Logger.func1.1:
+middleware/logger.go:51:8: rec.status escapes to heap in Logger.func1.1:
+middleware/logger.go:52:15: time.Since(start) escapes to heap in Logger.func1.1:
+middleware/logger.go:43:27: func literal escapes to heap in Logger.func1:
+middleware/logger.go:42:9: func literal escapes to heap in Logger:
+middleware/logger.go:40:9: "middleware: Logger requires a non-nil writer" escapes to heap
+middleware/logger.go:42:9: func literal escapes to heap
+middleware/logger.go:43:27: func literal escapes to heap
+middleware/logger.go:45:11: &statusRecorder{...} escapes to heap
+middleware/logger.go:48:22: time.Time.Format(time.Now(), "2006-01-02T15:04:05Z07:00") escapes to heap
+middleware/logger.go:49:19: sanitiseForLog(r.Method) escapes to heap
+middleware/logger.go:50:19: sanitiseForLog(r.URL.Path) escapes to heap
+middleware/logger.go:51:8: rec.status escapes to heap
+middleware/logger.go:52:15: time.Since(start) escapes to heap
+middleware/no_cache.go:13:9: []string{...} escapes to heap in NoCache.func1.1:
+middleware/no_cache.go:14:9: []string{...} escapes to heap in NoCache.func1.1:
+middleware/no_cache.go:15:9: []string{...} escapes to heap in NoCache.func1.1:
+middleware/no_cache.go:16:9: []string{...} escapes to heap in NoCache.func1.1:
+middleware/no_cache.go:17:9: []string{...} escapes to heap in NoCache.func1.1:
+middleware/no_cache.go:11:27: func literal escapes to heap in NoCache.func1:
+middleware/no_cache.go:11:27: func literal escapes to heap
+middleware/no_cache.go:13:9: []string{...} escapes to heap
+middleware/no_cache.go:14:9: []string{...} escapes to heap
+middleware/no_cache.go:15:9: []string{...} escapes to heap
+middleware/no_cache.go:16:9: []string{...} escapes to heap
+middleware/no_cache.go:17:9: []string{...} escapes to heap
+middleware/no_cache.go:10:9: func literal escapes to heap in NoCache:
+middleware/no_cache.go:10:9: func literal escapes to heap
+middleware/oauth2.go:113:17: make(map[[32]byte]*oauth2InflightCall) escapes to heap in (*oauth2Inflight).do:
+middleware/oauth2.go:111:7: &oauth2InflightCall{...} escapes to heap in (*oauth2Inflight).do:
+middleware/oauth2.go:111:7: &oauth2InflightCall{...} escapes to heap
+middleware/oauth2.go:113:17: make(map[[32]byte]*oauth2InflightCall) escapes to heap
+middleware/oauth2.go:162:19: &oauth2Entry{...} escapes to heap in (*oauth2Cache).set:
+middleware/oauth2.go:162:19: &oauth2Entry{...} escapes to heap
+middleware/oauth2.go:205:9: "middleware: OAuth2Introspect requires a non-empty opts.Endpoint" escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:209:66: "middleware: OAuth2Introspect: malformed Endpoint URL: " + err.Error() escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:209:66: "middleware: OAuth2Introspect: malformed Endpoint URL: " + err.Error() escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:213:10: "middleware: OAuth2Introspect: Endpoint must use https:// — bearer to... escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:250:23: []string{...} escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:251:23: []string{...} escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:258:17: []string{...} escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:270:7: raw escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:313:19: []string{...} escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:323:21: []string{...} escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:327:81: oauth2CtxKey{} escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:327:37: "nil context" escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:344:19: []string{...} escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:349:19: []string{...} escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:362:79: oauth2CtxKey{} escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:362:35: "nil context" escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:215:12: context.backgroundCtx{} escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:254:21: &strings.Reader{...} escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:284:28: &json.Decoder{...} escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:237:11: &oauth2Cache{...} escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:246:14: &oauth2Inflight{} escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:216:4: "endpoint" escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:216:20: opts.Endpoint escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:216:31: "scheme" escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:216:55: parsedEndpoint.Scheme escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:228:12: &http.Client{...} escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:268:69: resp.StatusCode escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:327:65: context.backgroundCtx{} escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:327:37: new(http.Request) escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:332:38: context.backgroundCtx{} escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:362:63: context.backgroundCtx{} escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:362:35: new(http.Request) escapes to heap in OAuth2Introspect.func2.1:
+middleware/oauth2.go:341:34: context.backgroundCtx{} escapes to heap in OAuth2Introspect.func2.1.1:
+middleware/oauth2.go:284:43: &io.LimitedReader{...} escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:238:17: make(map[[32]byte]*oauth2Entry, 64) escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:268:26: &errors.errorString{...} escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:287:9: &IntrospectResponse{...} escapes to heap in OAuth2Introspect.func1:
+middleware/oauth2.go:310:27: func literal escapes to heap in OAuth2Introspect.func2:
+middleware/oauth2.go:248:18: func literal escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:309:9: func literal escapes to heap in OAuth2Introspect:
+middleware/oauth2.go:270:7: moved to heap: raw
+middleware/oauth2.go:205:9: "middleware: OAuth2Introspect requires a non-empty opts.Endpoint" escapes to heap
+middleware/oauth2.go:209:66: "middleware: OAuth2Introspect: malformed Endpoint URL: " + err.Error() escapes to heap
+middleware/oauth2.go:209:66: "middleware: OAuth2Introspect: malformed Endpoint URL: " + err.Error() escapes to heap
+middleware/oauth2.go:213:10: "middleware: OAuth2Introspect: Endpoint must use https:// — bearer to... escapes to heap
+middleware/oauth2.go:216:4: "endpoint" escapes to heap
+middleware/oauth2.go:216:20: opts.Endpoint escapes to heap
+middleware/oauth2.go:216:31: "scheme" escapes to heap
+middleware/oauth2.go:216:55: parsedEndpoint.Scheme escapes to heap
+middleware/oauth2.go:215:12: context.backgroundCtx{} escapes to heap
+middleware/oauth2.go:228:12: &http.Client{...} escapes to heap
+middleware/oauth2.go:237:11: &oauth2Cache{...} escapes to heap
+middleware/oauth2.go:238:17: make(map[[32]byte]*oauth2Entry, 64) escapes to heap
+middleware/oauth2.go:246:14: &oauth2Inflight{} escapes to heap
+middleware/oauth2.go:248:18: func literal escapes to heap
+middleware/oauth2.go:250:23: []string{...} escapes to heap
+middleware/oauth2.go:251:23: []string{...} escapes to heap
+middleware/oauth2.go:254:21: &strings.Reader{...} escapes to heap
+middleware/oauth2.go:258:17: []string{...} escapes to heap
+middleware/oauth2.go:268:69: resp.StatusCode escapes to heap
+middleware/oauth2.go:268:26: &errors.errorString{...} escapes to heap
+middleware/oauth2.go:284:43: &io.LimitedReader{...} escapes to heap
+middleware/oauth2.go:284:28: &json.Decoder{...} escapes to heap
+middleware/oauth2.go:287:9: &IntrospectResponse{...} escapes to heap
+middleware/oauth2.go:309:9: func literal escapes to heap
+middleware/oauth2.go:310:27: func literal escapes to heap
+middleware/oauth2.go:313:19: []string{...} escapes to heap
+middleware/oauth2.go:323:21: []string{...} escapes to heap
+middleware/oauth2.go:327:65: context.backgroundCtx{} escapes to heap
+middleware/oauth2.go:327:81: oauth2CtxKey{} escapes to heap
+middleware/oauth2.go:327:37: "nil context" escapes to heap
+middleware/oauth2.go:327:37: new(http.Request) escapes to heap
+middleware/oauth2.go:332:38: context.backgroundCtx{} escapes to heap
+middleware/oauth2.go:341:34: context.backgroundCtx{} escapes to heap
+middleware/oauth2.go:344:19: []string{...} escapes to heap
+middleware/oauth2.go:349:19: []string{...} escapes to heap
+middleware/oauth2.go:362:63: context.backgroundCtx{} escapes to heap
+middleware/oauth2.go:362:79: oauth2CtxKey{} escapes to heap
+middleware/oauth2.go:362:35: "nil context" escapes to heap
+middleware/oauth2.go:362:35: new(http.Request) escapes to heap
+middleware/oauth2.go:369:33: oauth2CtxKey{} escapes to heap in GetOAuth2Claims:
+middleware/oauth2.go:369:33: oauth2CtxKey{} escapes to heap
+middleware/real_ip.go:46:22: context.backgroundCtx{} escapes to heap in RealIP:
+middleware/real_ip.go:51:27: func literal escapes to heap in RealIP.func1:
+middleware/real_ip.go:50:9: func literal escapes to heap in RealIP:
+middleware/real_ip.go:46:22: context.backgroundCtx{} escapes to heap
+middleware/real_ip.go:50:9: func literal escapes to heap
+middleware/real_ip.go:51:27: func literal escapes to heap
+middleware/recoverer.go:32:15: slog.Any("panic", rcv) escapes to heap in Recoverer.RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:33:18: slog.String("stack", string(debug.Stack())) escapes to heap in Recoverer.RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:34:18: slog.String("method", sanitiseForLog(r.Method)) escapes to heap in Recoverer.RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:35:18: slog.String("path", sanitiseForLog(r.URL.Path)) escapes to heap in Recoverer.RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:33:46: string(debug.Stack()) escapes to heap in Recoverer.RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:23:27: func literal escapes to heap in Recoverer.RecovererWithLogger.func1:
+middleware/recoverer.go:14:28: func literal escapes to heap in Recoverer:
+middleware/recoverer.go:14:28: func literal escapes to heap
+middleware/recoverer.go:23:27: func literal escapes to heap
+middleware/recoverer.go:32:15: slog.Any("panic", rcv) escapes to heap
+middleware/recoverer.go:33:18: slog.String("stack", string(debug.Stack())) escapes to heap
+middleware/recoverer.go:33:46: string(debug.Stack()) escapes to heap
+middleware/recoverer.go:34:18: slog.String("method", sanitiseForLog(r.Method)) escapes to heap
+middleware/recoverer.go:35:18: slog.String("path", sanitiseForLog(r.URL.Path)) escapes to heap
+middleware/recoverer.go:31:18: context.backgroundCtx{} escapes to heap in RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:32:15: ~r0 escapes to heap in RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:33:18: ~r0 escapes to heap in RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:34:18: ~r0 escapes to heap in RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:35:18: ~r0 escapes to heap in RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:33:46: string(debug.Stack()) escapes to heap in RecovererWithLogger.func1.1.1:
+middleware/recoverer.go:23:27: func literal escapes to heap in RecovererWithLogger.func1:
+middleware/recoverer.go:22:9: func literal escapes to heap in RecovererWithLogger:
+middleware/recoverer.go:22:9: func literal escapes to heap
+middleware/recoverer.go:23:27: func literal escapes to heap
+middleware/recoverer.go:32:15: ~r0 escapes to heap
+middleware/recoverer.go:33:18: ~r0 escapes to heap
+middleware/recoverer.go:33:46: string(debug.Stack()) escapes to heap
+middleware/recoverer.go:34:18: ~r0 escapes to heap
+middleware/recoverer.go:35:18: ~r0 escapes to heap
+middleware/recoverer.go:31:18: context.backgroundCtx{} escapes to heap
+middleware/request_id.go:41:54: requestIDKey{} escapes to heap in RequestID.func1.1:
+middleware/request_id.go:41:58: id escapes to heap in RequestID.func1.1:
+middleware/request_id.go:42:18: []string{...} escapes to heap in RequestID.func1.1:
+middleware/request_id.go:43:35: "nil context" escapes to heap in RequestID.func1.1:
+middleware/request_id.go:41:38: context.backgroundCtx{} escapes to heap in RequestID.func1.1:
+middleware/request_id.go:43:35: new(http.Request) escapes to heap in RequestID.func1.1:
+middleware/request_id.go:39:28: string(hex.dst) escapes to heap in RequestID.func1.1:
+middleware/request_id.go:34:27: func literal escapes to heap in RequestID.func1:
+middleware/request_id.go:34:27: func literal escapes to heap
+middleware/request_id.go:39:28: string(hex.dst) escapes to heap
+middleware/request_id.go:41:38: context.backgroundCtx{} escapes to heap
+middleware/request_id.go:41:54: requestIDKey{} escapes to heap
+middleware/request_id.go:41:58: id escapes to heap
+middleware/request_id.go:42:18: []string{...} escapes to heap
+middleware/request_id.go:43:35: "nil context" escapes to heap
+middleware/request_id.go:43:35: new(http.Request) escapes to heap
+middleware/request_id.go:33:9: func literal escapes to heap in RequestID:
+middleware/request_id.go:33:9: func literal escapes to heap
+middleware/request_id.go:50:33: requestIDKey{} escapes to heap in GetRequestID:
+middleware/request_id.go:50:33: requestIDKey{} escapes to heap
+middleware/set_header.go:30:57: "middleware: SetHeader key contains CR or LF: " + ~r0 escapes to heap in SetHeader:
+middleware/set_header.go:30:57: "middleware: SetHeader key contains CR or LF: " + ~r0 escapes to heap in SetHeader:
+middleware/set_header.go:33:59: "middleware: SetHeader value contains CR or LF: " + ~r0 escapes to heap in SetHeader:
+middleware/set_header.go:33:59: "middleware: SetHeader value contains CR or LF: " + ~r0 escapes to heap in SetHeader:
+middleware/set_header.go:37:18: []string{...} escapes to heap in SetHeader.func1.1:
+middleware/set_header.go:36:27: func literal escapes to heap in SetHeader.func1:
+middleware/set_header.go:35:9: func literal escapes to heap in SetHeader:
+middleware/set_header.go:30:57: "middleware: SetHeader key contains CR or LF: " + ~r0 escapes to heap
+middleware/set_header.go:30:57: "middleware: SetHeader key contains CR or LF: " + ~r0 escapes to heap
+middleware/set_header.go:33:59: "middleware: SetHeader value contains CR or LF: " + ~r0 escapes to heap
+middleware/set_header.go:33:59: "middleware: SetHeader value contains CR or LF: " + ~r0 escapes to heap
+middleware/set_header.go:35:9: func literal escapes to heap
+middleware/set_header.go:36:27: func literal escapes to heap
+middleware/set_header.go:37:18: []string{...} escapes to heap
+middleware/strip_slashes.go:21:28: context.backgroundCtx{} escapes to heap in StripSlashes.func1.1:
+middleware/strip_slashes.go:15:27: func literal escapes to heap in StripSlashes.func1:
+middleware/strip_slashes.go:15:27: func literal escapes to heap
+middleware/strip_slashes.go:21:28: context.backgroundCtx{} escapes to heap
+middleware/strip_slashes.go:14:9: func literal escapes to heap in StripSlashes:
+middleware/strip_slashes.go:14:9: func literal escapes to heap
+middleware/throttle.go:15:9: "middleware: ThrottleBacklog limit must be > 0" escapes to heap in ThrottleBacklog:
+middleware/throttle.go:18:9: "middleware: ThrottleBacklog backlog must be >= 0" escapes to heap in ThrottleBacklog:
+middleware/throttle.go:45:20: "time: Stop called on uninitialized Timer" escapes to heap in ThrottleBacklog.func1.1.deferwrap1:
+middleware/throttle.go:27:27: func literal escapes to heap in ThrottleBacklog.func1:
+middleware/throttle.go:26:9: func literal escapes to heap in ThrottleBacklog:
+middleware/throttle.go:15:9: "middleware: ThrottleBacklog limit must be > 0" escapes to heap
+middleware/throttle.go:18:9: "middleware: ThrottleBacklog backlog must be >= 0" escapes to heap
+middleware/throttle.go:26:9: func literal escapes to heap
+middleware/throttle.go:27:27: func literal escapes to heap
+middleware/throttle.go:45:20: "time: Stop called on uninitialized Timer" escapes to heap
+middleware/throttle.go:64:24: "middleware: ThrottleBacklog limit must be > 0" escapes to heap in ThrottleAllBacklog:
+middleware/throttle.go:64:24: "middleware: ThrottleBacklog backlog must be >= 0" escapes to heap in ThrottleAllBacklog:
+middleware/throttle.go:27:27: func literal escapes to heap in ThrottleAllBacklog.ThrottleBacklog.func1:
+middleware/throttle.go:64:24: func literal escapes to heap in ThrottleAllBacklog:
+middleware/throttle.go:64:24: "middleware: ThrottleBacklog limit must be > 0" escapes to heap
+middleware/throttle.go:64:24: "middleware: ThrottleBacklog backlog must be >= 0" escapes to heap
+middleware/throttle.go:64:24: func literal escapes to heap
+middleware/throttle.go:27:27: func literal escapes to heap
+middleware/throttle.go:105:9: "middleware: ThrottlePerIP limit must be > 0" escapes to heap in ThrottlePerIPCapped:
+middleware/throttle.go:167:20: "time: Stop called on uninitialized Timer" escapes to heap in ThrottlePerIPCapped.func4.1.deferwrap1:
+middleware/throttle.go:108:22: context.backgroundCtx{} escapes to heap in ThrottlePerIPCapped:
+middleware/throttle.go:146:8: &entry{...} escapes to heap in ThrottlePerIPCapped.func3:
+middleware/throttle.go:122:6: mu escapes to heap in ThrottlePerIPCapped:
+middleware/throttle.go:159:27: func literal escapes to heap in ThrottlePerIPCapped.func4:
+middleware/throttle.go:112:11: func literal escapes to heap in ThrottlePerIPCapped:
+middleware/throttle.go:138:13: func literal escapes to heap in ThrottlePerIPCapped:
+middleware/throttle.go:126:13: func literal escapes to heap in ThrottlePerIPCapped:
+middleware/throttle.go:123:15: make(map[string]*entry) escapes to heap in ThrottlePerIPCapped:
+middleware/throttle.go:158:9: func literal escapes to heap in ThrottlePerIPCapped:
+middleware/throttle.go:122:6: moved to heap: mu
+middleware/throttle.go:105:9: "middleware: ThrottlePerIP limit must be > 0" escapes to heap
+middleware/throttle.go:108:22: context.backgroundCtx{} escapes to heap
+middleware/throttle.go:112:11: func literal escapes to heap
+middleware/throttle.go:123:15: make(map[string]*entry) escapes to heap
+middleware/throttle.go:126:13: func literal escapes to heap
+middleware/throttle.go:138:13: func literal escapes to heap
+middleware/throttle.go:146:8: &entry{...} escapes to heap
+middleware/throttle.go:158:9: func literal escapes to heap
+middleware/throttle.go:159:27: func literal escapes to heap
+middleware/throttle.go:167:20: "time: Stop called on uninitialized Timer" escapes to heap
+middleware/timeout.go:21:9: "middleware: Timeout duration must be positive" escapes to heap in Timeout:
+middleware/timeout.go:27:35: "nil context" escapes to heap in Timeout.func1.1:
+middleware/timeout.go:25:48: context.backgroundCtx{} escapes to heap in Timeout.func1.1:
+middleware/timeout.go:27:35: new(http.Request) escapes to heap in Timeout.func1.1:
+middleware/timeout.go:24:27: func literal escapes to heap in Timeout.func1:
+middleware/timeout.go:23:9: func literal escapes to heap in Timeout:
+middleware/timeout.go:21:9: "middleware: Timeout duration must be positive" escapes to heap
+middleware/timeout.go:23:9: func literal escapes to heap
+middleware/timeout.go:24:27: func literal escapes to heap
+middleware/timeout.go:25:48: context.backgroundCtx{} escapes to heap
+middleware/timeout.go:27:35: "nil context" escapes to heap
+middleware/timeout.go:27:35: new(http.Request) escapes to heap
+middleware/with_value.go:23:9: "middleware: WithValue key must not be nil" escapes to heap in WithValue:
+middleware/with_value.go:32:35: "nil context" escapes to heap in WithValue.func1.1:
+middleware/with_value.go:26:22: context.backgroundCtx{} escapes to heap in WithValue:
+middleware/with_value.go:28:12: ~r0 escapes to heap in WithValue:
+middleware/with_value.go:32:63: context.backgroundCtx{} escapes to heap in WithValue.func1.1:
+middleware/with_value.go:32:35: new(http.Request) escapes to heap in WithValue.func1.1:
+middleware/with_value.go:31:27: func literal escapes to heap in WithValue.func1:
+middleware/with_value.go:30:9: func literal escapes to heap in WithValue:
+middleware/with_value.go:23:9: "middleware: WithValue key must not be nil" escapes to heap
+middleware/with_value.go:28:12: ~r0 escapes to heap
+middleware/with_value.go:26:22: context.backgroundCtx{} escapes to heap
+middleware/with_value.go:30:9: func literal escapes to heap
+middleware/with_value.go:31:27: func literal escapes to heap
+middleware/with_value.go:32:63: context.backgroundCtx{} escapes to heap
+middleware/with_value.go:32:35: "nil context" escapes to heap
+middleware/with_value.go:32:35: new(http.Request) escapes to heap
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap in struct { reflect.typ_ *internal/abi.Type; reflect.ptr unsafe.Pointer; reflect.flag }.reflect.mustBe:
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap in (*struct { reflect.typ_ *internal/abi.Type; reflect.ptr unsafe.Pointer; reflect.flag }).reflect.mustBe:
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap
+./params.go:96:34: inlining call to errors.New
+./mux.go:260:12: inlining call to slog.Warn
+./mux.go:260:12: inlining call to slog.Default
+./mux.go:260:12: inlining call to context.Background
+./mux.go:260:12: inlining call to atomic.(*Pointer[go.shape.struct { log/slog.handler log/slog.Handler }]).Load
+./mux.go:259:28: inlining call to sync.(*Once).Do
+./mux.go:259:28: inlining call to atomic.(*Bool).Load
+./tree.go:706:21: inlining call to strings.Index
+./tree.go:711:27: inlining call to strings.Index
+./tree.go:733:20: inlining call to strings.Index
+./tree.go:737:20: inlining call to strings.Index
+./tree.go:745:41: inlining call to strings.HasPrefix
+./tree.go:763:27: inlining call to strings.Index
+./tree.go:745:41: inlining call to stringslite.HasPrefix
+./tree.go:355:29: inlining call to strings.Index
+./tree.go:360:29: inlining call to regexp.Compile
+./tree.go:170:64: inlining call to strconv.Itoa
+./tree.go:171:56: inlining call to strconv.Itoa
+./tree.go:184:74: inlining call to strconv.QuoteToASCII
+./tree.go:204:27: inlining call to longestCommonPrefix
+./tree.go:253:27: inlining call to strings.SplitN
+./tree.go:254:36: inlining call to strings.Index
+./tree.go:274:26: inlining call to strings.SplitN
+./tree.go:275:35: inlining call to strings.Index
+./tree.go:170:64: inlining call to strconv.Itoa
+./tree.go:171:56: inlining call to strconv.Itoa
+./tree.go:184:74: inlining call to strconv.quoteWith
+./mux.go:340:18: inlining call to methodIdx
+./mux.go:351:27: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Load
+./mux.go:363:15: inlining call to (*node).addRoute
+./mux.go:364:18: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Store
+./mux.go:792:26: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).CompareAndSwap
+./mux.go:795:28: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Load
+./mux.go:756:20: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Load
+./group.go:48:25: inlining call to (*Mux).config
+./group.go:48:25: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Load
+./mux.go:434:18: inlining call to methodIdx
+./mux.go:441:27: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Load
+./mux.go:453:19: inlining call to (*node).addRouteFast
+./mux.go:454:18: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Store
+./group.go:76:68: inlining call to (*Group).HandleFunc
+./group.go:79:69: inlining call to (*Group).HandleFunc
+./group.go:82:69: inlining call to (*Group).HandleFunc
+./group.go:85:68: inlining call to (*Group).HandleFunc
+./group.go:88:70: inlining call to (*Group).HandleFunc
+./group.go:91:71: inlining call to (*Group).HandleFunc
+./group.go:95:14: inlining call to (*Group).HandleFunc
+./group.go:100:14: inlining call to (*Group).HandleFunc
+./group.go:104:70: inlining call to (*Group).HandleFunc
+./group.go:108:62: inlining call to (*Group).HandleE
+./group.go:112:63: inlining call to (*Group).HandleE
+./group.go:116:63: inlining call to (*Group).HandleE
+./group.go:120:62: inlining call to (*Group).HandleE
+./group.go:124:64: inlining call to (*Group).HandleE
+./group.go:128:65: inlining call to (*Group).HandleE
+./group.go:132:66: inlining call to (*Group).HandleE
+./group.go:137:15: inlining call to (*Group).HandleFunc
+./group.go:175:16: inlining call to (*Group).Group
+./params.go:375:33: inlining call to http.(*Request).Context
+./params.go:375:23: inlining call to routeCtxParams
+./params.go:375:40: inlining call to Params.Get
+./params.go:375:33: inlining call to context.Background
+./mux.go:607:17: inlining call to PathParam
+./mux.go:611:26: inlining call to http.(*Request).Context
+./mux.go:616:33: inlining call to strings.TrimPrefix
+./mux.go:607:17: inlining call to http.(*Request).Context
+./mux.go:607:17: inlining call to routeCtxParams
+./mux.go:607:17: inlining call to Params.Get
+./mux.go:611:26: inlining call to context.Background
+./mux.go:616:33: inlining call to stringslite.TrimPrefix
+./mux.go:607:17: inlining call to context.Background
+./mux.go:616:33: inlining call to stringslite.HasPrefix
+./group.go:203:23: inlining call to http.FileServer
+./group.go:205:26: inlining call to http.(*Request).Context
+./group.go:208:26: inlining call to PathParam
+./group.go:205:26: inlining call to context.Background
+./group.go:208:26: inlining call to http.(*Request).Context
+./group.go:208:26: inlining call to routeCtxParams
+./group.go:208:26: inlining call to Params.Get
+./group.go:208:26: inlining call to context.Background
+./tree.go:591:13: inlining call to foldEq
+./tree.go:448:19: inlining call to prefixMatch
+./tree.go:457:14: inlining call to foldEq
+./tree.go:482:16: inlining call to (*paramsBuf).add
+./tree.go:511:29: inlining call to regexp.(*Regexp).MatchString
+./tree.go:518:16: inlining call to (*paramsBuf).add
+./tree.go:540:16: inlining call to (*paramsBuf).add
+./tree.go:552:17: inlining call to prefixMatch
+./tree.go:575:16: inlining call to prefixMatch
+./tree.go:448:19: inlining call to foldEq
+./tree.go:511:29: inlining call to regexp.(*Regexp).doMatch
+./tree.go:552:17: inlining call to foldEq
+./tree.go:575:16: inlining call to foldEq
+./introspection.go:25:12: inlining call to sync.(*RWMutex).RLock
+./introspection.go:27:26: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Load
+./introspection.go:31:18: inlining call to methodIdx
+./introspection.go:47:25: inlining call to (*paramsBuf).params
+./introspection.go:25:12: inlining call to atomic.(*Int32).Add
+./introspection.go:26:20: inlining call to sync.(*RWMutex).RUnlock
+./introspection.go:26:20: inlining call to atomic.(*Int32).Add
+./introspection.go:144:22: inlining call to reflect.ValueOf
+./introspection.go:145:11: inlining call to reflect.Value.Kind
+./introspection.go:144:22: inlining call to reflect.unpackEface
+./introspection.go:145:11: inlining call to reflect.flag.kind
+./introspection.go:144:22: inlining call to abi.(*Type).Kind
+./introspection.go:144:22: inlining call to abi.(*Type).IsDirectIface
+./introspection.go:155:43: inlining call to reflect.ValueOf
+./introspection.go:155:43: inlining call to reflect.unpackEface
+./introspection.go:155:43: inlining call to abi.(*Type).Kind
+./introspection.go:155:43: inlining call to abi.(*Type).IsDirectIface
+./introspection.go:55:12: inlining call to sync.(*RWMutex).RLock
+./introspection.go:57:26: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Load
+./introspection.go:55:12: inlining call to atomic.(*Int32).Add
+./introspection.go:56:20: inlining call to sync.(*RWMutex).RUnlock
+./introspection.go:56:20: inlining call to atomic.(*Int32).Add
+./introspection.go:88:12: inlining call to sync.(*RWMutex).RLock
+./introspection.go:90:26: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Load
+./introspection.go:88:12: inlining call to atomic.(*Int32).Add
+./introspection.go:89:20: inlining call to sync.(*RWMutex).RUnlock
+./introspection.go:89:20: inlining call to atomic.(*Int32).Add
+./introspection.go:117:12: inlining call to sync.(*RWMutex).RLock
+./introspection.go:119:26: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Load
+./introspection.go:117:12: inlining call to atomic.(*Int32).Add
+./introspection.go:118:20: inlining call to sync.(*RWMutex).RUnlock
+./introspection.go:118:20: inlining call to atomic.(*Int32).Add
+./mux.go:289:25: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Store
+./mux.go:290:31: inlining call to sync.(*Map).Range
+./mux.go:294:22: inlining call to sync.(*Map).Range
+./mux.go:291:33: inlining call to sync.(*Map).Delete
+./mux.go:291:33: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Delete
+./mux.go:295:24: inlining call to sync.(*Map).Delete
+./mux.go:295:24: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Delete
+./params.go:309:34: inlining call to http.(*Request).Context
+./params.go:322:19: inlining call to setReqCtxUnsafe
+./params.go:325:40: inlining call to http.(*Request).Context
+./params.go:336:38: inlining call to http.(*Request).WithContext
+./params.go:309:34: inlining call to context.Background
+./params.go:325:40: inlining call to context.Background
+./mux.go:1047:26: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Load
+./mux.go:1061:21: inlining call to (*node).hasHandler
+./mux.go:1062:12: inlining call to strings.(*Builder).Len
+./mux.go:1063:18: inlining call to strings.(*Builder).WriteString
+./mux.go:1065:17: inlining call to strings.(*Builder).WriteString
+./mux.go:1068:10: inlining call to strings.(*Builder).Len
+./mux.go:1071:15: inlining call to strings.(*Builder).WriteString
+./mux.go:1072:15: inlining call to strings.(*Builder).WriteString
+./mux.go:1073:17: inlining call to strings.(*Builder).String
+./mux.go:1063:18: inlining call to strings.(*Builder).copyCheck
+./mux.go:1065:17: inlining call to strings.(*Builder).copyCheck
+./mux.go:1071:15: inlining call to strings.(*Builder).copyCheck
+./mux.go:1072:15: inlining call to strings.(*Builder).copyCheck
+./mux.go:1063:18: inlining call to abi.NoEscape
+./mux.go:1065:17: inlining call to abi.NoEscape
+./mux.go:1071:15: inlining call to abi.NoEscape
+./mux.go:1072:15: inlining call to abi.NoEscape
+./mux.go:732:33: inlining call to sync.(*Map).Load
+./mux.go:736:12: inlining call to sync.(*RWMutex).RLock
+./mux.go:738:14: inlining call to sync.(*RWMutex).RUnlock
+./mux.go:747:22: inlining call to sync.(*Map).Store
+./mux.go:736:12: inlining call to atomic.(*Int32).Add
+./mux.go:738:14: inlining call to atomic.(*Int32).Add
+./mux.go:747:22: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Store
+./mux.go:740:17: inlining call to http.Header.Set
+./mux.go:740:17: inlining call to textproto.MIMEHeader.Set
+./mux.go:709:42: inlining call to sync.(*Map).Load
+./mux.go:713:12: inlining call to sync.(*RWMutex).RLock
+./mux.go:715:14: inlining call to sync.(*RWMutex).RUnlock
+./mux.go:724:31: inlining call to sync.(*Map).Store
+./mux.go:713:12: inlining call to atomic.(*Int32).Add
+./mux.go:715:14: inlining call to atomic.(*Int32).Add
+./mux.go:724:31: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Store
+./mux.go:717:17: inlining call to http.Header.Set
+./mux.go:717:17: inlining call to textproto.MIMEHeader.Set
+./mux.go:690:32: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Load
+./mux.go:697:12: inlining call to sync.(*RWMutex).RLock
+./mux.go:699:14: inlining call to sync.(*RWMutex).RUnlock
+./mux.go:701:25: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Store
+./mux.go:697:12: inlining call to atomic.(*Int32).Add
+./mux.go:699:14: inlining call to atomic.(*Int32).Add
+./mux.go:860:26: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Load
+./mux.go:863:22: inlining call to methodIdx
+./mux.go:894:37: inlining call to url.PathUnescape
+./mux.go:901:25: inlining call to (*paramsBuf).params
+./mux.go:904:37: inlining call to url.PathUnescape
+./mux.go:923:33: inlining call to (*Mux).resolveRedirectCode
+./mux.go:933:15: inlining call to sync.(*RWMutex).RLock
+./mux.go:935:17: inlining call to sync.(*RWMutex).RUnlock
+./mux.go:947:16: inlining call to sync.(*RWMutex).RLock
+./mux.go:949:18: inlining call to sync.(*RWMutex).RUnlock
+./mux.go:983:37: inlining call to url.PathUnescape
+./mux.go:990:27: inlining call to (*paramsBuf).params
+./mux.go:993:37: inlining call to url.PathUnescape
+./mux.go:933:15: inlining call to atomic.(*Int32).Add
+./mux.go:935:17: inlining call to atomic.(*Int32).Add
+./mux.go:947:16: inlining call to atomic.(*Int32).Add
+./mux.go:949:18: inlining call to atomic.(*Int32).Add
+./mux.go:315:23: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Store
+./mux.go:313:28: inlining call to (*Mux).config
+./mux.go:313:28: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Load
+./mux.go:380:21: inlining call to (*Mux).config
+./mux.go:380:21: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Load
+./mux.go:491:69: inlining call to (*Mux).HandleFunc
+./mux.go:494:70: inlining call to (*Mux).HandleFunc
+./mux.go:497:70: inlining call to (*Mux).HandleFunc
+./mux.go:500:69: inlining call to (*Mux).HandleFunc
+./mux.go:503:71: inlining call to (*Mux).HandleFunc
+./mux.go:507:14: inlining call to (*Mux).HandleFunc
+./mux.go:512:14: inlining call to (*Mux).HandleFunc
+./mux.go:517:14: inlining call to (*Mux).HandleFunc
+./mux.go:521:71: inlining call to (*Mux).HandleFunc
+./mux.go:525:63: inlining call to (*Mux).HandleE
+./mux.go:529:64: inlining call to (*Mux).HandleE
+./mux.go:533:64: inlining call to (*Mux).HandleE
+./mux.go:537:63: inlining call to (*Mux).HandleE
+./mux.go:541:65: inlining call to (*Mux).HandleE
+./mux.go:545:66: inlining call to (*Mux).HandleE
+./mux.go:549:67: inlining call to (*Mux).HandleE
+./mux.go:554:15: inlining call to (*Mux).HandleFunc
+./mux.go:581:14: inlining call to (*Mux).Group
+./mux.go:670:23: inlining call to http.FileServer
+./mux.go:672:26: inlining call to http.(*Request).Context
+./mux.go:675:26: inlining call to PathParam
+./mux.go:672:26: inlining call to context.Background
+./mux.go:675:26: inlining call to http.(*Request).Context
+./mux.go:675:26: inlining call to routeCtxParams
+./mux.go:675:26: inlining call to Params.Get
+./mux.go:675:26: inlining call to context.Background
+./mux.go:810:13: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Store
+./mux.go:811:25: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Store
+./mux.go:812:31: inlining call to sync.(*Map).Range
+./mux.go:816:22: inlining call to sync.(*Map).Range
+./mux.go:813:33: inlining call to sync.(*Map).Delete
+./mux.go:813:33: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Delete
+./mux.go:817:24: inlining call to sync.(*Map).Delete
+./mux.go:817:24: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Delete
+./mux.go:844:31: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Load
+./mux.go:828:17: inlining call to (*Mux).config
+./mux.go:833:31: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Load
+./mux.go:828:17: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Load
+./params.go:44:20: inlining call to Params.Lookup
+./params.go:53:20: inlining call to Params.Lookup
+./params.go:62:20: inlining call to Params.Lookup
+./params.go:71:20: inlining call to Params.Lookup
+./params.go:80:20: inlining call to Params.Lookup
+./params.go:204:21: inlining call to reflect.TypeOf
+./params.go:205:27: inlining call to reflect.TypeOf
+./params.go:204:21: inlining call to abi.TypeOf
+./params.go:204:21: inlining call to reflect.toType
+./params.go:205:27: inlining call to abi.TypeOf
+./params.go:205:27: inlining call to reflect.toType
+./params.go:204:21: inlining call to abi.NoEscape
+./params.go:204:21: inlining call to reflect.toRType
+./params.go:205:27: inlining call to abi.NoEscape
+./params.go:205:27: inlining call to reflect.toRType
+./params.go:205:57: inlining call to reflect.(*rtype).Elem
+./params.go:205:57: inlining call to reflect.(*rtype).common
+./params.go:205:57: inlining call to reflect.toType
+./params.go:205:57: inlining call to reflect.toRType
+./params.go:248:27: inlining call to http.(*Request).Context
+./params.go:253:17: inlining call to setReqCtxUnsafe
+./params.go:248:27: inlining call to context.Background
+./params.go:270:27: inlining call to http.(*Request).Context
+./params.go:276:17: inlining call to setReqCtxUnsafe
+./params.go:270:27: inlining call to context.Background
+./params.go:260:39: inlining call to http.(*Request).Context
+./params.go:263:30: inlining call to http.(*Request).WithContext
+./params.go:260:39: inlining call to context.Background
+./params.go:283:39: inlining call to http.(*Request).Context
+./params.go:287:30: inlining call to http.(*Request).WithContext
+./params.go:283:39: inlining call to context.Background
+./params.go:380:23: inlining call to routeCtxParams
+./params.go:386:34: inlining call to http.(*Request).Context
+./params.go:386:24: inlining call to routeCtxPattern
+./params.go:386:34: inlining call to context.Background
+./response.go:19:16: inlining call to http.Header.Set
+./response.go:19:16: inlining call to textproto.MIMEHeader.Set
+./response.go:35:16: inlining call to http.Header.Set
+./response.go:35:16: inlining call to textproto.MIMEHeader.Set
+./response.go:46:16: inlining call to http.Header.Set
+./response.go:46:16: inlining call to textproto.MIMEHeader.Set
+/usr/local/go/src/internal/sync/hashtriemap.go:38:16: inlining call to sync.(*Mutex).Lock
+/usr/local/go/src/internal/sync/hashtriemap.go:41:19: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:49:23: inlining call to abi.TypeOf
+/usr/local/go/src/internal/sync/hashtriemap.go:49:34: inlining call to abi.(*Type).MapType
+/usr/local/go/src/internal/sync/hashtriemap.go:50:37: inlining call to sync.newIndirectNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:50:15: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:55:17: inlining call to atomic.(*Uint32).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:49:23: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:49:34: inlining call to abi.(*Type).Kind
+/usr/local/go/src/internal/sync/hashtriemap.go:39:24: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:31:19: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:523:9: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:527:37: inlining call to sync.newIndirectNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:527:15: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:523:9: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:500:26: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:505:26: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+/usr/local/go/src/internal/sync/hashtriemap.go:510:15: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:515:23: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:494:9: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:495:22: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:494:9: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:482:9: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:482:9: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:484:23: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:591:89: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:594:22: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:429:19: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:436:17: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:444:24: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:444:42: inlining call to sync.(*entry[go.shape.interface {},go.shape.interface {}]).lookupWithValue
+/usr/local/go/src/internal/sync/hashtriemap.go:454:18: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+/usr/local/go/src/internal/sync/hashtriemap.go:461:12: inlining call to sync.(*Mutex).Lock
+/usr/local/go/src/internal/sync/hashtriemap.go:462:16: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:463:18: inlining call to atomic.(*Bool).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:469:14: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:444:42: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:444:42: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:683:74: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:685:28: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:688:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:690:69: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:691:27: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:691:11: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:695:22: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:556:24: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:369:9: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:373:33: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:379:15: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:385:23: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:388:14: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:394:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:395:14: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:399:12: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:402:32: inlining call to sync.(*indirect[go.shape.interface {},go.shape.interface {}]).empty
+/usr/local/go/src/internal/sync/hashtriemap.go:410:17: inlining call to sync.(*Mutex).Lock
+/usr/local/go/src/internal/sync/hashtriemap.go:411:15: inlining call to atomic.(*Bool).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:412:57: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:413:14: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:416:13: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:369:9: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:402:32: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:411:15: inlining call to atomic.b32
+/usr/local/go/src/internal/sync/hashtriemap.go:663:40: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:666:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:669:27: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:669:11: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:673:22: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:310:9: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:311:33: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:317:15: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:323:25: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:326:14: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:332:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:333:14: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:337:12: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:340:32: inlining call to sync.(*indirect[go.shape.interface {},go.shape.interface {}]).empty
+/usr/local/go/src/internal/sync/hashtriemap.go:348:17: inlining call to sync.(*Mutex).Lock
+/usr/local/go/src/internal/sync/hashtriemap.go:349:15: inlining call to atomic.(*Bool).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:350:57: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:351:14: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:354:13: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:310:9: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:340:32: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:349:15: inlining call to atomic.b32
+/usr/local/go/src/internal/sync/hashtriemap.go:633:74: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:635:20: inlining call to sync.newEntryNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:636:33: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:637:20: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:642:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:644:69: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:645:24: inlining call to sync.newEntryNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:646:39: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:646:23: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:647:11: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:651:22: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:281:9: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:285:33: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:297:23: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:303:12: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:281:9: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:290:20: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:606:20: inlining call to sync.newEntryNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:607:33: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:608:20: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:613:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:616:24: inlining call to sync.newEntryNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:617:39: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:617:23: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:618:11: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:622:22: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:173:26: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:177:32: inlining call to sync.newIndirectNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:187:34: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:188:34: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:191:34: inlining call to sync.newIndirectNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:192:33: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:206:9: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:207:33: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:214:19: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:221:17: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:228:18: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+/usr/local/go/src/internal/sync/hashtriemap.go:235:12: inlining call to sync.(*Mutex).Lock
+/usr/local/go/src/internal/sync/hashtriemap.go:236:16: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:237:45: inlining call to atomic.(*Bool).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:242:14: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:255:21: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:258:14: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:263:26: inlining call to sync.newEntryNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:266:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:272:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:206:9: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:249:19: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:584:22: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:89:9: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:90:33: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:97:19: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:104:17: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:114:24: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:114:33: inlining call to sync.(*entry[go.shape.interface {},go.shape.interface {}]).lookup
+/usr/local/go/src/internal/sync/hashtriemap.go:120:18: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+/usr/local/go/src/internal/sync/hashtriemap.go:127:12: inlining call to sync.(*Mutex).Lock
+/usr/local/go/src/internal/sync/hashtriemap.go:128:16: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:129:45: inlining call to atomic.(*Bool).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:134:14: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:145:21: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:146:30: inlining call to sync.(*entry[go.shape.interface {},go.shape.interface {}]).lookup
+/usr/local/go/src/internal/sync/hashtriemap.go:151:26: inlining call to sync.newEntryNode[go.shape.interface {},go.shape.interface {}]
+/usr/local/go/src/internal/sync/hashtriemap.go:154:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:160:13: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:89:9: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:114:33: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:146:30: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:141:19: inlining call to sync.(*Mutex).Unlock
+/usr/local/go/src/internal/sync/hashtriemap.go:65:9: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:66:33: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:68:19: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:73:56: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:78:18: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:78:27: inlining call to sync.(*entry[go.shape.interface {},go.shape.interface {}]).lookup
+/usr/local/go/src/internal/sync/hashtriemap.go:80:17: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+/usr/local/go/src/internal/sync/hashtriemap.go:65:9: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:78:27: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:359:6: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Delete
+/usr/local/go/src/internal/sync/hashtriemap.go:199:6: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Store
+/usr/local/go/src/internal/sync/hashtriemap.go:30:6: inlining call to sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init
+/usr/local/go/src/internal/sync/hashtriemap.go:30:6: inlining call to atomic.(*Uint32).Load
+/usr/local/go/src/sync/atomic/type.go:67:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[interface {},interface {}]; internal/sync.children [16]sync/atomic.Pointer[internal/sync.node[interface {},interface {}]] }]).CompareAndSwap
+/usr/local/go/src/sync/atomic/type.go:64:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[interface {},interface {}]; internal/sync.children [16]sync/atomic.Pointer[internal/sync.node[interface {},interface {}]] }]).Swap
+/usr/local/go/src/sync/atomic/type.go:61:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[interface {},interface {}]; internal/sync.children [16]sync/atomic.Pointer[internal/sync.node[interface {},interface {}]] }]).Store
+/usr/local/go/src/sync/atomic/type.go:58:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[interface {},interface {}]; internal/sync.children [16]sync/atomic.Pointer[internal/sync.node[interface {},interface {}]] }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:553:6: inlining call to sync.(*indirect[go.shape.interface {},go.shape.interface {}]).empty
+/usr/local/go/src/internal/sync/hashtriemap.go:553:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/sync/atomic/type.go:67:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).CompareAndSwap
+/usr/local/go/src/sync/atomic/type.go:64:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Swap
+/usr/local/go/src/sync/atomic/type.go:61:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Store
+/usr/local/go/src/sync/atomic/type.go:58:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.isEntry bool }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:713:6: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+/usr/local/go/src/internal/sync/hashtriemap.go:706:6: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+/usr/local/go/src/internal/sync/hashtriemap.go:589:6: inlining call to sync.(*entry[go.shape.interface {},go.shape.interface {}]).lookupWithValue
+/usr/local/go/src/internal/sync/hashtriemap.go:589:6: inlining call to abi.NoEscape
+/usr/local/go/src/internal/sync/hashtriemap.go:589:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/internal/sync/hashtriemap.go:579:6: inlining call to sync.(*entry[go.shape.interface {},go.shape.interface {}]).lookup
+/usr/local/go/src/internal/sync/hashtriemap.go:579:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }]).Load
+/usr/local/go/src/sync/atomic/type.go:67:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[interface {},interface {}]]; internal/sync.key interface {}; internal/sync.value interface {} }]).CompareAndSwap
+/usr/local/go/src/sync/atomic/type.go:64:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[interface {},interface {}]]; internal/sync.key interface {}; internal/sync.value interface {} }]).Swap
+/usr/local/go/src/sync/atomic/type.go:61:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[interface {},interface {}]]; internal/sync.key interface {}; internal/sync.value interface {} }]).Store
+/usr/local/go/src/sync/atomic/type.go:58:6: inlining call to atomic.(*Pointer[go.shape.struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[interface {},interface {}]]; internal/sync.key interface {}; internal/sync.value interface {} }]).Load
+/usr/local/go/src/sync/atomic/type.go:67:6: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).CompareAndSwap
+/usr/local/go/src/sync/atomic/type.go:64:6: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Swap
+/usr/local/go/src/sync/atomic/type.go:61:6: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Store
+/usr/local/go/src/sync/atomic/type.go:58:6: inlining call to atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Load
+/usr/local/go/src/sync/atomic/type.go:67:6: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).CompareAndSwap
+/usr/local/go/src/sync/atomic/type.go:64:6: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Swap
+/usr/local/go/src/sync/atomic/type.go:61:6: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Store
+/usr/local/go/src/sync/atomic/type.go:58:6: inlining call to atomic.(*Pointer[go.shape.611436ea076b40b8f9a56b74b2fd21631883a50b57be6555857465ff93052d66]).Load
+/usr/local/go/src/sync/atomic/type.go:67:6: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).CompareAndSwap
+/usr/local/go/src/sync/atomic/type.go:64:6: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Swap
+/usr/local/go/src/sync/atomic/type.go:61:6: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Store
+/usr/local/go/src/sync/atomic/type.go:58:6: inlining call to atomic.(*Pointer[go.shape.[10]*github.com/FlavioCFOliveira/MuxMaster.node]).Load
+<autogenerated>:1: inlining call to Params.Get
+<autogenerated>:1: inlining call to Params.Lookup
+<autogenerated>:1: inlining call to Params.Map
+<autogenerated>:1: inlining call to sync.(*node[interface {},interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[interface {},interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[interface {},interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[interface {},interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[interface {},interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[interface {},interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[interface {},interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[interface {},interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).entry
+<autogenerated>:1: inlining call to sync.(*node[go.shape.interface {},go.shape.interface {}]).indirect
+<autogenerated>:1: inlining call to reflect.flag.kind
+<autogenerated>:1: inlining call to reflect.flag.kind
+<autogenerated>:1: inlining call to reflect.flag.mustBe
+<autogenerated>:1: inlining call to reflect.flag.kind
+<autogenerated>:1: inlining call to reflect.flag.mustBe
+<autogenerated>:1: inlining call to reflect.flag.kind
+<autogenerated>:1: inlining call to reflect.flag.mustBeAssignable
+<autogenerated>:1: inlining call to reflect.flag.mustBeAssignable
+<autogenerated>:1: inlining call to reflect.flag.mustBeExported
+<autogenerated>:1: inlining call to reflect.flag.mustBeExported
+<autogenerated>:1: inlining call to reflect.flag.ro
+<autogenerated>:1: inlining call to reflect.flag.ro
+./group.go:21:23: append(g.middleware, middleware...) escapes to heap in (*Group).Use:
+./group.go:21:23: append escapes to heap
+./group.go:27:27: append(g.fastMiddleware, mw...) escapes to heap in (*Group).UseFast:
+./group.go:27:27: append escapes to heap
+./mux.go:260:12: context.backgroundCtx{} escapes to heap in (*Mux).warnRawPathDecodeIfEnabled.func1:
+./mux.go:260:12: context.backgroundCtx{} escapes to heap
+./tree.go:136:20: make([]*node, len(n.children)) escapes to heap in cloneTree:
+./tree.go:122:7: &node{...} escapes to heap in cloneTree:
+./tree.go:122:7: &node{...} escapes to heap
+./tree.go:136:20: make([]*node, len(n.children)) escapes to heap
+./tree.go:739:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap in expandOptional:
+./tree.go:739:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap in expandOptional:
+./tree.go:747:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap in expandOptional:
+./tree.go:747:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap in expandOptional:
+./tree.go:775:17: []string{...} escapes to heap in expandOptional:
+./tree.go:754:22: path[:i] + path[j + 1:] escapes to heap in expandOptional:
+./tree.go:774:41: path[:i] + "/" + paramToken + path[j + 1:] escapes to heap in expandOptional:
+./tree.go:739:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap
+./tree.go:739:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap
+./tree.go:747:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap
+./tree.go:747:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap
+./tree.go:754:22: path[:i] + path[j + 1:] escapes to heap
+./tree.go:774:41: path[:i] + "/" + paramToken + path[j + 1:] escapes to heap
+./tree.go:775:17: []string{...} escapes to heap
+./tree.go:321:85: "muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:321:85: "muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:324:68: "muxmaster: wildcards must be named in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:324:68: "muxmaster: wildcards must be named in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:335:23: append(n.children, child) escapes to heap in (*node).insertChild:
+./tree.go:343:25: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:357:83: "muxmaster: regex param must have the form {name:expr} in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:357:83: "muxmaster: regex param must have the form {name:expr} in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:362:68: "muxmaster: invalid regexp in path '" + fullPath + "': " + err.Error() escapes to heap in (*node).insertChild:
+./tree.go:362:68: "muxmaster: invalid regexp in path '" + fullPath + "': " + err.Error() escapes to heap in (*node).insertChild:
+./tree.go:375:83: "muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:375:83: "muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:379:23: append(n.children, child) escapes to heap in (*node).insertChild:
+./tree.go:387:25: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:399:96: "muxmaster: catch-all routes are only allowed at the end of the path ... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:399:96: "muxmaster: catch-all routes are only allowed at the end of the path ... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:402:99: "muxmaster: catch-all conflicts with existing handler for the path ro... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:402:99: "muxmaster: catch-all conflicts with existing handler for the path ro... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:407:76: "muxmaster: catch-all requires a '/' prefix in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:407:76: "muxmaster: catch-all requires a '/' prefix in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:413:23: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:426:23: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:332:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:360:44: "^(?:" + expr + ")$" escapes to heap in (*node).insertChild:
+./tree.go:377:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:418:11: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:412:15: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:386:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:342:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:321:85: "muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'" escapes to heap
+./tree.go:321:85: "muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'" escapes to heap
+./tree.go:324:68: "muxmaster: wildcards must be named in path '" + fullPath + "'" escapes to heap
+./tree.go:324:68: "muxmaster: wildcards must be named in path '" + fullPath + "'" escapes to heap
+./tree.go:332:13: &node{...} escapes to heap
+./tree.go:335:23: append escapes to heap
+./tree.go:342:13: &node{...} escapes to heap
+./tree.go:343:25: []*node{...} escapes to heap
+./tree.go:357:83: "muxmaster: regex param must have the form {name:expr} in '" + fullPath + "'" escapes to heap
+./tree.go:357:83: "muxmaster: regex param must have the form {name:expr} in '" + fullPath + "'" escapes to heap
+./tree.go:360:44: "^(?:" + expr + ")$" escapes to heap
+./tree.go:362:68: "muxmaster: invalid regexp in path '" + fullPath + "': " + err.Error() escapes to heap
+./tree.go:362:68: "muxmaster: invalid regexp in path '" + fullPath + "': " + err.Error() escapes to heap
+./tree.go:375:83: "muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'" escapes to heap
+./tree.go:375:83: "muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'" escapes to heap
+./tree.go:377:13: &node{...} escapes to heap
+./tree.go:379:23: append escapes to heap
+./tree.go:386:13: &node{...} escapes to heap
+./tree.go:387:25: []*node{...} escapes to heap
+./tree.go:399:96: "muxmaster: catch-all routes are only allowed at the end of the path ... + fullPath + "'" escapes to heap
+./tree.go:399:96: "muxmaster: catch-all routes are only allowed at the end of the path ... + fullPath + "'" escapes to heap
+./tree.go:402:99: "muxmaster: catch-all conflicts with existing handler for the path ro... + fullPath + "'" escapes to heap
+./tree.go:402:99: "muxmaster: catch-all conflicts with existing handler for the path ro... + fullPath + "'" escapes to heap
+./tree.go:407:76: "muxmaster: catch-all requires a '/' prefix in path '" + fullPath + "'" escapes to heap
+./tree.go:407:76: "muxmaster: catch-all requires a '/' prefix in path '" + fullPath + "'" escapes to heap
+./tree.go:412:15: &node{...} escapes to heap
+./tree.go:413:23: []*node{...} escapes to heap
+./tree.go:418:11: &node{...} escapes to heap
+./tree.go:426:23: []*node{...} escapes to heap
+./tree.go:308:26: n.indices[:newPos] + n.indices[pos:pos + 1] + n.indices[newPos:pos] + n.indices[pos + 1:] escapes to heap in (*node).incrementChildPrio:
+./tree.go:308:26: n.indices[:newPos] + n.indices[pos:pos + 1] + n.indices[newPos:pos] + n.indices[pos + 1:] escapes to heap
+./tree.go:171:78: "muxmaster: pattern '" + path + "' has " + ~r0 + " optional segments; the maximum is " + ~r0 + " to prevent exponential addRoute time complexity (DoS)." escapes to heap in (*node).addRouteInternal:
+./tree.go:171:78: "muxmaster: pattern '" + path + "' has " + ~r0 + " optional segments; the maximum is " + ~r0 + " to prevent exponential addRoute time complexity (DoS)." escapes to heap in (*node).addRouteInternal:
+./tree.go:184:52: "muxmaster: path contains invalid UTF-8: " + ~r0 escapes to heap in (*node).addRouteInternal:
+./tree.go:184:52: "muxmaster: path contains invalid UTF-8: " + ~r0 escapes to heap in (*node).addRouteInternal:
+./tree.go:219:24: []*node{...} escapes to heap in (*node).addRouteInternal:
+./tree.go:225:29: string([]byte{...}) escapes to heap in (*node).addRouteInternal:
+./tree.go:256:52: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap in (*node).addRouteInternal:
+./tree.go:256:52: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap in (*node).addRouteInternal:
+./tree.go:258:31: string([]byte{...}) escapes to heap in (*node).addRouteInternal:
+./tree.go:260:24: append(n.children, child) escapes to heap in (*node).addRouteInternal:
+./tree.go:277:51: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap in (*node).addRouteInternal:
+./tree.go:277:51: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap in (*node).addRouteInternal:
+./tree.go:285:77: "muxmaster: a handler is already registered for path '" + fullPath + "'" escapes to heap in (*node).addRouteInternal:
+./tree.go:285:77: "muxmaster: a handler is already registered for path '" + fullPath + "'" escapes to heap in (*node).addRouteInternal:
+./tree.go:259:14: &node{} escapes to heap in (*node).addRouteInternal:
+./tree.go:207:13: &node{...} escapes to heap in (*node).addRouteInternal:
+./tree.go:171:78: "muxmaster: pattern '" + path + "' has " + ~r0 + " optional segments; the maximum is " + ~r0 + " to prevent exponential addRoute time complexity (DoS)." escapes to heap
+./tree.go:171:78: "muxmaster: pattern '" + path + "' has " + ~r0 + " optional segments; the maximum is " + ~r0 + " to prevent exponential addRoute time complexity (DoS)." escapes to heap
+./tree.go:184:52: "muxmaster: path contains invalid UTF-8: " + ~r0 escapes to heap
+./tree.go:184:52: "muxmaster: path contains invalid UTF-8: " + ~r0 escapes to heap
+./tree.go:207:13: &node{...} escapes to heap
+./tree.go:219:24: []*node{...} escapes to heap
+./tree.go:225:29: string([]byte{...}) escapes to heap
+./tree.go:256:52: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap
+./tree.go:256:52: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap
+./tree.go:258:31: string([]byte{...}) escapes to heap
+./tree.go:259:14: &node{} escapes to heap
+./tree.go:260:24: append escapes to heap
+./tree.go:277:51: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap
+./tree.go:277:51: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap
+./tree.go:285:77: "muxmaster: a handler is already registered for path '" + fullPath + "'" escapes to heap
+./tree.go:285:77: "muxmaster: a handler is already registered for path '" + fullPath + "'" escapes to heap
+./mux.go:328:9: "muxmaster: HTTP method must not be empty" escapes to heap in (*Mux).Handle:
+./mux.go:330:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap in (*Mux).Handle:
+./mux.go:330:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap in (*Mux).Handle:
+./mux.go:332:9: "muxmaster: handler must not be nil" escapes to heap in (*Mux).Handle:
+./mux.go:342:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap in (*Mux).Handle:
+./mux.go:342:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap in (*Mux).Handle:
+./mux.go:350:6: trees escapes to heap in (*Mux).Handle:
+./mux.go:360:13: new(node) escapes to heap in (*Mux).Handle:
+./mux.go:350:6: moved to heap: trees
+./mux.go:328:9: "muxmaster: HTTP method must not be empty" escapes to heap
+./mux.go:330:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap
+./mux.go:330:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap
+./mux.go:332:9: "muxmaster: handler must not be nil" escapes to heap
+./mux.go:342:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap
+./mux.go:342:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap
+./mux.go:360:13: new(node) escapes to heap
+./group.go:33:31: g.prefix + path escapes to heap in (*Group).Handle:
+./group.go:33:31: g.prefix + path escapes to heap
+./mux.go:772:7: &muxConfig{...} escapes to heap in (*Mux).frozenConfigSlow:
+./mux.go:772:7: &muxConfig{...} escapes to heap
+./group.go:46:42: func literal escapes to heap in (*Group).HandleE:
+./group.go:46:42: func literal escapes to heap
+./mux.go:422:9: "muxmaster: HTTP method must not be empty" escapes to heap in (*Mux).HandleFast:
+./mux.go:424:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap in (*Mux).HandleFast:
+./mux.go:424:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap in (*Mux).HandleFast:
+./mux.go:426:9: "muxmaster: handler must not be nil" escapes to heap in (*Mux).HandleFast:
+./mux.go:436:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap in (*Mux).HandleFast:
+./mux.go:436:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap in (*Mux).HandleFast:
+./mux.go:440:6: trees escapes to heap in (*Mux).HandleFast:
+./mux.go:450:13: new(node) escapes to heap in (*Mux).HandleFast:
+./mux.go:440:6: moved to heap: trees
+./mux.go:422:9: "muxmaster: HTTP method must not be empty" escapes to heap
+./mux.go:424:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap
+./mux.go:424:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap
+./mux.go:426:9: "muxmaster: handler must not be nil" escapes to heap
+./mux.go:436:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap
+./mux.go:436:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap
+./mux.go:450:13: new(node) escapes to heap
+./group.go:69:63: "muxmaster: HandleFast route registered on a Group with stdlib middle... escapes to heap in (*Group).HandleFast:
+./group.go:72:35: g.prefix + path escapes to heap in (*Group).HandleFast:
+./group.go:69:63: "muxmaster: HandleFast route registered on a Group with stdlib middle... escapes to heap
+./group.go:72:35: g.prefix + path escapes to heap
+./group.go:108:62: func literal escapes to heap in (*Group).GETE:
+./group.go:108:62: func literal escapes to heap
+./group.go:112:63: func literal escapes to heap in (*Group).HEADE:
+./group.go:112:63: func literal escapes to heap
+./group.go:116:63: func literal escapes to heap in (*Group).POSTE:
+./group.go:116:63: func literal escapes to heap
+./group.go:120:62: func literal escapes to heap in (*Group).PUTE:
+./group.go:120:62: func literal escapes to heap
+./group.go:124:64: func literal escapes to heap in (*Group).PATCHE:
+./group.go:124:64: func literal escapes to heap
+./group.go:128:65: func literal escapes to heap in (*Group).DELETEE:
+./group.go:128:65: func literal escapes to heap
+./group.go:132:66: func literal escapes to heap in (*Group).OPTIONSE:
+./group.go:132:66: func literal escapes to heap
+./group.go:155:9: &Group{...} escapes to heap in (*Group).With:
+./group.go:150:16: make([]func(http.Handler) http.Handler, len(g.middleware) + len(mw)) escapes to heap in (*Group).With:
+./group.go:153:16: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap in (*Group).With:
+./group.go:150:16: make([]func(http.Handler) http.Handler, len(g.middleware) + len(mw)) escapes to heap
+./group.go:153:16: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap
+./group.go:155:9: &Group{...} escapes to heap
+./group.go:165:9: &Group{...} escapes to heap in (*Group).Group:
+./group.go:167:28: g.prefix + prefix escapes to heap in (*Group).Group:
+./group.go:161:12: make([]func(http.Handler) http.Handler, len(g.middleware)) escapes to heap in (*Group).Group:
+./group.go:163:12: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap in (*Group).Group:
+./group.go:161:12: make([]func(http.Handler) http.Handler, len(g.middleware)) escapes to heap
+./group.go:163:12: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap
+./group.go:165:9: &Group{...} escapes to heap
+./group.go:167:28: g.prefix + prefix escapes to heap
+./group.go:175:16: &Group{...} escapes to heap in (*Group).Route:
+./group.go:175:16: g.prefix + prefix escapes to heap in (*Group).Route:
+./group.go:175:16: make([]func(http.Handler) http.Handler, len(g.middleware)) escapes to heap in (*Group).Route:
+./group.go:175:16: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap in (*Group).Route:
+./group.go:175:16: make([]func(http.Handler) http.Handler, len(g.middleware)) escapes to heap
+./group.go:175:16: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap
+./group.go:175:16: &Group{...} escapes to heap
+./group.go:175:16: g.prefix + prefix escapes to heap
+./mux.go:594:9: "muxmaster: nil handler passed to Mount" escapes to heap in (*Mux).mountAt:
+./mux.go:597:9: "muxmaster: Mount prefix must begin with '/'" escapes to heap in (*Mux).mountAt:
+./mux.go:602:9: "muxmaster: Mount prefix contains invalid UTF-8" escapes to heap in (*Mux).mountAt:
+./mux.go:612:15: new(url.URL) escapes to heap in (*Mux).mountAt.func1:
+./mux.go:635:22: prefix + "/*mux_mount" escapes to heap in (*Mux).mountAt:
+./mux.go:606:29: func literal escapes to heap in (*Mux).mountAt:
+./mux.go:611:26: context.backgroundCtx{} escapes to heap in (*Mux).mountAt.func1:
+./mux.go:594:9: "muxmaster: nil handler passed to Mount" escapes to heap
+./mux.go:597:9: "muxmaster: Mount prefix must begin with '/'" escapes to heap
+./mux.go:602:9: "muxmaster: Mount prefix contains invalid UTF-8" escapes to heap
+./mux.go:606:29: func literal escapes to heap
+./mux.go:611:26: context.backgroundCtx{} escapes to heap
+./mux.go:612:15: new(url.URL) escapes to heap
+./mux.go:635:22: prefix + "/*mux_mount" escapes to heap
+./group.go:185:24: g.prefix + prefix escapes to heap in (*Group).Mount:
+./group.go:185:24: g.prefix + prefix escapes to heap
+./group.go:192:9: "muxmaster: nil root passed to ServeFiles" escapes to heap in (*Group).ServeFiles:
+./group.go:197:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap in (*Group).ServeFiles:
+./group.go:197:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap in (*Group).ServeFiles:
+./group.go:201:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap in (*Group).ServeFiles:
+./group.go:201:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap in (*Group).ServeFiles:
+./group.go:206:15: new(url.URL) escapes to heap in (*Group).ServeFiles.func1:
+./group.go:204:24: func literal escapes to heap in (*Group).ServeFiles:
+./group.go:205:26: context.backgroundCtx{} escapes to heap in (*Group).ServeFiles.func1:
+./group.go:194:25: g.prefix + prefix escapes to heap in (*Group).ServeFiles:
+./group.go:203:23: &http.fileHandler{...} escapes to heap in (*Group).ServeFiles:
+./group.go:192:9: "muxmaster: nil root passed to ServeFiles" escapes to heap
+./group.go:194:25: g.prefix + prefix escapes to heap
+./group.go:197:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap
+./group.go:197:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap
+./group.go:201:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap
+./group.go:201:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap
+./group.go:203:23: &http.fileHandler{...} escapes to heap
+./group.go:204:24: func literal escapes to heap
+./group.go:205:26: context.backgroundCtx{} escapes to heap
+./group.go:206:15: new(url.URL) escapes to heap
+./handler.go:27:9: "muxmaster: Error called with nil error" escapes to heap in Error:
+./handler.go:29:9: &httpError{...} escapes to heap in Error:
+./handler.go:27:9: "muxmaster: Error called with nil error" escapes to heap
+./handler.go:29:9: &httpError{...} escapes to heap
+./tree.go:482:16: append(pb.overflow, Param{...}) escapes to heap in (*node).getValue:
+./tree.go:518:16: append(pb.overflow, Param{...}) escapes to heap in (*node).getValue:
+./tree.go:540:16: append(pb.overflow, Param{...}) escapes to heap in (*node).getValue:
+./tree.go:548:11: "muxmaster: invalid node type" escapes to heap in (*node).getValue:
+./tree.go:482:16: append escapes to heap
+./tree.go:518:16: append escapes to heap
+./tree.go:540:16: append escapes to heap
+./tree.go:548:11: "muxmaster: invalid node type" escapes to heap
+./introspection.go:46:16: make(Params, pb.count) escapes to heap in (*Mux).Lookup:
+./introspection.go:46:16: make(Params, pb.count) escapes to heap
+./introspection.go:74:18: append(infos, RouteInfo{...}) escapes to heap in (*Mux).Routes.func1:
+./introspection.go:74:18: append escapes to heap
+./mux.go:266:9: &Mux{...} escapes to heap in New:
+./mux.go:266:9: &Mux{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:50:37: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).initSlow:
+/usr/local/go/src/internal/sync/hashtriemap.go:50:37: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:444:24: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).find:
+/usr/local/go/src/internal/sync/hashtriemap.go:454:18: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).find:
+/usr/local/go/src/internal/sync/hashtriemap.go:457:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).find:
+/usr/local/go/src/internal/sync/hashtriemap.go:444:24: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:454:18: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:457:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:323:25: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:342:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:323:25: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:342:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:505:26: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).iter:
+/usr/local/go/src/internal/sync/hashtriemap.go:510:15: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).iter:
+/usr/local/go/src/internal/sync/hashtriemap.go:505:26: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:510:15: "called entry on non-entry node" escapes to heap
+./mux.go:287:23: append(m.middleware, middleware...) escapes to heap in (*Mux).Use:
+./mux.go:287:23: append escapes to heap
+./params.go:336:38: "nil context" escapes to heap in dispatchWithParams:
+./params.go:308:14: &reqBundle{} escapes to heap in dispatchWithParams:
+./params.go:317:21: make(Params, n) escapes to heap in dispatchWithParams:
+./params.go:325:10: &requestCtx{...} escapes to heap in dispatchWithParams:
+./params.go:332:21: make(Params, n) escapes to heap in dispatchWithParams:
+./params.go:309:34: context.backgroundCtx{} escapes to heap in dispatchWithParams:
+./params.go:336:38: new(http.Request) escapes to heap in dispatchWithParams:
+./params.go:325:40: context.backgroundCtx{} escapes to heap in dispatchWithParams:
+./params.go:308:14: &reqBundle{} escapes to heap
+./params.go:309:34: context.backgroundCtx{} escapes to heap
+./params.go:317:21: make(Params, n) escapes to heap
+./params.go:325:10: &requestCtx{...} escapes to heap
+./params.go:325:40: context.backgroundCtx{} escapes to heap
+./params.go:332:21: make(Params, n) escapes to heap
+./params.go:336:38: "nil context" escapes to heap
+./params.go:336:38: new(http.Request) escapes to heap
+./mux.go:1063:18: "strings: illegal use of non-zero Builder copied by value" escapes to heap in (*Mux).allowed:
+./mux.go:1063:18: append(strings.b.buf, strings.s...) escapes to heap in (*Mux).allowed:
+./mux.go:1065:17: "strings: illegal use of non-zero Builder copied by value" escapes to heap in (*Mux).allowed:
+./mux.go:1065:17: append(strings.b.buf, strings.s...) escapes to heap in (*Mux).allowed:
+./mux.go:1071:15: "strings: illegal use of non-zero Builder copied by value" escapes to heap in (*Mux).allowed:
+./mux.go:1071:15: append(strings.b.buf, strings.s...) escapes to heap in (*Mux).allowed:
+./mux.go:1072:15: "strings: illegal use of non-zero Builder copied by value" escapes to heap in (*Mux).allowed:
+./mux.go:1072:15: append(strings.b.buf, strings.s...) escapes to heap in (*Mux).allowed:
+./mux.go:1063:18: "strings: illegal use of non-zero Builder copied by value" escapes to heap
+./mux.go:1063:18: append escapes to heap
+./mux.go:1065:17: "strings: illegal use of non-zero Builder copied by value" escapes to heap
+./mux.go:1065:17: append escapes to heap
+./mux.go:1071:15: "strings: illegal use of non-zero Builder copied by value" escapes to heap
+./mux.go:1071:15: append escapes to heap
+./mux.go:1072:15: "strings: illegal use of non-zero Builder copied by value" escapes to heap
+./mux.go:1072:15: append escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:78:18: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load:
+/usr/local/go/src/internal/sync/hashtriemap.go:80:17: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load:
+/usr/local/go/src/internal/sync/hashtriemap.go:82:8: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load:
+/usr/local/go/src/internal/sync/hashtriemap.go:78:18: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:80:17: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:82:8: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:606:20: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:616:24: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:606:20: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:616:24: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:181:10: "internal/sync.HashTrieMap: ran out of hash bits while inserting (inc... escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).expand:
+/usr/local/go/src/internal/sync/hashtriemap.go:177:32: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).expand:
+/usr/local/go/src/internal/sync/hashtriemap.go:191:34: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).expand:
+/usr/local/go/src/internal/sync/hashtriemap.go:177:32: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:181:10: "internal/sync.HashTrieMap: ran out of hash bits while inserting (inc... escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:191:34: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:228:18: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:231:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:255:21: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:263:26: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:228:18: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:231:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:255:21: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:263:26: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+./mux.go:739:39: func literal escapes to heap in (*Mux).lazyOPTIONS:
+./mux.go:740:17: []string{...} escapes to heap in (*Mux).lazyOPTIONS.func1:
+./mux.go:747:23: allow escapes to heap in (*Mux).lazyOPTIONS:
+./mux.go:739:39: func literal escapes to heap
+./mux.go:740:17: []string{...} escapes to heap
+./mux.go:747:23: allow escapes to heap
+./mux.go:716:39: func literal escapes to heap in (*Mux).lazyMethodNotAllowed:
+./mux.go:717:17: []string{...} escapes to heap in (*Mux).lazyMethodNotAllowed.func1:
+./mux.go:724:32: allow escapes to heap in (*Mux).lazyMethodNotAllowed:
+./mux.go:716:39: func literal escapes to heap
+./mux.go:717:17: []string{...} escapes to heap
+./mux.go:724:32: allow escapes to heap
+./mux.go:700:2: h escapes to heap in (*Mux).lazyNotFound:
+./mux.go:700:2: moved to heap: h
+./mux.go:929:27: urlPath + "/" escapes to heap in (*Mux).dispatch:
+./mux.go:936:37: func literal escapes to heap in (*Mux).dispatch:
+./mux.go:950:38: func literal escapes to heap in (*Mux).dispatch:
+./mux.go:885:17: make(Params, ps.count) escapes to heap in (*Mux).dispatch:
+./mux.go:974:18: make(Params, ps2.count) escapes to heap in (*Mux).dispatch:
+./mux.go:885:17: make(Params, ps.count) escapes to heap
+./mux.go:929:27: urlPath + "/" escapes to heap
+./mux.go:936:37: func literal escapes to heap
+./mux.go:950:38: func literal escapes to heap
+./mux.go:974:18: make(Params, ps2.count) escapes to heap
+./mux.go:311:16: append(m.pre, mw...) escapes to heap in (*Mux).Pre:
+./mux.go:312:39: func literal escapes to heap in (*Mux).Pre:
+./mux.go:312:2: h escapes to heap in (*Mux).Pre:
+./mux.go:312:2: moved to heap: h
+./mux.go:311:16: append escapes to heap
+./mux.go:312:39: func literal escapes to heap
+./mux.go:378:45: func literal escapes to heap in (*Mux).HandleE:
+./mux.go:378:45: func literal escapes to heap
+./mux.go:401:27: append(m.fastMiddleware, mw...) escapes to heap in (*Mux).UseFast:
+./mux.go:401:27: append escapes to heap
+./mux.go:525:63: func literal escapes to heap in (*Mux).GETE:
+./mux.go:525:63: func literal escapes to heap
+./mux.go:529:64: func literal escapes to heap in (*Mux).HEADE:
+./mux.go:529:64: func literal escapes to heap
+./mux.go:533:64: func literal escapes to heap in (*Mux).POSTE:
+./mux.go:533:64: func literal escapes to heap
+./mux.go:537:63: func literal escapes to heap in (*Mux).PUTE:
+./mux.go:537:63: func literal escapes to heap
+./mux.go:541:65: func literal escapes to heap in (*Mux).PATCHE:
+./mux.go:541:65: func literal escapes to heap
+./mux.go:545:66: func literal escapes to heap in (*Mux).DELETEE:
+./mux.go:545:66: func literal escapes to heap
+./mux.go:549:67: func literal escapes to heap in (*Mux).OPTIONSE:
+./mux.go:549:67: func literal escapes to heap
+./mux.go:567:9: &Group{...} escapes to heap in (*Mux).Group:
+./mux.go:567:9: &Group{...} escapes to heap
+./mux.go:572:9: &Group{...} escapes to heap in (*Mux).With:
+./mux.go:575:21: append([]func(http.Handler) http.Handler{}, mw...) escapes to heap in (*Mux).With:
+./mux.go:575:55: []func(http.Handler) http.Handler{} escapes to heap in (*Mux).With:
+./mux.go:572:9: &Group{...} escapes to heap
+./mux.go:575:55: []func(http.Handler) http.Handler{} escapes to heap
+./mux.go:575:21: append escapes to heap
+./mux.go:581:14: &Group{...} escapes to heap in (*Mux).Route:
+./mux.go:581:14: &Group{...} escapes to heap
+./mux.go:653:9: "muxmaster: nil root passed to ServeFiles" escapes to heap in (*Mux).ServeFiles:
+./mux.go:659:79: "muxmaster: ServeFiles refuses to register with UseRawPath=true AND U... escapes to heap in (*Mux).ServeFiles:
+./mux.go:664:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap in (*Mux).ServeFiles:
+./mux.go:664:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap in (*Mux).ServeFiles:
+./mux.go:668:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap in (*Mux).ServeFiles:
+./mux.go:668:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap in (*Mux).ServeFiles:
+./mux.go:673:15: new(url.URL) escapes to heap in (*Mux).ServeFiles.func1:
+./mux.go:671:24: func literal escapes to heap in (*Mux).ServeFiles:
+./mux.go:672:26: context.backgroundCtx{} escapes to heap in (*Mux).ServeFiles.func1:
+./mux.go:670:23: &http.fileHandler{...} escapes to heap in (*Mux).ServeFiles:
+./mux.go:653:9: "muxmaster: nil root passed to ServeFiles" escapes to heap
+./mux.go:659:79: "muxmaster: ServeFiles refuses to register with UseRawPath=true AND U... escapes to heap
+./mux.go:664:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap
+./mux.go:664:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap
+./mux.go:668:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap
+./mux.go:668:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap
+./mux.go:670:23: &http.fileHandler{...} escapes to heap
+./mux.go:671:24: func literal escapes to heap
+./mux.go:672:26: context.backgroundCtx{} escapes to heap
+./mux.go:673:15: new(url.URL) escapes to heap
+./params.go:89:11: make(map[string]string, len(ps)) escapes to heap in Params.Map:
+./params.go:89:11: make(map[string]string, len(ps)) escapes to heap
+./params.go:247:7: &reqBundle1{} escapes to heap in dispatchParams1Fast:
+./params.go:248:27: context.backgroundCtx{} escapes to heap in dispatchParams1Fast:
+./params.go:247:7: &reqBundle1{} escapes to heap
+./params.go:248:27: context.backgroundCtx{} escapes to heap
+./params.go:269:7: &reqBundle2{} escapes to heap in dispatchParams2Fast:
+./params.go:270:27: context.backgroundCtx{} escapes to heap in dispatchParams2Fast:
+./params.go:269:7: &reqBundle2{} escapes to heap
+./params.go:270:27: context.backgroundCtx{} escapes to heap
+./params.go:263:30: "nil context" escapes to heap in dispatchParams1Safe:
+./params.go:260:8: &requestCtx1{...} escapes to heap in dispatchParams1Safe:
+./params.go:263:30: new(http.Request) escapes to heap in dispatchParams1Safe:
+./params.go:260:39: context.backgroundCtx{} escapes to heap in dispatchParams1Safe:
+./params.go:260:8: &requestCtx1{...} escapes to heap
+./params.go:260:39: context.backgroundCtx{} escapes to heap
+./params.go:263:30: "nil context" escapes to heap
+./params.go:263:30: new(http.Request) escapes to heap
+./params.go:287:30: "nil context" escapes to heap in dispatchParams2Safe:
+./params.go:283:8: &requestCtx2{...} escapes to heap in dispatchParams2Safe:
+./params.go:287:30: new(http.Request) escapes to heap in dispatchParams2Safe:
+./params.go:283:39: context.backgroundCtx{} escapes to heap in dispatchParams2Safe:
+./params.go:283:8: &requestCtx2{...} escapes to heap
+./params.go:283:39: context.backgroundCtx{} escapes to heap
+./params.go:287:30: "nil context" escapes to heap
+./params.go:287:30: new(http.Request) escapes to heap
+./response.go:19:16: []string{...} escapes to heap in JSON:
+./response.go:19:16: []string{...} escapes to heap
+./response.go:35:16: []string{...} escapes to heap in XML:
+./response.go:35:16: []string{...} escapes to heap
+./response.go:46:16: []string{...} escapes to heap in Text:
+./response.go:48:24: ([]byte)(s) escapes to heap in Text:
+./response.go:46:16: []string{...} escapes to heap
+./response.go:48:24: ([]byte)(s) escapes to heap
+./tree.go:35:23: append(pb.overflow, Param{...}) escapes to heap in (*paramsBuf).add:
+./tree.go:35:23: append escapes to heap
+./tree.go:53:13: make(Params, pb.count) escapes to heap in (*paramsBuf).params:
+./tree.go:53:13: make(Params, pb.count) escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:527:37: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Clear:
+/usr/local/go/src/internal/sync/hashtriemap.go:527:37: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:550:9: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in newIndirectNode[go.shape.interface {},go.shape.interface {}]:
+/usr/local/go/src/internal/sync/hashtriemap.go:550:9: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:483:9: func literal escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).All:
+/usr/local/go/src/internal/sync/hashtriemap.go:483:9: func literal escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:371:9: "called CompareAndDelete when value is not of comparable type" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:385:23: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:404:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:371:9: "called CompareAndDelete when value is not of comparable type" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:385:23: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:404:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:635:20: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).compareAndSwap:
+/usr/local/go/src/internal/sync/hashtriemap.go:645:24: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).compareAndSwap:
+/usr/local/go/src/internal/sync/hashtriemap.go:635:20: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:645:24: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:283:9: "called CompareAndSwap when value is not of comparable type" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndSwap:
+/usr/local/go/src/internal/sync/hashtriemap.go:297:23: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndSwap:
+/usr/local/go/src/internal/sync/hashtriemap.go:283:9: "called CompareAndSwap when value is not of comparable type" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:297:23: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:572:9: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in newEntryNode[go.shape.interface {},go.shape.interface {}]:
+/usr/local/go/src/internal/sync/hashtriemap.go:572:9: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:114:24: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:120:18: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:123:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:145:21: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:151:26: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:114:24: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:120:18: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:123:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:145:21: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:151:26: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:715:9: "called indirect on entry node" escapes to heap in (*node[go.shape.interface {},go.shape.interface {}]).indirect:
+/usr/local/go/src/internal/sync/hashtriemap.go:715:9: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:708:9: "called entry on non-entry node" escapes to heap in (*node[go.shape.interface {},go.shape.interface {}]).entry:
+/usr/local/go/src/internal/sync/hashtriemap.go:708:9: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:713:6: "called indirect on entry node" escapes to heap in (*node[interface {},interface {}]).indirect:
+/usr/local/go/src/internal/sync/hashtriemap.go:713:6: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:706:6: "called entry on non-entry node" escapes to heap in (*node[interface {},interface {}]).entry:
+/usr/local/go/src/internal/sync/hashtriemap.go:706:6: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: make(map[string]string, len(ps)) escapes to heap in (*Params).Map:
+<autogenerated>:1: make(map[string]string, len(ps)) escapes to heap
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*entry[interface {},interface {}]).entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*entry[interface {},interface {}]).indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*indirect[interface {},interface {}]).entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*indirect[interface {},interface {}]).indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*indirect[go.shape.interface {},go.shape.interface {}]).entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*indirect[go.shape.interface {},go.shape.interface {}]).indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }).internal/sync.entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }).internal/sync.indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[interface {},interface {}]; internal/sync.children [16]sync/atomic.Pointer[internal/sync.node[interface {},interface {}]] }).internal/sync.entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[interface {},interface {}]; internal/sync.children [16]sync/atomic.Pointer[internal/sync.node[interface {},interface {}]] }).internal/sync.indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[interface {},interface {}]]; internal/sync.key interface {}; internal/sync.value interface {} }).internal/sync.entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[interface {},interface {}]]; internal/sync.key interface {}; internal/sync.value interface {} }).internal/sync.indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }).internal/sync.entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }).internal/sync.indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap in struct { reflect.typ_ *internal/abi.Type; reflect.ptr unsafe.Pointer; reflect.flag }.reflect.mustBe:
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap in (*struct { reflect.typ_ *internal/abi.Type; reflect.ptr unsafe.Pointer; reflect.flag }).reflect.mustBe:
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap

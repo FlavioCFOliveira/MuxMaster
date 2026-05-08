@@ -1,0 +1,4 @@
+go test fuzz v1
+string("")
+string("/\xaf\x99\xb3\xfc")
+string("0")

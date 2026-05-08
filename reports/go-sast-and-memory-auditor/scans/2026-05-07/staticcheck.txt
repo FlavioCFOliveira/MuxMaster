@@ -1,0 +1,2 @@
+reports/fuzzing-and-property-engineer/evidence/2026-05-07/CRASH-FPE-001/repro_test.go:11:9: should not use underscores in package names (ST1003)
+reports/fuzzing-and-property-engineer/evidence/2026-05-07/CRASH-FPE-002/repro_test.go:16:9: should not use underscores in package names (ST1003)

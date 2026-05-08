@@ -1,0 +1,2 @@
+go test fuzz v1
+string("BeArer 0000\n\n\n00000000..")

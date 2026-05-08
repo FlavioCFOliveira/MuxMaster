@@ -1,3 +1,0 @@
-go test fuzz v1
-string("\U00060493\uf141蘺\u05c8")
-string("0")

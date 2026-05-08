@@ -1,3 +1,0 @@
-go test fuzz v1
-string("\xf3\x90\xeb\x99މ\xeb\x850")
-string("0")

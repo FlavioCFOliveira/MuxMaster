@@ -1,3 +1,0 @@
-go test fuzz v1
-string("/\xdf0000000000000")
-string("/:0")

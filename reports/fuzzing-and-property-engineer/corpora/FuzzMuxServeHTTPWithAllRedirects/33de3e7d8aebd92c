@@ -1,3 +1,0 @@
-go test fuzz v1
-string("\xf0\x9e\x9e\xf0")
-string("0")

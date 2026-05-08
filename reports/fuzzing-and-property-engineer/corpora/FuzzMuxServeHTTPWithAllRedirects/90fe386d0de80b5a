@@ -1,3 +1,0 @@
-go test fuzz v1
-string("\u0381\u05ff\ue3a3\u0080\u07bc\u0097")
-string("0")

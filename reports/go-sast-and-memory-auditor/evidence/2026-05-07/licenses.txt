@@ -1,0 +1,2 @@
+W0507 18:58:24.923908  486582 library.go:276] module github.com/FlavioCFOliveira/MuxMaster has empty version, defaults to HEAD. The license URL may be incorrect. Please verify!
+github.com/FlavioCFOliveira/MuxMaster,https://github.com/FlavioCFOliveira/MuxMaster/blob/HEAD/LICENSE,MIT

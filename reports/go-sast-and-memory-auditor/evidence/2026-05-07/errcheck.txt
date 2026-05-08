@@ -1,0 +1,99 @@
+example_test.go:17:14:	fmt.Fprintf(w, "user=%s", id)
+example_test.go:35:15:	fmt.Fprintln(w, "pong")
+example_test.go:39:14:	fmt.Fprintf(w, "user=%s", id)
+example_test.go:66:15:	fmt.Fprintln(w, "hello")
+example_test.go:83:15:	fmt.Fprintln(w, "ok")
+example_test.go:104:14:	fmt.Fprintf(w, "year=%s slug=%s", ps.Get("year"), ps.Get("slug"))
+handlefast_test.go:120:10:	w.Write([]byte("normal:" + id)) //nolint:errcheck
+handlefast_test.go:124:10:	w.Write([]byte("fast:" + ps.Get("id"))) //nolint:errcheck
+middleware/compress.go:91:9:	g.gz = g.pool.Get().(*gzip.Writer) //nolint:forcetypeassert // pool.New always returns *gzip.Writer
+middleware/compress.go:130:3:	_ = g.commit()
+middleware/compress.go:133:3:	_ = g.gz.Close()
+middleware/compress.go:184:6:	_ = pool.Get().(*gzip.Writer) //nolint:forcetypeassert // pool.New always returns *gzip.Writer; errcheck not applicable to discarded value
+middleware/jwt_auth.go:82:7:	h := p.p.Get().(hash.Hash)
+middleware/jwt_auth.go:196:30:	return rsa.VerifyPKCS1v15(opts.PublicKey.(*rsa.PublicKey), crypto.SHA256, h[:], sig) == nil
+middleware/jwt_auth.go:199:30:	return rsa.VerifyPKCS1v15(opts.PublicKey.(*rsa.PublicKey), crypto.SHA384, h[:], sig) == nil
+middleware/jwt_auth.go:202:30:	return rsa.VerifyPKCS1v15(opts.PublicKey.(*rsa.PublicKey), crypto.SHA512, h[:], sig) == nil
+middleware/jwt_auth.go:205:26:	return verifyECDSAJWT(opts.PublicKey.(*ecdsa.PublicKey), h[:], sig, 32)
+middleware/jwt_auth.go:208:26:	return verifyECDSAJWT(opts.PublicKey.(*ecdsa.PublicKey), h[:], sig, 48)
+middleware/jwt_auth.go:211:26:	return verifyECDSAJWT(opts.PublicKey.(*ecdsa.PublicKey), h[:], sig, 66)
+middleware/logger.go:47:15:	fmt.Fprintf(out, "%s %s %s %d %s\n", //nolint:errcheck // log writes intentionally ignore I/O errors
+middleware/middleware_test.go:30:11:	payload, _ := json.Marshal(claims)
+middleware/middleware_test.go:42:6:	_, _ = w.Write([]byte("ok"))
+middleware/middleware_test.go:126:7:	_, _ = w.Write(chunk)
+middleware/middleware_test.go:144:6:	_, _ = w.Write([]byte("hi"))
+middleware/middleware_test.go:403:10:	prefix, _ := netip.ParsePrefix("10.0.0.0/8")
+middleware/middleware_test.go:426:10:	prefix, _ := netip.ParsePrefix("10.0.0.0/8")
+middleware/middleware_test.go:447:10:	prefix, _ := netip.ParsePrefix("10.0.0.0/8")
+middleware/middleware_test.go:466:10:	prefix, _ := netip.ParsePrefix("10.0.0.0/8")
+middleware/middleware_test.go:717:12:	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+middleware/middleware_test.go:1152:11:	payJSON, _ := json.Marshal(map[string]any{"exp": time.Now().Add(time.Hour).Unix()})
+middleware/middleware_test.go:1226:28:	json.NewEncoder(w).Encode(map[string]any{
+middleware/middleware_test.go:1261:28:	json.NewEncoder(w).Encode(map[string]any{"active": false})
+middleware/middleware_test.go:1298:28:	json.NewEncoder(w).Encode(map[string]any{
+middleware/middleware_test.go:1496:6:	_, _ = w.Write([]byte(`{
+middleware/oauth2.go:266:18:	defer func() { _ = resp.Body.Close() }()
+middleware/real_ip.go:53:14:	peer, _, _ := net.SplitHostPort(r.RemoteAddr)
+middleware/request_id.go:50:6:	id, _ := ctx.Value(requestIDKey{}).(string)
+middleware/throttle.go:113:13:	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+mux.go:710:10:	return v.(http.Handler)
+mux.go:733:10:	return v.(http.Handler)
+mux_test.go:18:10:	w.Write([]byte(body)) //nolint:errcheck
+mux_test.go:71:10:	w.Write([]byte(muxmaster.PathParam(r, "id"))) //nolint:errcheck
+mux_test.go:77:10:	w.Write([]byte(y + "-" + mo + "-" + sl)) //nolint:errcheck
+mux_test.go:102:10:	w.Write([]byte(ps[0].Value + "," + ps[1].Value + "," + ps[2].Value + "," + ps[3].Value)) //nolint:errcheck
+mux_test.go:116:10:	w.Write([]byte(muxmaster.PathParam(r, "filepath"))) //nolint:errcheck
+mux_test.go:337:10:	w.Write([]byte(ps.Get("id") + ":" + ps.Get("tag"))) //nolint:errcheck
+mux_test.go:351:13:	fmt.Fprint(w, "Hello, World!")
+mux_test.go:364:13:	fmt.Fprint(w, "user="+id)
+mux_test.go:386:13:	fmt.Fprint(w, "pong")
+mux_test.go:400:13:	fmt.Fprint(w, "items")
+reports/fuzzing-and-property-engineer/evidence/2026-05-07/CRASH-FPE-2026-003b/repro_test.go:32:11:	trusted, _ := netip.ParsePrefix("127.0.0.0/8")
+reports/fuzzing-and-property-engineer/evidence/2026-05-07/CRASH-REGEX-01/repro_test.go:80:11:	msg, _ := r.(string)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:53:10:	w.Write(body)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:124:9:	body1, _ := io.ReadAll(resp1.Body)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:125:18:	resp1.Body.Close()
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:203:8:	req1, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:209:12:	gzipBody, _ := io.ReadAll(resp1.Body)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:210:18:	resp1.Body.Close()
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:261:18:	decompressed, _ := io.ReadAll(gr)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:262:12:	gr.Close()
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:304:9:	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:310:11:	io.Copy(io.Discard, resp.Body)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:311:19:	resp.Body.Close()
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:358:10:	w.Write(preCompressedBody)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:365:7:	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/", nil)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:371:8:	body, _ := io.ReadAll(resp.Body)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:372:17:	resp.Body.Close()
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:395:12:	inner2, _ := io.ReadAll(gr)
+reports/http-protocol-security-auditor/harness/compress_vary_test.go:396:12:	gr.Close()
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:39:10:	w.Write([]byte("admin"))
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:43:10:	w.Write([]byte("admin-post"))
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:48:10:	w.Write([]byte("user:" + id))
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:60:18:	defer conn.Close()
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:61:18:	conn.SetDeadline(time.Now().Add(3 * time.Second))
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:269:19:	resp.Body.Close()
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:309:8:	msg, _ := rec.(string)
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:418:8:	msg, _ := rec.(string)
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:493:10:	w.Write([]byte("post-ok"))
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:595:10:	w.Write([]byte("smuggled-reached"))
+reports/http-protocol-security-auditor/harness/http_protocol_audit_test.go:599:10:	w.Write([]byte("root"))
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:37:31:	t.Cleanup(func() { conn.Close() })
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:38:18:	conn.SetDeadline(time.Now().Add(5 * time.Second))
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:278:10:	w.Write(bigBody)
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:372:10:	w.Write([]byte("inner:path=" + r.URL.Path))
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:462:8:	req, _ := http.NewRequestWithContext(ctx, "GET", srv.URL+"/", nil)
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:469:19:	resp.Body.Close()
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:486:11:	w.Write([]byte("PANIC-HANDLER-BODY"))
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:490:11:	w.Write([]byte("PARTIAL-BODY"))
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:525:11:	w.Write([]byte("ok"))
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:534:9:	req1, _ := http.NewRequestWithContext(ctx1, "GET", srv.URL+"/panic", nil)
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:537:20:	resp1.Body.Close()
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:543:9:	req2, _ := http.NewRequestWithContext(ctx2, "GET", srv.URL+"/ok", nil)
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:549:20:	resp2.Body.Close()
+reports/http-protocol-security-auditor/harness/s8_hypotheses_test.go:626:10:	w.Write([]byte("path:" + r.URL.Path))
+reports/path-routing-fuzzer/evidence/2026-05-07/PRF-007-expandOptional-exponential/repro_test.go:41:8:	msg, _ := rec.(string)
+response.go:48:5:	_, _ = w.Write([]byte(s))
+security_test.go:53:10:	w.Write([]byte(v1 + "-" + v4)) //nolint:errcheck
+security_test.go:66:10:	w.Write([]byte(v1 + "-" + v8)) //nolint:errcheck
+security_test.go:261:6:	_ = m.Walk(func(_, _ string, _ http.Handler) error { return nil })

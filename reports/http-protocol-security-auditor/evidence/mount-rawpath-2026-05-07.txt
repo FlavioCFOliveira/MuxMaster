@@ -1,0 +1,54 @@
+## Mount RawPath Asymmetry Evidence — 2026-05-07
+Commit: f4faa5405324fe6779b2624741ac282388d3006c
+CWE: CWE-172 (Encoding Error) / information-disclosure level
+
+### Finding: Mount RawPath trim can produce non-rooted path (missing leading '/')
+Location: mux.go:506 — mountAt()
+
+Code path:
+  trimmed := strings.TrimPrefix(r.URL.RawPath, prefix)
+  if len(trimmed) == len(r.URL.RawPath) {
+      r2.URL.RawPath = ""   // zeroed — TrimPrefix didn't match
+  } else {
+      r2.URL.RawPath = trimmed  // NOT zeroed
+  }
+
+Input: GET /api%2fusers/123 HTTP/1.1
+
+URL parsing by net/http:
+  r.URL.Path    = "/api/users/123"   (decoded)
+  r.URL.RawPath = "/api%2fusers/123" (raw encoded)
+
+mountAt with prefix="/api":
+  strings.TrimPrefix("/api%2fusers/123", "/api")
+  = "%2fusers/123"              ← succeeds because "/api" IS a prefix of "/api%2f..."
+  len("%2fusers/123") = 12 != len("/api%2fusers/123") = 16
+  → NOT zeroed → inner handler sees RawPath = "%2fusers/123"
+
+Violation: url.URL.RawPath must be empty OR an absolute path beginning with '/'.
+  "%2fusers/123" does not begin with '/' — this violates the net/url URL contract.
+
+Impact (LOW-MEDIUM):
+  1. If inner handler calls r.URL.EscapedPath() it will use RawPath as-is,
+     producing "%2fusers/123" (no leading /) which breaks URL reconstruction.
+  2. If inner handler calls url.RequestURI() it will produce "%2fusers/123"
+     (malformed URI — missing leading /).
+  3. If inner handler passes r.URL to another http.Client.Do() call,
+     the request will have a malformed request-target.
+  4. The %2f is semantically a "/" that encodes a path separator — routing on
+     RawPath would treat "/users%2F123" as a file named "users/123" in some handlers.
+
+Recommendation:
+  In mountAt(), when trimmed does NOT start with '/', prepend "/" or zero RawPath:
+
+  if trimmed != "" && trimmed[0] != '/' {
+      r2.URL.RawPath = ""  // malformed — fall back to decoded Path
+  } else {
+      r2.URL.RawPath = trimmed
+  }
+
+  Or equivalently, validate after the trim that RawPath remains rooted.
+
+Test evidence:
+  go test -run TestHPS0003 ./reports/http-protocol-security-auditor/harness/
+  Probe output: Inner Path="/users/123" RawPath="%2fusers/123"

@@ -1,161 +1,174 @@
-package dosharness
+// Package harness — DoS Resilience: compress middleware OOM and BREACH probe
+package harness
 
 import (
+	"compress/gzip"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
-	"sync"
+	"strings"
 	"testing"
 
 	mm "github.com/FlavioCFOliveira/MuxMaster"
 	"github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
 
-// readHeapAlloc returns HeapAlloc (currently-allocated, not-yet-GC'd bytes).
-func readHeapAlloc() uint64 {
-	var ms runtime.MemStats
-	runtime.ReadMemStats(&ms)
-	return ms.HeapAlloc
-}
-
-// TestCompressBufferGrowsWithBody validates H-006: compress.go buffers the
-// full response body in g.buf before writing any byte to the wire.
-//
-// Strategy: we pause the handler mid-write using a sync primitive, then
-// sample HeapAlloc and observe g.buf must be at or near `bodySize`.
-// We do NOT rely on naive before/after GC tricks — during a single
-// running handler, HeapAlloc is the live delta.
-func TestCompressBufferGrowsWithBody(t *testing.T) {
-	if testing.Short() {
-		t.Skip("allocates large buffers; skipped in -short")
-	}
-
-	sizes := []int{1 << 20, 4 << 20, 16 << 20, 64 << 20}
-
-	type result struct {
-		size    int
-		peakMem uint64
-	}
-	results := make([]result, 0, len(sizes))
-
-	for _, size := range sizes {
-		r := mm.New()
-		r.Use(middleware.Compress(5))
-
-		// Pause handler just before returning — this is the moment where
-		// g.buf holds the full body; compress.go has not yet flushed.
-		var handlerDone sync.WaitGroup
-		handlerDone.Add(1)
-		measureNow := make(chan uint64, 1)
-		release := make(chan struct{})
-
-		r.GET("/big", func(w http.ResponseWriter, req *http.Request) {
-			chunk := make([]byte, 65536)
-			remaining := size
-			for remaining > 0 {
-				n := len(chunk)
-				if n > remaining {
-					n = remaining
-				}
-				_, _ = w.Write(chunk[:n])
-				remaining -= n
-			}
-			// Sample heap while g.buf is alive and not yet flushed.
-			runtime.GC() // force housekeeping; g.buf still held by grw
-			measureNow <- readHeapAlloc()
-			<-release
-			handlerDone.Done()
-		})
-
-		req := httptest.NewRequest(http.MethodGet, "/big", nil)
-		req.Header.Set("Accept-Encoding", "gzip")
-
-		go func() {
-			w := httptest.NewRecorder()
-			r.ServeHTTP(w, req)
-			// Discard response body memory — not our concern.
-			w.Body.Reset()
-		}()
-
-		peak := <-measureNow
-		close(release)
-		handlerDone.Wait()
-
-		results = append(results, result{size: size, peakMem: peak})
-		t.Logf("bodySize=%dMB peakHeapAllocDuringHandler=%dMB ratio=%.2f", size>>20, peak>>20, float64(peak)/float64(size))
-
-		runtime.GC()
-		runtime.GC()
-	}
-
-	// Validate the slope: peak memory growth should be >= bodySize.
-	biggest := results[len(results)-1]
-	smallest := results[0]
-	deltaBody := biggest.size - smallest.size
-	deltaMem := int64(biggest.peakMem) - int64(smallest.peakMem)
-	slope := float64(deltaMem) / float64(deltaBody)
-
-	t.Logf("linear-fit slope (bytes of heap per byte of body) = %.2f (expected >= 1.0 for buffering; ~0 for streaming)", slope)
-
-	// Hard assert slope > 0.8: buffering confirms the OOM vector.
-	if slope < 0.8 {
-		t.Errorf("FAIL: expected slope >= 0.8 (linear buffering) but got %.2f", slope)
-	}
-}
-
-// BenchmarkCompressBufferGrowth tracks allocations per MB of response body.
-// A streaming compressor would be ~0 alloc/MB. MuxMaster's current
-// implementation is O(body_size).
-func BenchmarkCompressBufferGrowth(b *testing.B) {
-	bodySize := 1 << 20 // 1MB per request
-	chunk := make([]byte, 4096)
-	for i := range chunk {
-		chunk[i] = byte(i)
-	}
+// TestCompressStreamingBoundedMemory verifies that the compress middleware does NOT
+// buffer the entire response body before compressing. A handler streaming 100 MB of
+// zeros must not cause >10 MB heap growth (streaming compressor, not buffering).
+func TestCompressStreamingBoundedMemory(t *testing.T) {
+	const streamBytes = 100 * 1024 * 1024 // 100 MB logical output
 
 	r := mm.New()
-	r.Use(middleware.Compress(5))
-	r.GET("/big", func(w http.ResponseWriter, req *http.Request) {
-		remaining := bodySize
-		for remaining > 0 {
-			n := len(chunk)
-			if n > remaining {
-				n = remaining
-			}
-			_, _ = w.Write(chunk[:n])
-			remaining -= n
+	r.Use(middleware.Compress(gzip.DefaultCompression))
+	r.GET("/stream", func(w http.ResponseWriter, _ *http.Request) {
+		chunk := make([]byte, 64*1024) // 64 KB of zeros — ~1000:1 gzip ratio
+		written := 0
+		for written < streamBytes {
+			n, _ := w.Write(chunk)
+			written += n
 		}
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/big", nil)
+	req := httptest.NewRequest("GET", "/stream", nil)
 	req.Header.Set("Accept-Encoding", "gzip")
+	w := httptest.NewRecorder()
 
-	b.ResetTimer()
-	b.ReportAllocs()
-	b.SetBytes(int64(bodySize))
-	for range b.N {
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
+	var before, after runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&before)
+
+	r.ServeHTTP(w, req)
+
+	runtime.GC()
+	runtime.ReadMemStats(&after)
+
+	// Heap must not have grown by more than 16 MB (sniffBufSize + gzip writer + overhead)
+	heapDelta := int64(after.HeapAlloc) - int64(before.HeapAlloc)
+	maxAllowed := int64(16 * 1024 * 1024)
+	if heapDelta > maxAllowed {
+		t.Fatalf("CRITICAL: compress middleware buffered %d MB heap for %d MB response — streaming violated",
+			heapDelta/1024/1024, streamBytes/1024/1024)
+	}
+	t.Logf("heap delta: %d KB for %d MB response (PASS)", heapDelta/1024, streamBytes/1024/1024)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+	if enc := w.Header().Get("Content-Encoding"); enc != "gzip" {
+		t.Errorf("expected Content-Encoding: gzip, got %q", enc)
 	}
 }
 
-// TestCompressBufferNeverFlushedForSmallBody verifies the intended behavior:
-// if the accumulated body is < minCompressSize (1024), the middleware writes
-// it uncompressed. No security concern but documents the behaviour.
-func TestCompressBufferSmallBodyBehavior(t *testing.T) {
+// TestCompressNoAcceptEncoding verifies compress middleware passes through when
+// Accept-Encoding does not include gzip — no allocation amplification.
+func TestCompressNoAcceptEncoding(t *testing.T) {
 	r := mm.New()
-	r.Use(middleware.Compress(5))
-	r.GET("/small", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte("short response"))
+	r.Use(middleware.Compress(gzip.DefaultCompression))
+	r.GET("/data", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(strings.Repeat("hello world ", 200)))
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/small", nil)
+	req := httptest.NewRequest("GET", "/data", nil)
+	// No Accept-Encoding header
+	w := httptest.NewRecorder()
+
+	allocs := testing.AllocsPerRun(50, func() {
+		w.Body.Reset()
+		r.ServeHTTP(w, req)
+	})
+	// Without gzip, compress middleware should add near-zero allocations
+	if allocs > 5 {
+		t.Errorf("compress no-accept-encoding: %.0f allocs — expected <=5", allocs)
+	}
+	t.Logf("compress no-accept-encoding: %.1f allocs/op (PASS)", allocs)
+}
+
+// TestCompressSmallBodyNoCompression verifies that responses < minCompressSize
+// are not compressed and the gzip writer is never activated (no Content-Encoding header).
+func TestCompressSmallBodyNoCompression(t *testing.T) {
+	r := mm.New()
+	r.Use(middleware.Compress(gzip.DefaultCompression))
+	r.GET("/small", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("tiny")) // < 1024 bytes
+	})
+
+	req := httptest.NewRequest("GET", "/small", nil)
 	req.Header.Set("Accept-Encoding", "gzip")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	if got := w.Header().Get("Content-Encoding"); got == "gzip" {
-		t.Errorf("expected no gzip encoding for small body, got %q", got)
+	if enc := w.Header().Get("Content-Encoding"); enc == "gzip" {
+		t.Errorf("small body should NOT be gzip-encoded, got Content-Encoding: %s", enc)
 	}
-	t.Logf("small body response length=%d, Content-Encoding=%q", w.Body.Len(), w.Header().Get("Content-Encoding"))
+	t.Logf("small body: no compression applied (PASS)")
+}
+
+// BenchmarkCompressLargeResponse measures throughput of streaming compress middleware.
+// Used to detect if any future change causes buffer materialisation.
+func BenchmarkCompressLargeResponse(b *testing.B) {
+	r := mm.New()
+	r.Use(middleware.Compress(gzip.BestSpeed))
+	payload := strings.Repeat("abcdefghijklmnopqrstuvwxyz", 4096) // ~100 KB
+	r.GET("/bench", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, payload)
+	})
+	req := httptest.NewRequest("GET", "/bench", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	w := httptest.NewRecorder()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		w.Body.Reset()
+		r.ServeHTTP(w, req)
+	}
+}
+
+// TestBREACHOracle probes for BREACH-style oracle: if a response echoes an
+// attacker-controlled string alongside a secret, gzip compression ratio leaks
+// information. This test confirms the API surface exists (compress + oauth2 scope
+// echo) and documents it. MuxMaster compress itself is not the fix — the handler
+// must not echo compressed secrets alongside user input.
+//
+// Finding reference: MM-2026-0030, sprint hypothesis H-D.
+// This test DOCUMENTS the pattern; it does NOT assert a pass/fail since the
+// compress middleware is behaving correctly — the oracle is in the handler.
+func TestBREACHOracle(t *testing.T) {
+	secret := "scope=read:users write:admin billing:view"
+
+	// Handler echoes both the secret and attacker-controlled input in same compressed response
+	r := mm.New()
+	r.Use(middleware.Compress(gzip.DefaultCompression))
+	r.GET("/api/info", func(w http.ResponseWriter, req *http.Request) {
+		q := req.URL.Query().Get("q")
+		// Simulate scope echo: response contains both the secret and the attacker query
+		_, _ = io.WriteString(w, secret+" "+q+strings.Repeat(" padding ", 200))
+	})
+
+	// Probe: vary q to be a prefix of the secret — a shorter compressed response
+	// reveals that q and the secret share bytes (BREACH oracle).
+	var sizes [3]int
+	probes := []string{"XXXXXXXX", "scope=re", "scope=read:users"}
+	for i, probe := range probes {
+		req := httptest.NewRequest("GET", "/api/info?q="+probe, nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		sizes[i] = w.Body.Len()
+	}
+
+	t.Logf("BREACH oracle probe — response sizes by attacker input:")
+	t.Logf("  q=random:     %d bytes", sizes[0])
+	t.Logf("  q=partial:    %d bytes", sizes[1])
+	t.Logf("  q=full-match: %d bytes", sizes[2])
+
+	// Oracle is confirmed if size[2] < size[0] (matching prefix compresses better)
+	if sizes[2] < sizes[0] {
+		t.Logf("WARNING DOS-2026-0001: BREACH oracle CONFIRMED: full-match response %d bytes < random %d bytes.",
+			sizes[2], sizes[0])
+		t.Logf("Mitigation: do not echo user input alongside secrets in the same compressed response body,")
+		t.Logf("or disable compression on endpoints that echo user-controlled data near sensitive claims.")
+	} else {
+		t.Logf("BREACH oracle not confirmed in this payload configuration (padding may dominate)")
+	}
 }

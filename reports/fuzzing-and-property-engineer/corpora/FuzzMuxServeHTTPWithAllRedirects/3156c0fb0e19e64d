@@ -1,3 +1,0 @@
-go test fuzz v1
-string("0000000000000\"ٯ\xe0\xebǜ0000000000\xe1\xd70\"000\xe6\xba000\xe8\x940\xc6\xd10ٻ0000000000\xc2\xf3\xef000000")
-string("0")

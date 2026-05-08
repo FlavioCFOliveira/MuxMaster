@@ -1,3 +1,0 @@
-go test fuzz v1
-string("\ue8e3\ue380\ue3a3\ue8e3\ue3a3\ue8e3")
-string("0")

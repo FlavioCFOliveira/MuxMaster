@@ -1,3 +1,0 @@
-go test fuzz v1
-string("")
-string("\xdd\xfe\x880\x84\"\xc5\xf0&")

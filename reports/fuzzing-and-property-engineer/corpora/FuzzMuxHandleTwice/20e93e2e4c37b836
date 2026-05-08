@@ -1,3 +1,0 @@
-go test fuzz v1
-string("/\x89\xec\x92")
-string("/\xd6\xd6\xd6")

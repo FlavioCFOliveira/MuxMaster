@@ -1,0 +1,2 @@
+go test fuzz v1
+string("⅗\xe3\x9b\xda\xe8\xbeᛅ\xf0\x9f\xdb霖궥钖")

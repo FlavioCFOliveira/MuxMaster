@@ -1,3 +1,0 @@
-go test fuzz v1
-string("00\xba0\xa70\xb3\xf7\x03\b00")
-string("0")

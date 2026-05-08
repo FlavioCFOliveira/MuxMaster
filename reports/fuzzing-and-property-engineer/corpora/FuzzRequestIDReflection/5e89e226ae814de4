@@ -1,2 +1,0 @@
-go test fuzz v1
-string("\xda\xf0\xfa\x9d")

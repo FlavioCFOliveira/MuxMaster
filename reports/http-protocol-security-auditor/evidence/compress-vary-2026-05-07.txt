@@ -1,0 +1,38 @@
+=== RUN   TestCompressVary_SmallResponse_BlastRadius
+    compress_vary_test.go:129: Non-gzip client: status=200 Content-Encoding="" Vary="" body-len=512
+    compress_vary_test.go:155: CDN serves cached response to gzip client: Content-Encoding=""
+    compress_vary_test.go:166: PASS HPS-2026-0007: Small response is NOT compressed — no Vary required, no cache-poisoning risk. CDN serves plain text to both gzip and non-gzip clients correctly.
+    compress_vary_test.go:169: ANALYSIS: Vary absence on small responses is a correctness/interop issue (RFC 7234 §4.1 recommends Vary when content varies) but NOT exploitable for cache poisoning because Content-Encoding is absent.
+--- PASS: TestCompressVary_SmallResponse_BlastRadius (0.00s)
+=== RUN   TestCompressVary_LargeResponse_CDNPoisoningRisk
+    compress_vary_test.go:214: Gzip client: status=200 Content-Encoding="gzip" Vary="Accept-Encoding" body-len=39
+    compress_vary_test.go:225: PASS: Vary: Accept-Encoding correctly set with Content-Encoding: gzip
+    compress_vary_test.go:246: CDN serves compressed response to non-gzip client: body-len=39 readable=false
+    compress_vary_test.go:250: CONFIRMED BLAST RADIUS: non-gzip client receives garbled compressed bytes
+    compress_vary_test.go:251: IMPACT: content corruption (garbled page) for non-gzip clients behind a Vary-ignoring CDN
+    compress_vary_test.go:252: SEVERITY: Medium — requires CDN misconfiguration (ignore Vary); MuxMaster emits correct Vary
+    compress_vary_test.go:253: VERDICT: MuxMaster is SAFE (emits Vary correctly); blast radius requires CDN misconfiguration
+    compress_vary_test.go:263: Decompressed body length: 2048 (expected 2048)
+    compress_vary_test.go:267: PASS: gzip body is valid and decompresses to correct size
+--- PASS: TestCompressVary_LargeResponse_CDNPoisoningRisk (0.00s)
+=== RUN   TestCompressVary_ThresholdBoundary
+=== RUN   TestCompressVary_ThresholdBoundary/size=1023
+    compress_vary_test.go:318: size=1023: Content-Encoding="" Vary=""
+    compress_vary_test.go:333: PASS: size=1023 Vary expectation met (expectVary=false hasVary=false)
+=== RUN   TestCompressVary_ThresholdBoundary/size=1024
+    compress_vary_test.go:318: size=1024: Content-Encoding="gzip" Vary="Accept-Encoding"
+    compress_vary_test.go:333: PASS: size=1024 Vary expectation met (expectVary=true hasVary=true)
+=== RUN   TestCompressVary_ThresholdBoundary/size=1025
+    compress_vary_test.go:318: size=1025: Content-Encoding="gzip" Vary="Accept-Encoding"
+    compress_vary_test.go:333: PASS: size=1025 Vary expectation met (expectVary=true hasVary=true)
+--- PASS: TestCompressVary_ThresholdBoundary (0.01s)
+    --- PASS: TestCompressVary_ThresholdBoundary/size=1023 (0.00s)
+    --- PASS: TestCompressVary_ThresholdBoundary/size=1024 (0.00s)
+    --- PASS: TestCompressVary_ThresholdBoundary/size=1025 (0.01s)
+=== RUN   TestCompressVary_PreSetContentEncoding_NoDoubleCompress
+    compress_vary_test.go:375: Pre-set CE handler: status=200 Content-Encoding="gzip" body-len=88
+    compress_vary_test.go:387: PASS: response body non-empty (len=88)
+    compress_vary_test.go:403: INFO: body is gzip-encoded; inner content is not gzip (no double-compression)
+--- PASS: TestCompressVary_PreSetContentEncoding_NoDoubleCompress (0.00s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/http-protocol-security-auditor/harness	(cached)

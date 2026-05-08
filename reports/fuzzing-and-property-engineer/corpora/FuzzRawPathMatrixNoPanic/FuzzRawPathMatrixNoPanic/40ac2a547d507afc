@@ -1,0 +1,5 @@
+go test fuzz v1
+bool(false)
+bool(true)
+string("?\xa00\xa20\x840\xd20\xc60\x9b0\x850\xeb/")
+string("0")

@@ -1,3 +1,0 @@
-go test fuzz v1
-string("Ȥ\uea28\uea28")
-string("0")

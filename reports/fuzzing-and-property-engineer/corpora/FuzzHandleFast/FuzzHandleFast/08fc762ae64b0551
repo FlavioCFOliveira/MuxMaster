@@ -1,0 +1,3 @@
+go test fuzz v1
+string("GET")
+string("/0ϫ00000000К000000\xe9\b\b")

@@ -1,0 +1,9 @@
+# 2026/05/07 17:13:43.211822 [TestProp_SanitiserAllControlChars] [rapid] draw s: "\""
+# 2026/05/07 17:13:43.211844 [TestProp_SanitiserAllControlChars] I-SAN-05: not idempotent: "\"" -> "\\\"" -> "\\\\\\\""
+# 
+v0.4.8#16398855761264150034
+0x5555555555555
+0x0
+0xe3e05a098777c
+0x20
+0x0

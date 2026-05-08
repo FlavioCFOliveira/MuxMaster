@@ -1,0 +1,4 @@
+go test fuzz v1
+string("/api")
+string("/v1")
+string("/u\x00\x01rs")

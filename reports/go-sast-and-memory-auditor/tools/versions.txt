@@ -1,4 +1,8 @@
-=== go ===
+=== Tool Versions ===
+Date: 2026-05-07T18:57:58+01:00
+Commit: e30ae946f634cbec54c0ae9445cbf3787ca24f31
+
+=== go version ===
 go version go1.26.2 linux/amd64
 
 === staticcheck ===
@@ -10,36 +14,80 @@ Git tag:
 Build date: 
 
 === govulncheck ===
-Go: go1.26.2
-Scanner: govulncheck@v1.2.0
-DB: https://vuln.go.dev
+govulncheck: loading packages: 
+There are errors with the provided package patterns:
+
+-: package version is not in std (/usr/local/go/src/version)
+
+For details on package patterns, see https://pkg.go.dev/cmd/go#hdr-Package_lists_and_patterns.
+
+
+=== golangci-lint ===
+golangci-lint has version v1.64.8 built with go1.26.2 from (unknown, modified: ?, mod sum: "h1:y5TdeVidMtBGG32zgSC7ZXTFNHrsJkDnpO4ItB3Am+I=") on (unknown)
 
 === errcheck ===
 flag provided but not defined: -version
 Usage of errcheck:
   -abspath
+    	print absolute paths to files
+  -asserts
+    	if true, check for ignored type assertion results
+  -blank
+    	if true, check for errors assigned to blank identifier
+  -exclude string
+    	Path to a file containing a list of functions to exclude from checking
+  -excludeonly
+    	Use only excludes from -exclude file
+  -ignore value
+    	[deprecated] comma-separated list of pairs of the form pkg:regex
+    	            the regex is used to ignore names within pkg.
+  -ignoregenerated
+    	if true, checking of files with generated code is disabled
+  -ignorepkg string
+    	comma-separated list of package paths to ignore
+  -ignoretests
+    	if true, checking of _test.go files is disabled
+  -mod string
+    	module download mode to use: readonly or vendor. See 'go help modules' for more.
+  -tags value
+    	comma or space-separated list of build tags to include
+  -verbose
+    	produce more verbose logging
 
 === ineffassign ===
 ineffassign: version v0.2.0
 
-=== cyclonedx-gomod ===
+=== go-licenses ===
 flag provided but not defined: -version
-USAGE
-  cyclonedx-gomod <SUBCOMMAND> [FLAGS...] [<ARG>...]
+Usage of go-licenses:
+  -add_dir_header
+    	If true, adds the file directory to the header of the log messages
+  -alsologtostderr
+    	log to standard error as well as files (no effect when -logtostderr=true)
+  -log_backtrace_at value
+    	when logging hits line file:N, emit a stack trace
+  -log_dir string
+    	If non-empty, write log files in this directory (no effect when -logtostderr=true)
+  -log_file string
+    	If non-empty, use this log file (no effect when -logtostderr=true)
+  -log_file_max_size uint
+    	Defines the maximum size a log file can grow to (no effect when -logtostderr=true). Unit is megabytes. If the value is 0, the maximum file size is unlimited. (default 1800)
+  -logtostderr
+    	log to standard error instead of files (default true)
+  -one_output
+    	If true, only write logs to their native severity level (vs also writing to each lower severity level; no effect when -logtostderr=true)
+  -skip_headers
+    	If true, avoid header prefixes in the log messages
+  -skip_log_headers
+    	If true, avoid headers when opening log files (no effect when -logtostderr=true)
+  -stderrthreshold value
+    	logs at or above this threshold go to stderr when writing to files and stderr (no effect when -logtostderr=true or -alsologtostderr=false) (default 2)
+  -v value
+    	number for the log level verbosity
+  -vmodule value
+    	comma-separated list of pattern=N settings for file-filtered logging
 
 === osv-scanner ===
 osv-scanner version: 1.9.2
 commit: n/a
 built at: n/a
-
-=== golangci-lint ===
-golangci-lint has version 2.11.4 built with go1.26.1 from 8f3b0c7e on 2026-03-22T17:35:14Z
-
-=== semgrep ===
-1.159.0 (installed via /tmp/semgrep-venv — isolated venv due to PEP 668)
-
-=== CodeQL ===
-NOT AVAILABLE in this environment (not installed; would require ~3GB CLI + Go queries pack)
-
-=== go-licenses ===
-NOT AVAILABLE (not installed — license audit done manually since go.mod declares zero deps)

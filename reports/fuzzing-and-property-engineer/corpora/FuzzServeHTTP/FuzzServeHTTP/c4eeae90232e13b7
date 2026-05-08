@@ -1,0 +1,2 @@
+go test fuzz v1
+string("//?\xfc\xf9\xf3\xf9\U000e44a4\xa4")

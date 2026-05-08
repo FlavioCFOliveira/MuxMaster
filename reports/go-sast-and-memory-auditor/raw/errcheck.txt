@@ -1,0 +1,50 @@
+example_test.go:17:14:	fmt.Fprintf(w, "user=%s", id)
+example_test.go:35:15:	fmt.Fprintln(w, "pong")
+example_test.go:39:14:	fmt.Fprintf(w, "user=%s", id)
+example_test.go:66:15:	fmt.Fprintln(w, "hello")
+example_test.go:83:15:	fmt.Fprintln(w, "ok")
+example_test.go:104:14:	fmt.Fprintf(w, "year=%s slug=%s", ps.Get("year"), ps.Get("slug"))
+handlefast_test.go:120:10:	w.Write([]byte("normal:" + id)) //nolint:errcheck
+handlefast_test.go:124:10:	w.Write([]byte("fast:" + ps.Get("id"))) //nolint:errcheck
+middleware/compress.go:74:9:	g.gz = g.pool.Get().(*gzip.Writer) //nolint:forcetypeassert // pool.New always returns *gzip.Writer
+middleware/compress.go:85:3:	_ = g.commit()
+middleware/compress.go:88:3:	_ = g.gz.Close()
+middleware/compress.go:109:6:	_ = pool.Get().(*gzip.Writer) //nolint:forcetypeassert // pool.New always returns *gzip.Writer; errcheck not applicable to discarded value
+middleware/jwt_auth.go:66:7:	h := p.p.Get().(hash.Hash)
+middleware/jwt_auth.go:159:30:	return rsa.VerifyPKCS1v15(opts.PublicKey.(*rsa.PublicKey), crypto.SHA256, h[:], sig) == nil
+middleware/jwt_auth.go:162:30:	return rsa.VerifyPKCS1v15(opts.PublicKey.(*rsa.PublicKey), crypto.SHA384, h[:], sig) == nil
+middleware/jwt_auth.go:165:30:	return rsa.VerifyPKCS1v15(opts.PublicKey.(*rsa.PublicKey), crypto.SHA512, h[:], sig) == nil
+middleware/jwt_auth.go:168:26:	return verifyECDSAJWT(opts.PublicKey.(*ecdsa.PublicKey), h[:], sig, 32)
+middleware/jwt_auth.go:171:26:	return verifyECDSAJWT(opts.PublicKey.(*ecdsa.PublicKey), h[:], sig, 48)
+middleware/jwt_auth.go:174:26:	return verifyECDSAJWT(opts.PublicKey.(*ecdsa.PublicKey), h[:], sig, 66)
+middleware/logger.go:38:15:	fmt.Fprintf(out, "%s %s %s %d %s\n", //nolint:errcheck // log writes intentionally ignore I/O errors
+middleware/middleware_test.go:28:11:	payload, _ := json.Marshal(claims)
+middleware/middleware_test.go:40:6:	_, _ = w.Write([]byte("ok"))
+middleware/middleware_test.go:124:7:	_, _ = w.Write(chunk)
+middleware/middleware_test.go:142:6:	_, _ = w.Write([]byte("hi"))
+middleware/middleware_test.go:401:10:	prefix, _ := netip.ParsePrefix("10.0.0.0/8")
+middleware/middleware_test.go:935:11:	payJSON, _ := json.Marshal(map[string]any{"exp": time.Now().Add(time.Hour).Unix()})
+middleware/middleware_test.go:1009:28:	json.NewEncoder(w).Encode(map[string]any{
+middleware/middleware_test.go:1044:28:	json.NewEncoder(w).Encode(map[string]any{"active": false})
+middleware/middleware_test.go:1081:28:	json.NewEncoder(w).Encode(map[string]any{
+middleware/middleware_test.go:1221:6:	_, _ = w.Write([]byte(`{
+middleware/oauth2.go:149:18:	defer func() { _ = resp.Body.Close() }()
+middleware/real_ip.go:21:14:	peer, _, _ := net.SplitHostPort(r.RemoteAddr)
+middleware/request_id.go:50:6:	id, _ := ctx.Value(requestIDKey{}).(string)
+middleware/throttle.go:77:13:	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+mux.go:567:10:	return v.(http.Handler)
+mux.go:586:10:	return v.(http.Handler)
+mux_test.go:16:10:	w.Write([]byte(body)) //nolint:errcheck
+mux_test.go:69:10:	w.Write([]byte(muxmaster.PathParam(r, "id"))) //nolint:errcheck
+mux_test.go:75:10:	w.Write([]byte(y + "-" + mo + "-" + sl)) //nolint:errcheck
+mux_test.go:100:10:	w.Write([]byte(ps[0].Value + "," + ps[1].Value + "," + ps[2].Value + "," + ps[3].Value)) //nolint:errcheck
+mux_test.go:114:10:	w.Write([]byte(muxmaster.PathParam(r, "filepath"))) //nolint:errcheck
+mux_test.go:335:10:	w.Write([]byte(ps.Get("id") + ":" + ps.Get("tag"))) //nolint:errcheck
+mux_test.go:349:13:	fmt.Fprint(w, "Hello, World!")
+mux_test.go:362:13:	fmt.Fprint(w, "user="+id)
+mux_test.go:384:13:	fmt.Fprint(w, "pong")
+mux_test.go:398:13:	fmt.Fprint(w, "items")
+response.go:48:5:	_, _ = w.Write([]byte(s))
+security_test.go:53:10:	w.Write([]byte(v1 + "-" + v4)) //nolint:errcheck
+security_test.go:66:10:	w.Write([]byte(v1 + "-" + v8)) //nolint:errcheck
+security_test.go:261:6:	_ = m.Walk(func(_, _ string, _ http.Handler) error { return nil })

@@ -48,6 +48,7 @@ func TestOAuth2CacheStampedeNoCaching(t *testing.T) {
 
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
+		AllowInsecureEndpoint: true,
 		Endpoint: introspectServer.URL,
 		CacheTTL: 60 * time.Second,
 	}))
@@ -117,6 +118,7 @@ func TestOAuth2StaleReadAfterExpiry(t *testing.T) {
 
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
+		AllowInsecureEndpoint: true,
 		Endpoint: introspectServer.URL,
 		CacheTTL: 100 * time.Millisecond, // 100ms TTL
 	}))
@@ -172,6 +174,7 @@ func TestOAuth2MaxCacheSizeExhaustion(t *testing.T) {
 
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
+		AllowInsecureEndpoint: true,
 		Endpoint:     introspectServer.URL,
 		CacheTTL:     time.Hour,
 		MaxCacheSize: maxSize,
@@ -240,6 +243,7 @@ func TestDOS_OAuth2CacheStampede(t *testing.T) {
 
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
+		AllowInsecureEndpoint: true,
 		Endpoint: introspectServer.URL,
 		CacheTTL: 60 * time.Second,
 	}))

@@ -67,21 +67,14 @@ func TestHandleFast_PanicHandler_Covers(t *testing.T) {
 	}
 }
 
-// TestHandleFast_RecovererMW_DoesNotCover confirms that Recoverer middleware
-// does NOT protect FastHandler routes (by design). When PanicHandler is nil
-// and a FastHandler panics, the panic propagates to the net/http server layer.
-// We use recover() in the test goroutine to catch it.
+// TestHandleFast_RecovererMW_DoesNotCover documents the closed boundary:
+// applying stdlib Recoverer via Use() and then registering a FastHandler is
+// now a panic-at-registration error (FPE-2026-010 fix). The boundary is
+// enforced rather than silently bypassed.
 func TestHandleFast_RecovererMW_DoesNotCover(t *testing.T) {
 	r := mm.New()
-	// Use stdlib Recoverer as middleware — does not cover FastHandlers.
 	r.Use(mw.Recoverer())
-	// No PanicHandler set.
 
-	r.GETFast("/danger/:id", func(w http.ResponseWriter, req *http.Request, ps mm.Params) {
-		panic("fasthandler unprotected")
-	})
-
-	// A panic here propagates — catch it in the test so we don't fail the whole suite.
 	panicked := false
 	func() {
 		defer func() {
@@ -89,15 +82,15 @@ func TestHandleFast_RecovererMW_DoesNotCover(t *testing.T) {
 				panicked = true
 			}
 		}()
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, httptest.NewRequest("GET", "/danger/1", nil))
+		r.GETFast("/danger/:id", func(w http.ResponseWriter, req *http.Request, ps mm.Params) {
+			panic("unreachable")
+		})
 	}()
 
 	if !panicked {
-		t.Log("H-H: FastHandler panic was absorbed (PanicHandler or framework absorbed it) — document behavior")
-	} else {
-		t.Log("H-H CONFIRMED: Recoverer middleware does NOT cover FastHandler panics — PanicHandler is required")
+		t.Fatal("FPE-2026-010: Mux.Use+HandleFast did not panic at registration (silent bypass regression)")
 	}
+	t.Log("FPE-2026-010 enforced: Mux.Use(stdlib) + HandleFast panics at registration")
 }
 
 // TestHandleFast_MixedWithHandle_GroupUse verifies that registering a

@@ -1,0 +1,218 @@
+=== RUN   TestSec_BasicAuth_ConstantTimeCompare
+--- PASS: TestSec_BasicAuth_ConstantTimeCompare (0.00s)
+=== RUN   TestSec_BasicAuth_EmptyCredentials
+--- PASS: TestSec_BasicAuth_EmptyCredentials (0.00s)
+=== RUN   TestSec_BasicAuth_NoAuthorizationHeader
+--- PASS: TestSec_BasicAuth_NoAuthorizationHeader (0.00s)
+=== RUN   TestSec_BasicAuth_MalformedBase64
+--- PASS: TestSec_BasicAuth_MalformedBase64 (0.00s)
+=== RUN   TestSec_BasicAuth_RealmInjectionPrevented
+--- PASS: TestSec_BasicAuth_RealmInjectionPrevented (0.00s)
+=== RUN   TestSec_BasicAuth_TimingDifferential
+--- PASS: TestSec_BasicAuth_TimingDifferential (0.07s)
+=== RUN   TestSec_BasicAuth_AuthHeaderNotLoggedByMiddleware
+--- PASS: TestSec_BasicAuth_AuthHeaderNotLoggedByMiddleware (0.00s)
+=== RUN   TestSec_APIKey_ConstantTimeMapLookup
+--- PASS: TestSec_APIKey_ConstantTimeMapLookup (0.00s)
+=== RUN   TestSec_APIKey_InvalidKeyRejects401
+--- PASS: TestSec_APIKey_InvalidKeyRejects401 (0.00s)
+=== RUN   TestSec_APIKey_MissingWWWAuthenticate
+    security_harness_test.go:262: MSR-FINDING: APIKey 401 missing WWW-Authenticate header (MM-2026-0052)
+--- FAIL: TestSec_APIKey_MissingWWWAuthenticate (0.00s)
+=== RUN   TestSec_APIKey_EmptyKeyRejects
+--- PASS: TestSec_APIKey_EmptyKeyRejects (0.00s)
+=== RUN   TestSec_APIKey_MapMutationPostConstruction
+--- PASS: TestSec_APIKey_MapMutationPostConstruction (0.00s)
+=== RUN   TestSec_APIKey_PanicsOnEmptyKeys
+--- PASS: TestSec_APIKey_PanicsOnEmptyKeys (0.00s)
+=== RUN   TestSec_JWT_AlgConfusion_HS256WithRSAPublicKeyBytes
+--- PASS: TestSec_JWT_AlgConfusion_HS256WithRSAPublicKeyBytes (0.14s)
+=== RUN   TestSec_JWT_AlgConfusion_MixedAlgsBothKeys
+--- PASS: TestSec_JWT_AlgConfusion_MixedAlgsBothKeys (0.14s)
+=== RUN   TestSec_JWT_AlgNone_Rejected
+--- PASS: TestSec_JWT_AlgNone_Rejected (0.00s)
+=== RUN   TestSec_JWT_KidHeaderInjection
+--- PASS: TestSec_JWT_KidHeaderInjection (0.00s)
+=== RUN   TestSec_JWT_CritHeaderRejectsUnknownExtensions
+--- PASS: TestSec_JWT_CritHeaderRejectsUnknownExtensions (0.00s)
+=== RUN   TestSec_JWT_ExpiredToken
+--- PASS: TestSec_JWT_ExpiredToken (0.00s)
+=== RUN   TestSec_JWT_NbfClockSkewRespected
+--- PASS: TestSec_JWT_NbfClockSkewRespected (0.00s)
+=== RUN   TestSec_JWT_AudienceValidation
+--- PASS: TestSec_JWT_AudienceValidation (0.00s)
+=== RUN   TestSec_JWT_IssuerValidation
+--- PASS: TestSec_JWT_IssuerValidation (0.00s)
+=== RUN   TestSec_JWT_WWWAuthenticateOnMissingToken
+--- PASS: TestSec_JWT_WWWAuthenticateOnMissingToken (0.00s)
+=== RUN   TestSec_JWT_InvalidSignatureRejected
+--- PASS: TestSec_JWT_InvalidSignatureRejected (0.00s)
+=== RUN   TestSec_JWT_ES256_ValidSignature
+--- PASS: TestSec_JWT_ES256_ValidSignature (0.00s)
+=== RUN   TestSec_JWT_TokenNotLeakedInResponse
+--- PASS: TestSec_JWT_TokenNotLeakedInResponse (0.00s)
+=== RUN   TestSec_JWT_PanicsOnMissingHS256Secret
+--- PASS: TestSec_JWT_PanicsOnMissingHS256Secret (0.00s)
+=== RUN   TestSec_JWT_PanicsOnRS256WithoutRSAKey
+--- PASS: TestSec_JWT_PanicsOnRS256WithoutRSAKey (0.00s)
+=== RUN   TestSec_OAuth2_CacheStaleActiveAfterExpiry
+--- PASS: TestSec_OAuth2_CacheStaleActiveAfterExpiry (0.16s)
+=== RUN   TestSec_OAuth2_InactiveTokenCached_NotAccepted
+--- PASS: TestSec_OAuth2_InactiveTokenCached_NotAccepted (0.00s)
+=== RUN   TestSec_OAuth2_RevocationLag_Documented
+--- PASS: TestSec_OAuth2_RevocationLag_Documented (0.10s)
+=== RUN   TestSec_OAuth2_EndpointErrorReturns401
+--- PASS: TestSec_OAuth2_EndpointErrorReturns401 (0.00s)
+=== RUN   TestSec_OAuth2_ResponseBodyLimitedTo64KB
+--- PASS: TestSec_OAuth2_ResponseBodyLimitedTo64KB (0.01s)
+=== RUN   TestSec_OAuth2_MissingTokenReturns401WithWWWAuth
+--- PASS: TestSec_OAuth2_MissingTokenReturns401WithWWWAuth (0.00s)
+=== RUN   TestSec_CORS_WildcardPlusCredentialsPanics
+--- PASS: TestSec_CORS_WildcardPlusCredentialsPanics (0.00s)
+=== RUN   TestSec_CORS_NullOriginRejected
+--- PASS: TestSec_CORS_NullOriginRejected (0.00s)
+=== RUN   TestSec_CORS_OriginReflectionWithWhitelist
+--- PASS: TestSec_CORS_OriginReflectionWithWhitelist (0.00s)
+=== RUN   TestSec_CORS_EmptyAllowedOrigins_SilentPermissive
+    security_harness_test.go:864: MSR-FINDING-MEDIUM: CORS with empty AllowedOrigins silently passes request (no 403). This is safe (browser blocks) but may not match operator intent. Recommend documenting or optionally rejecting with 403.
+--- PASS: TestSec_CORS_EmptyAllowedOrigins_SilentPermissive (0.00s)
+=== RUN   TestSec_CORS_WildcardEmitsLiteralStar
+--- PASS: TestSec_CORS_WildcardEmitsLiteralStar (0.00s)
+=== RUN   TestSec_CORS_CRLFOriginRejected
+--- PASS: TestSec_CORS_CRLFOriginRejected (0.00s)
+=== RUN   TestSec_CORS_PreflightRespondsToOptions
+--- PASS: TestSec_CORS_PreflightRespondsToOptions (0.00s)
+=== RUN   TestSec_CORS_VaryOriginMissing
+    security_harness_test.go:926: MSR-FINDING: CORS reflects specific origin but Vary: Origin header absent (got Vary: ""). CDNs may serve the CORS response to requests with different origins (MM-2026-0051).
+--- FAIL: TestSec_CORS_VaryOriginMissing (0.00s)
+=== RUN   TestSec_Compress_StreamingBoundedMemory
+--- PASS: TestSec_Compress_StreamingBoundedMemory (0.71s)
+=== RUN   TestSec_Compress_SmallResponseNotCompressed
+--- PASS: TestSec_Compress_SmallResponseNotCompressed (0.00s)
+=== RUN   TestSec_Compress_VaryAcceptEncodingPresent
+--- PASS: TestSec_Compress_VaryAcceptEncodingPresent (0.00s)
+=== RUN   TestSec_Compress_NoAcceptEncodingPassthrough
+--- PASS: TestSec_Compress_NoAcceptEncodingPassthrough (0.00s)
+=== RUN   TestSec_Compress_UnsupportedEncodingIgnored
+--- PASS: TestSec_Compress_UnsupportedEncodingIgnored (0.00s)
+=== RUN   TestSec_RealIP_NoTrustedProxies_IgnoresXFF
+--- PASS: TestSec_RealIP_NoTrustedProxies_IgnoresXFF (0.00s)
+=== RUN   TestSec_RealIP_UntrustedPeerDoesNotRewriteAddr
+--- PASS: TestSec_RealIP_UntrustedPeerDoesNotRewriteAddr (0.00s)
+=== RUN   TestSec_RealIP_TrustedPeerRewritesFromXFF
+--- PASS: TestSec_RealIP_TrustedPeerRewritesFromXFF (0.00s)
+=== RUN   TestSec_RealIP_XFFChainPicksFirst
+--- PASS: TestSec_RealIP_XFFChainPicksFirst (0.00s)
+=== RUN   TestSec_RealIP_CRLFInXFFRejected
+--- PASS: TestSec_RealIP_CRLFInXFFRejected (0.00s)
+=== RUN   TestSec_RealIP_IPv6Parsed
+--- PASS: TestSec_RealIP_IPv6Parsed (0.00s)
+=== RUN   TestSec_Recoverer_StackTraceNotInResponseBody
+--- PASS: TestSec_Recoverer_StackTraceNotInResponseBody (0.00s)
+=== RUN   TestSec_Recoverer_StackToLogsNotBody
+--- PASS: TestSec_Recoverer_StackToLogsNotBody (0.00s)
+=== RUN   TestSec_Recoverer_NilPanicValue
+--- PASS: TestSec_Recoverer_NilPanicValue (0.00s)
+=== RUN   TestSec_Recoverer_URLPathNotInBody
+--- PASS: TestSec_Recoverer_URLPathNotInBody (0.00s)
+=== RUN   TestSec_Recoverer_ConcurrentRequestsIsolated
+--- PASS: TestSec_Recoverer_ConcurrentRequestsIsolated (0.01s)
+=== RUN   TestSec_Throttle_XFFBypassDependsOnRealIP
+--- PASS: TestSec_Throttle_XFFBypassDependsOnRealIP (0.03s)
+=== RUN   TestSec_Throttle_DifferentIPsNotSharedBucket
+--- PASS: TestSec_Throttle_DifferentIPsNotSharedBucket (0.02s)
+=== RUN   TestSec_Throttle_EntryCleanedAfterRelease
+--- PASS: TestSec_Throttle_EntryCleanedAfterRelease (0.00s)
+=== RUN   TestSec_Timeout_ContextCancelledAfterDeadline
+--- PASS: TestSec_Timeout_ContextCancelledAfterDeadline (0.05s)
+=== RUN   TestSec_Timeout_HandlerGoroutineEventuallyExits
+--- PASS: TestSec_Timeout_HandlerGoroutineEventuallyExits (0.01s)
+=== RUN   TestSec_Timeout_PanicsOnZeroDuration
+--- PASS: TestSec_Timeout_PanicsOnZeroDuration (0.00s)
+=== RUN   TestSec_Logger_CRLFInPathSanitised
+    security_harness_test.go:1478: CRLF log injection result: "2026-05-07T14:20:10+01:00 GET /inject\\r\\nFAKE-LOG: evil 200 18.438µs\n" (sanitised = no raw newline injection)
+--- PASS: TestSec_Logger_CRLFInPathSanitised (0.00s)
+=== RUN   TestSec_Logger_ANSIEscapeSanitised
+    security_harness_test.go:1498: ANSI escape log result: "2026-05-07T14:20:10+01:00 GET /path\\x1b[2Jerased 200 11.384µs\n"
+--- PASS: TestSec_Logger_ANSIEscapeSanitised (0.00s)
+=== RUN   TestSec_Logger_AuthorizationNotLogged
+--- PASS: TestSec_Logger_AuthorizationNotLogged (0.00s)
+=== RUN   TestSec_Logger_CookiesNotLogged
+--- PASS: TestSec_Logger_CookiesNotLogged (0.00s)
+=== RUN   TestSec_Logger_QueryStringLogged
+--- PASS: TestSec_Logger_QueryStringLogged (0.00s)
+=== RUN   TestSec_Logger_PanicsOnNilWriter
+--- PASS: TestSec_Logger_PanicsOnNilWriter (0.00s)
+=== RUN   TestSec_RequestID_UsesCryptoRand
+--- PASS: TestSec_RequestID_UsesCryptoRand (0.03s)
+=== RUN   TestSec_RequestID_NoCollisions
+--- PASS: TestSec_RequestID_NoCollisions (0.30s)
+=== RUN   TestSec_RequestID_ValidIncomingPropagated
+--- PASS: TestSec_RequestID_ValidIncomingPropagated (0.00s)
+=== RUN   TestSec_RequestID_CRLFInIncomingReplaced
+--- PASS: TestSec_RequestID_CRLFInIncomingReplaced (0.00s)
+=== RUN   TestSec_RequestID_OversizedIncomingReplaced
+--- PASS: TestSec_RequestID_OversizedIncomingReplaced (0.00s)
+=== RUN   TestSec_RequestID_PredictabilityCheck
+--- PASS: TestSec_RequestID_PredictabilityCheck (0.01s)
+=== RUN   TestSec_CleanPath_TraversalNormalised
+--- PASS: TestSec_CleanPath_TraversalNormalised (0.00s)
+=== RUN   TestSec_CleanPath_RawPathWithTraversalZeroed
+    security_harness_test.go:1679: Note: RawPath with encoded traversal was not zeroed: "/a/%2e%2e/etc/passwd"
+--- PASS: TestSec_CleanPath_RawPathWithTraversalZeroed (0.00s)
+=== RUN   TestSec_CleanPath_DoubleSlashNormalised
+--- PASS: TestSec_CleanPath_DoubleSlashNormalised (0.00s)
+=== RUN   TestSec_CleanPath_QueryStringUntouched
+--- PASS: TestSec_CleanPath_QueryStringUntouched (0.00s)
+=== RUN   TestSec_StripSlashes_TrailingSlashStripped
+--- PASS: TestSec_StripSlashes_TrailingSlashStripped (0.00s)
+=== RUN   TestSec_StripSlashes_RootPreserved
+--- PASS: TestSec_StripSlashes_RootPreserved (0.00s)
+=== RUN   TestSec_StripSlashes_NoMiddleSlashEffect
+--- PASS: TestSec_StripSlashes_NoMiddleSlashEffect (0.00s)
+=== RUN   TestSec_WithValue_TypedKeyNoCollision
+--- PASS: TestSec_WithValue_TypedKeyNoCollision (0.00s)
+=== RUN   TestSec_WithValue_StringKeyCollisionRisk
+    security_harness_test.go:1810: String key collision test: r.Context().Value("user") = attacker (inner mw2 wins)
+--- PASS: TestSec_WithValue_StringKeyCollisionRisk (0.00s)
+=== RUN   TestSec_WithValue_PanicsOnNilKey
+--- PASS: TestSec_WithValue_PanicsOnNilKey (0.00s)
+=== RUN   TestSec_SetHeader_CRLFInKeyPanics
+--- PASS: TestSec_SetHeader_CRLFInKeyPanics (0.00s)
+=== RUN   TestSec_SetHeader_CRLFInValuePanics
+--- PASS: TestSec_SetHeader_CRLFInValuePanics (0.00s)
+=== RUN   TestSec_SetHeader_LFInValuePanics
+--- PASS: TestSec_SetHeader_LFInValuePanics (0.00s)
+=== RUN   TestSec_SetHeader_HeaderSetBeforeNext
+--- PASS: TestSec_SetHeader_HeaderSetBeforeNext (0.00s)
+=== RUN   TestSec_NoCache_AllHeadersPresent
+--- PASS: TestSec_NoCache_AllHeadersPresent (0.00s)
+=== RUN   TestSec_Order_RecovererOutermost
+--- PASS: TestSec_Order_RecovererOutermost (0.00s)
+=== RUN   TestSec_Order_LoggerAfterRealIPLogsClientIP
+--- PASS: TestSec_Order_LoggerAfterRealIPLogsClientIP (0.00s)
+=== RUN   TestSec_Order_TimeoutCancelsSlowHandler
+--- PASS: TestSec_Order_TimeoutCancelsSlowHandler (0.03s)
+=== RUN   TestSec_Order_ThrottleBeforeAuthEnablesDenialOfService
+    security_harness_test.go:2006: Throttle-before-auth DoS test: valid request got 200 (503 = DoS risk demonstrated)
+--- PASS: TestSec_Order_ThrottleBeforeAuthEnablesDenialOfService (0.01s)
+=== RUN   TestSec_Composition_CleanPathThenStripSlashes
+    security_harness_test.go:2035: clean→strip: cleaned to "/admin"
+    security_harness_test.go:2035: strip→clean: cleaned to "/admin"
+--- PASS: TestSec_Composition_CleanPathThenStripSlashes (0.00s)
+=== RUN   TestSec_Composition_CompressWithCORSSensitiveData
+    security_harness_test.go:2061: BREACH oracle test (H-D): Content-Encoding=gzip. If handler reflects user input in compressed response containing secrets, disable compression on sensitive endpoints or add Cache-Control: no-transform.
+--- PASS: TestSec_Composition_CompressWithCORSSensitiveData (0.00s)
+=== RUN   TestSec_Composition_RecovererAndTimeout_PanicAfterTimeout
+--- PASS: TestSec_Composition_RecovererAndTimeout_PanicAfterTimeout (0.03s)
+=== RUN   TestSec_RequestID_NotMathRand
+--- PASS: TestSec_RequestID_NotMathRand (0.00s)
+=== RUN   TestSec_JWT_ES256_ZeroRSig_Rejected
+--- PASS: TestSec_JWT_ES256_ZeroRSig_Rejected (0.00s)
+=== RUN   TestSec_JWT_ES256_TruncatedSig_Rejected
+--- PASS: TestSec_JWT_ES256_TruncatedSig_Rejected (0.00s)
+=== RUN   TestSec_JWT_RawPayloadNotLeakedOn401
+--- PASS: TestSec_JWT_RawPayloadNotLeakedOn401 (0.00s)
+FAIL
+FAIL	github.com/FlavioCFOliveira/MuxMaster/reports/middleware-security-reviewer/harness	1.907s
+FAIL

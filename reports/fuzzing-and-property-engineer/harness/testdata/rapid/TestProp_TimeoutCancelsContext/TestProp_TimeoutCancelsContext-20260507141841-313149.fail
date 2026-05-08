@@ -1,0 +1,11 @@
+# 2026/05/07 14:18:41.383223 [TestProp_TimeoutCancelsContext] [rapid] draw timeoutMs: 50
+# 2026/05/07 14:18:41.383239 [TestProp_TimeoutCancelsContext] [rapid] draw sleepMs: 51
+# 2026/05/07 14:18:41.434712 [TestProp_TimeoutCancelsContext] context not cancelled after timeout=50ms sleep=51ms
+# 
+v0.4.8#7907673591113402290
+0x73262bcb368b5
+0x1fb02a4ee0670b
+0xffffffffffffffff
+0x59abfe7566e
+0x2313d8f67fa1a
+0x1

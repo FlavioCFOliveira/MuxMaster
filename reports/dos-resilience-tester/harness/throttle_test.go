@@ -1,10 +1,12 @@
-package dosharness
+// Package harness — DoS Resilience: throttle middleware attack vectors
+package harness
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,123 +14,141 @@ import (
 	"github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
 
-// TestThrottleIsGlobalNotPerIP validates H-026.
-// The ThrottleBacklog middleware uses a single channel for all clients —
-// a single attacker occupying the limit causes every other client to be
-// rejected with 503. There is NO per-IP partitioning.
-func TestThrottleIsGlobalNotPerIP(t *testing.T) {
-	const limit = 5
-	r := mm.New()
-	release := make(chan struct{})
-	r.Use(middleware.ThrottleBacklog(limit, 0, 1*time.Millisecond))
-	r.GET("/slow", func(w http.ResponseWriter, req *http.Request) {
-		<-release
-	})
-	r.GET("/fast", func(w http.ResponseWriter, req *http.Request) {})
+// TestThrottlePerIPTableBloat verifies that ThrottlePerIP does NOT accumulate
+// entries in the internal map when keys rotate rapidly (e.g. spoofed IPs).
+//
+// ThrottlePerIP uses ref-counting: entries are deleted when refs drop to zero.
+// Each request atomically increments refs on acquire and decrements on release.
+// After all requests complete, the table should be empty.
+//
+// Finding: if cleanup is deferred or racy, each of N distinct IPs leaves a
+// permanent entry → O(N) memory leak. This test confirms proper cleanup.
+func TestThrottlePerIPTableBloat(t *testing.T) {
+	const numIPs = 10000
 
-	// Attacker fills the token budget with a single "IP" (127.0.0.1).
-	var attackerWG sync.WaitGroup
-	attackerWG.Add(limit)
-	var attackerStatuses [limit]int
-	for i := 0; i < limit; i++ {
-		i := i
-		go func() {
-			defer attackerWG.Done()
-			req := httptest.NewRequest(http.MethodGet, "/slow", nil)
-			req.RemoteAddr = "1.2.3.4:9999" // attacker IP
-			w := httptest.NewRecorder()
-			r.ServeHTTP(w, req)
-			attackerStatuses[i] = w.Code
-		}()
+	// Custom keyFn returns the X-Real-IP header value — simulates RealIP trusting XFF
+	keyFn := func(r *http.Request) string {
+		return r.Header.Get("X-Real-IP")
 	}
 
-	// Give attacker goroutines a moment to grab the tokens.
-	time.Sleep(50 * time.Millisecond)
+	r := mm.New()
+	r.Use(middleware.ThrottlePerIP(100, time.Second, keyFn))
+	r.GET("/api", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 
-	// Legit client — different IP — tries once. Should be rejected immediately
-	// because all `limit` tokens are held by the attacker.
-	legitStatuses := make([]int, 10)
-	for i := 0; i < 10; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/fast", nil)
-		req.RemoteAddr = "9.9.9.9:1234" // completely different IP
+	var before, after runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&before)
+
+	// Fire numIPs requests each with a distinct spoofed IP
+	for i := range numIPs {
+		req := httptest.NewRequest("GET", "/api", nil)
+		req.Header.Set("X-Real-IP", fmt.Sprintf("10.%d.%d.%d", (i>>16)&0xff, (i>>8)&0xff, i&0xff))
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
-		legitStatuses[i] = w.Code
 	}
 
-	// Release attackers.
-	close(release)
-	attackerWG.Wait()
+	runtime.GC()
+	runtime.GC()
+	runtime.ReadMemStats(&after)
 
-	// Count how many legit clients got 503.
-	denied := 0
-	for _, s := range legitStatuses {
-		if s == http.StatusServiceUnavailable {
-			denied++
-		}
+	heapDelta := int64(after.HeapAlloc) - int64(before.HeapAlloc)
+	// After all requests finish, table must be empty → heap growth should be < 5 MB
+	if heapDelta > 5*1024*1024 {
+		t.Fatalf("DOS-2026: ThrottlePerIP table bloat: %d KB heap retained after %d distinct IPs. "+
+			"Possible map leak — entries not cleaned up after ref hits zero.",
+			heapDelta/1024, numIPs)
 	}
-	t.Logf("legit client statuses: %v (denied=%d/10)", legitStatuses, denied)
-	if denied < 8 {
-		t.Errorf("expected global throttle to deny most legit clients while attacker holds limit, got only %d/10 denied", denied)
-	}
+	t.Logf("ThrottlePerIP table bloat test: heap delta=%d KB for %d IPs (PASS)", heapDelta/1024, numIPs)
 }
 
-// TestThrottleXFFSpoofDoesNotHelp confirms that real_ip middleware does NOT
-// turn the global throttle into per-IP. The throttle still uses a single pool
-// regardless of r.RemoteAddr. This means XFF spoofing neither bypasses the
-// global limit nor exhausts per-IP state (there isn't any).
+// TestThrottleXFFSpoofBypass verifies the ordering attack:
+// when real_ip is NOT applied (or applied after throttle), all requests share
+// the proxy IP and the per-IP throttle degrades to a global throttle,
+// effectively blocking legitimate clients.
 //
-// This is informational: if a user stacks real_ip + throttle expecting
-// per-IP limiting, they are WRONG.
-func TestThrottleXFFSpoofInformational(t *testing.T) {
-	const limit = 3
-	r := mm.New()
-	var acquired atomic.Int32
-	release := make(chan struct{})
-	r.Use(middleware.RealIP())
-	r.Use(middleware.ThrottleBacklog(limit, 0, 1*time.Millisecond))
-	r.GET("/", func(w http.ResponseWriter, req *http.Request) {
-		acquired.Add(1)
-		<-release
+// This is hypothesis H-F from sprint plan. The test documents the exposure
+// when registration order is wrong.
+func TestThrottleXFFSpoofBypass(t *testing.T) {
+	// Scenario A: throttle applied BEFORE real_ip (broken configuration)
+	// All requests appear to come from 127.0.0.1 (httptest default)
+	rBroken := mm.New()
+	rBroken.Use(middleware.ThrottlePerIP(2, 50*time.Millisecond, nil))
+	rBroken.GET("/api", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
 	})
 
-	// Fire N>limit requests with different spoofed XFF — all from one source.
-	const n = 10
+	// Send 10 concurrent requests from "different" clients via XFF spoof.
+	// With broken ordering, throttle sees all as 127.0.0.1 and blocks after 2.
+	const concurrency = 10
 	var wg sync.WaitGroup
-	wg.Add(n)
-	var got [n]int
-	for i := 0; i < n; i++ {
+	blocked := 0
+	var mu sync.Mutex
+	for i := range concurrency {
 		i := i
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			req.Header.Set("X-Forwarded-For", "10.0.0."+itos(i))
-			req.RemoteAddr = "127.0.0.1:1"
+			req := httptest.NewRequest("GET", "/api", nil)
+			req.Header.Set("X-Forwarded-For", fmt.Sprintf("1.2.3.%d", i))
 			w := httptest.NewRecorder()
-			r.ServeHTTP(w, req)
-			got[i] = w.Code
+			rBroken.ServeHTTP(w, req)
+			if w.Code == http.StatusServiceUnavailable {
+				mu.Lock()
+				blocked++
+				mu.Unlock()
+			}
 		}()
 	}
-	time.Sleep(50 * time.Millisecond)
-	close(release)
 	wg.Wait()
 
-	denied := 0
-	for _, s := range got {
-		if s == http.StatusServiceUnavailable {
-			denied++
-		}
-	}
-	t.Logf("got statuses: %v; denied=%d/%d with limit=%d — XFF diversity did NOT partition the throttle", got, denied, n, limit)
-	// Informational: assert that at least n - limit - slack are denied.
-	if denied < n-limit-2 {
-		t.Errorf("expected most-over-limit to be denied, got only %d/%d", denied, n)
+	// With all requests sharing 127.0.0.1, >2 will be blocked even though they
+	// present distinct XFF values. Document this as the configuration hazard.
+	t.Logf("H-F throttle order hazard: %d/%d requests blocked (all shared proxy IP 127.0.0.1)", blocked, concurrency)
+	if blocked > concurrency/2 {
+		t.Logf("WARNING DOS-2026-0002: ThrottlePerIP before RealIP degrades to global throttle. " +
+			"Registering Use(RealIP(...)) BEFORE Use(ThrottlePerIP(...)) is required for per-client limits.")
 	}
 }
 
-func itos(i int) string {
-	if i < 10 {
-		return string(rune('0' + i))
+// TestThrottleAllBacklogConcurrency stress-tests ThrottleBacklog under concurrency
+// to confirm no data race on the token channel. Run with -race.
+func TestThrottleAllBacklogConcurrency(t *testing.T) {
+	r := mm.New()
+	r.Use(middleware.ThrottleBacklog(5, 20, 100*time.Millisecond))
+	r.GET("/work", func(w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	var wg sync.WaitGroup
+	for i := range 200 {
+		_ = i
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			req := httptest.NewRequest("GET", "/work", nil)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+		}()
 	}
-	return string(rune('0'+i/10)) + string(rune('0'+i%10))
+	wg.Wait()
+	t.Log("ThrottleBacklog concurrency test: no race detected (run with -race for full validation)")
+}
+
+// BenchmarkThrottlePerIPFastPath measures hot-path cost when there IS an available token.
+func BenchmarkThrottlePerIPFastPath(b *testing.B) {
+	r := mm.New()
+	r.Use(middleware.ThrottlePerIP(1000, time.Second, nil))
+	r.GET("/api", func(w http.ResponseWriter, _ *http.Request) {})
+
+	req := httptest.NewRequest("GET", "/api", nil)
+	req.RemoteAddr = "1.2.3.4:5678"
+	w := httptest.NewRecorder()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		w.Body.Reset()
+		r.ServeHTTP(w, req)
+	}
 }

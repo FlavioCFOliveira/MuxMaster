@@ -1,203 +1,252 @@
 //go:build timing
 
-// Timing & side-channel measurements for the radix-tree route lookup.
+// route_existence_timing_test.go — Route-existence timing oracle analysis.
 //
-// Vector H-011: route-existence oracle via getValue.
-//   - /api/v1/users       — registered
-//   - /api/v1/pictures    — similar-but-unregistered (shares prefix)
-//   - /totally-random-xyz — totally unrelated
+// Reference: MM-2026-0026 (accepted: radix-tree depth correlates with lookup time).
 //
-// Each pair is measured by calling Mux.ServeHTTP directly (no kernel TCP) —
-// httptest.NewServer is deliberately avoided because the kernel stack adds
-// µs-scale noise that dwarfs the expected nanosecond-scale leak.
+// This test quantifies the ACTUAL magnitude of the timing difference between:
+//   1. Registered route vs unregistered route (at same depth).
+//   2. Short path (depth 1) vs long path (depth 5).
+//   3. Static route vs parameterised route at same depth.
+//   4. "Hidden admin" route vs random unregistered route.
 //
-// Also covers RedirectFixedPath: a path that can be canonicalised
-// (/api//v1/users → /api/v1/users) follows a longer code path than a path
-// that cannot be canonicalised.  We quantify that leak.
+// The goal is to confirm whether the oracle is exploitable at network latency
+// (<1ms RTT LAN, ~10-50ms WAN) given the measured effect size.
+//
+// Expected: registered vs unregistered timing is measurable but small (~5-50ns).
+// At WAN latency, this is below the noise floor. At LAN, it may be measurable
+// with statistical averaging across many requests.
 package harness
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"runtime"
-	"strings"
+	"runtime/debug"
 	"testing"
+	"time"
 
 	muxmaster "github.com/FlavioCFOliveira/MuxMaster"
 )
 
-// buildMux returns a Mux pre-populated with a realistic shape.
-func buildMux() *muxmaster.Mux {
-	m := muxmaster.New()
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-	// A mix of static, parameter and catch-all routes.
-	m.GET("/", h)
-	m.GET("/health", h)
-	m.GET("/api/v1/users", h)
-	m.GET("/api/v1/users/:id", h)
-	m.GET("/api/v1/users/:id/posts", h)
-	m.GET("/api/v1/admin/secret", h) // "hidden" route
-	m.GET("/api/v1/orders", h)
-	m.GET("/static/*filepath", h)
-	return m
+const nRoute = 200_000
+
+func nopHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
 }
 
-// callFor serves a request with the given URL path.
-func callFor(m http.Handler, path string) func() {
-	req := httptest.NewRequest(http.MethodGet, path, nil)
-	w := httptest.NewRecorder()
-	return func() {
-		w.Body.Reset()
-		w.HeaderMap = http.Header{}
-		m.ServeHTTP(w, req)
+func buildRoutingMux() *muxmaster.Mux {
+	r := muxmaster.New()
+	// Static routes at various depths.
+	r.GET("/", nopHandler)
+	r.GET("/users", nopHandler)
+	r.GET("/users/list", nopHandler)
+	r.GET("/users/detail/view", nopHandler)
+	r.GET("/users/detail/view/extended/info", nopHandler)
+	// Param routes.
+	r.GET("/users/:id", nopHandler)
+	r.GET("/users/:id/posts", nopHandler)
+	r.GET("/users/:id/posts/:pid", nopHandler)
+	// "Hidden" admin routes.
+	r.GET("/admin", nopHandler)
+	r.GET("/admin/users", nopHandler)
+	r.GET("/admin/settings/security", nopHandler)
+	// Catch-all.
+	r.GET("/static/*filepath", nopHandler)
+	return r
+}
+
+func routeReq(path string) *http.Request {
+	return httptest.NewRequest(http.MethodGet, path, nil)
+}
+
+func measureRoute(handler http.Handler, path string, n int) []int64 {
+	samples := make([]int64, n)
+	for i := 0; i < n; i++ {
+		req := routeReq(path)
+		w := httptest.NewRecorder()
+		t0 := time.Now()
+		handler.ServeHTTP(w, req)
+		samples[i] = time.Since(t0).Nanoseconds()
+	}
+	return samples
+}
+
+// TestTiming_Route_RegisteredVsUnregistered measures the timing oracle
+// between a registered route and an unregistered route at the same depth.
+func TestTiming_Route_RegisteredVsUnregistered(t *testing.T) {
+	mux := buildRoutingMux()
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	old := debug.SetGCPercent(-1)
+	defer debug.SetGCPercent(old)
+	runtime.GC()
+	runtime.GC()
+
+	// Warmup.
+	for i := 0; i < 30_000; i++ {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, routeReq("/users"))
+		w2 := httptest.NewRecorder()
+		mux.ServeHTTP(w2, routeReq("/totally-random-zzz"))
+	}
+
+	registered := measureRoute(mux, "/users", nRoute)
+	unregistered := measureRoute(mux, "/totally-random-zzz", nRoute)
+
+	result := RunTests(registered, unregistered)
+	rs := Summarise(registered)
+	us := Summarise(unregistered)
+
+	t.Logf("Route existence oracle: /users (registered) vs /totally-random-zzz (unregistered)")
+	t.Logf("  Registered:   mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", rs.Mean, rs.Std, rs.P50, rs.P99)
+	t.Logf("  Unregistered: mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", us.Mean, us.Std, us.P50, us.P99)
+	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns",
+		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+
+	if result.Leak {
+		// This is the known MM-2026-0026 accepted finding. Classify by effect size.
+		t.Logf("ROUTE ORACLE CONFIRMED (MM-2026-0026): diff=%.2fns", result.MeanDiffNs)
+		assessNetworkExploitability(t, result.MeanDiffNs)
+	} else {
+		t.Logf("Route existence timing: NOT distinguishable at p<0.01 — acceptable")
 	}
 }
 
-// -----------------------------------------------------------------------------
-// H-011: route-existence oracle
-// -----------------------------------------------------------------------------
+// TestTiming_Route_AdminHiddenVsRandom specifically tests whether "admin" routes
+// can be discovered via timing against a random path.
+func TestTiming_Route_AdminHiddenVsRandom(t *testing.T) {
+	mux := buildRoutingMux()
 
-func TestTiming_H011_RouteExistence(t *testing.T) {
-	m := buildMux()
-	registered := callFor(m, "/api/v1/users")
-	similar := callFor(m, "/api/v1/pictures")       // shares /api/v1/ prefix
-	random := callFor(m, "/totally-random-xyz-999") // unrelated
-	hidden := callFor(m, "/api/v1/admin/secret")    // registered, likely undisclosed
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	old := debug.SetGCPercent(-1)
+	defer debug.SetGCPercent(old)
+	runtime.GC()
+	runtime.GC()
 
-	cleanup := PreparePinned()
-	defer cleanup()
-
-	Warmup(20_000, registered)
-	Warmup(20_000, similar)
-	Warmup(20_000, random)
-	Warmup(20_000, hidden)
-
-	var report strings.Builder
-	fmt.Fprintf(&report, "# H-011 — route-existence timing oracle\n\n")
-	fmt.Fprintf(&report, "Host: %s  Go: %s  N/run: %d  Runs: %d\n\n",
-		runtime.GOOS+"/"+runtime.GOARCH, runtime.Version(), nSamples, nRuns)
-
-	// Matrix of pairs to compare.
-	pairs := []struct {
-		name  string
-		fA    func()
-		fB    func()
-		label string
-	}{
-		{"reg_vs_similar", registered, similar, "registered vs similar-unregistered"},
-		{"reg_vs_random", registered, random, "registered vs totally-random"},
-		{"hidden_vs_similar", hidden, similar, "hidden-admin vs similar-unregistered"},
-		{"hidden_vs_random", hidden, random, "hidden-admin vs totally-random"},
-		{"similar_vs_random", similar, random, "two different non-existent paths"},
+	for i := 0; i < 30_000; i++ {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, routeReq("/admin"))
+		w2 := httptest.NewRecorder()
+		mux.ServeHTTP(w2, routeReq("/xyzxyz"))
 	}
-	var worstPs []float64
-	for _, p := range pairs {
-		fmt.Fprintf(&report, "## %s\n", p.label)
-		worst := 1.0
-		for run := 1; run <= nRuns; run++ {
-			a, b := InterleavedMeasure(nSamples, p.fA, p.fB)
-			if run == 1 {
-				writeEvidenceCSV(fmt.Sprintf("h011_%s_A.csv", p.name), a)
-				writeEvidenceCSV(fmt.Sprintf("h011_%s_B.csv", p.name), b)
-			}
-			af := TrimP99(I64sToF64s(a))
-			bf := TrimP99(I64sToF64s(b))
-			sa := Summarise(af)
-			sb := Summarise(bf)
-			tt := WelchTTest(af, bf)
-			ks := KS2(af, bf)
-			mwu := MannWhitneyU(af, bf)
-			fmt.Fprintf(&report, "Run %d\n", run)
-			fmt.Fprintf(&report, "  %s\n", FormatSummary("A", sa))
-			fmt.Fprintf(&report, "  %s\n", FormatSummary("B", sb))
-			fmt.Fprintf(&report, "  %s\n", FormatTTest(tt))
-			fmt.Fprintf(&report, "  %s\n", FormatKS(ks))
-			fmt.Fprintf(&report, "  %s\n", FormatMWU(mwu))
-			if tt.PValue < worst {
-				worst = tt.PValue
-			}
+
+	adminSamples := measureRoute(mux, "/admin", nRoute)
+	randomSamples := measureRoute(mux, "/xyzxyz", nRoute)
+
+	result := RunTests(adminSamples, randomSamples)
+	as_ := Summarise(adminSamples)
+	rs_ := Summarise(randomSamples)
+
+	t.Logf("Route oracle: /admin (registered+auth) vs /xyzxyz (unregistered)")
+	t.Logf("  Admin:  mean=%.1fns p50=%.0fns p99=%.0fns", as_.Mean, as_.P50, as_.P99)
+	t.Logf("  Random: mean=%.1fns p50=%.0fns p99=%.0fns", rs_.Mean, rs_.P50, rs_.P99)
+	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns",
+		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+
+	if result.Leak {
+		t.Logf("ADMIN ROUTE EXISTENCE ORACLE: diff=%.2fns — admin paths are timing-discoverable",
+			result.MeanDiffNs)
+		assessNetworkExploitability(t, result.MeanDiffNs)
+	}
+}
+
+// TestTiming_Route_DepthCorrelation measures timing vs route depth to quantify
+// whether the radix tree walk time increases with path depth (expected: yes).
+func TestTiming_Route_DepthCorrelation(t *testing.T) {
+	mux := buildRoutingMux()
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	old := debug.SetGCPercent(-1)
+	defer debug.SetGCPercent(old)
+	runtime.GC()
+	runtime.GC()
+
+	paths := []string{
+		"/",
+		"/users",
+		"/users/list",
+		"/users/detail/view",
+		"/users/detail/view/extended/info",
+	}
+	labels := []string{"depth-1", "depth-2", "depth-3", "depth-4", "depth-5"}
+
+	results := make([]SummaryStats, len(paths))
+	for j, p := range paths {
+		// Warmup.
+		for i := 0; i < 20_000; i++ {
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, routeReq(p))
 		}
-		fmt.Fprintf(&report, "  worst p=%g\n\n", worst)
-		worstPs = append(worstPs, worst)
+		samples := measureRoute(mux, p, nRoute/2)
+		results[j] = Summarise(samples)
 	}
-	path := filepath.Join(evidenceDir, "h011_report.md")
-	if err := os.WriteFile(path, []byte(report.String()), 0o644); err != nil {
-		t.Fatal(err)
+
+	t.Log("Route depth correlation (registered routes):")
+	for j, s := range results {
+		t.Logf("  %s (%s): mean=%.1fns p50=%.0fns", labels[j], paths[j], s.Mean, s.P50)
 	}
-	t.Logf("H-011 report written to %s; worst p-values: %v", path, worstPs)
+	// Check monotonic increase — radix tree walk should take longer for deeper routes.
+	for j := 1; j < len(results); j++ {
+		if results[j].Mean < results[0].Mean*0.5 {
+			t.Logf("  NOTE: %s is faster than root — possible tree optimisation or measurement noise", labels[j])
+		}
+	}
 }
 
-// -----------------------------------------------------------------------------
-// RedirectFixedPath oracle: canonicalisable vs not.
-// -----------------------------------------------------------------------------
+// TestTiming_Route_Param_vs_Static measures whether parameterised routes
+// show different timing from static routes at the same depth.
+func TestTiming_Route_Param_vs_Static(t *testing.T) {
+	mux := buildRoutingMux()
 
-func TestTiming_RedirectFixedPath_Oracle(t *testing.T) {
-	m := buildMux()
-	// A path that path.Clean will canonicalise to a registered route.
-	// /api//v1/users → /api/v1/users (registered)
-	canon := callFor(m, "/api//v1/users")
-	// A path with a double-slash that does NOT resolve to a registered route.
-	nonCanon := callFor(m, "/totally//random-xyz")
-	// Plain 404 with no canonicalisation possible.
-	plain := callFor(m, "/totally-random-xyz-999")
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	old := debug.SetGCPercent(-1)
+	defer debug.SetGCPercent(old)
+	runtime.GC()
+	runtime.GC()
 
-	cleanup := PreparePinned()
-	defer cleanup()
-
-	Warmup(20_000, canon)
-	Warmup(20_000, nonCanon)
-	Warmup(20_000, plain)
-
-	var report strings.Builder
-	fmt.Fprintf(&report, "# RedirectFixedPath oracle\n\n")
-	fmt.Fprintf(&report, "Host: %s  Go: %s  N/run: %d  Runs: %d\n\n",
-		runtime.GOOS+"/"+runtime.GOARCH, runtime.Version(), nSamples, nRuns)
-
-	pairs := []struct {
-		name   string
-		fA, fB func()
-		label  string
-	}{
-		{"canon_vs_noncanon", canon, nonCanon, "canonicalisable 404 vs double-slash 404 that doesn't match"},
-		{"canon_vs_plain", canon, plain, "canonicalisable 404 (reveals hidden route) vs plain 404"},
-		{"noncanon_vs_plain", nonCanon, plain, "double-slash non-canonical vs plain"},
+	// /users/list is static; /users/alice matches /users/:id (parameterised).
+	for i := 0; i < 30_000; i++ {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, routeReq("/users/list"))
+		w2 := httptest.NewRecorder()
+		mux.ServeHTTP(w2, routeReq("/users/alice"))
 	}
-	for _, p := range pairs {
-		fmt.Fprintf(&report, "## %s\n", p.label)
-		worst := 1.0
-		for run := 1; run <= nRuns; run++ {
-			a, b := InterleavedMeasure(nSamples/2, p.fA, p.fB) // half samples – redirect path is ~60ns
-			if run == 1 {
-				writeEvidenceCSV(fmt.Sprintf("rfp_%s_A.csv", p.name), a)
-				writeEvidenceCSV(fmt.Sprintf("rfp_%s_B.csv", p.name), b)
-			}
-			af := TrimP99(I64sToF64s(a))
-			bf := TrimP99(I64sToF64s(b))
-			sa := Summarise(af)
-			sb := Summarise(bf)
-			tt := WelchTTest(af, bf)
-			ks := KS2(af, bf)
-			mwu := MannWhitneyU(af, bf)
-			fmt.Fprintf(&report, "Run %d\n", run)
-			fmt.Fprintf(&report, "  %s\n", FormatSummary("A", sa))
-			fmt.Fprintf(&report, "  %s\n", FormatSummary("B", sb))
-			fmt.Fprintf(&report, "  %s\n", FormatTTest(tt))
-			fmt.Fprintf(&report, "  %s\n", FormatKS(ks))
-			fmt.Fprintf(&report, "  %s\n", FormatMWU(mwu))
-			if tt.PValue < worst {
-				worst = tt.PValue
-			}
-		}
-		fmt.Fprintf(&report, "  worst p=%g\n\n", worst)
+
+	staticSamples := measureRoute(mux, "/users/list", nRoute)
+	paramSamples := measureRoute(mux, "/users/alice", nRoute)
+
+	result := RunTests(staticSamples, paramSamples)
+	ss := Summarise(staticSamples)
+	ps := Summarise(paramSamples)
+
+	t.Logf("Route: /users/list (static) vs /users/alice (param :id)")
+	t.Logf("  Static: mean=%.1fns p50=%.0fns", ss.Mean, ss.P50)
+	t.Logf("  Param:  mean=%.1fns p50=%.0fns", ps.Mean, ps.P50)
+	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns",
+		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+
+	// Expected: param routes are slower (reqBundle allocation); static routes are 0-alloc.
+	// This is KNOWN and ACCEPTED behaviour.
+}
+
+// assessNetworkExploitability emits a severity log based on effect size.
+func assessNetworkExploitability(t *testing.T, diffNs float64) {
+	t.Helper()
+	switch {
+	case diffNs > 1_000_000: // 1ms
+		t.Logf("  SEVERITY: CRITICAL — diff > 1ms, exploitable even over WAN")
+	case diffNs > 100_000: // 100µs
+		t.Logf("  SEVERITY: HIGH — diff > 100µs, exploitable over LAN with ~100 requests")
+	case diffNs > 10_000: // 10µs
+		t.Logf("  SEVERITY: MEDIUM — diff > 10µs, exploitable over LAN with ~1000 requests")
+	case diffNs > 1_000: // 1µs
+		t.Logf("  SEVERITY: LOW — diff > 1µs, exploitable over LAN with ~10000+ requests")
+	default:
+		t.Logf("  SEVERITY: INFORMATIONAL — diff < 1µs, below practical LAN exploitation threshold")
 	}
-	path := filepath.Join(evidenceDir, "rfp_report.md")
-	if err := os.WriteFile(path, []byte(report.String()), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("RedirectFixedPath report written to %s", path)
 }

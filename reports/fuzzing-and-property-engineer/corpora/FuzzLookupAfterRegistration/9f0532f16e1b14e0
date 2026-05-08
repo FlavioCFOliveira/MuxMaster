@@ -1,3 +1,0 @@
-go test fuzz v1
-string("/u/:id")
-string("//u/:u/:id/p")

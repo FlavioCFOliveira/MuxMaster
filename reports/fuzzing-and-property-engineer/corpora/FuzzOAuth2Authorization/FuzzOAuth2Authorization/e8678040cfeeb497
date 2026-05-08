@@ -1,0 +1,2 @@
+go test fuzz v1
+string("Bearer eyJhbGciOiJIUzI\x00\xffiJ9.eyJzdWIiOiJ4In0.sig")

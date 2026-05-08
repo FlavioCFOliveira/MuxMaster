@@ -42,3 +42,4 @@ examples/authn/authn
 examples/jwt/jwt
 examples/cache/cache
 examples/templates/templates-example
+reports/concurrency-security-auditor/evidence/2026-05-07/race_harness.txt

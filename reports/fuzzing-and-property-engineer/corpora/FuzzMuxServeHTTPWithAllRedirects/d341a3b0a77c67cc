@@ -1,3 +1,0 @@
-go test fuzz v1
-string("윌᳓\ue12b䗳왗댽鎣\ue5f4뚟䰙섮")
-string("0")

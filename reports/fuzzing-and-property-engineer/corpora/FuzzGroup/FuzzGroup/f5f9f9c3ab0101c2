@@ -1,0 +1,4 @@
+go test fuzz v1
+string("/")
+string("\x05\x05\t\x02\xff\t\x02\x1c\x10")
+string("0")

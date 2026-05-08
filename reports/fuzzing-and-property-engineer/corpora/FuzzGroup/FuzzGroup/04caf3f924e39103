@@ -1,0 +1,4 @@
+go test fuzz v1
+string("/ԛ")
+string("\x11܍̆\x0eۏǸ\xf4\x85\x13鳹\n\x16˰\x1c\x00\x7f\x7f")
+string("0")

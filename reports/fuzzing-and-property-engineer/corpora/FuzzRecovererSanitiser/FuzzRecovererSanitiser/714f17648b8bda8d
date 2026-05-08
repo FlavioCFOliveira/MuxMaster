@@ -1,0 +1,3 @@
+go test fuzz v1
+string("0")
+string("\xf0\x93\x93\U000134d3")

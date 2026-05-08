@@ -1,0 +1,34 @@
+# 2026/05/07 22:24:25.546209 [TestProp_HandleFastVsHandleIsolation] [rapid] draw middlewareCount: 1
+# 2026/05/07 22:24:25.546239 [TestProp_HandleFastVsHandleIsolation] PANIC in HandleFast/Handle isolation: muxmaster: HandleFast route registered on a Mux with stdlib middleware (Use) — stdlib middleware does not run on the FastHandler path. Use UseFast() for fast routes, or Handle() for stdlib-middleware-wrapped routes.
+# goroutine 55 [running]:
+# runtime/debug.Stack()
+# 	/usr/local/go/src/runtime/debug/stack.go:26 +0x5e
+# github.com/FlavioCFOliveira/MuxMaster/reports/fuzzing-and-property-engineer/harness.TestProp_HandleFastVsHandleIsolation.func1.1()
+# 	/data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/fuzzing-and-property-engineer/harness/properties_test.go:227 +0x3d
+# panic({0x9558c0?, 0xa60ce0?})
+# 	/usr/local/go/src/runtime/panic.go:860 +0x13a
+# github.com/FlavioCFOliveira/MuxMaster.(*Mux).HandleFast(0x3437e4016780, {0xa2090b, 0x3}, {0xa2170d, 0x5}, 0x3437e401ee90)
+# 	/data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go:442 +0x465
+# github.com/FlavioCFOliveira/MuxMaster.(*Mux).GETFast(...)
+# 	/data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go:471
+# github.com/FlavioCFOliveira/MuxMaster/reports/fuzzing-and-property-engineer/harness.TestProp_HandleFastVsHandleIsolation.func1(0x3437e40926e0)
+# 	/data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/fuzzing-and-property-engineer/harness/properties_test.go:254 +0x25e
+# pgregory.net/rapid.checkOnce(0x3437e40926e0, 0x3437e40b4b48?)
+# 	/home/flavio/go/pkg/mod/pgregory.net/rapid@v1.3.0/engine.go:458 +0x98
+# pgregory.net/rapid.captureTestOutput({0xa72c88, 0x3437e40b4b48}, 0xa5aa50, {0x3437e405c9e0, 0x3, 0x4})
+# 	/home/flavio/go/pkg/mod/pgregory.net/rapid@v1.3.0/engine.go:467 +0x145
+# pgregory.net/rapid.checkTB({0xa72c88, 0x3437e40b4b48}, {0x755?, 0x754?, 0xef2580?}, 0xa5aa50)
+# 	/home/flavio/go/pkg/mod/pgregory.net/rapid@v1.3.0/engine.go:292 +0x2b0
+# pgregory.net/rapid.Check({0xa72708, 0x3437e40b4b48}, 0xa5aa50)
+# 	/home/flavio/go/pkg/mod/pgregory.net/rapid@v1.3.0/engine.go:207 +0x93
+# github.com/FlavioCFOliveira/MuxMaster/reports/fuzzing-and-property-engineer/harness.TestProp_HandleFastVsHandleIsolation(0x3437e40b4b48?)
+# 	/data/dev/github.com/FlavioCFOliveira/MuxMaster/reports/fuzzing-and-property-engineer/harness/properties_test.go:224 +0x25
+# testing.tRunner(0x3437e40b4b48, 0xa5a6f8)
+# 	/usr/local/go/src/testing/testing.go:2036 +0xea
+# created by testing.(*T).Run in goroutine 1
+# 	/usr/local/go/src/testing/testing.go:2101 +0x4c5
+# 
+v0.4.8#1297152169007561497
+0xf9e4a1cbe1183
+0x1daca8740554b
+0x0
