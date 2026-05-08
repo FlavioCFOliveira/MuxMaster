@@ -1,0 +1,132 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v1.0.0)"
+        required: true
+
+permissions:
+  contents: write   # for creating GitHub Releases
+  id-token: write   # for cosign keyless signing
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.t.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - id: t
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            tag="${{ inputs.tag }}"
+          else
+            tag="${GITHUB_REF#refs/tags/}"
+          fi
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::tag $tag does not match SemVer vX.Y.Z[-prerelease]"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Test gate (must be green at tag)
+        run: go test -race -count=1 $(go list ./... | grep -v '/reports/')
+
+  sbom:
+    name: Generate SBOM (CycloneDX)
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ needs.validate.outputs.tag }}
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Install cyclonedx-gomod
+        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+
+      - name: Generate SBOM
+        run: cyclonedx-gomod mod -licenses -json -output sbom.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+          retention-days: 90
+
+  changelog:
+    name: Extract changelog excerpt
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      notes: ${{ steps.x.outputs.notes }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ needs.validate.outputs.tag }}
+
+      - id: x
+        run: |
+          tag="${{ needs.validate.outputs.tag }}"
+          # Strip the leading "v" — CHANGELOG headings are "## [X.Y.Z]"
+          ver="${tag#v}"
+          notes=$(awk -v v="$ver" '
+            /^## \[/ {
+              if (in_section) exit
+              if ($0 ~ "\\[" v "\\]") in_section=1
+              next
+            }
+            in_section { print }
+          ' CHANGELOG.md)
+          if [ -z "$notes" ]; then
+            notes="See [CHANGELOG.md](CHANGELOG.md)."
+          fi
+          {
+            echo 'notes<<EOF'
+            echo "$notes"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Create GitHub Release
+    needs: [validate, sbom, changelog]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ needs.validate.outputs.tag }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: ./artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          name: ${{ needs.validate.outputs.tag }}
+          body: ${{ needs.changelog.outputs.notes }}
+          prerelease: ${{ contains(needs.validate.outputs.tag, '-') }}
+          files: |
+            artifacts/sbom.json
+          fail_on_unmatched_files: true
