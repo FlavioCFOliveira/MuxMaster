@@ -9,6 +9,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -985,6 +986,178 @@ func TestSec_TSC_2026_0008_APIKey_HeaderSymmetry(t *testing.T) {
 	}
 	if got := rec.Header().Get("WWW-Authenticate"); !strings.Contains(got, "invalid_key") {
 		t.Errorf("miss path WWW-Authenticate = %q, want contains \"invalid_key\"", got)
+	}
+}
+
+// COV-2026-009 — Compress middleware edge cases.
+func TestCompress_SkipNonAcceptingClient(t *testing.T) {
+	mw := middleware.Compress(5)
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte(strings.Repeat("hello", 1000)))
+	}))
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	// no Accept-Encoding header
+	wrapped.ServeHTTP(rec, req)
+	if rec.Header().Get("Content-Encoding") != "" {
+		t.Errorf("Content-Encoding set for non-accepting client: %q", rec.Header().Get("Content-Encoding"))
+	}
+}
+
+func TestCompress_AlreadyCompressedMIME(t *testing.T) {
+	mw := middleware.Compress(5)
+	for _, ct := range []string{
+		"image/png",
+		"image/jpeg",
+		"image/gif",
+		"video/mp4",
+		"audio/mpeg",
+		"application/zip",
+		"application/gzip",
+	} {
+		t.Run(ct, func(t *testing.T) {
+			wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", ct)
+				_, _ = w.Write([]byte(strings.Repeat("\x00", 1024)))
+			}))
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("Accept-Encoding", "gzip")
+			wrapped.ServeHTTP(rec, req)
+			if rec.Header().Get("Content-Encoding") == "gzip" {
+				t.Errorf("compressed already-compressed type %q", ct)
+			}
+		})
+	}
+}
+
+func TestCompress_WriteHeaderPath(t *testing.T) {
+	mw := middleware.Compress(5)
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusAccepted) // exercise WriteHeader code path
+		_, _ = w.Write([]byte(strings.Repeat("compress me ", 200)))
+	}))
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	wrapped.ServeHTTP(rec, req)
+	if rec.Code != http.StatusAccepted {
+		t.Errorf("status=%d", rec.Code)
+	}
+}
+
+func TestCompress_SmallPayloadBelowThreshold(t *testing.T) {
+	mw := middleware.Compress(5)
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte("tiny"))
+	}))
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	wrapped.ServeHTTP(rec, req)
+	if rec.Header().Get("Content-Encoding") == "gzip" {
+		t.Error("tiny payload should not be compressed")
+	}
+}
+
+// COV-2026-010 — OAuth2 cache eviction paths (evictSoonestExpiryLocked/evictExpiredLocked).
+func TestOAuth2_CacheEviction(t *testing.T) {
+	// Build IDP server returning 5 distinct active tokens.
+	hits := 0
+	idp := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"active":true,"sub":"u","exp":` + fmt.Sprint(time.Now().Add(time.Hour).Unix()) + `}`))
+	}))
+	defer idp.Close()
+
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		Endpoint:              idp.URL,
+		AllowInsecureEndpoint: true,
+		MaxCacheSize:          3,
+		CacheTTL:              time.Hour,
+	})
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	// Fill cache with 5 distinct tokens; eviction must kick in.
+	for i := 0; i < 5; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer tok-%d", i))
+		rec := httptest.NewRecorder()
+		wrapped.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Errorf("token %d: status=%d", i, rec.Code)
+		}
+	}
+	if hits != 5 {
+		t.Errorf("idp hits=%d want 5", hits)
+	}
+}
+
+// COV-2026-011 — JWT alg paths (HS384/HS512/ECDSA).
+func TestJWT_HS384(t *testing.T) {
+	secret := []byte("k")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS384"},
+	})
+	hdr := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS384","typ":"JWT"}`))
+	pay := base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"u","exp":` + fmt.Sprint(time.Now().Add(time.Hour).Unix()) + `}`))
+	mac := hmac.New(sha512.New384, secret)
+	mac.Write([]byte(hdr + "." + pay))
+	tok := hdr + "." + pay + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+tok)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("HS384 valid: code=%d", rec.Code)
+	}
+}
+
+func TestJWT_HS512(t *testing.T) {
+	secret := []byte("k")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:     secret,
+		Algorithms: []string{"HS512"},
+	})
+	hdr := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"HS512","typ":"JWT"}`))
+	pay := base64.RawURLEncoding.EncodeToString([]byte(`{"sub":"u","exp":` + fmt.Sprint(time.Now().Add(time.Hour).Unix()) + `}`))
+	mac := hmac.New(sha512.New, secret)
+	mac.Write([]byte(hdr + "." + pay))
+	tok := hdr + "." + pay + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+tok)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("HS512 valid: code=%d", rec.Code)
+	}
+}
+
+func TestJWT_ClockSkew(t *testing.T) {
+	secret := []byte("k")
+	mw := middleware.JWTAuth(middleware.JWTOptions{
+		Secret:        secret,
+		Algorithms:    []string{"HS256"},
+		ClockSkew:     5 * time.Second,
+		RequireExpiry: true,
+	})
+	// exp 1s in the past — should still be valid with 5s skew
+	tok := makeHS256JWT(secret, map[string]any{"sub": "u", "exp": time.Now().Add(-1 * time.Second).Unix()})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+tok)
+	mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("ClockSkew: expected OK, got %d", rec.Code)
 	}
 }
 
