@@ -21,9 +21,9 @@ Groups allow you to organize routes that share a common URL prefix and/or a comm
 `Group` returns a `*Group` that shares the parent `*Mux` and prepends a path prefix to every route:
 
 ```go
-r := muxmaster.New()
+mux := muxmaster.New()
 
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.GET("/users", listUsers)      // → GET /api/v1/users
 api.POST("/users", createUser)    // → POST /api/v1/users
 api.GET("/users/:id", getUser)    // → GET /api/v1/users/:id
@@ -38,16 +38,16 @@ The group shares the same underlying tree as the parent router. Routes are regis
 Middleware applied to a group wraps only the routes of that group, after any mux-level middleware:
 
 ```go
-r := muxmaster.New()
-r.Use(middleware.Logger(os.Stdout)) // applied to every route
+mux := muxmaster.New()
+mux.Use(middleware.Logger(os.Stdout)) // applied to every route
 
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(requireAPIKey)              // applied only to /api/v1/* routes
 
 api.GET("/users", listUsers)
 // request path: Logger → requireAPIKey → listUsers
 
-r.GET("/health", health)
+mux.GET("/health", health)
 // request path: Logger → health (no requireAPIKey)
 ```
 
@@ -60,7 +60,7 @@ r.GET("/health", health)
 Groups can be nested to any depth. Each level adds its prefix and optionally its own middleware:
 
 ```go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(requireAPIKey)
 
 // Sub-group for admin endpoints
@@ -80,7 +80,7 @@ Each group maintains an independent copy of its middleware list, so adding middl
 `Route` creates a sub-group and calls a closure with it. This is equivalent to calling `Group` manually, but keeps related routes visually grouped in the source code:
 
 ```go
-r.Route("/api/v1", func(api *muxmaster.Group) {
+mux.Route("/api/v1", func(api *muxmaster.Group) {
     api.Use(requireAPIKey)
 
     api.GET("/users", listUsers)
@@ -97,7 +97,7 @@ r.Route("/api/v1", func(api *muxmaster.Group) {
 Groups can also call `Route` on themselves:
 
 ```go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Route("/reports", func(g *muxmaster.Group) {
     g.GET("/daily", dailyReport)
     g.GET("/weekly", weeklyReport)
@@ -111,7 +111,7 @@ api.Route("/reports", func(g *muxmaster.Group) {
 `With` returns a new group with additional middleware appended, without modifying the original group. It is useful for applying middleware to a single route:
 
 ```go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 
 // deleteUser is wrapped by both api's middleware and requireAdmin
 api.With(requireAdmin).DELETE("/users/:id", deleteUser)
@@ -136,7 +136,7 @@ v2.GET("/users", listUsersV2)
 v2.POST("/users", createUserV2)
 
 // Attach to the main router
-r.Mount("/v2", v2)
+mux.Mount("/v2", v2)
 // GET /v2/users → v2 sees GET /users
 ```
 
@@ -146,23 +146,23 @@ The mounted handler receives `r.URL.Path` with the prefix stripped, so a sub-rou
 
 ```go
 func main() {
-    r := muxmaster.New()
-    r.Use(middleware.Logger(os.Stdout))
-    r.Use(middleware.Recoverer)
+    mux := muxmaster.New()
+    mux.Use(middleware.Logger(os.Stdout))
+    mux.Use(middleware.Recoverer)
 
-    r.Mount("/api/v1", newV1Router())
-    r.Mount("/api/v2", newV2Router())
-    r.Mount("/admin",  newAdminRouter())
+    mux.Mount("/api/v1", newV1Router())
+    mux.Mount("/api/v2", newV2Router())
+    mux.Mount("/admin",  newAdminRouter())
 
-    log.Fatal(http.ListenAndServe(":8080", r))
+    log.Fatal(http.ListenAndServe(":8080", mux))
 }
 
 func newV1Router() http.Handler {
-    r := muxmaster.New()
-    r.Use(requireAPIKey)
-    r.GET("/users", listUsers)
-    r.POST("/users", createUser)
-    return r
+    mux := muxmaster.New()
+    mux.Use(requireAPIKey)
+    mux.GET("/users", listUsers)
+    mux.POST("/users", createUser)
+    return mux
 }
 ```
 
@@ -173,7 +173,7 @@ func newV1Router() http.Handler {
 `Mount` is also available on `*Group`, which combines the group's prefix with the mount prefix:
 
 ```go
-api := r.Group("/api")
+api := mux.Group("/api")
 v1 := muxmaster.New()
 v1.GET("/users", listUsers)
 
@@ -188,7 +188,7 @@ api.Mount("/v1", v1)
 `ServeFiles` on a group prepends the group prefix:
 
 ```go
-assets := r.Group("/static")
+assets := mux.Group("/static")
 assets.ServeFiles("/*filepath", http.Dir("./public"))
 // GET /static/css/main.css → ./public/css/main.css
 ```
@@ -200,8 +200,8 @@ assets.ServeFiles("/*filepath", http.Dir("./public"))
 ### API versioning
 
 ```go
-v1 := r.Group("/api/v1")
-v2 := r.Group("/api/v2")
+v1 := mux.Group("/api/v1")
+v2 := mux.Group("/api/v2")
 
 v1.GET("/users", listUsersV1)
 v2.GET("/users", listUsersV2)
@@ -212,7 +212,7 @@ v2.GET("/users", listUsersV2)
 Group by feature domain rather than by HTTP method:
 
 ```go
-r.Route("/api/v1", func(api *muxmaster.Group) {
+mux.Route("/api/v1", func(api *muxmaster.Group) {
     api.Use(requireAPIKey)
 
     // Users domain
@@ -238,14 +238,14 @@ r.Route("/api/v1", func(api *muxmaster.Group) {
 Mount independent services behind a reverse proxy router:
 
 ```go
-r := muxmaster.New()
-r.Use(middleware.RealIP)
-r.Use(middleware.RequestID)
+mux := muxmaster.New()
+mux.Use(middleware.RealIP)
+mux.Use(middleware.RequestID)
 
-r.Mount("/auth",    authService)
-r.Mount("/catalog", catalogService)
-r.Mount("/orders",  orderService)
-r.Mount("/payment", paymentService)
+mux.Mount("/auth",    authService)
+mux.Mount("/catalog", catalogService)
+mux.Mount("/orders",  orderService)
+mux.Mount("/payment", paymentService)
 ```
 
 ---

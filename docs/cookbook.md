@@ -25,42 +25,42 @@ This page collects ready-to-use patterns for common production scenarios.
 
 ```go
 func main() {
-    r := muxmaster.New()
-    r.Use(middleware.Logger(os.Stdout))
-    r.Use(middleware.Recoverer)
-    r.Use(middleware.RequestID)
+    mux := muxmaster.New()
+    mux.Use(middleware.Logger(os.Stdout))
+    mux.Use(middleware.Recoverer)
+    mux.Use(middleware.RequestID)
 
-    r.Mount("/api/v1", v1Router())
-    r.Mount("/api/v2", v2Router())
+    mux.Mount("/api/v1", v1Router())
+    mux.Mount("/api/v2", v2Router())
 
-    r.GET("/health", func(w http.ResponseWriter, r *http.Request) {
+    mux.GET("/health", func(w http.ResponseWriter, r *http.Request) {
         muxmaster.JSON(w, http.StatusOK, map[string]string{"status": "ok"})
     })
 
-    log.Fatal(http.ListenAndServe(":8080", r))
+    log.Fatal(http.ListenAndServe(":8080", mux))
 }
 
 func v1Router() http.Handler {
-    r := muxmaster.New()
-    r.Use(requireAPIKey)
+    mux := muxmaster.New()
+    mux.Use(requireAPIKey)
 
-    r.GET("/users", listUsersV1)
-    r.POST("/users", createUserV1)
-    r.GET("/users/:id", getUserV1)
+    mux.GET("/users", listUsersV1)
+    mux.POST("/users", createUserV1)
+    mux.GET("/users/:id", getUserV1)
 
-    return r
+    return mux
 }
 
 func v2Router() http.Handler {
-    r := muxmaster.New()
-    r.Use(requireAPIKey)
+    mux := muxmaster.New()
+    mux.Use(requireAPIKey)
 
-    r.GET("/users", listUsersV2) // new response shape
-    r.POST("/users", createUserV2)
-    r.GET("/users/:id", getUserV2)
-    r.GET("/users/:id/posts", getUserPostsV2) // new in v2
+    mux.GET("/users", listUsersV2) // new response shape
+    mux.POST("/users", createUserV2)
+    mux.GET("/users/:id", getUserV2)
+    mux.GET("/users/:id/posts", getUserPostsV2) // new in v2
 
-    return r
+    return mux
 }
 ```
 
@@ -75,9 +75,9 @@ type APIError struct {
 }
 
 func setupRouter() *muxmaster.Mux {
-    r := muxmaster.New()
+    mux := muxmaster.New()
 
-    r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+    mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
         code := http.StatusInternalServerError
         msg  := "internal server error"
 
@@ -87,8 +87,8 @@ func setupRouter() *muxmaster.Mux {
             msg  = err.Error()
         } else {
             slog.Error("unhandled error",
-                "method", req.Method,
-                "path",   req.URL.Path,
+                "method", r.Method,
+                "path",   r.URL.Path,
                 "error",  err,
             )
         }
@@ -96,19 +96,19 @@ func setupRouter() *muxmaster.Mux {
         muxmaster.JSON(w, code, APIError{Code: code, Message: msg})
     }
 
-    r.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    mux.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         muxmaster.JSON(w, http.StatusNotFound, APIError{
             Code: http.StatusNotFound, Message: "not found",
         })
     })
 
-    r.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    mux.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         muxmaster.JSON(w, http.StatusMethodNotAllowed, APIError{
             Code: http.StatusMethodNotAllowed, Message: "method not allowed",
         })
     })
 
-    return r
+    return mux
 }
 ```
 
@@ -157,7 +157,7 @@ func requireRole(role string) func(http.Handler) http.Handler {
 }
 
 // Usage
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(requireAuth)
 
 api.GET("/profile", getProfile)                              // any authenticated user
@@ -227,7 +227,7 @@ func (req *CreateUserRequest) Validate() error {
     return nil
 }
 
-r.POSTE("/users", func(w http.ResponseWriter, r *http.Request) error {
+mux.POSTE("/users", func(w http.ResponseWriter, r *http.Request) error {
     var req CreateUserRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
         return muxmaster.Error(http.StatusBadRequest, err)
@@ -265,7 +265,7 @@ func parsePage(r *http.Request) PageRequest {
     return PageRequest{Page: page, Limit: limit}
 }
 
-r.GET("/users", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/users", func(w http.ResponseWriter, r *http.Request) {
     pg := parsePage(r)
     users, total, err := db.ListUsers(pg.Page, pg.Limit)
     if err != nil {
@@ -287,12 +287,12 @@ r.GET("/users", func(w http.ResponseWriter, r *http.Request) {
 
 ```go
 func main() {
-    r := muxmaster.New()
+    mux := muxmaster.New()
     // ... register routes ...
 
     server := &http.Server{
         Addr:         ":8080",
-        Handler:      r,
+        Handler:      mux,
         ReadTimeout:  5 * time.Second,
         WriteTimeout: 10 * time.Second,
         IdleTimeout:  60 * time.Second,
@@ -326,11 +326,11 @@ func main() {
 ## Health and readiness endpoints
 
 ```go
-r.GET("/health", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/health", func(w http.ResponseWriter, r *http.Request) {
     muxmaster.JSON(w, http.StatusOK, map[string]string{"status": "ok"})
 })
 
-r.GET("/ready", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/ready", func(w http.ResponseWriter, r *http.Request) {
     if err := db.Ping(); err != nil {
         muxmaster.JSON(w, http.StatusServiceUnavailable, map[string]string{
             "status": "unavailable",
@@ -378,7 +378,7 @@ func ipRateLimiter(rps float64, burst int) func(http.Handler) http.Handler {
     }
 }
 
-r.Use(ipRateLimiter(10, 30)) // 10 req/s, burst of 30
+mux.Use(ipRateLimiter(10, 30)) // 10 req/s, burst of 30
 ```
 
 ---
@@ -386,7 +386,7 @@ r.Use(ipRateLimiter(10, 30)) // 10 req/s, burst of 30
 ## CORS for a React SPA
 
 ```go
-r.Use(middleware.CORS(middleware.CORSOptions{
+mux.Use(middleware.CORS(middleware.CORSOptions{
     AllowedOrigins: []string{
         "http://localhost:3000",         // local development
         "https://myapp.example.com",     // production
@@ -412,14 +412,14 @@ import "embed"
 var frontendFS embed.FS
 
 func main() {
-    r := muxmaster.New()
+    mux := muxmaster.New()
 
     // API routes
-    api := r.Group("/api")
+    api := mux.Group("/api")
     api.GET("/users", listUsers)
 
     // Frontend — serve index.html for all unmatched routes (SPA fallback)
-    r.GET("/*filepath", func(w http.ResponseWriter, r *http.Request) {
+    mux.GET("/*filepath", func(w http.ResponseWriter, r *http.Request) {
         path := muxmaster.PathParam(r, "filepath")
         f, err := frontendFS.Open("frontend/dist" + path)
         if err != nil {
@@ -431,7 +431,7 @@ func main() {
         http.ServeFileFS(w, r, frontendFS, "frontend/dist"+path)
     })
 
-    log.Fatal(http.ListenAndServe(":8080", r))
+    log.Fatal(http.ListenAndServe(":8080", mux))
 }
 ```
 
@@ -465,7 +465,7 @@ func (r *statusRecorder) WriteHeader(code int) {
     r.ResponseWriter.WriteHeader(code)
 }
 
-r.Use(structuredLogger)
+mux.Use(structuredLogger)
 ```
 
 ---
@@ -482,12 +482,12 @@ import (
 )
 
 func TestGetUser(t *testing.T) {
-    r := muxmaster.New()
-    r.GET("/users/:id", getUser)
+    mux := muxmaster.New()
+    mux.GET("/users/:id", getUser)
 
     req  := httptest.NewRequest("GET", "/users/42", nil)
     rec  := httptest.NewRecorder()
-    r.ServeHTTP(rec, req)
+    mux.ServeHTTP(rec, req)
 
     if rec.Code != http.StatusOK {
         t.Fatalf("expected 200, got %d", rec.Code)
@@ -499,8 +499,8 @@ Testing with a custom error handler:
 
 ```go
 func TestCreateUserValidation(t *testing.T) {
-    r := muxmaster.New()
-    r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+    mux := muxmaster.New()
+    mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
         var he muxmaster.HTTPError
         if errors.As(err, &he) {
             w.WriteHeader(he.StatusCode())
@@ -508,13 +508,13 @@ func TestCreateUserValidation(t *testing.T) {
         }
         w.WriteHeader(http.StatusInternalServerError)
     }
-    r.POSTE("/users", createUser)
+    mux.POSTE("/users", createUser)
 
     body := strings.NewReader(`{}`) // missing required fields
     req  := httptest.NewRequest("POST", "/users", body)
     req.Header.Set("Content-Type", "application/json")
     rec  := httptest.NewRecorder()
-    r.ServeHTTP(rec, req)
+    mux.ServeHTTP(rec, req)
 
     if rec.Code != http.StatusUnprocessableEntity {
         t.Fatalf("expected 422, got %d", rec.Code)
@@ -561,7 +561,7 @@ func RegisterRoutes(g *muxmaster.Group, svc *Service) {
 }
 
 // main.go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(middleware.RequireAuth)
 
 user.RegisterRoutes(api, userService)

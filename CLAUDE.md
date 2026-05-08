@@ -73,18 +73,18 @@ A high-performance HTTP router / HTTP muxer for Go, implemented **in pure Go** (
 ## Public API
 
 ```go
-r := muxmaster.New()
+mux := muxmaster.New()
 
 // Middleware (must be registered BEFORE the routes it should wrap)
-r.Use(logger, auth)
+mux.Use(logger, auth)
 
 // Routes
-r.GET("/users", listUsers)
-r.GET("/users/:id", getUser)       // path parameter
-r.GET("/static/*filepath", files)  // catch-all
+mux.GET("/users", listUsers)
+mux.GET("/users/:id", getUser)       // path parameter
+mux.GET("/static/*filepath", files)  // catch-all
 
 // Groups
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(apiKeyCheck)
 api.POST("/items", createItem)
 
@@ -96,17 +96,17 @@ id := muxmaster.PathParam(r, "id")
 ps := muxmaster.ParamsFromContext(r.Context())
 
 // Custom handlers
-r.NotFound = myHandler
-r.MethodNotAllowed = myHandler
-r.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) { ... }
+mux.NotFound = myHandler
+mux.MethodNotAllowed = myHandler
+mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) { ... }
 
 // Options and their defaults
-r.RedirectTrailingSlash  = true   // default: true
-r.RedirectFixedPath      = false  // default: false (security — canonicalisation can bypass middleware)
-r.HandleMethodNotAllowed = true   // default: true
-r.HandleOPTIONS          = true   // default: true
+mux.RedirectTrailingSlash  = true   // default: true
+mux.RedirectFixedPath      = false  // default: false (security — canonicalisation can bypass middleware)
+mux.HandleMethodNotAllowed = true   // default: true
+mux.HandleOPTIONS          = true   // default: true
 
-http.ListenAndServe(":8080", r)
+http.ListenAndServe(":8080", mux)
 ```
 
 ## Key design decisions
@@ -117,9 +117,9 @@ http.ListenAndServe(":8080", r)
 ### Pre vs Use × Handle vs HandleFast — the policy matrix (CDX-S8-003)
 | middleware family | wraps `Handle`? | wraps `HandleFast`? |
 |---|---|---|
-| `r.Pre(...)` | YES | YES |
-| `r.Use(...)` (stdlib `http.Handler`) | YES | NO — panics at `HandleFast` registration (CSA-2026-0054) |
-| `r.UseFast(...)` (`FastMiddleware`) | NO | YES |
+| `mux.Pre(...)` | YES | YES |
+| `mux.Use(...)` (stdlib `http.Handler`) | YES | NO — panics at `HandleFast` registration (CSA-2026-0054) |
+| `mux.UseFast(...)` (`FastMiddleware`) | NO | YES |
 
 `Pre` runs OUTSIDE the dispatch (in `ServeHTTP` before tree lookup) and is the only middleware family that uniformly covers BOTH route types. Auth gates that must apply to fast routes MUST go through `Pre`, not `Use`. See SECURITY.md "Pre vs Use security boundary" / CDX-S8-003.
 

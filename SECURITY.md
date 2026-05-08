@@ -123,7 +123,7 @@ on your server:
 
 ```go
 srv := &http.Server{
-    Handler:           r,
+    Handler:           mux,
     ReadHeaderTimeout: 30 * time.Second,
     ReadTimeout:       60 * time.Second,
     WriteTimeout:      60 * time.Second,
@@ -270,7 +270,7 @@ access controls. Always pass the proxy CIDR list explicitly:
 
 ```go
 proxyCIDR := netip.MustParsePrefix("10.0.0.0/8")
-r.Use(middleware.RealIP(&proxyCIDR))
+mux.Use(middleware.RealIP(&proxyCIDR))
 ```
 
 A `slog.Warn` is emitted at construction time when `RealIP()` is called
@@ -286,8 +286,8 @@ register `RealIP` first so `r.RemoteAddr` reflects the true client IP
 before throttling decisions are made:
 
 ```go
-r.Use(middleware.RealIP(&proxyCIDR))           // first
-r.Use(middleware.ThrottlePerIP(50, ts, nil))   // then
+mux.Use(middleware.RealIP(&proxyCIDR))           // first
+mux.Use(middleware.ThrottlePerIP(50, ts, nil))   // then
 ```
 
 A `slog.Warn` is emitted at construction time when `ThrottlePerIP` is
@@ -352,7 +352,7 @@ at construction time.
 with `middleware.ThrottlePerIP` to mitigate online brute-force:
 
 ```go
-r.Use(
+mux.Use(
     middleware.ThrottlePerIP(10, time.Second, nil),
     middleware.BasicAuth("realm", creds),
 )
@@ -441,10 +441,10 @@ is exploitable. The recommended pattern is:
 // Hardened token-handling stack — see CDX-S8-001 / SECURITY.md
 //   "Composite token-handling stack".
 trusted, _ := netip.ParsePrefix("10.0.0.0/8")
-r.Pre(
+mux.Pre(
     middleware.RealIP(&trusted),                  // (3) rightmost XFF
 )
-r.Use(
+mux.Use(
     middleware.ThrottlePerIP(100, 5*time.Second, nil), // (4) capped per-IP
     middleware.JWTAuth(middleware.JWTOptions{
         Secret:        secret,

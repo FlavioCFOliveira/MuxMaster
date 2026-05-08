@@ -33,10 +33,10 @@ logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 }))
 slog.SetDefault(logger)
 
-r := muxmaster.New()
-r.Pre(middleware.RequestID())              // attach X-Request-Id first
-r.Use(middleware.Logger(os.Stdout))         // logs method, path, status, duration
-r.Use(middleware.RecovererWithLogger(logger))
+mux := muxmaster.New()
+mux.Pre(middleware.RequestID())              // attach X-Request-Id first
+mux.Use(middleware.Logger(os.Stdout))         // logs method, path, status, duration
+mux.Use(middleware.RecovererWithLogger(logger))
 ```
 
 Each Logger event includes:
@@ -62,13 +62,13 @@ composes cleanly.
 response, and stores it in the request context.
 
 ```go
-r.Pre(middleware.RequestID())
+mux.Pre(middleware.RequestID())
 
-r.GET("/users/:id", func(w http.ResponseWriter, req *http.Request) {
-    rid, _ := middleware.GetRequestID(req.Context())
-    slog.InfoContext(req.Context(), "user lookup",
+mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+    rid, _ := middleware.GetRequestID(r.Context())
+    slog.InfoContext(r.Context(), "user lookup",
         "request_id", rid,
-        "user_id", muxmaster.PathParam(req, "id"),
+        "user_id", muxmaster.PathParam(r, "id"),
     )
 })
 ```
@@ -137,8 +137,8 @@ route pattern, which is only available inside the dispatch frame). Then
 expose `/metrics`:
 
 ```go
-r.Use(Metrics)
-r.GET("/metrics", promhttp.Handler().ServeHTTP)
+mux.Use(Metrics)
+mux.GET("/metrics", promhttp.Handler().ServeHTTP)
 ```
 
 `muxmaster.RoutePattern(r)` returns the matched pattern (e.g.
@@ -169,7 +169,7 @@ func Tracing(tracer trace.Tracer, prop propagation.TextMapPropagator) func(http.
     }
 }
 
-r.Pre(Tracing(otel.Tracer("api"), otel.GetTextMapPropagator()))
+mux.Pre(Tracing(otel.Tracer("api"), otel.GetTextMapPropagator()))
 ```
 
 Operator notes:
@@ -188,12 +188,12 @@ Add a couple of fast routes that bypass middleware:
 
 ```go
 // /healthz returns 200 unconditionally — used by k8s liveness probes.
-r.GETFast("/healthz", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {
+mux.GETFast("/healthz", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {
     w.WriteHeader(http.StatusOK)
 })
 
 // /readyz returns 503 until startup is complete (e.g. DB pool warm).
-r.GETFast("/readyz", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {
+mux.GETFast("/readyz", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {
     if !ready.Load() {
         w.WriteHeader(http.StatusServiceUnavailable)
         return
@@ -245,19 +245,19 @@ debug.GET("/debug/routes", func(w http.ResponseWriter, _ *http.Request) {
 A production-ready stack typically looks like this:
 
 ```go
-r := muxmaster.New()
+mux := muxmaster.New()
 
 // Pre — runs OUTSIDE dispatch; covers Handle and HandleFast routes.
-r.Pre(Tracing(tracer, propagator))               // span boundary
-r.Pre(middleware.RequestID())                    // X-Request-Id
-r.Pre(middleware.RecovererWithLogger(logger))    // panic safety net
-r.Pre(middleware.RealIP(&trustedProxyCIDR))      // before throttle
+mux.Pre(Tracing(tracer, propagator))               // span boundary
+mux.Pre(middleware.RequestID())                    // X-Request-Id
+mux.Pre(middleware.RecovererWithLogger(logger))    // panic safety net
+mux.Pre(middleware.RealIP(&trustedProxyCIDR))      // before throttle
 
 // Use — runs INSIDE dispatch on stdlib (Handle) routes.
-r.Use(middleware.Timeout(5 * time.Second))
-r.Use(middleware.ThrottlePerIP(100, time.Second, nil))
-r.Use(middleware.Logger(os.Stdout))
-r.Use(Metrics)                                   // your custom Prometheus mw
+mux.Use(middleware.Timeout(5 * time.Second))
+mux.Use(middleware.ThrottlePerIP(100, time.Second, nil))
+mux.Use(middleware.Logger(os.Stdout))
+mux.Use(Metrics)                                   // your custom Prometheus mw
 ```
 
 See [`examples/graceful-shutdown`](../examples/graceful-shutdown/) for a

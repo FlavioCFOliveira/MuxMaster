@@ -87,7 +87,7 @@ type HTTPError interface {
 
 ```go
 // Example
-r.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
     var he muxmaster.HTTPError
     if errors.As(err, &he) {
         http.Error(w, he.Error(), he.StatusCode())

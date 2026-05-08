@@ -21,16 +21,16 @@ MuxMaster dispatches HTTP requests using a radix tree (compressed prefix trie). 
 The most common way to register a route is with one of the HTTP method helpers:
 
 ```go
-r := muxmaster.New()
-r.GET("/users", listUsers)
-r.POST("/users", createUser)
-r.PUT("/users/:id", updateUser)
-r.PATCH("/users/:id", patchUser)
-r.DELETE("/users/:id", deleteUser)
-r.HEAD("/users/:id", headUser)
-r.OPTIONS("/users", optionsUsers)
-r.CONNECT("/tunnel", tunnel)
-r.TRACE("/trace", trace)
+mux := muxmaster.New()
+mux.GET("/users", listUsers)
+mux.POST("/users", createUser)
+mux.PUT("/users/:id", updateUser)
+mux.PATCH("/users/:id", patchUser)
+mux.DELETE("/users/:id", deleteUser)
+mux.HEAD("/users/:id", headUser)
+mux.OPTIONS("/users", optionsUsers)
+mux.CONNECT("/tunnel", tunnel)
+mux.TRACE("/trace", trace)
 ```
 
 All helpers accept a `http.HandlerFunc`. To pass an `http.Handler` directly, use `Handle`.
@@ -105,9 +105,9 @@ When multiple patterns could match the same URL, MuxMaster resolves the conflict
 Example:
 
 ```go
-r.GET("/users/me",   getMe)       // 1. static → /users/me
-r.GET("/users/:id",  getUser)     // 2. param  → /users/42
-r.GET("/users/*all", catchAll)    // 3. catch  → /users/a/b/c
+mux.GET("/users/me",   getMe)       // 1. static → /users/me
+mux.GET("/users/:id",  getUser)     // 2. param  → /users/42
+mux.GET("/users/*all", catchAll)    // 3. catch  → /users/a/b/c
 ```
 
 Registering two patterns that are ambiguous (e.g. two different named parameters at the same position) panics at startup to surface the conflict early.
@@ -118,17 +118,17 @@ Registering two patterns that are ambiguous (e.g. two different named parameters
 
 Each standard HTTP method has a direct helper on `*Mux` and on `*Group`:
 
-| Method    | Mux helper   | Group helper     |
-|-----------|--------------|------------------|
-| GET       | `r.GET`      | `g.GET`          |
-| HEAD      | `r.HEAD`     | `g.HEAD`         |
-| POST      | `r.POST`     | `g.POST`         |
-| PUT       | `r.PUT`      | `g.PUT`          |
-| PATCH     | `r.PATCH`    | `g.PATCH`        |
-| DELETE    | `r.DELETE`   | `g.DELETE`       |
-| OPTIONS   | `r.OPTIONS`  | `g.OPTIONS`      |
-| CONNECT   | `r.CONNECT`  | `g.CONNECT`      |
-| TRACE     | `r.TRACE`    | `g.TRACE`        |
+| Method    | Mux helper    | Group helper     |
+|-----------|---------------|------------------|
+| GET       | `mux.GET`     | `g.GET`          |
+| HEAD      | `mux.HEAD`    | `g.HEAD`         |
+| POST      | `mux.POST`    | `g.POST`         |
+| PUT       | `mux.PUT`     | `g.PUT`          |
+| PATCH     | `mux.PATCH`   | `g.PATCH`        |
+| DELETE    | `mux.DELETE`  | `g.DELETE`       |
+| OPTIONS   | `mux.OPTIONS` | `g.OPTIONS`      |
+| CONNECT   | `mux.CONNECT` | `g.CONNECT`      |
+| TRACE     | `mux.TRACE`   | `g.TRACE`        |
 
 Each helper also has an error-returning variant (`GETE`, `POSTE`, `PUTE`, etc.) — see [Error Handling](error-handling.md).
 
@@ -141,7 +141,7 @@ Each helper also has an error-returning variant (`GETE`, `POSTE`, `PUTE`, etc.) 
 `ANY` registers the same handler for all standard HTTP methods (GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE):
 
 ```go
-r.ANY("/health", func(w http.ResponseWriter, r *http.Request) {
+mux.ANY("/health", func(w http.ResponseWriter, r *http.Request) {
     muxmaster.Text(w, http.StatusOK, "ok")
 })
 ```
@@ -151,8 +151,8 @@ r.ANY("/health", func(w http.ResponseWriter, r *http.Request) {
 `Match` registers the handler for a specific subset of methods:
 
 ```go
-r.Match([]string{"GET", "HEAD"}, "/ping", pingHandler)
-r.Match([]string{"POST", "PUT"}, "/upload", uploadHandler)
+mux.Match([]string{"GET", "HEAD"}, "/ping", pingHandler)
+mux.Match([]string{"POST", "PUT"}, "/upload", uploadHandler)
 ```
 
 ---
@@ -162,14 +162,14 @@ r.Match([]string{"POST", "PUT"}, "/upload", uploadHandler)
 `Handle` and `HandleFunc` accept an explicit method string, which allows custom HTTP methods beyond the nine standard ones:
 
 ```go
-r.Handle("PURGE", "/cache/*key", purgeCache)
-r.HandleFunc("REPORT", "/dav/*path", davReport)
+mux.Handle("PURGE", "/cache/*key", purgeCache)
+mux.HandleFunc("REPORT", "/dav/*path", davReport)
 ```
 
 `HandleE` is the error-returning equivalent:
 
 ```go
-r.HandleE("PURGE", "/cache/:key", func(w http.ResponseWriter, r *http.Request) error {
+mux.HandleE("PURGE", "/cache/:key", func(w http.ResponseWriter, r *http.Request) error {
     key := muxmaster.PathParam(r, "key")
     return cache.Invalidate(key)
 })
@@ -184,12 +184,12 @@ MuxMaster wraps middleware at **registration time**, not at request time. This m
 The practical consequence is that `Use` must be called **before** the routes it should wrap:
 
 ```go
-r := muxmaster.New()
+mux := muxmaster.New()
 
-r.GET("/public", publicHandler)  // NOT wrapped by auth
+mux.GET("/public", publicHandler)  // NOT wrapped by auth
 
-r.Use(requireAuth)
-r.GET("/private", privateHandler) // wrapped by auth
+mux.Use(requireAuth)
+mux.GET("/private", privateHandler) // wrapped by auth
 ```
 
 This design eliminates per-request middleware iteration. Combined with the radix tree and the tiered request bundle described in [Performance](performance.md), it allows static routes to dispatch with zero allocations and parameterised routes with a single fused allocation.
@@ -208,7 +208,7 @@ The redirect uses the code set in `RedirectCode` (default 301).
 To disable this and return 404 instead:
 
 ```go
-r.RedirectTrailingSlash = false
+mux.RedirectTrailingSlash = false
 ```
 
 ---
@@ -224,7 +224,7 @@ r.RedirectTrailingSlash = false
 To use pre-routing path cleaning instead of a redirect (useful when you want the clean path without a round-trip), add the middleware:
 
 ```go
-r.Pre(middleware.CleanPath)
+mux.Pre(middleware.CleanPath)
 ```
 
 `CleanPath` modifies the request in-place before the router sees it, so no redirect is issued.

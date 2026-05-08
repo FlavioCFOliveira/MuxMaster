@@ -53,7 +53,7 @@ There are four middleware scopes. Each scope defines which requests a middleware
 
 ```go
 // Example
-r.With(authMiddleware, rateLimiter).GET("/admin", adminHandler)
+mux.With(authMiddleware, rateLimiter).GET("/admin", adminHandler)
 ```
 
 ---

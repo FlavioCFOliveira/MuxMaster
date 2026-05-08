@@ -49,7 +49,7 @@ This file does not cover the middleware application rules for groups (see [middl
 
 ```go
 // Example
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(apiKeyCheck)
 
 admin := api.Group("/admin")   // prefix: /api/v1/admin
@@ -70,14 +70,14 @@ admin.DELETE("/users/:id", deleteUser)
 
 ```go
 // Example
-r.Route("/api/v1", func(r *muxmaster.Group) {
-    r.Use(apiKeyCheck)
-    r.GET("/users", listUsers)
-    r.POST("/users", createUser)
+mux.Route("/api/v1", func(api *muxmaster.Group) {
+    api.Use(apiKeyCheck)
+    api.GET("/users", listUsers)
+    api.POST("/users", createUser)
 
-    r.Route("/admin", func(r *muxmaster.Group) {
-        r.Use(adminOnly)
-        r.DELETE("/users/:id", deleteUser)
+    api.Route("/admin", func(admin *muxmaster.Group) {
+        admin.Use(adminOnly)
+        admin.DELETE("/users/:id", deleteUser)
     })
 })
 ```
@@ -99,6 +99,6 @@ r.Route("/api/v1", func(r *muxmaster.Group) {
 
 ```go
 // Example
-r.Mount("/legacy", legacyRouter)
+mux.Mount("/legacy", legacyRouter)
 // A request to /legacy/users is dispatched to legacyRouter with r.URL.Path = /users
 ```

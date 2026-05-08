@@ -32,12 +32,12 @@ r.HandleFunc("/users/{id}", deleteUser).Methods("DELETE")
 
 ```go
 // MuxMaster
-r := muxmaster.New()
-r.GET("/users", listUsers)
-r.POST("/users", createUser)
-r.GET("/users/:id", getUser)
-r.PUT("/users/:id", updateUser)
-r.DELETE("/users/:id", deleteUser)
+mux := muxmaster.New()
+mux.GET("/users", listUsers)
+mux.POST("/users", createUser)
+mux.GET("/users/:id", getUser)
+mux.PUT("/users/:id", updateUser)
+mux.DELETE("/users/:id", deleteUser)
 ```
 
 ### Path parameters
@@ -63,7 +63,7 @@ gorilla/mux regex syntax and MuxMaster syntax differ slightly:
 r.HandleFunc("/users/{id:[0-9]+}", getUser)
 
 // MuxMaster — same syntax, compatible
-r.GET("/users/{id:[0-9]+}", getUser)
+mux.GET("/users/{id:[0-9]+}", getUser)
 ```
 
 ### Subrouters
@@ -77,7 +77,7 @@ api.HandleFunc("/users", listUsers).Methods("GET")
 
 ```go
 // MuxMaster
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(requireAPIKey)
 api.GET("/users", listUsers)
 ```
@@ -91,7 +91,7 @@ r.Use(loggingMiddleware)
 
 ```go
 // MuxMaster — identical
-r.Use(loggingMiddleware)
+mux.Use(loggingMiddleware)
 ```
 
 ### Starting the server
@@ -101,7 +101,7 @@ r.Use(loggingMiddleware)
 http.ListenAndServe(":8080", r)
 
 // MuxMaster — identical
-http.ListenAndServe(":8080", r)
+http.ListenAndServe(":8080", mux)
 ```
 
 ---
@@ -124,12 +124,12 @@ r.Delete("/users/{id}", deleteUser)
 
 ```go
 // MuxMaster — lowercase → uppercase method names
-r := muxmaster.New()
-r.GET("/users", listUsers)
-r.POST("/users", createUser)
-r.GET("/users/:id", getUser)      // chi uses {id}, MuxMaster uses :id
-r.PUT("/users/:id", updateUser)
-r.DELETE("/users/:id", deleteUser)
+mux := muxmaster.New()
+mux.GET("/users", listUsers)
+mux.POST("/users", createUser)
+mux.GET("/users/:id", getUser)      // chi uses {id}, MuxMaster uses :id
+mux.PUT("/users/:id", updateUser)
+mux.DELETE("/users/:id", deleteUser)
 ```
 
 chi uses `{param}` syntax; MuxMaster uses `:param` syntax. Regex constraints use the same `{param:regexp}` syntax in both.
@@ -159,7 +159,7 @@ r.Route("/api/v1", func(r chi.Router) {
 
 ```go
 // MuxMaster — nearly identical
-r.Route("/api/v1", func(g *muxmaster.Group) {
+mux.Route("/api/v1", func(g *muxmaster.Group) {
     g.Use(requireAPIKey)
     g.GET("/users", listUsers)
     g.POST("/users", createUser)
@@ -175,7 +175,7 @@ r.With(requireAdmin).Delete("/users/{id}", deleteUser)
 
 ```go
 // MuxMaster — identical
-r.With(requireAdmin).DELETE("/users/:id", deleteUser)
+mux.With(requireAdmin).DELETE("/users/:id", deleteUser)
 ```
 
 ### Mounting sub-routers
@@ -187,7 +187,7 @@ r.Mount("/admin", adminRouter())
 
 ```go
 // MuxMaster — identical
-r.Mount("/admin", adminRouter())
+mux.Mount("/admin", adminRouter())
 ```
 
 ### chi Middleware
@@ -197,8 +197,8 @@ chi's `middleware` package uses the same `func(http.Handler) http.Handler` signa
 ```go
 import chimiddleware "github.com/go-chi/chi/v5/middleware"
 
-r.Use(chimiddleware.Logger)
-r.Use(chimiddleware.Recoverer)
+mux.Use(chimiddleware.Logger)
+mux.Use(chimiddleware.Recoverer)
 ```
 
 You can migrate gradually: keep using chi middleware while replacing the router.
@@ -229,8 +229,8 @@ func getUser(w http.ResponseWriter, r *http.Request) {
     // ...
 }
 
-r := muxmaster.New()
-r.GET("/users/:id", getUser)
+mux := muxmaster.New()
+mux.GET("/users/:id", getUser)
 ```
 
 For a large codebase, you can write a thin adapter to avoid rewriting all handlers at once:
@@ -249,7 +249,7 @@ func adapt(h func(http.ResponseWriter, *http.Request, httprouter.Params)) http.H
     }
 }
 
-r.GET("/users/:id", adapt(getUser))
+mux.GET("/users/:id", adapt(getUser))
 ```
 
 ### Route registration
@@ -264,10 +264,10 @@ router.GET("/users/:id", getUser)
 
 ```go
 // MuxMaster — identical route patterns, different handler type
-r := muxmaster.New()
-r.GET("/users", listUsers)
-r.POST("/users", createUser)
-r.GET("/users/:id", getUser)
+mux := muxmaster.New()
+mux.GET("/users", listUsers)
+mux.POST("/users", createUser)
+mux.GET("/users/:id", getUser)
 ```
 
 ### Custom error handlers
@@ -281,9 +281,9 @@ router.PanicHandler     = myPanicHandler
 
 ```go
 // MuxMaster — identical
-r.NotFound         = myNotFoundHandler
-r.MethodNotAllowed = myMethodNotAllowedHandler
-r.PanicHandler     = myPanicHandler
+mux.NotFound         = myNotFoundHandler
+mux.MethodNotAllowed = myMethodNotAllowedHandler
+mux.PanicHandler     = myPanicHandler
 ```
 
 ---
@@ -301,9 +301,9 @@ mux.HandleFunc("/users/", userDetail) // catches /users/anything
 
 ```go
 // MuxMaster — explicit path parameters
-r := muxmaster.New()
-r.GET("/users", listUsers)
-r.GET("/users/:id", userDetail)
+mux := muxmaster.New()
+mux.GET("/users", listUsers)
+mux.GET("/users/:id", userDetail)
 ```
 
 Handler code that uses `r.URL.Path` to extract the "parameter" can be simplified:
@@ -348,7 +348,7 @@ Any middleware with the signature `func(http.Handler) http.Handler` is compatibl
 MuxMaster redirects trailing slashes by default (`RedirectTrailingSlash = true`). If your application registers both `/users` and `/users/` as separate routes, disable this:
 
 ```go
-r.RedirectTrailingSlash = false
+mux.RedirectTrailingSlash = false
 ```
 
 ---

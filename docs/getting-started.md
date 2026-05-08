@@ -33,14 +33,14 @@ import (
 )
 
 func main() {
-    r := muxmaster.New()
+    mux := muxmaster.New()
 
-    r.GET("/", func(w http.ResponseWriter, r *http.Request) {
+    mux.GET("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintln(w, "Hello, World!")
     })
 
     log.Println("listening on :8080")
-    log.Fatal(http.ListenAndServe(":8080", r))
+    log.Fatal(http.ListenAndServe(":8080", mux))
 }
 ```
 
@@ -57,7 +57,7 @@ curl http://localhost:8080/
 Path parameters are named segments in the URL pattern prefixed with `:`. Use `muxmaster.PathParam` to read a single value, or `muxmaster.ParamsFromContext` to read all of them.
 
 ```go
-r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
     id := muxmaster.PathParam(r, "id")
     fmt.Fprintf(w, "user: %s\n", id)
 })
@@ -71,7 +71,7 @@ curl http://localhost:8080/users/42
 To parse the value as an integer:
 
 ```go
-r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
     ps := muxmaster.ParamsFromContext(r.Context())
     id, err := ps.Int("id")
     if err != nil {
@@ -92,9 +92,9 @@ import (
     "github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
 
-r := muxmaster.New()
-r.Use(middleware.Logger(os.Stdout))
-r.Use(middleware.Recoverer)
+mux := muxmaster.New()
+mux.Use(middleware.Logger(os.Stdout))
+mux.Use(middleware.Recoverer)
 ```
 
 After restarting, every request prints a log line:
@@ -108,7 +108,7 @@ After restarting, every request prints a log line:
 Use groups to share a path prefix and middleware across a set of related routes:
 
 ```go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(requireAPIKey) // only applies to routes in this group
 
 api.GET("/users", listUsers)
@@ -136,7 +136,7 @@ type User struct {
     Name string `json:"name"`
 }
 
-r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
     id, _ := muxmaster.ParamsFromContext(r.Context()).Int("id")
     user := User{ID: id, Name: "Alice"}
     muxmaster.JSON(w, http.StatusOK, user)
@@ -148,7 +148,7 @@ r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
 Repeat `if err != nil { http.Error(...); return }` quickly becomes noisy. `HandlerFuncE` lets handlers return an error instead:
 
 ```go
-r.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
+mux.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
     id, err := muxmaster.ParamsFromContext(r.Context()).Int("id")
     if err != nil {
         return muxmaster.Error(http.StatusBadRequest, err)
@@ -164,7 +164,7 @@ r.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
 Set a custom error handler to produce consistent JSON error responses:
 
 ```go
-r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
     code := http.StatusInternalServerError
     var he muxmaster.HTTPError
     if errors.As(err, &he) {
@@ -202,11 +202,11 @@ var users = map[int]User{
 }
 
 func main() {
-    r := muxmaster.New()
-    r.Use(middleware.Logger(os.Stdout))
-    r.Use(middleware.Recoverer)
+    mux := muxmaster.New()
+    mux.Use(middleware.Logger(os.Stdout))
+    mux.Use(middleware.Recoverer)
 
-    r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+    mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
         code := http.StatusInternalServerError
         var he muxmaster.HTTPError
         if errors.As(err, &he) {
@@ -215,7 +215,7 @@ func main() {
         muxmaster.JSON(w, code, map[string]string{"error": err.Error()})
     }
 
-    api := r.Group("/api/v1")
+    api := mux.Group("/api/v1")
 
     api.GET("/users", func(w http.ResponseWriter, r *http.Request) {
         list := make([]User, 0, len(users))
@@ -237,7 +237,7 @@ func main() {
         return muxmaster.JSON(w, http.StatusOK, u)
     })
 
-    log.Fatal(http.ListenAndServe(":8080", r))
+    log.Fatal(http.ListenAndServe(":8080", mux))
 }
 ```
 

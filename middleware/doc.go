@@ -10,10 +10,10 @@
 //
 //	import "github.com/FlavioCFOliveira/MuxMaster/middleware"
 //
-//	r := muxmaster.New()
-//	r.Use(middleware.Logger(os.Stdout))
-//	r.Use(middleware.Recoverer)
-//	r.Use(middleware.CORS(middleware.CORSOptions{
+//	mux := muxmaster.New()
+//	mux.Use(middleware.Logger(os.Stdout))
+//	mux.Use(middleware.Recoverer)
+//	mux.Use(middleware.CORS(middleware.CORSOptions{
 //	    AllowedOrigins: []string{"https://example.com"},
 //	}))
 package middleware

@@ -96,7 +96,7 @@ func NoContent(w http.ResponseWriter)
 Writes a `204 No Content` response with no body.
 
 ```go
-r.DELETE("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+mux.DELETE("/users/:id", func(w http.ResponseWriter, r *http.Request) {
     db.DeleteUser(muxmaster.PathParam(r, "id"))
     muxmaster.NoContent(w)
 })
@@ -109,7 +109,7 @@ r.DELETE("/users/:id", func(w http.ResponseWriter, r *http.Request) {
 The helpers return errors, which makes them natural to use in error-returning handlers:
 
 ```go
-r.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
+mux.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
     id, err := muxmaster.ParamsFromContext(r.Context()).Int("id")
     if err != nil {
         return muxmaster.Error(http.StatusBadRequest, err)
@@ -131,7 +131,7 @@ If `JSON` fails (e.g. the value cannot be marshalled), the error is returned to 
 For streaming or large responses where you want more control, use `encoding/json` directly:
 
 ```go
-r.GET("/users", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/users", func(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json; charset=utf-8")
     w.WriteHeader(http.StatusOK)
     if err := json.NewEncoder(w).Encode(users); err != nil {

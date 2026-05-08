@@ -79,24 +79,24 @@ import (
 )
 
 func main() {
-    r := muxmaster.New()
+       mux := muxmaster.New()
 
     // Global middleware — applied to every route registered below.
-    r.Use(middleware.Logger(os.Stdout))
-    r.Use(middleware.Recoverer)
+    mux.Use(middleware.Logger(os.Stdout))
+    mux.Use(middleware.Recoverer)
 
-    r.GET("/", func(w http.ResponseWriter, r *http.Request) {
+    mux.GET("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintln(w, "Hello, World!")
     })
 
     // Named path parameter
-    r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+    mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
         id := muxmaster.PathParam(r, "id")
         fmt.Fprintf(w, "user %s\n", id)
     })
 
     // Versioned API group with its own middleware
-    api := r.Group("/api/v1")
+    api := mux.Group("/api/v1")
     api.Use(requireAPIKey)
 
     api.GET("/items", listItems)
@@ -130,22 +130,22 @@ Rules:
 ### Registering routes
 
 ```go
-r.GET("/users", listUsers)
-r.POST("/users", createUser)
-r.PUT("/users/:id", updateUser)
-r.PATCH("/users/:id", patchUser)
-r.DELETE("/users/:id", deleteUser)
-r.HEAD("/users/:id", headUser)
-r.OPTIONS("/users", optionsUsers)
+mux.GET("/users", listUsers)
+mux.POST("/users", createUser)
+mux.PUT("/users/:id", updateUser)
+mux.PATCH("/users/:id", patchUser)
+mux.DELETE("/users/:id", deleteUser)
+mux.HEAD("/users/:id", headUser)
+mux.OPTIONS("/users", optionsUsers)
 
 // Register a handler for all standard HTTP methods at once
-r.ANY("/health", healthCheck)
+mux.ANY("/health", healthCheck)
 
 // Register a handler for a specific subset of methods
-r.Match([]string{"GET", "HEAD"}, "/ping", pingHandler)
+mux.Match([]string{"GET", "HEAD"}, "/ping", pingHandler)
 
 // Low-level registration accepting any http.Handler
-r.Handle("GET", "/users", http.HandlerFunc(listUsers))
+mux.Handle("GET", "/users", http.HandlerFunc(listUsers))
 ```
 
 ---
@@ -155,7 +155,7 @@ r.Handle("GET", "/users", http.HandlerFunc(listUsers))
 ### Reading a single parameter
 
 ```go
-r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
     id := muxmaster.PathParam(r, "id")
     fmt.Fprintf(w, "user: %s\n", id)
 })
@@ -164,7 +164,7 @@ r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
 ### Reading all parameters
 
 ```go
-r.GET("/posts/:year/:month/:slug", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/posts/:year/:month/:slug", func(w http.ResponseWriter, r *http.Request) {
     ps := muxmaster.ParamsFromContext(r.Context())
     year  := ps.Get("year")
     month := ps.Get("month")
@@ -178,7 +178,7 @@ r.GET("/posts/:year/:month/:slug", func(w http.ResponseWriter, r *http.Request) 
 `Params` provides helpers that parse string values into Go types, returning an error if the parameter is absent or the value cannot be parsed:
 
 ```go
-r.GET("/items/:id", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/items/:id", func(w http.ResponseWriter, r *http.Request) {
     ps := muxmaster.ParamsFromContext(r.Context())
 
     id, err := ps.Int("id")
@@ -204,7 +204,7 @@ r.GET("/items/:id", func(w http.ResponseWriter, r *http.Request) {
 ### Catch-all parameters
 
 ```go
-r.GET("/files/*filepath", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/files/*filepath", func(w http.ResponseWriter, r *http.Request) {
     filepath := muxmaster.PathParam(r, "filepath")
     // For /files/img/logo.png, filepath == "/img/logo.png"
     fmt.Fprintln(w, filepath)
@@ -215,7 +215,7 @@ r.GET("/files/*filepath", func(w http.ResponseWriter, r *http.Request) {
 
 ```go
 // Only matches /users/42, /users/100 — not /users/abc
-r.GET("/users/{id:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/users/{id:[0-9]+}", func(w http.ResponseWriter, r *http.Request) {
     id := muxmaster.PathParam(r, "id")
     fmt.Fprintln(w, id)
 })
@@ -240,7 +240,7 @@ func auditMiddleware(next http.Handler) http.Handler {
 Each path parameter is a `Param` struct with `Key` and `Value` string fields:
 
 ```go
-r.GET("/posts/:year/:month/:slug", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/posts/:year/:month/:slug", func(w http.ResponseWriter, r *http.Request) {
     ps := muxmaster.ParamsFromContext(r.Context())
     for _, p := range ps {
         fmt.Printf("%s=%s\n", p.Key, p.Value)
@@ -271,11 +271,11 @@ Middleware is a function with the signature `func(http.Handler) http.Handler`. M
 ### Global middleware
 
 ```go
-r := muxmaster.New()
-r.Use(middleware.Logger(os.Stdout))   // outermost
-r.Use(middleware.Recoverer)           // innermost before the handler
+mux := muxmaster.New()
+mux.Use(middleware.Logger(os.Stdout))   // outermost
+mux.Use(middleware.Recoverer)           // innermost before the handler
 
-r.GET("/users", listUsers)             // wrapped by both Logger and Recoverer
+mux.GET("/users", listUsers)             // wrapped by both Logger and Recoverer
 ```
 
 ### Pre-routing middleware
@@ -283,8 +283,8 @@ r.GET("/users", listUsers)             // wrapped by both Logger and Recoverer
 Pre-routing middleware runs **before** route matching. This is useful for path rewriting, cleaning, or stripping prefixes before the router sees the URL.
 
 ```go
-r.Pre(middleware.CleanPath)
-r.Pre(middleware.StripSlashes)
+mux.Pre(middleware.CleanPath)
+mux.Pre(middleware.StripSlashes)
 ```
 
 ### Per-route middleware with `With`
@@ -292,8 +292,8 @@ r.Pre(middleware.StripSlashes)
 `With` creates a copy of the current router or group with additional middleware scoped to a single route call:
 
 ```go
-r.With(requireAdmin).DELETE("/users/:id", deleteUser)
-r.With(rateLimit, audit).POST("/payments", processPayment)
+mux.With(requireAdmin).DELETE("/users/:id", deleteUser)
+mux.With(rateLimit, audit).POST("/payments", processPayment)
 ```
 
 ### Writing custom middleware
@@ -312,7 +312,7 @@ func requireAuth(next http.Handler) http.Handler {
     })
 }
 
-r.Use(requireAuth)
+mux.Use(requireAuth)
 ```
 
 ---
@@ -340,18 +340,18 @@ func myFast(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
 Convenience methods exist for all standard HTTP verbs:
 
 ```go
-r := muxmaster.New()
+mux := muxmaster.New()
 
-r.GETFast("/api/v1/users/:id", func(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
+mux.GETFast("/api/v1/users/:id", func(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
     id := ps.Get("id")
     fmt.Fprintf(w, "user: %s\n", id)
 })
 
-r.POSTFast("/api/v1/items", createItemFast)
-r.DELETEFast("/api/v1/items/:id", deleteItemFast)
+mux.POSTFast("/api/v1/items", createItemFast)
+mux.DELETEFast("/api/v1/items/:id", deleteItemFast)
 
 // Or use HandleFast for any method
-r.HandleFast("GET", "/files/*filepath", serveFilesFast)
+mux.HandleFast("GET", "/files/*filepath", serveFilesFast)
 ```
 
 Available methods: `GETFast`, `HEADFast`, `POSTFast`, `PUTFast`, `PATCHFast`, `DELETEFast`, `OPTIONSFast`, `CONNECTFast`, `TRACEFast`.
@@ -370,8 +370,8 @@ func loggingFast(next muxmaster.FastHandler) muxmaster.FastHandler {
     }
 }
 
-r.UseFast(loggingFast)
-r.GETFast("/api/status", statusFast)
+mux.UseFast(loggingFast)
+mux.GETFast("/api/status", statusFast)
 ```
 
 `UseFast` must be called before the fast routes it should wrap, just like `Use` for standard routes.
@@ -381,7 +381,7 @@ r.GETFast("/api/status", statusFast)
 Groups support fast routes via `HandleFast` and fast middleware via `UseFast`:
 
 ```go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.UseFast(loggingFast)
 
 api.HandleFast("GET", "/users/:id", getUserFast)
@@ -412,7 +412,7 @@ Groups share a path prefix and an optional middleware stack. All routes register
 ### Basic group
 
 ```go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(requireAPIKey)
 
 api.GET("/users", listUsers)    // matches GET /api/v1/users
@@ -422,7 +422,7 @@ api.POST("/users", createUser)  // matches POST /api/v1/users
 ### Nested groups
 
 ```go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Use(requireAPIKey)
 
 admin := api.Group("/admin")
@@ -435,7 +435,7 @@ admin.DELETE("/users/:id", deleteUser)  // matches DELETE /api/v1/admin/users/:i
 `Route` creates a group and calls a function with it — useful for keeping related routes together:
 
 ```go
-r.Route("/api/v1", func(api *muxmaster.Group) {
+mux.Route("/api/v1", func(api *muxmaster.Group) {
     api.Use(requireAPIKey)
 
     api.GET("/users", listUsers)
@@ -462,7 +462,7 @@ api.With(throttle).POST("/exports", exportData)
 `Match` registers the same handler for a set of HTTP methods:
 
 ```go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.Match([]string{"GET", "HEAD"}, "/status", statusHandler)
 ```
 
@@ -479,7 +479,7 @@ v2.GET("/items", listItemsV2)
 v2.POST("/items", createItemV2)
 
 // Attach it to the main router
-r.Mount("/v2", v2)
+mux.Mount("/v2", v2)
 // Now GET /v2/items → handled by listItemsV2
 ```
 
@@ -493,14 +493,14 @@ Mounted handlers receive a request with the prefix stripped from `r.URL.Path`, s
 
 ```go
 // Serve files from the ./public directory
-r.ServeFiles("/static/*filepath", http.Dir("./public"))
+mux.ServeFiles("/static/*filepath", http.Dir("./public"))
 // GET /static/css/main.css → ./public/css/main.css
 
 // Serve embedded files (Go 1.16+)
 import "embed"
 //go:embed public
 var publicFS embed.FS
-r.ServeFiles("/assets/*filepath", http.FS(publicFS))
+mux.ServeFiles("/assets/*filepath", http.FS(publicFS))
 ```
 
 ServeFiles protects against directory traversal attacks by delegating to `http.FileServer`.
@@ -514,7 +514,7 @@ ServeFiles protects against directory traversal attacks by delegating to `http.F
 `HandlerFuncE` extends the standard handler signature with an error return value. This eliminates repetitive `if err != nil { http.Error(...) }` blocks:
 
 ```go
-r.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
+mux.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
     id, err := muxmaster.ParamsFromContext(r.Context()).Int("id")
     if err != nil {
         return muxmaster.Error(http.StatusBadRequest, err)
@@ -543,7 +543,7 @@ err := muxmaster.Error(http.StatusNotFound, errors.New("user not found"))
 Set `ErrorHandler` to centralize error handling across all `HandlerFuncE` routes and groups:
 
 ```go
-r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+mux.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
     var he muxmaster.HTTPError
     if errors.As(err, &he) {
         muxmaster.JSON(w, he.StatusCode(), map[string]string{"error": err.Error()})
@@ -557,13 +557,13 @@ r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
 ### Custom 404 and 405 handlers
 
 ```go
-r.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+mux.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     muxmaster.JSON(w, http.StatusNotFound, map[string]string{
         "error": "the requested resource was not found",
     })
 })
 
-r.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+mux.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     muxmaster.JSON(w, http.StatusMethodNotAllowed, map[string]string{
         "error": "method not allowed",
     })
@@ -575,7 +575,7 @@ r.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Reques
 `PanicHandler` intercepts panics in handlers and prevents them from crashing the server:
 
 ```go
-r.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
+mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
     log.Printf("panic: %v\n%s", rcv, debug.Stack())
     http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
@@ -586,7 +586,7 @@ r.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
 `GlobalOPTIONS` replaces the default auto-generated response for OPTIONS requests:
 
 ```go
-r.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+mux.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Access-Control-Allow-Origin", "*")
     w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
     w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -625,7 +625,7 @@ muxmaster.NoContent(w)
 Using `JSON` in an error-returning handler:
 
 ```go
-r.POSTE("/users", func(w http.ResponseWriter, r *http.Request) error {
+mux.POSTE("/users", func(w http.ResponseWriter, r *http.Request) error {
     var payload CreateUserRequest
     if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
         return muxmaster.Error(http.StatusBadRequest, err)
@@ -645,41 +645,41 @@ r.POSTE("/users", func(w http.ResponseWriter, r *http.Request) error {
 All options are fields on `*Mux` and can be set after `New()` and before registering routes or starting the server.
 
 ```go
-r := muxmaster.New()
+mux := muxmaster.New()
 
 // Automatically redirect /foo/ → /foo when /foo is registered (and vice versa).
 // Default: true
-r.RedirectTrailingSlash = true
+mux.RedirectTrailingSlash = true
 
 // Automatically redirect /FOO → /foo when /foo is registered (case-insensitive redirect).
 // Default: true
-r.RedirectFixedPath = true
+mux.RedirectFixedPath = true
 
 // Return 405 Method Not Allowed (with Allow header) instead of 404 when the path
 // is registered but not for the requested method.
 // Default: true
-r.HandleMethodNotAllowed = true
+mux.HandleMethodNotAllowed = true
 
 // Automatically respond to OPTIONS requests with the allowed methods.
 // Default: true
-r.HandleOPTIONS = true
+mux.HandleOPTIONS = true
 
 // Match routes case-insensitively (no redirect, just serves the route directly).
 // Default: false
-r.CaseInsensitive = false
+mux.CaseInsensitive = false
 
 // Use r.URL.RawPath for route matching instead of r.URL.Path.
 // Useful when path values contain encoded slashes (%2F).
 // Default: false
-r.UseRawPath = false
+mux.UseRawPath = false
 
 // Percent-decode path parameter values before returning them.
 // Default: false
-r.UnescapePathValues = false
+mux.UnescapePathValues = false
 
 // HTTP redirect code used by RedirectTrailingSlash and RedirectFixedPath.
 // Default: 0 (auto: 301 for GET/HEAD, 307 for all other methods)
-r.RedirectCode = http.StatusMovedPermanently // override to force a specific code
+mux.RedirectCode = http.StatusMovedPermanently // override to force a specific code
 ```
 
 ### Resetting configuration
@@ -687,8 +687,8 @@ r.RedirectCode = http.StatusMovedPermanently // override to force a specific cod
 Configuration flags are frozen on the first `ServeHTTP` call. To change a flag after the server has started serving, call `Rebuild()`:
 
 ```go
-r.RedirectTrailingSlash = false
-r.Rebuild() // resets the frozen config snapshot
+mux.RedirectTrailingSlash = false
+mux.Rebuild() // resets the frozen config snapshot
 ```
 
 **Warning:** do not call `Rebuild()` while the server is actively serving requests.
@@ -729,13 +729,13 @@ import "github.com/FlavioCFOliveira/MuxMaster/middleware"
 
 ```go
 // Structured request logging
-r.Use(middleware.Logger(os.Stdout))
+mux.Use(middleware.Logger(os.Stdout))
 
 // Panic recovery
-r.Use(middleware.Recoverer)
+mux.Use(middleware.Recoverer)
 
 // CORS for a single-page application
-r.Use(middleware.CORS(middleware.CORSOptions{
+mux.Use(middleware.CORS(middleware.CORSOptions{
     AllowedOrigins:   []string{"https://app.example.com"},
     AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
     AllowedHeaders:   []string{"Authorization", "Content-Type"},
@@ -744,34 +744,34 @@ r.Use(middleware.CORS(middleware.CORSOptions{
 }))
 
 // HTTP Basic Authentication
-r.Use(middleware.BasicAuth("realm", map[string]string{
+mux.Use(middleware.BasicAuth("realm", map[string]string{
     "admin": "secret",
 }))
 
 // Gzip compression
-r.Use(middleware.Compress(5))
+mux.Use(middleware.Compress(5))
 
 // Limit concurrency to 100 simultaneous requests, queue up to 50, timeout after 30s
-r.Use(middleware.ThrottleBacklog(100, 50, 30*time.Second))
+mux.Use(middleware.ThrottleBacklog(100, 50, 30*time.Second))
 
 // 10-second request deadline
-r.Use(middleware.Timeout(10 * time.Second))
+mux.Use(middleware.Timeout(10 * time.Second))
 
 // Attach a unique X-Request-Id header to every request
-r.Use(middleware.RequestID)
+mux.Use(middleware.RequestID)
 
 // Trust X-Forwarded-For / X-Real-IP only from a known reverse proxy.
 // SECURITY: never call middleware.RealIP() without trusted CIDRs in
 // production — every peer would be allowed to spoof these headers
 // (TM-2026-044). See "Security defaults" below.
 proxyCIDR := netip.MustParsePrefix("10.0.0.0/8")
-r.Use(middleware.RealIP(&proxyCIDR))
+mux.Use(middleware.RealIP(&proxyCIDR))
 
 // Set a custom response header on every request
-r.Use(middleware.SetHeader("X-Content-Type-Options", "nosniff"))
+mux.Use(middleware.SetHeader("X-Content-Type-Options", "nosniff"))
 
 // Store a value in the request context
-r.Use(middleware.WithValue("env", "production"))
+mux.Use(middleware.WithValue("env", "production"))
 ```
 
 ### Authentication Middleware
@@ -782,7 +782,7 @@ Three authentication middleware components cover the most common scenarios.
 
 ```go
 // Authenticate requests by API key, with identity lookup:
-r.Use(middleware.APIKey(middleware.APIKeyOptions{
+mux.Use(middleware.APIKey(middleware.APIKeyOptions{
     Keys: map[string]string{
         "sk_test_abc123": "user-123",   // raw key → identity
         "sk_test_def456": "user-456",
@@ -790,7 +790,7 @@ r.Use(middleware.APIKey(middleware.APIKeyOptions{
     Header: "X-API-Key",  // default; can be customised
 }))
 
-r.GET("/api/data", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/api/data", func(w http.ResponseWriter, r *http.Request) {
     identity, _ := middleware.GetAPIKeyIdentity(r.Context())
     fmt.Fprintf(w, "authenticated as %s\n", identity)
 })
@@ -804,7 +804,7 @@ r.GET("/api/data", func(w http.ResponseWriter, r *http.Request) {
 // RFC 8725 §4.4 — without it, a stolen token is valid forever
 // (TM-2026-001). See "Security defaults" below.
 pubKey, _ := jwt.ReadFile("public.pem")  // *ecdsa.PublicKey or *rsa.PublicKey
-r.Use(middleware.JWTAuth(middleware.JWTOptions{
+mux.Use(middleware.JWTAuth(middleware.JWTOptions{
     PublicKey:     pubKey,
     Algorithms:    []string{"ES256"},
     Issuers:       []string{"https://auth.example.com"},
@@ -813,7 +813,7 @@ r.Use(middleware.JWTAuth(middleware.JWTOptions{
     RequireExpiry: true,            // RFC 8725 §4.4 — strongly recommended
 }))
 
-r.GET("/api/profile", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/api/profile", func(w http.ResponseWriter, r *http.Request) {
     claims, _ := middleware.GetJWTClaims(r.Context())
     fmt.Fprintf(w, "user: %s\n", claims.Subject)
 })
@@ -823,7 +823,7 @@ r.GET("/api/profile", func(w http.ResponseWriter, r *http.Request) {
 
 ```go
 // Validate tokens via RFC 7662 introspection (with caching):
-r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
+mux.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
     Endpoint:     "https://idp.example.com/oauth/introspect",
     ClientID:     "my_service",
     ClientSecret: os.Getenv("OAUTH2_SECRET"),
@@ -831,7 +831,7 @@ r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
     MaxCacheSize: 10000,
 }))
 
-r.GET("/api/resource", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/api/resource", func(w http.ResponseWriter, r *http.Request) {
     introspect, _ := middleware.GetOAuth2Claims(r.Context())
     fmt.Fprintf(w, "scope: %s\n", introspect.Scope)
 })
@@ -860,10 +860,10 @@ stack" / CDX-S8-001 in `SECURITY.md`):
 trusted := netip.MustParsePrefix("10.0.0.0/8")
 
 // (1) Pre runs before dispatch — covers Handle and HandleFast routes.
-r.Pre(middleware.RealIP(&trusted))
+mux.Pre(middleware.RealIP(&trusted))
 
 // (2) Use composes inside the dispatch chain on stdlib routes.
-r.Use(
+mux.Use(
     middleware.ThrottlePerIP(100, 5*time.Second, nil),
     middleware.JWTAuth(middleware.JWTOptions{
         Secret:        secret,
@@ -880,7 +880,7 @@ r.Use(
 ### Check whether a route is registered
 
 ```go
-handler, params, found := r.Lookup("GET", "/users/42")
+handler, params, found := mux.Lookup("GET", "/users/42")
 if found {
     fmt.Printf("found: %v params\n", len(params))
 }
@@ -889,7 +889,7 @@ if found {
 ### List all registered routes
 
 ```go
-routes := r.Routes()
+routes := mux.Routes()
 for _, route := range routes {
     fmt.Printf("%-8s %s  →  %s\n", route.Method, route.Pattern, route.Handler)
 }
@@ -900,7 +900,7 @@ for _, route := range routes {
 `Walk` visits every `http.Handler` route. FastHandler routes are skipped — use `WalkFast` to visit them:
 
 ```go
-err := r.Walk(func(method, pattern string, handler http.Handler) error {
+err := mux.Walk(func(method, pattern string, handler http.Handler) error {
     fmt.Printf("%s %s\n", method, pattern)
     return nil
 })
@@ -909,7 +909,7 @@ err := r.Walk(func(method, pattern string, handler http.Handler) error {
 ### Iterate fast routes with a callback
 
 ```go
-err := r.WalkFast(func(method, pattern string, handler muxmaster.FastHandler) error {
+err := mux.WalkFast(func(method, pattern string, handler muxmaster.FastHandler) error {
     fmt.Printf("%s %s (FastHandler)\n", method, pattern)
     return nil
 })

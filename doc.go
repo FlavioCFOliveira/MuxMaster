@@ -6,12 +6,12 @@
 //
 // # Quick start
 //
-//	r := muxmaster.New()
-//	r.GET("/users/:id", func(w http.ResponseWriter, req *http.Request) {
-//	    id := muxmaster.PathParam(req, "id")
+//	mux := muxmaster.New()
+//	mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+//	    id := muxmaster.PathParam(r, "id")
 //	    fmt.Fprintf(w, "user=%s", id)
 //	})
-//	http.ListenAndServe(":8080", r)
+//	http.ListenAndServe(":8080", mux)
 //
 // # Route patterns
 //

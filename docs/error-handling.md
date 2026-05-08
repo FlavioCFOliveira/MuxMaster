@@ -21,7 +21,7 @@ MuxMaster provides a structured approach to error handling that eliminates boile
 A `http.HandlerFunc` has no return value, so error handling is manual:
 
 ```go
-r.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
     id, err := strconv.Atoi(muxmaster.PathParam(r, "id"))
     if err != nil {
         http.Error(w, "bad request", http.StatusBadRequest)
@@ -53,7 +53,7 @@ type HandlerFuncE func(http.ResponseWriter, *http.Request) error
 Handlers return `nil` on success, or an error to be handled centrally:
 
 ```go
-r.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
+mux.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
     id, err := muxmaster.ParamsFromContext(r.Context()).Int("id")
     if err != nil {
         return muxmaster.Error(http.StatusBadRequest, err)
@@ -119,10 +119,10 @@ When no `ErrorHandler` is set, MuxMaster's default behaviour is:
 
 ## Custom Error Handler
 
-Set `r.ErrorHandler` to take over all error responses globally:
+Set `mux.ErrorHandler` to take over all error responses globally:
 
 ```go
-r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
     code := http.StatusInternalServerError
     msg  := "internal server error"
 
@@ -132,7 +132,7 @@ r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
         msg  = err.Error()
     } else {
         // Log unexpected errors; do not leak internal details to the client
-        log.Printf("unhandled error [%s %s]: %v", req.Method, req.URL.Path, err)
+        log.Printf("unhandled error [%s %s]: %v", r.Method, r.URL.Path, err)
     }
 
     muxmaster.JSON(w, code, map[string]string{"error": msg})
@@ -152,7 +152,7 @@ type APIError struct {
     Detail  string `json:"detail,omitempty"`
 }
 
-r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
     apiErr := APIError{
         Code:    http.StatusInternalServerError,
         Message: "internal server error",
@@ -179,20 +179,20 @@ r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
 
 Every standard HTTP method has an error-returning variant:
 
-| Standard   | Error-returning |
-|------------|-----------------|
-| `r.GET`    | `r.GETE`        |
-| `r.POST`   | `r.POSTE`       |
-| `r.PUT`    | `r.PUTE`        |
-| `r.PATCH`  | `r.PATCHE`      |
-| `r.DELETE` | `r.DELETEE`     |
-| `r.HEAD`   | `r.HEADE`       |
-| `r.OPTIONS`| `r.OPTIONSE`    |
+| Standard     | Error-returning |
+|--------------|-----------------|
+| `mux.GET`    | `mux.GETE`      |
+| `mux.POST`   | `mux.POSTE`     |
+| `mux.PUT`    | `mux.PUTE`      |
+| `mux.PATCH`  | `mux.PATCHE`    |
+| `mux.DELETE` | `mux.DELETEE`   |
+| `mux.HEAD`   | `mux.HEADE`     |
+| `mux.OPTIONS`| `mux.OPTIONSE`  |
 
 The same variants exist on `*Group`:
 
 ```go
-api := r.Group("/api/v1")
+api := mux.Group("/api/v1")
 api.POSTE("/users", createUser)
 api.GETE("/users/:id", getUser)
 api.DELETEE("/users/:id", deleteUser)
@@ -207,7 +207,7 @@ api.DELETEE("/users/:id", deleteUser)
 Called when no route matches the request path:
 
 ```go
-r.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+mux.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     muxmaster.JSON(w, http.StatusNotFound, map[string]string{
         "error": "the requested resource does not exist",
         "path":  r.URL.Path,
@@ -220,7 +220,7 @@ r.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 Called when the path is registered for at least one method, but not the requested method. MuxMaster sets the `Allow` header automatically:
 
 ```go
-r.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+mux.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     allowed := w.Header().Get("Allow")
     muxmaster.JSON(w, http.StatusMethodNotAllowed, map[string]string{
         "error":   "method not allowed",
@@ -238,13 +238,13 @@ To enable 405 responses, `HandleMethodNotAllowed` must be `true` (the default).
 MuxMaster does not automatically recover from panics. Use `middleware.Recoverer` to catch panics before they crash the server:
 
 ```go
-r.Use(middleware.Recoverer)
+mux.Use(middleware.Recoverer)
 ```
 
-For custom panic handling, set `r.PanicHandler`:
+For custom panic handling, set `mux.PanicHandler`:
 
 ```go
-r.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
+mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
     log.Printf("panic recovered [%s %s]: %v\n%s",
         r.Method, r.URL.Path, rcv, debug.Stack())
     muxmaster.JSON(w, http.StatusInternalServerError, map[string]string{
@@ -272,7 +272,7 @@ var ErrUserNotFound = muxmaster.Error(http.StatusNotFound, errors.New("user not 
 var ErrUserExists   = muxmaster.Error(http.StatusConflict,  errors.New("user already exists"))
 
 // In the handler — no status code knowledge needed
-r.POSTE("/users", func(w http.ResponseWriter, r *http.Request) error {
+mux.POSTE("/users", func(w http.ResponseWriter, r *http.Request) error {
     user, err := userService.Create(payload)
     if err != nil {
         return err // ErrUserExists passes through to ErrorHandler with 409
@@ -284,7 +284,7 @@ r.POSTE("/users", func(w http.ResponseWriter, r *http.Request) error {
 ### Distinguish client errors from server errors in the error handler
 
 ```go
-r.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
     var he muxmaster.HTTPError
     if errors.As(err, &he) {
         if he.StatusCode() >= 500 {

@@ -18,12 +18,12 @@ number of registered routes.
 
 # Quick start
 
-    r := muxmaster.New()
-    r.GET("/users/:id", func(w http.ResponseWriter, req *http.Request) {
-        id := muxmaster.PathParam(req, "id")
+    mux := muxmaster.New()
+    mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+        id := muxmaster.PathParam(r, "id")
         fmt.Fprintf(w, "user=%s", id)
     })
-    http.ListenAndServe(":8080", r)
+    http.ListenAndServe(":8080", mux)
 
 # Route patterns
 
@@ -70,17 +70,17 @@ where k is the path length. Zero external dependencies; pure standard library.
 
 Usage:
 
-    r := muxmaster.New()
-    r.Use(logger, auth)          // middleware applied to every route below
-    r.GET("/users", listUsers)
-    r.GET("/users/:id", getUser)
-    r.GET("/static/*filepath", serveFiles)
+    mux := muxmaster.New()
+    mux.Use(logger, auth)          // middleware applied to every route below
+    mux.GET("/users", listUsers)
+    mux.GET("/users/:id", getUser)
+    mux.GET("/static/*filepath", serveFiles)
 
-    api := r.Group("/api/v1")
+    api := mux.Group("/api/v1")
     api.Use(apiKeyCheck)
     api.POST("/items", createItem)
 
-    http.ListenAndServe(":8080", r)
+    http.ListenAndServe(":8080", mux)
 
 Middleware must be registered (via Use) before the routes it should wrap.
 Dynamic route registration after the server starts serving is not supported.
@@ -648,10 +648,10 @@ Usage with MuxMaster:
 
     import "github.com/FlavioCFOliveira/MuxMaster/middleware"
 
-    r := muxmaster.New()
-    r.Use(middleware.Logger(os.Stdout))
-    r.Use(middleware.Recoverer)
-    r.Use(middleware.CORS(middleware.CORSOptions{
+    mux := muxmaster.New()
+    mux.Use(middleware.Logger(os.Stdout))
+    mux.Use(middleware.Recoverer)
+    mux.Use(middleware.CORS(middleware.CORSOptions{
         AllowedOrigins: []string{"https://example.com"},
     }))
 

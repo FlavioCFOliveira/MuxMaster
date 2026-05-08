@@ -5,17 +5,17 @@
 //
 // Usage:
 //
-//	r := muxmaster.New()
-//	r.Use(logger, auth)          // middleware applied to every route below
-//	r.GET("/users", listUsers)
-//	r.GET("/users/:id", getUser)
-//	r.GET("/static/*filepath", serveFiles)
+//	mux := muxmaster.New()
+//	mux.Use(logger, auth)          // middleware applied to every route below
+//	mux.GET("/users", listUsers)
+//	mux.GET("/users/:id", getUser)
+//	mux.GET("/static/*filepath", serveFiles)
 //
-//	api := r.Group("/api/v1")
+//	api := mux.Group("/api/v1")
 //	api.Use(apiKeyCheck)
 //	api.POST("/items", createItem)
 //
-//	http.ListenAndServe(":8080", r)
+//	http.ListenAndServe(":8080", mux)
 //
 // Middleware must be registered (via Use) before the routes it should wrap.
 // Dynamic route registration after the server starts serving is not supported.

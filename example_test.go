@@ -11,15 +11,15 @@ import (
 // ExampleMux_GET demonstrates registering a GET route with a path parameter
 // and reading it with PathParam.
 func ExampleMux_GET() {
-	r := muxmaster.New()
-	r.GET("/users/:id", func(w http.ResponseWriter, req *http.Request) {
-		id := muxmaster.PathParam(req, "id")
+	mux := muxmaster.New()
+	mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+		id := muxmaster.PathParam(r, "id")
 		fmt.Fprintf(w, "user=%s", id)
 	})
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/users/42", nil)
-	r.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	fmt.Println(rec.Body.String())
 	// Output:
@@ -28,20 +28,20 @@ func ExampleMux_GET() {
 
 // ExampleMux_Group demonstrates grouping routes under a shared prefix.
 func ExampleMux_Group() {
-	r := muxmaster.New()
+	mux := muxmaster.New()
 
-	api := r.Group("/api/v1")
-	api.GET("/ping", func(w http.ResponseWriter, req *http.Request) {
+	api := mux.Group("/api/v1")
+	api.GET("/ping", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "pong")
 	})
-	api.GET("/users/:id", func(w http.ResponseWriter, req *http.Request) {
-		id := muxmaster.PathParam(req, "id")
+	api.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
+		id := muxmaster.PathParam(r, "id")
 		fmt.Fprintf(w, "user=%s", id)
 	})
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/ping", nil)
-	r.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	fmt.Print(rec.Body.String())
 	// Output:
@@ -51,24 +51,24 @@ func ExampleMux_Group() {
 // ExampleMux_Use demonstrates applying middleware to all routes registered after
 // the Use call. Middleware must be registered before the routes it should wrap.
 func ExampleMux_Use() {
-	r := muxmaster.New()
+	mux := muxmaster.New()
 
 	// addHeader is a simple middleware that injects a response header.
 	addHeader := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Powered-By", "MuxMaster")
-			next.ServeHTTP(w, req)
+			next.ServeHTTP(w, r)
 		})
 	}
 
-	r.Use(addHeader)
-	r.GET("/hello", func(w http.ResponseWriter, req *http.Request) {
+	mux.Use(addHeader)
+	mux.GET("/hello", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "hello")
 	})
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/hello", nil)
-	r.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	fmt.Println(rec.Header().Get("X-Powered-By"))
 	// Output:
@@ -79,16 +79,16 @@ func ExampleMux_Use() {
 // The prefix is stripped before the request reaches the sub-router.
 func ExampleMux_Mount() {
 	sub := muxmaster.New()
-	sub.GET("/status", func(w http.ResponseWriter, req *http.Request) {
+	sub.GET("/status", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "ok")
 	})
 
-	r := muxmaster.New()
-	r.Mount("/v2", sub)
+	mux := muxmaster.New()
+	mux.Mount("/v2", sub)
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/v2/status", nil)
-	r.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	fmt.Print(rec.Body.String())
 	// Output:
@@ -98,15 +98,15 @@ func ExampleMux_Mount() {
 // ExampleParamsFromContext demonstrates reading path parameters from a context
 // directly, without access to the *http.Request.
 func ExampleParamsFromContext() {
-	r := muxmaster.New()
-	r.GET("/posts/:year/:slug", func(w http.ResponseWriter, req *http.Request) {
-		ps := muxmaster.ParamsFromContext(req.Context())
+	mux := muxmaster.New()
+	mux.GET("/posts/:year/:slug", func(w http.ResponseWriter, r *http.Request) {
+		ps := muxmaster.ParamsFromContext(r.Context())
 		fmt.Fprintf(w, "year=%s slug=%s", ps.Get("year"), ps.Get("slug"))
 	})
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/posts/2024/hello-world", nil)
-	r.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	fmt.Println(rec.Body.String())
 	// Output:
@@ -117,14 +117,14 @@ func ExampleParamsFromContext() {
 // routes. Params are passed directly as the third argument, avoiding the
 // context allocation cost of stdlib http.Handler routes.
 func ExampleMux_HandleFast() {
-	r := muxmaster.New()
-	r.HandleFast(http.MethodGet, "/users/:id", func(w http.ResponseWriter, _ *http.Request, ps muxmaster.Params) {
+	mux := muxmaster.New()
+	mux.HandleFast(http.MethodGet, "/users/:id", func(w http.ResponseWriter, _ *http.Request, ps muxmaster.Params) {
 		fmt.Fprintf(w, "fast user=%s", ps.Get("id"))
 	})
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/users/99", nil)
-	r.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	fmt.Println(rec.Body.String())
 	// Output:
@@ -133,14 +133,14 @@ func ExampleMux_HandleFast() {
 
 // ExamplePathParam demonstrates reading a path parameter from a request.
 func ExamplePathParam() {
-	r := muxmaster.New()
-	r.GET("/posts/:slug", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, "post=%s", muxmaster.PathParam(req, "slug"))
+	mux := muxmaster.New()
+	mux.GET("/posts/:slug", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "post=%s", muxmaster.PathParam(r, "slug"))
 	})
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/posts/hello-world", nil)
-	r.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	fmt.Println(rec.Body.String())
 	// Output:
@@ -149,9 +149,9 @@ func ExamplePathParam() {
 
 // ExampleParams_Int demonstrates parsing a path parameter as an int directly.
 func ExampleParams_Int() {
-	r := muxmaster.New()
-	r.GET("/items/:n", func(w http.ResponseWriter, req *http.Request) {
-		ps := muxmaster.ParamsFromContext(req.Context())
+	mux := muxmaster.New()
+	mux.GET("/items/:n", func(w http.ResponseWriter, r *http.Request) {
+		ps := muxmaster.ParamsFromContext(r.Context())
 		n, err := ps.Int("n")
 		if err != nil {
 			fmt.Fprintf(w, "bad n: %v", err)
@@ -162,7 +162,7 @@ func ExampleParams_Int() {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/items/21", nil)
-	r.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	fmt.Println(rec.Body.String())
 	// Output:
@@ -171,14 +171,14 @@ func ExampleParams_Int() {
 
 // ExampleJSON demonstrates writing a JSON response with a status code.
 func ExampleJSON() {
-	r := muxmaster.New()
-	r.GET("/api/info", func(w http.ResponseWriter, _ *http.Request) {
+	mux := muxmaster.New()
+	mux.GET("/api/info", func(w http.ResponseWriter, _ *http.Request) {
 		_ = muxmaster.JSON(w, http.StatusOK, map[string]string{"v": "1"})
 	})
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/info", nil)
-	r.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	fmt.Println(rec.Body.String())
 	// Output:
@@ -188,19 +188,19 @@ func ExampleJSON() {
 // ExampleMux_Pre demonstrates registering Pre middleware that wraps both
 // stdlib (Handle) and fast (HandleFast) routes.
 func ExampleMux_Pre() {
-	r := muxmaster.New()
-	r.Pre(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux := muxmaster.New()
+	mux.Pre(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Pre", "yes")
-			next.ServeHTTP(w, req)
+			next.ServeHTTP(w, r)
 		})
 	})
-	r.GET("/x", func(w http.ResponseWriter, _ *http.Request) {
+	mux.GET("/x", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprintln(w, "ok")
 	})
 
 	rec := httptest.NewRecorder()
-	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x", nil))
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x", nil))
 	fmt.Println(rec.Header().Get("X-Pre"))
 	// Output:
 	// yes
