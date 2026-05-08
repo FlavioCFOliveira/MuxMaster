@@ -988,6 +988,62 @@ func TestSec_TSC_2026_0008_APIKey_HeaderSymmetry(t *testing.T) {
 	}
 }
 
+// COV-2026-004 — WithValue middleware
+type covWithValueKey struct{}
+
+func TestWithValue_InjectsValue(t *testing.T) {
+	mw := middleware.WithValue(covWithValueKey{}, "secret")
+	var got any
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r.Context().Value(covWithValueKey{})
+		w.WriteHeader(http.StatusOK)
+	}))
+	wrapped.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+	if got != "secret" {
+		t.Errorf("Value=%v want secret", got)
+	}
+}
+
+func TestWithValue_PanicsOnNilKey(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic for nil key")
+		}
+	}()
+	_ = middleware.WithValue(nil, "v")
+}
+
+func TestWithValue_WarnsOnStringKey(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	defer slog.SetDefault(prev)
+
+	_ = middleware.WithValue("strkey", "v")
+	if !strings.Contains(buf.String(), "string context key") {
+		t.Errorf("warn missing: %q", buf.String())
+	}
+}
+
+func TestWithValue_NestedMiddleware(t *testing.T) {
+	type k1 struct{}
+	type k2 struct{}
+	outer := middleware.WithValue(k1{}, "outer")
+	inner := middleware.WithValue(k2{}, "inner")
+
+	var v1, v2 any
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		v1 = r.Context().Value(k1{})
+		v2 = r.Context().Value(k2{})
+		w.WriteHeader(http.StatusOK)
+	})
+	wrapped := outer(inner(h))
+	wrapped.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+	if v1 != "outer" || v2 != "inner" {
+		t.Errorf("v1=%v v2=%v", v1, v2)
+	}
+}
+
 // COV-2026-003 — Timeout middleware
 func TestTimeout_PanicOnZero(t *testing.T) {
 	defer func() {
