@@ -53,6 +53,22 @@ Or use the Makefile:
 make check    # runs all of the above
 ```
 
+### Pre-push lint guard (recommended)
+
+Install the repository's pre-push hook to block any `git push` that
+introduces a `golangci-lint` finding:
+
+```bash
+make hooks-install
+```
+
+This sets `git config core.hooksPath .githooks/`. Once installed, every
+`git push` runs `golangci-lint run ./...` and aborts the push if any
+issue is reported. Bypass in emergencies with `git push --no-verify`
+(NOT recommended — CI will still reject the change).
+
+Uninstall any time with `make hooks-uninstall`.
+
 ## Code guidelines
 
 ### Style

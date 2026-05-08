@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# pre-push — abort the push if golangci-lint reports any issue.
+#
+# Install once with:   make hooks-install
+# Skip in emergencies: git push --no-verify   (NOT recommended)
+#
+# This hook is intentionally minimal — it only runs the linter the
+# project's CI uses. Tests and race-detector runs are intentionally
+# delegated to CI to keep `git push` fast.
+
+set -euo pipefail
+
+# Resolve golangci-lint binary. Prefer the version installed in
+# $HOME/go/bin (which 'go install' produces) over /snap/bin (which
+# tends to lag behind v2).
+if [ -x "${HOME}/go/bin/golangci-lint" ]; then
+  GCL="${HOME}/go/bin/golangci-lint"
+elif command -v golangci-lint >/dev/null 2>&1; then
+  GCL="$(command -v golangci-lint)"
+else
+  cat >&2 <<'EOF'
+[pre-push] golangci-lint not found.
+
+Install it with:
+  go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
+
+Then re-run `git push`. To skip this check in an emergency:
+  git push --no-verify
+EOF
+  exit 1
+fi
+
+# If we are pushing zero commits (delete refs only), skip.
+have_commits=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_sha" != "0000000000000000000000000000000000000000" ]; then
+    have_commits=1
+  fi
+done
+
+if [ "$have_commits" -eq 0 ]; then
+  exit 0
+fi
+
+echo "[pre-push] running ${GCL} run ./..."
+if ! "${GCL}" run ./...; then
+  cat >&2 <<'EOF'
+
+[pre-push] golangci-lint reported issues — push aborted.
+
+Fix the findings above, then re-run `git push`.
+To skip this check in an emergency (NOT recommended):
+  git push --no-verify
+EOF
+  exit 1
+fi
+
+echo "[pre-push] lint clean — push allowed."
