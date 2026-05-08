@@ -7,6 +7,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-08
+
+Patch release. No functional, behavioural, or API changes — the public surface,
+performance characteristics, and security guarantees of `v1.0.0` are preserved
+in full. This release exists exclusively to clear cosmetic findings reported by
+the [Go Report Card](https://goreportcard.com/report/github.com/FlavioCFOliveira/MuxMaster)
+analysis on `v1.0.0` so adopters resolving the module via the Go module proxy
+see a 100 % score on the published tag.
+
+### Style
+
+- **`gofmt -s` simplification across 53 files** — re-aligned `var()` block
+  declarations, normalised numbered comment lists to godoc list style
+  (`//   1.` → `//  1.`), and adjusted whitespace in struct/literal
+  alignment. Affected files: `mux_test.go`, `middleware/oauth2.go`,
+  `middleware/middleware_test.go`, and 50 files under `reports/*/harness/`
+  used by the security audit harness suite. Diff: 490 insertions / 471
+  deletions; zero token-level semantic differences (verified with
+  `go vet`, `golangci-lint run` and the full test suite).
+
+### Quality
+
+- **Go Report Card now scores 100 % (A+)** — the 19 `gofmt -s` warnings
+  reported on `v1.0.0` are cleared. `go_vet`, `gocyclo`, `ineffassign`,
+  `license`, and `misspell` checks remain at 100 %.
+
 ## [1.0.0] - 2026-05-08
 
 First general-availability release. The public API is now stable; subsequent
