@@ -1,0 +1,67 @@
+version: 2
+
+updates:
+  # GitHub Actions versions used by every workflow.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "ci(deps)"
+      include: scope
+    groups:
+      actions-minor-and-patch:
+        patterns: ["*"]
+        update-types:
+          - minor
+          - patch
+
+  # Go modules. The core MuxMaster package has zero external deps, but
+  # the side modules (/competitor, /reports/*) and examples may pull in
+  # libraries that need patching.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - go
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
+
+  - package-ecosystem: gomod
+    directory: /competitor
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - go
+      - competitor
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
+
+  - package-ecosystem: gomod
+    directory: /examples/oauth2
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 1
+    labels:
+      - dependencies
+      - go
+      - examples
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
