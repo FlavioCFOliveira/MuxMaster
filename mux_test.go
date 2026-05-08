@@ -788,6 +788,116 @@ func TestTwoPhaseRegistrationPanic_LiveTreeIntact(t *testing.T) {
 	}
 }
 
+// COV-2026-006 — Group shortcuts (all method aliases).
+func TestGroup_AllMethodShortcuts(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	g := r.Group("/api")
+
+	type route struct {
+		method string
+		path   string
+		fn     func(string, http.HandlerFunc)
+	}
+	type eroute struct {
+		method string
+		path   string
+		fn     func(string, muxmaster.HandlerFuncE)
+	}
+
+	hf := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }
+	ef := func(w http.ResponseWriter, _ *http.Request) error { w.WriteHeader(http.StatusNoContent); return nil }
+
+	routes := []route{
+		{http.MethodGet, "/g", g.GET},
+		{http.MethodHead, "/h", g.HEAD},
+		{http.MethodPost, "/p", g.POST},
+		{http.MethodPut, "/u", g.PUT},
+		{http.MethodPatch, "/pa", g.PATCH},
+		{http.MethodDelete, "/d", g.DELETE},
+		{http.MethodOptions, "/o", g.OPTIONS},
+		{http.MethodConnect, "/c", g.CONNECT},
+		{http.MethodTrace, "/t", g.TRACE},
+	}
+	for _, rt := range routes {
+		rt.fn(rt.path, hf)
+	}
+	eroutes := []eroute{
+		{http.MethodGet, "/eg", g.GETE},
+		{http.MethodHead, "/eh", g.HEADE},
+		{http.MethodPost, "/ep", g.POSTE},
+		{http.MethodPut, "/eu", g.PUTE},
+		{http.MethodPatch, "/epa", g.PATCHE},
+		{http.MethodDelete, "/ed", g.DELETEE},
+		{http.MethodOptions, "/eo", g.OPTIONSE},
+	}
+	for _, rt := range eroutes {
+		rt.fn(rt.path, ef)
+	}
+
+	for _, rt := range routes {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(rt.method, "/api"+rt.path, nil))
+		if rec.Code != http.StatusNoContent {
+			t.Errorf("%s %s: status=%d", rt.method, rt.path, rec.Code)
+		}
+	}
+	for _, rt := range eroutes {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(rt.method, "/api"+rt.path, nil))
+		if rec.Code != http.StatusNoContent {
+			t.Errorf("%s %s: status=%d", rt.method, rt.path, rec.Code)
+		}
+	}
+}
+
+func TestGroup_ANY_Match_With(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	g := r.Group("/api")
+
+	g.ANY("/any", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	g.Match([]string{http.MethodGet, http.MethodPost}, "/match", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for _, m := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(m, "/api/any", nil))
+		if rec.Code != http.StatusOK {
+			t.Errorf("ANY %s: status=%d", m, rec.Code)
+		}
+	}
+	for _, m := range []string{http.MethodGet, http.MethodPost} {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(m, "/api/match", nil))
+		if rec.Code != http.StatusOK {
+			t.Errorf("Match %s: status=%d", m, rec.Code)
+		}
+	}
+	// Method outside allowlist must NOT match Match.
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodDelete, "/api/match", nil))
+	if rec.Code == http.StatusOK {
+		t.Errorf("Match DELETE should not match")
+	}
+
+	// With creates a copy with extra middleware
+	calls := 0
+	scoped := g.With(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			calls++
+			next.ServeHTTP(w, req)
+		})
+	})
+	scoped.GET("/with", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	rec = httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/with", nil))
+	if calls != 1 || rec.Code != http.StatusOK {
+		t.Errorf("With middleware: calls=%d code=%d", calls, rec.Code)
+	}
+}
+
 // COV-2026-005 — Mux.HandleE + all *E shortcuts.
 func TestHandleE_DefaultErrorHandler(t *testing.T) {
 	t.Parallel()
