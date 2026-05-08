@@ -988,6 +988,89 @@ func TestSec_TSC_2026_0008_APIKey_HeaderSymmetry(t *testing.T) {
 	}
 }
 
+// COV-2026-003 — Timeout middleware
+func TestTimeout_PanicOnZero(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic for d=0")
+		}
+	}()
+	_ = middleware.Timeout(0)
+}
+
+func TestTimeout_PanicOnNegative(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic for negative d")
+		}
+	}()
+	_ = middleware.Timeout(-1 * time.Second)
+}
+
+func TestTimeout_HandlerCompletesBeforeDeadline(t *testing.T) {
+	mw := middleware.Timeout(50 * time.Millisecond)
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	rec := httptest.NewRecorder()
+	wrapped.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if rec.Code != http.StatusOK {
+		t.Errorf("status=%d", rec.Code)
+	}
+}
+
+func TestTimeout_PropagatesContextCancellation(t *testing.T) {
+	mw := middleware.Timeout(20 * time.Millisecond)
+	var observedDone bool
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+			observedDone = true
+		case <-time.After(200 * time.Millisecond):
+		}
+		w.WriteHeader(http.StatusGatewayTimeout)
+	}))
+	rec := httptest.NewRecorder()
+	wrapped.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if !observedDone {
+		t.Error("ctx.Done() did not fire within timeout")
+	}
+}
+
+func TestTimeout_DeadlineSet(t *testing.T) {
+	mw := middleware.Timeout(100 * time.Millisecond)
+	var hadDeadline bool
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, hadDeadline = r.Context().Deadline()
+		w.WriteHeader(http.StatusOK)
+	}))
+	wrapped.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+	if !hadDeadline {
+		t.Error("expected deadline to be set on ctx")
+	}
+}
+
+func TestTimeout_ConcurrentIsolation(t *testing.T) {
+	mw := middleware.Timeout(200 * time.Millisecond)
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	const N = 32
+	var wg sync.WaitGroup
+	wg.Add(N)
+	for i := 0; i < N; i++ {
+		go func() {
+			defer wg.Done()
+			rec := httptest.NewRecorder()
+			wrapped.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+			if rec.Code != http.StatusOK {
+				t.Errorf("status=%d", rec.Code)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
 // MSR-2026-0071 — when the singleflight leader's request context is cancelled
 // (client disconnects before IDP responds), follower goroutines waiting on the
 // shared call must NOT be poisoned with a 401. The leader detaches its
