@@ -112,3 +112,96 @@ func ExampleParamsFromContext() {
 	// Output:
 	// year=2024 slug=hello-world
 }
+
+// ExampleMux_HandleFast demonstrates the FastHandler API for ultra-low-latency
+// routes. Params are passed directly as the third argument, avoiding the
+// context allocation cost of stdlib http.Handler routes.
+func ExampleMux_HandleFast() {
+	r := muxmaster.New()
+	r.HandleFast(http.MethodGet, "/users/:id", func(w http.ResponseWriter, _ *http.Request, ps muxmaster.Params) {
+		fmt.Fprintf(w, "fast user=%s", ps.Get("id"))
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/users/99", nil)
+	r.ServeHTTP(rec, req)
+
+	fmt.Println(rec.Body.String())
+	// Output:
+	// fast user=99
+}
+
+// ExamplePathParam demonstrates reading a path parameter from a request.
+func ExamplePathParam() {
+	r := muxmaster.New()
+	r.GET("/posts/:slug", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(w, "post=%s", muxmaster.PathParam(req, "slug"))
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/posts/hello-world", nil)
+	r.ServeHTTP(rec, req)
+
+	fmt.Println(rec.Body.String())
+	// Output:
+	// post=hello-world
+}
+
+// ExampleParams_Int demonstrates parsing a path parameter as an int directly.
+func ExampleParams_Int() {
+	r := muxmaster.New()
+	r.GET("/items/:n", func(w http.ResponseWriter, req *http.Request) {
+		ps := muxmaster.ParamsFromContext(req.Context())
+		n, err := ps.Int("n")
+		if err != nil {
+			fmt.Fprintf(w, "bad n: %v", err)
+			return
+		}
+		fmt.Fprintf(w, "n=%d", n*2)
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/items/21", nil)
+	r.ServeHTTP(rec, req)
+
+	fmt.Println(rec.Body.String())
+	// Output:
+	// n=42
+}
+
+// ExampleJSON demonstrates writing a JSON response with a status code.
+func ExampleJSON() {
+	r := muxmaster.New()
+	r.GET("/api/info", func(w http.ResponseWriter, _ *http.Request) {
+		_ = muxmaster.JSON(w, http.StatusOK, map[string]string{"v": "1"})
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/info", nil)
+	r.ServeHTTP(rec, req)
+
+	fmt.Println(rec.Body.String())
+	// Output:
+	// {"v":"1"}
+}
+
+// ExampleMux_Pre demonstrates registering Pre middleware that wraps both
+// stdlib (Handle) and fast (HandleFast) routes.
+func ExampleMux_Pre() {
+	r := muxmaster.New()
+	r.Pre(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("X-Pre", "yes")
+			next.ServeHTTP(w, req)
+		})
+	})
+	r.GET("/x", func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprintln(w, "ok")
+	})
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x", nil))
+	fmt.Println(rec.Header().Get("X-Pre"))
+	// Output:
+	// yes
+}
