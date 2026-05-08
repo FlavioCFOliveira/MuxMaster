@@ -1,7 +1,7 @@
 # Public API
 
 Auto-generated from `go doc`. Do not edit by hand —
-regenerate with: `make api` or `go doc -all . > api.md`.
+regenerate with: `make api`.
 
 See [COMPATIBILITY.md](./COMPATIBILITY.md) for the SemVer tier policy.
 
