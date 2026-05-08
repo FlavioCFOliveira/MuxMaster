@@ -788,6 +788,121 @@ func TestTwoPhaseRegistrationPanic_LiveTreeIntact(t *testing.T) {
 	}
 }
 
+// COV-2026-005 — Mux.HandleE + all *E shortcuts.
+func TestHandleE_DefaultErrorHandler(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.GETE("/boom", func(_ http.ResponseWriter, _ *http.Request) error {
+		return fmt.Errorf("explode")
+	})
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/boom", nil))
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("status=%d want 500", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Internal Server Error") {
+		t.Errorf("body=%q", rec.Body.String())
+	}
+}
+
+func TestHandleE_CustomErrorHandler(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	var captured error
+	r.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {
+		captured = err
+		w.WriteHeader(http.StatusTeapot)
+		_, _ = w.Write([]byte("custom"))
+	}
+	r.GETE("/x", func(_ http.ResponseWriter, _ *http.Request) error {
+		return fmt.Errorf("nope")
+	})
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x", nil))
+	if captured == nil {
+		t.Fatal("error handler not invoked")
+	}
+	if rec.Code != http.StatusTeapot {
+		t.Errorf("status=%d want 418", rec.Code)
+	}
+}
+
+func TestHandleE_NilErrorPassesThrough(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.GETE("/ok", func(w http.ResponseWriter, _ *http.Request) error {
+		w.WriteHeader(http.StatusOK)
+		return nil
+	})
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/ok", nil))
+	if rec.Code != http.StatusOK {
+		t.Errorf("status=%d", rec.Code)
+	}
+}
+
+func TestHandleE_AllShortcuts(t *testing.T) {
+	t.Parallel()
+	methods := []struct {
+		register func(*muxmaster.Mux, string, muxmaster.HandlerFuncE)
+		method   string
+	}{
+		{(*muxmaster.Mux).GETE, http.MethodGet},
+		{(*muxmaster.Mux).HEADE, http.MethodHead},
+		{(*muxmaster.Mux).POSTE, http.MethodPost},
+		{(*muxmaster.Mux).PUTE, http.MethodPut},
+		{(*muxmaster.Mux).PATCHE, http.MethodPatch},
+		{(*muxmaster.Mux).DELETEE, http.MethodDelete},
+		{(*muxmaster.Mux).OPTIONSE, http.MethodOptions},
+	}
+	for _, m := range methods {
+		t.Run(m.method, func(t *testing.T) {
+			r := muxmaster.New()
+			m.register(r, "/r", func(w http.ResponseWriter, _ *http.Request) error {
+				w.WriteHeader(http.StatusNoContent)
+				return nil
+			})
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest(m.method, "/r", nil))
+			if rec.Code != http.StatusNoContent {
+				t.Errorf("%s: status=%d", m.method, rec.Code)
+			}
+		})
+	}
+}
+
+func TestError_HTTPError(t *testing.T) {
+	e := muxmaster.Error(http.StatusBadRequest, fmt.Errorf("bad input"))
+	if e.StatusCode() != http.StatusBadRequest {
+		t.Errorf("code=%d", e.StatusCode())
+	}
+	if e.Error() != "bad input" {
+		t.Errorf("msg=%q", e.Error())
+	}
+}
+
+func TestError_Unwrap(t *testing.T) {
+	inner := fmt.Errorf("root cause")
+	e := muxmaster.Error(http.StatusBadRequest, inner)
+	type unwrapper interface{ Unwrap() error }
+	uw, ok := e.(unwrapper)
+	if !ok {
+		t.Fatal("Error does not implement Unwrap")
+	}
+	if uw.Unwrap() != inner {
+		t.Errorf("Unwrap=%v want %v", uw.Unwrap(), inner)
+	}
+}
+
+func TestError_PanicsOnNil(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic on nil err")
+		}
+	}()
+	_ = muxmaster.Error(500, nil)
+}
+
 // TestRegression_TM_2026_008 — UseFast on a Group must not cause Pre-registered
 // stdlib middleware on the parent Mux to be skipped on dispatch. Pre runs in
 // ServeHTTP before tree lookup, so it must wrap both stdlib and fast routes
