@@ -788,6 +788,110 @@ func TestTwoPhaseRegistrationPanic_LiveTreeIntact(t *testing.T) {
 	}
 }
 
+// COV-2026-015 — Mux fast/stdlib method shortcuts not yet covered.
+func TestMux_AllFastShortcuts(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	hf := func(_ http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {}
+	r.HEADFast("/h", hf)
+	r.POSTFast("/p", hf)
+	r.PUTFast("/u", hf)
+	r.PATCHFast("/pa", hf)
+	r.DELETEFast("/d", hf)
+	r.OPTIONSFast("/o", hf)
+	r.CONNECTFast("/c", hf)
+	r.TRACEFast("/t", hf)
+
+	for _, c := range []struct{ m, p string }{
+		{http.MethodHead, "/h"},
+		{http.MethodPost, "/p"},
+		{http.MethodPut, "/u"},
+		{http.MethodPatch, "/pa"},
+		{http.MethodDelete, "/d"},
+		{http.MethodOptions, "/o"},
+		{http.MethodConnect, "/c"},
+		{http.MethodTrace, "/t"},
+	} {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(c.m, c.p, nil))
+		// Empty handler returns 200 by default in net/http if w.WriteHeader
+		// not called — but stdlib RecordResponse defaults Code=200 too.
+		if rec.Code != 200 {
+			t.Errorf("%sFast(%s): code=%d", c.m, c.p, rec.Code)
+		}
+	}
+}
+
+func TestMux_AllStdlibShortcuts(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	hf := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(204) }
+	r.HEAD("/h", hf)
+	r.PUT("/u", hf)
+	r.PATCH("/pa", hf)
+	r.DELETE("/d", hf)
+	r.OPTIONS("/o", hf)
+	r.CONNECT("/c", hf)
+	r.TRACE("/t", hf)
+	for _, c := range []struct{ m, p string }{
+		{http.MethodHead, "/h"},
+		{http.MethodPut, "/u"},
+		{http.MethodPatch, "/pa"},
+		{http.MethodDelete, "/d"},
+		{http.MethodOptions, "/o"},
+		{http.MethodConnect, "/c"},
+		{http.MethodTrace, "/t"},
+	} {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(c.m, c.p, nil))
+		if rec.Code != 204 {
+			t.Errorf("%s(%s): code=%d", c.m, c.p, rec.Code)
+		}
+	}
+}
+
+func TestMux_ANY_Match_With_Route(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	hits := 0
+	r.ANY("/any", func(w http.ResponseWriter, _ *http.Request) { hits++; w.WriteHeader(200) })
+	r.Match([]string{http.MethodGet, http.MethodPost}, "/m", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }))
+
+	for _, m := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(m, "/any", nil))
+		if rec.Code != 200 {
+			t.Errorf("ANY %s: %d", m, rec.Code)
+		}
+	}
+	if hits == 0 {
+		t.Error("ANY never invoked")
+	}
+
+	// With creates a sub-mux scope.
+	scoped := r.With(func(next http.Handler) http.Handler { return next })
+	scoped.GET("/with", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/with", nil))
+	if rec.Code != 200 {
+		t.Errorf("With: %d", rec.Code)
+	}
+
+	// Route is the inline-grouping helper.
+	called := false
+	r.Route("/api", func(g *muxmaster.Group) {
+		g.GET("/info", func(w http.ResponseWriter, _ *http.Request) {
+			called = true
+			w.WriteHeader(200)
+		})
+	})
+	rec = httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/info", nil))
+	if !called {
+		t.Error("Route group handler not invoked")
+	}
+}
+
 // COV-2026-008 — Introspection: Lookup, Routes, Walk, WalkFast.
 func TestIntrospection_Lookup(t *testing.T) {
 	t.Parallel()
