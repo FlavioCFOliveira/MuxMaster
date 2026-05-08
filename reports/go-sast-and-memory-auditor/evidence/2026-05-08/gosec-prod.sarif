@@ -1,0 +1,75 @@
+[gosec] 2026/05/08 10:12:38 Including rules: default
+[gosec] 2026/05/08 10:12:38 Excluding rules: default
+[gosec] 2026/05/08 10:12:38 Including analyzers: default
+[gosec] 2026/05/08 10:12:38 Excluding analyzers: default
+[gosec] 2026/05/08 10:12:38 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster
+[gosec] 2026/05/08 10:12:38 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware
+[gosec] 2026/05/08 10:12:38 Checking package: middleware
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/api_key.go
+[gosec] 2026/05/08 10:12:38 Checking package: muxmaster
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/doc.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/basic_auth.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/clean_path.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/compress.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/cors.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/doc.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/jwt_auth.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/logger.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/no_cache.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/oauth2.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/real_ip.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/recoverer.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/request_id.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/set_header.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/strip_slashes.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/throttle.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/timeout.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/with_value.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/08 10:12:38 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+{
+	"runs": [
+		{
+			"results": [],
+			"taxonomies": [
+				{
+					"downloadUri": "https://cwe.mitre.org/data/xml/cwec_v4.4.xml.zip",
+					"guid": "f2856fc0-85b7-373f-83e7-6f8582243547",
+					"informationUri": "https://cwe.mitre.org/data/published/cwe_v4.4.pdf/",
+					"isComprehensive": true,
+					"language": "en",
+					"minimumRequiredLocalizedDataSemanticVersion": "4.4",
+					"name": "CWE",
+					"organization": "MITRE",
+					"releaseDateUtc": "2021-03-15",
+					"shortDescription": {
+						"text": "The MITRE Common Weakness Enumeration"
+					},
+					"version": "4.4"
+				}
+			],
+			"tool": {
+				"driver": {
+					"guid": "8b518d5f-906d-39f9-894b-d327b1a421c5",
+					"informationUri": "https://github.com/securego/gosec/",
+					"name": "gosec",
+					"semanticVersion": "dev",
+					"supportedTaxonomies": [
+						{
+							"guid": "f2856fc0-85b7-373f-83e7-6f8582243547",
+							"name": "CWE"
+						}
+					],
+					"version": "dev"
+				}
+			}
+		}
+	],
+	"$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+	"version": "2.1.0"
+}

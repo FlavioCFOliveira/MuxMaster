@@ -1,0 +1,6 @@
+[gosec] 2026/05/08 10:12:43 Including rules: default
+[gosec] 2026/05/08 10:12:43 Excluding rules: default
+[gosec] 2026/05/08 10:12:43 Including analyzers: default
+[gosec] 2026/05/08 10:12:43 Excluding analyzers: default
+[gosec] 2026/05/08 10:12:43 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/08 10:12:43 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go

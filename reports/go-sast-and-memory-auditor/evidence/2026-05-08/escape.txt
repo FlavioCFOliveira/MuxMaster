@@ -1,0 +1,209 @@
+middleware/api_key.go:31:9: "middleware: APIKey requires at least one key in opts.Keys" escapes to heap in APIKey:
+middleware/api_key.go:31:9:   flow: {heap} ← &{storage for "middleware: APIKey requires at least one key in opts.Keys"}:
+middleware/api_key.go:51:19: []string{...} escapes to heap in APIKey.func2.1:
+middleware/api_key.go:51:19:   flow: {heap} ← &{storage for []string{...}}:
+middleware/api_key.go:57:19: []string{...} escapes to heap in APIKey.func2.1:
+middleware/api_key.go:57:19:   flow: {heap} ← &{storage for []string{...}}:
+middleware/api_key.go:69:18: []string{...} escapes to heap in APIKey.func2.1:
+middleware/api_key.go:69:18:   flow: {heap} ← &{storage for []string{...}}:
+middleware/api_key.go:71:79: apiKeyCtxKey{} escapes to heap in APIKey.func2.1:
+middleware/api_key.go:71:79:   flow: {heap} ← &{storage for apiKeyCtxKey{}}:
+middleware/api_key.go:71:83: id escapes to heap in APIKey.func2.1:
+middleware/api_key.go:71:83:   flow: {heap} ← &{storage for id}:
+middleware/api_key.go:71:35: "nil context" escapes to heap in APIKey.func2.1:
+middleware/api_key.go:71:35:   flow: {heap} ← &{storage for "nil context"}:
+middleware/api_key.go:47:55: parameter r leaks to {heap} for APIKey.func2.1 with derefs=0:
+middleware/api_key.go:47:55:   flow: {heap} ← r:
+middleware/api_key.go:47:32: parameter w leaks to {heap} for APIKey.func2.1 with derefs=0:
+middleware/api_key.go:47:32:   flow: {heap} ← w:
+middleware/api_key.go:46:14: parameter next leaks to {heap} for APIKey.func2 with derefs=0:
+middleware/api_key.go:46:14:   flow: {heap} ← next:
+middleware/api_key.go:29:13: parameter opts leaks to {heap} for APIKey with derefs=1:
+middleware/api_key.go:29:13:   flow: {heap} ← id:
+middleware/api_key.go:71:63: context.backgroundCtx{} escapes to heap in APIKey.func2.1:
+middleware/api_key.go:71:63:   flow: {heap} ← ~r0:
+middleware/api_key.go:71:35: new(http.Request) escapes to heap in APIKey.func2.1:
+middleware/api_key.go:71:35:   flow: {heap} ← ~r0:
+middleware/api_key.go:47:27: func literal escapes to heap in APIKey.func2:
+middleware/api_key.go:39:13: func literal escapes to heap in APIKey:
+middleware/api_key.go:42:16: make(map[[32]byte]string, len(opts.Keys)) escapes to heap in APIKey:
+middleware/api_key.go:46:9: func literal escapes to heap in APIKey:
+middleware/api_key.go:31:9: "middleware: APIKey requires at least one key in opts.Keys" escapes to heap
+middleware/api_key.go:39:13: func literal escapes to heap
+middleware/api_key.go:42:16: make(map[[32]byte]string, len(opts.Keys)) escapes to heap
+middleware/api_key.go:46:9: func literal escapes to heap
+middleware/api_key.go:47:27: func literal escapes to heap
+middleware/api_key.go:51:19: []string{...} escapes to heap
+middleware/api_key.go:57:19: []string{...} escapes to heap
+middleware/api_key.go:69:18: []string{...} escapes to heap
+middleware/api_key.go:71:63: context.backgroundCtx{} escapes to heap
+middleware/api_key.go:71:79: apiKeyCtxKey{} escapes to heap
+middleware/api_key.go:71:83: id escapes to heap
+middleware/api_key.go:71:35: "nil context" escapes to heap
+middleware/api_key.go:71:35: new(http.Request) escapes to heap
+middleware/api_key.go:79:34: apiKeyCtxKey{} escapes to heap in GetAPIKeyIdentity:
+middleware/api_key.go:79:34:   flow: {heap} ← &{storage for apiKeyCtxKey{}}:
+middleware/api_key.go:78:24: parameter ctx leaks to {heap} for GetAPIKeyIdentity with derefs=0:
+middleware/api_key.go:78:24:   flow: {heap} ← ctx:
+middleware/api_key.go:79:34: apiKeyCtxKey{} escapes to heap
+middleware/basic_auth.go:17:9: "middleware: BasicAuth requires non-nil credentials map" escapes to heap in BasicAuth:
+middleware/basic_auth.go:17:9:   flow: {heap} ← &{storage for "middleware: BasicAuth requires non-nil credentials map"}:
+middleware/basic_auth.go:20:29: "strings.NewReplacer: odd argument count" escapes to heap in BasicAuth:
+middleware/basic_auth.go:20:29:   flow: {heap} ← &{storage for "strings.NewReplacer: odd argument count"}:
+middleware/basic_auth.go:55:18: []string{...} escapes to heap in BasicAuth.func1.1:
+middleware/basic_auth.go:55:18:   flow: {heap} ← &{storage for []string{...}}:
+middleware/basic_auth.go:15:16: parameter realm leaks to {heap} for BasicAuth with derefs=0:
+middleware/basic_auth.go:15:16:   flow: {heap} ← realm:
+middleware/basic_auth.go:32:14: parameter next leaks to {heap} for BasicAuth.func1 with derefs=0:
+middleware/basic_auth.go:32:14:   flow: {heap} ← next:
+middleware/basic_auth.go:33:32: parameter w leaks to {heap} for BasicAuth.func1.1 with derefs=0:
+middleware/basic_auth.go:33:32:   flow: {heap} ← w:
+middleware/basic_auth.go:33:55: parameter r leaks to {heap} for BasicAuth.func1.1 with derefs=0:
+middleware/basic_auth.go:33:55:   flow: {heap} ← r:
+middleware/basic_auth.go:20:29: &strings.Replacer{...} escapes to heap in BasicAuth:
+middleware/basic_auth.go:20:29:   flow: {heap} ← ~r0:
+middleware/basic_auth.go:55:60: "Basic realm=\"" + realm + "\"" escapes to heap in BasicAuth.func1.1:
+middleware/basic_auth.go:20:29: append(([]string)(nil), strings.oldnew...) escapes to heap in BasicAuth:
+middleware/basic_auth.go:33:27: func literal escapes to heap in BasicAuth.func1:
+middleware/basic_auth.go:24:21: make(map[string][32]byte, len(creds)) escapes to heap in BasicAuth:
+middleware/basic_auth.go:32:9: func literal escapes to heap in BasicAuth:
+middleware/basic_auth.go:17:9: "middleware: BasicAuth requires non-nil credentials map" escapes to heap
+middleware/basic_auth.go:20:29: "strings.NewReplacer: odd argument count" escapes to heap
+middleware/basic_auth.go:20:29: &strings.Replacer{...} escapes to heap
+middleware/basic_auth.go:20:29: append escapes to heap
+middleware/basic_auth.go:24:21: make(map[string][32]byte, len(creds)) escapes to heap
+middleware/basic_auth.go:32:9: func literal escapes to heap
+middleware/basic_auth.go:33:27: func literal escapes to heap
+middleware/basic_auth.go:55:60: "Basic realm=\"" + realm + "\"" escapes to heap
+middleware/basic_auth.go:55:18: []string{...} escapes to heap
+middleware/clean_path.go:14:14: parameter next leaks to {heap} for CleanPath.func1 with derefs=0:
+middleware/clean_path.go:14:14:   flow: {heap} ← next:
+middleware/clean_path.go:15:32: parameter w leaks to {heap} for CleanPath.func1.1 with derefs=0:
+middleware/clean_path.go:15:32:   flow: {heap} ← w:
+middleware/clean_path.go:15:55: parameter r leaks to {heap} for CleanPath.func1.1 with derefs=0:
+middleware/clean_path.go:15:55:   flow: {heap} ← r:
+middleware/clean_path.go:24:27: context.backgroundCtx{} escapes to heap in CleanPath.func1.1:
+middleware/clean_path.go:24:27:   flow: {heap} ← ~r0:
+middleware/clean_path.go:15:27: func literal escapes to heap in CleanPath.func1:
+middleware/clean_path.go:15:27: func literal escapes to heap
+middleware/clean_path.go:24:27: context.backgroundCtx{} escapes to heap
+middleware/clean_path.go:14:9: func literal escapes to heap in CleanPath:
+middleware/clean_path.go:14:9: func literal escapes to heap
+middleware/compress.go:64:9: append(textproto.h[textproto.key], textproto.value) escapes to heap in (*gzipResponseWriter).commit:
+middleware/compress.go:64:9:   flow: {heap} ← &{storage for append(textproto.h[textproto.key], textproto.value)}:
+middleware/compress.go:86:9: []string{...} escapes to heap in (*gzipResponseWriter).commit:
+middleware/compress.go:86:9:   flow: {heap} ← &{storage for []string{...}}:
+middleware/compress.go:57:7: parameter g leaks to {heap} for (*gzipResponseWriter).commit with derefs=1:
+middleware/compress.go:57:7:   flow: {heap} ← *g:
+middleware/compress.go:64:9: append escapes to heap
+middleware/compress.go:86:9: []string{...} escapes to heap
+middleware/compress.go:39:17: append(g.buf, b...) escapes to heap in (*gzipResponseWriter).Write:
+middleware/compress.go:39:17:   flow: {heap} ← &{storage for append(g.buf, b...)}:
+middleware/compress.go:43:16: append(g.buf, b[:room]...) escapes to heap in (*gzipResponseWriter).Write:
+middleware/compress.go:43:16:   flow: {heap} ← &{storage for append(g.buf, b[:room]...)}:
+middleware/compress.go:29:7: parameter g leaks to {heap} for (*gzipResponseWriter).Write with derefs=1:
+middleware/compress.go:29:7:   flow: {heap} ← *g:
+middleware/compress.go:29:36: parameter b leaks to {heap} for (*gzipResponseWriter).Write with derefs=0:
+middleware/compress.go:29:36:   flow: {heap} ← b:
+middleware/compress.go:39:17: append escapes to heap
+middleware/compress.go:43:16: append escapes to heap
+middleware/compress.go:127:7: parameter g leaks to {heap} for (*gzipResponseWriter).close with derefs=1:
+middleware/compress.go:127:7:   flow: {heap} ← *g:
+middleware/compress.go:178:46: "middleware: invalid gzip level: " + err.Error() escapes to heap in Compress.func1:
+middleware/compress.go:178:46:   flow: {heap} ← &{storage for "middleware: invalid gzip level: " + err.Error()}:
+middleware/compress.go:178:46: "middleware: invalid gzip level: " + err.Error() escapes to heap in Compress.func1:
+middleware/compress.go:186:14: parameter next leaks to {heap} for Compress.func2 with derefs=0:
+middleware/compress.go:186:14:   flow: {heap} ← next:
+middleware/compress.go:187:32: parameter w leaks to {heap} for Compress.func2.1 with derefs=0:
+middleware/compress.go:187:32:   flow: {heap} ← w:
+middleware/compress.go:187:55: parameter r leaks to {heap} for Compress.func2.1 with derefs=0:
+middleware/compress.go:187:55:   flow: {heap} ← r:
+middleware/compress.go:174:10: &sync.Pool{...} escapes to heap in Compress:
+middleware/compress.go:174:10:   flow: {heap} ← pool:
+middleware/compress.go:192:11: &gzipResponseWriter{...} escapes to heap in Compress.func2.1:
+middleware/compress.go:192:11:   flow: {heap} ← grw:
+middleware/compress.go:175:8: func literal escapes to heap in Compress:
+middleware/compress.go:187:27: func literal escapes to heap in Compress.func2:
+middleware/compress.go:186:9: func literal escapes to heap in Compress:
+middleware/compress.go:174:10: &sync.Pool{...} escapes to heap
+middleware/compress.go:175:8: func literal escapes to heap
+middleware/compress.go:178:46: "middleware: invalid gzip level: " + err.Error() escapes to heap
+middleware/compress.go:178:46: "middleware: invalid gzip level: " + err.Error() escapes to heap
+middleware/compress.go:186:9: func literal escapes to heap
+middleware/compress.go:187:27: func literal escapes to heap
+middleware/compress.go:192:11: &gzipResponseWriter{...} escapes to heap
+middleware/cors.go:49:100: "middleware: CORS requires a non-empty AllowedOrigins (use []string{\... escapes to heap in CORS:
+middleware/cors.go:49:100:   flow: {heap} ← &{storage for "middleware: CORS requires a non-empty AllowedOrigins (use []string{\...}:
+middleware/cors.go:54:10: "middleware: CORS AllowCredentials must not be true when AllowedOrigi... escapes to heap in CORS:
+middleware/cors.go:54:10:   flow: {heap} ← &{storage for "middleware: CORS AllowCredentials must not be true when AllowedOrigi...}:
+middleware/cors.go:92:10: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:92:10:   flow: {heap} ← &{storage for []string{...}}:
+middleware/cors.go:94:10: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:94:10:   flow: {heap} ← &{storage for []string{...}}:
+middleware/cors.go:98:10: append(textproto.h[textproto.key], textproto.value) escapes to heap in CORS.func1.1:
+middleware/cors.go:98:10:   flow: {heap} ← &{storage for append(textproto.h[textproto.key], textproto.value)}:
+middleware/cors.go:101:10: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:101:10:   flow: {heap} ← &{storage for []string{...}}:
+middleware/cors.go:104:10: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:104:10:   flow: {heap} ← &{storage for []string{...}}:
+middleware/cors.go:108:11: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:108:11:   flow: {heap} ← &{storage for []string{...}}:
+middleware/cors.go:111:11: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:111:11:   flow: {heap} ← &{storage for []string{...}}:
+middleware/cors.go:114:11: []string{...} escapes to heap in CORS.func1.1:
+middleware/cors.go:114:11:   flow: {heap} ← &{storage for []string{...}}:
+middleware/cors.go:69:14: parameter next leaks to {heap} for CORS.func1 with derefs=0:
+middleware/cors.go:69:14:   flow: {heap} ← next:
+middleware/cors.go:70:32: parameter w leaks to {heap} for CORS.func1.1 with derefs=0:
+middleware/cors.go:70:32:   flow: {heap} ← w:
+middleware/cors.go:70:55: parameter r leaks to {heap} for CORS.func1.1 with derefs=0:
+middleware/cors.go:70:55:   flow: {heap} ← r:
+middleware/cors.go:47:11: parameter opts leaks to {heap} for CORS with derefs=1:
+middleware/cors.go:47:11:   flow: {heap} ← o:
+middleware/cors.go:70:27: func literal escapes to heap in CORS.func1:
+middleware/cors.go:57:24: make(map[string]bool, len(opts.AllowedOrigins)) escapes to heap in CORS:
+middleware/cors.go:69:9: func literal escapes to heap in CORS:
+middleware/cors.go:49:100: "middleware: CORS requires a non-empty AllowedOrigins (use []string{\... escapes to heap
+middleware/cors.go:54:10: "middleware: CORS AllowCredentials must not be true when AllowedOrigi... escapes to heap
+middleware/cors.go:57:24: make(map[string]bool, len(opts.AllowedOrigins)) escapes to heap
+middleware/cors.go:69:9: func literal escapes to heap
+middleware/cors.go:70:27: func literal escapes to heap
+middleware/cors.go:92:10: []string{...} escapes to heap
+middleware/cors.go:94:10: []string{...} escapes to heap
+middleware/cors.go:98:10: append escapes to heap
+middleware/cors.go:101:10: []string{...} escapes to heap
+middleware/cors.go:104:10: []string{...} escapes to heap
+middleware/cors.go:108:11: []string{...} escapes to heap
+middleware/cors.go:111:11: []string{...} escapes to heap
+middleware/cors.go:114:11: []string{...} escapes to heap
+middleware/jwt_auth.go:77:42: parameter key leaks to {heap} for newJWTHMACPool with derefs=0:
+middleware/jwt_auth.go:77:42:   flow: {heap} ← key:
+middleware/jwt_auth.go:78:9: &jwtHMACPool{...} escapes to heap in newJWTHMACPool:
+middleware/jwt_auth.go:78:40: func literal escapes to heap in newJWTHMACPool:
+middleware/jwt_auth.go:78:9: &jwtHMACPool{...} escapes to heap
+middleware/jwt_auth.go:78:40: func literal escapes to heap
+middleware/jwt_auth.go:81:7: parameter p leaks to {heap} for (*jwtHMACPool).verify with derefs=0:
+middleware/jwt_auth.go:81:7:   flow: {heap} ← p:
+middleware/jwt_auth.go:81:30: parameter msg leaks to {heap} for (*jwtHMACPool).verify with derefs=0:
+middleware/jwt_auth.go:81:30:   flow: {heap} ← msg:
+middleware/jwt_auth.go:398:21: parameter pub leaks to {heap} for verifyECDSAJWT with derefs=1:
+middleware/jwt_auth.go:398:21:   flow: {heap} ← *pub:
+middleware/jwt_auth.go:307:6: hdr escapes to heap in parseAndValidateJWT:
+middleware/jwt_auth.go:307:6:   flow: {heap} ← &hdr:
+middleware/jwt_auth.go:328:31: ([]byte)(signingInput) escapes to heap in parseAndValidateJWT:
+middleware/jwt_auth.go:328:31:   flow: {heap} ← &{storage for ([]byte)(signingInput)}:
+middleware/jwt_auth.go:337:6: raw escapes to heap in parseAndValidateJWT:
+middleware/jwt_auth.go:337:6:   flow: {heap} ← &raw:
+middleware/jwt_auth.go:379:12: &JWTClaims{...} escapes to heap in parseAndValidateJWT:
+middleware/jwt_auth.go:307:6: moved to heap: hdr
+middleware/jwt_auth.go:337:6: moved to heap: raw
+middleware/jwt_auth.go:328:31: ([]byte)(signingInput) escapes to heap
+middleware/jwt_auth.go:379:12: &JWTClaims{...} escapes to heap
+middleware/jwt_auth.go:98:9: "middleware: JWTAuth requires at least one algorithm in opts.Algorithms" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:98:9:   flow: {heap} ← &{storage for "middleware: JWTAuth requires at least one algorithm in opts.Algorithms"}:
+middleware/jwt_auth.go:148:11: "middleware: JWTAuth HS256 requires opts.Secret" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:148:11:   flow: {heap} ← &{storage for "middleware: JWTAuth HS256 requires opts.Secret"}:
+middleware/jwt_auth.go:153:11: "middleware: JWTAuth HS384 requires opts.Secret" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:153:11:   flow: {heap} ← &{storage for "middleware: JWTAuth HS384 requires opts.Secret"}:
+middleware/jwt_auth.go:158:11: "middleware: JWTAuth HS512 requires opts.Secret" escapes to heap in JWTAuth:
+middleware/jwt_auth.go:158:11:   flow: {heap} ← &{storage for "middlewar

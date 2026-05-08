@@ -760,8 +760,12 @@ r.Use(middleware.Timeout(10 * time.Second))
 // Attach a unique X-Request-Id header to every request
 r.Use(middleware.RequestID)
 
-// Trust X-Forwarded-For / X-Real-IP from a reverse proxy
-r.Use(middleware.RealIP)
+// Trust X-Forwarded-For / X-Real-IP only from a known reverse proxy.
+// SECURITY: never call middleware.RealIP() without trusted CIDRs in
+// production — every peer would be allowed to spoof these headers
+// (TM-2026-044). See "Security defaults" below.
+proxyCIDR := netip.MustParsePrefix("10.0.0.0/8")
+r.Use(middleware.RealIP(&proxyCIDR))
 
 // Set a custom response header on every request
 r.Use(middleware.SetHeader("X-Content-Type-Options", "nosniff"))
@@ -795,14 +799,18 @@ r.GET("/api/data", func(w http.ResponseWriter, r *http.Request) {
 #### JWT Bearer Token Authentication
 
 ```go
-// Validate JWT tokens from the Authorization header:
+// Validate JWT tokens from the Authorization header.
+// RequireExpiry: true rejects tokens without an "exp" claim, per
+// RFC 8725 §4.4 — without it, a stolen token is valid forever
+// (TM-2026-001). See "Security defaults" below.
 pubKey, _ := jwt.ReadFile("public.pem")  // *ecdsa.PublicKey or *rsa.PublicKey
 r.Use(middleware.JWTAuth(middleware.JWTOptions{
-    PublicKey:  pubKey,
-    Algorithms: []string{"ES256"},
-    Issuers:    []string{"https://auth.example.com"},
-    Audiences:  []string{"https://api.example.com"},
-    ClockSkew:  5 * time.Second,  // tolerance for exp/nbf
+    PublicKey:     pubKey,
+    Algorithms:    []string{"ES256"},
+    Issuers:       []string{"https://auth.example.com"},
+    Audiences:     []string{"https://api.example.com"},
+    ClockSkew:     5 * time.Second, // tolerance for exp/nbf
+    RequireExpiry: true,            // RFC 8725 §4.4 — strongly recommended
 }))
 
 r.GET("/api/profile", func(w http.ResponseWriter, r *http.Request) {
@@ -827,6 +835,42 @@ r.GET("/api/resource", func(w http.ResponseWriter, r *http.Request) {
     introspect, _ := middleware.GetOAuth2Claims(r.Context())
     fmt.Fprintf(w, "scope: %s\n", introspect.Scope)
 })
+```
+
+### Security defaults
+
+Three middleware components have backwards-compatible defaults that are
+**unsafe in production**. The defaults exist so trivial test code keeps
+working; production deployments MUST opt into the safer values listed
+below. Each middleware emits a `slog.Warn` at construction time when it
+detects the unsafe default — search your startup logs for those warnings.
+Full discussion is in [`SECURITY.md`](SECURITY.md).
+
+| Middleware                | Unsafe default                                             | Safe production setting                                              | Finding ID    |
+|---------------------------|------------------------------------------------------------|----------------------------------------------------------------------|---------------|
+| `JWTAuth`                 | `RequireExpiry: false` accepts tokens with no `exp` claim — replayable forever | `RequireExpiry: true` (per RFC 8725 §4.4)                            | TM-2026-001   |
+| `RealIP()`                | Called with no CIDRs trusts every peer to spoof XFF / X-Real-IP | `RealIP(&proxyCIDR)` with the trusted reverse-proxy CIDR list        | TM-2026-044   |
+| `OAuth2Introspect`        | `AllowInsecureEndpoint: true` sends bearer tokens over plaintext | Leave `AllowInsecureEndpoint: false` (default) — HTTPS endpoint only | MSR-2026-0067 |
+
+The `examples/jwt`, `examples/oauth2`, and `examples/authn` programs
+demonstrate the hardened pattern (see also "Composite token-handling
+stack" / CDX-S8-001 in `SECURITY.md`):
+
+```go
+trusted := netip.MustParsePrefix("10.0.0.0/8")
+
+// (1) Pre runs before dispatch — covers Handle and HandleFast routes.
+r.Pre(middleware.RealIP(&trusted))
+
+// (2) Use composes inside the dispatch chain on stdlib routes.
+r.Use(
+    middleware.ThrottlePerIP(100, 5*time.Second, nil),
+    middleware.JWTAuth(middleware.JWTOptions{
+        Secret:        secret,
+        Algorithms:    []string{"HS256"},
+        RequireExpiry: true, // required in production
+    }),
+)
 ```
 
 ---

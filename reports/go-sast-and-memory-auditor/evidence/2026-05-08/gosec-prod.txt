@@ -1,0 +1,83 @@
+[gosec] 2026/05/08 10:12:44 Including rules: default
+[gosec] 2026/05/08 10:12:44 Excluding rules: default
+[gosec] 2026/05/08 10:12:44 Including analyzers: default
+[gosec] 2026/05/08 10:12:44 Excluding analyzers: default
+[gosec] 2026/05/08 10:12:44 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+[gosec] 2026/05/08 10:12:44 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+[gosec] 2026/05/08 10:12:44 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+[gosec] 2026/05/08 10:12:44 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/group.go
+[gosec] 2026/05/08 10:12:44 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/response.go
+[gosec] 2026/05/08 10:12:44 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware
+[gosec] 2026/05/08 10:12:44 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/introspection.go
+[gosec] 2026/05/08 10:12:44 Import directory: /data/dev/github.com/FlavioCFOliveira/MuxMaster/handler.go
+[gosec] 2026/05/08 10:12:44 Checking package: middleware
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/api_key.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/basic_auth.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/clean_path.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/compress.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/cors.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/doc.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/jwt_auth.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/logger.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/no_cache.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/oauth2.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/real_ip.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/recoverer.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/request_id.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/set_header.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/strip_slashes.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/throttle.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/timeout.go
+[gosec] 2026/05/08 10:12:44 Checking file: /data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/with_value.go
+Results:
+
+Golang errors in file: [./group.go]:
+
+  > [line 0 : column 0] - importing dir "./group.go": cannot find package "." in:
+	group.go
+
+
+Golang errors in file: [./handler.go]:
+
+  > [line 0 : column 0] - importing dir "./handler.go": cannot find package "." in:
+	handler.go
+
+
+Golang errors in file: [./introspection.go]:
+
+  > [line 0 : column 0] - importing dir "./introspection.go": cannot find package "." in:
+	introspection.go
+
+
+Golang errors in file: [./mux.go]:
+
+  > [line 0 : column 0] - importing dir "./mux.go": cannot find package "." in:
+	mux.go
+
+
+Golang errors in file: [./params.go]:
+
+  > [line 0 : column 0] - importing dir "./params.go": cannot find package "." in:
+	params.go
+
+
+Golang errors in file: [./response.go]:
+
+  > [line 0 : column 0] - importing dir "./response.go": cannot find package "." in:
+	response.go
+
+
+Golang errors in file: [./tree.go]:
+
+  > [line 0 : column 0] - importing dir "./tree.go": cannot find package "." in:
+	tree.go
+
+
+
+[1;36mSummary:[0m
+  Gosec  : dev
+  Files  : 18
+  Lines  : 2001
+  Nosec  : 0
+  Issues : [1;32m0[0m
+

@@ -7,6 +7,66 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-08
+
+First general-availability release. The public API is now stable; subsequent
+1.x releases are bound by the Semantic Versioning compatibility guarantees
+documented in `COMPATIBILITY.md`. There are no breaking changes between
+`v1.0.0-rc1` and `v1.0.0`.
+
+### Security
+
+- **OAuth2Introspect: redact endpoint URL in slog warning (TM-2026-005, sev 4)** —
+  the construction-time `slog.Warn` issued when `AllowInsecureEndpoint=true` no
+  longer logs the full endpoint URL. Only the resolved `host` and `scheme` are
+  emitted, preventing query-string credentials (e.g. `?client_secret=...`) from
+  leaking to slog sinks. `middleware/oauth2.go:229`.
+- **SECURITY.md: add "Resolved Findings (v1.0.0)" section** enumerating
+  CSA-2026-0060 (sev 8), HPS-2026-0005 (sev 7), FPE-2026-010 (sev 6), and
+  TM-2026-005 (sev 4) with their fix locations so adopters can verify by ID
+  that each issue is closed.
+- **SECURITY.md: document operator-facing defaults requiring opt-in** —
+  `JWTAuth.RequireExpiry`, `RealIP()` trusted CIDRs, and OAuth2 HTTPS-only
+  endpoint are now listed in a single matrix.
+- **Sprint S10 pre-release closure** — the `concurrency-security-auditor`,
+  `middleware-security-reviewer`, `path-routing-fuzzer`, and
+  `go-sast-and-memory-auditor` agents reran the full hypothesis battery
+  against HEAD: 9/9 TM-CSA hypotheses REFUTED, 6/6 TM-MSR domains covered,
+  fuzz harness (`prerelease_v100_test.go`) clean, SAST clean. Evidence
+  archived under `/reports/<agent>/2026-05-08-*/`.
+
+### Documentation
+
+- **Add `docs/observability.md`** — structured logging with `slog`,
+  `RequestID` correlation, custom Prometheus metrics middleware
+  pattern, OpenTelemetry tracing pattern, health checks, and pprof
+  integration. The router stays zero-dep; operators bring their own
+  metrics/tracing SDK.
+- **Add `examples/graceful-shutdown/`** — production-ready pattern
+  demonstrating signal-driven `srv.Shutdown(ctx)` with bounded drain
+  deadline, the recommended `http.Server` timeout set
+  (`ReadHeaderTimeout`, `ReadTimeout`, `WriteTimeout`, `IdleTimeout`),
+  and a cooperative handler that yields to context cancellation.
+- **README: add "Security defaults" section** consolidating the three
+  unsafe-by-default middleware options (`JWTAuth.RequireExpiry`,
+  `RealIP()` no CIDRs, `OAuth2Introspect.AllowInsecureEndpoint`) with
+  the recommended hardened-stack snippet.
+- **README: fix unsafe snippets** — the `Trust X-Forwarded-For` example
+  now passes a trusted CIDR; the JWT example now sets
+  `RequireExpiry: true`.
+- **JWTAuth.RequireExpiry GoDoc** strengthened — explicit "DO NOT use
+  in production" caveat on the `false` default plus pointer to
+  RFC 8725 §4.4 (TM-2026-001).
+- **`docs/README.md`: index Observability page** so adopters can find
+  the operability guide from the documentation hub.
+
+### Changed
+
+- **`.gitignore`: ignore example binaries** (`examples/oauth2/oauth2`,
+  `examples/server-side-render/server-side-render`,
+  `examples/graceful-shutdown/graceful-shutdown`) to prevent accidental
+  commits of build artefacts.
+
 ## [1.0.0-rc1] - 2026-05-08
 
 First release candidate. Public API is considered stable; breaking
@@ -61,5 +121,6 @@ discussed in a GitHub issue before landing.
 - **Configuration snapshot** — Mux flags are frozen into a `muxConfig` snapshot on the first `ServeHTTP` call; subsequent requests use a single atomic pointer load instead of 6–8 struct field reads
 - **FastHandler footprint** — `FastHandler` struct reduced to 32 B (from 128 B) via exact `Params` slice allocation bounded by `maxParams = 3`
 
-[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.0-rc1...HEAD
+[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.0-rc1...v1.0.0
 [1.0.0-rc1]: https://github.com/FlavioCFOliveira/MuxMaster/releases/tag/v1.0.0-rc1

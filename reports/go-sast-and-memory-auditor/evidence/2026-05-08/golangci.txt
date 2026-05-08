@@ -1,0 +1,5 @@
+reports/concurrency-security-auditor/harness/2026-05-08-S10-PreCSA/s10_cl_auth1_test.go:1: : # github.com/FlavioCFOliveira/MuxMaster/reports/concurrency-security-auditor/harness/2026-05-08-S10-PreCSA_test [github.com/FlavioCFOliveira/MuxMaster/reports/concurrency-security-auditor/harness/2026-05-08-S10-PreCSA.test]
+reports/concurrency-security-auditor/harness/2026-05-08-S10-PreCSA/s10_tm019_oauth2_eviction_test.go:181:14: undefined: fakeIntrospectSrv (typecheck)
+// Package s10 contains the S10-PreCSA mini-sprint harness.
+1 issues:
+* typecheck: 1

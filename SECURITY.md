@@ -18,6 +18,61 @@ You will receive an acknowledgement within 72 hours. We aim to release a fix
 within 14 days for critical issues and 30 days for others. We will credit you
 in the release notes unless you prefer to remain anonymous.
 
+## Resolved Findings (v1.0.0)
+
+The router has been audited across nine specialist sprints (S1..S9) plus
+two pre-release mini-sprints (S10-PreCSA, S10-PreMSR) covering 95+
+findings and 51 explicit threat-model hypotheses (TM-2026-001..051).
+The full evidence is preserved under
+[`/reports/`](reports/) — every harness is reproducible with
+`go test -race`.
+
+The four findings that materially gated the v1.0.0 release are listed
+here for operator awareness. All are fixed in code at the v1.0.0 tag;
+this section exists so a security-conscious adopter can verify by ID
+that the issue is closed.
+
+| ID | Sev | Class | Summary | Fix location | Status |
+|---|---|---|---|---|---|
+| **CSA-2026-0060** | 8 | CWE-440 / CWE-863 | `ParamsFromContext()` silently returned empty params when any `Use()`-registered middleware wrapped the request context (`Timeout`, `WithValue`, `RealIP`). An auth handler comparing `:userID` to a JWT subject would see `""` and could grant or deny access incorrectly. | `params.go:357-378` — slow-path `ctx.Value` fallback gated by reflection-discovered `hasReqCtxField` | **FIXED** |
+| **HPS-2026-0005** | 7 | CWE-601 | When the request line used absolute-form URI (RFC 7230 §5.3.2, e.g. `GET http://evil.com/x HTTP/1.1`), `RedirectTrailingSlash` and `RedirectFixedPath` echoed the attacker-controlled scheme + host into the `Location` header — open redirect. | `mux.go:945, 960` — `Location` is now built from a path-only `url.URL` so the scheme + host can never originate from request input | **FIXED** |
+| **FPE-2026-010** | 6 | CWE-693 / CWE-863 | Calling `Mux.Use(authMW)` followed by `Mux.HandleFast(...)` silently registered a fast route with NO middleware applied. `Use()`'s GoDoc explicitly claimed this combination panics — but the panic guard from CSA-2026-0054 was only wired to `Group.HandleFast`, not root `Mux.HandleFast`. | `mux.go:435-445` — root `HandleFast` panics when `Use()`-registered middleware is present, mirroring `Group.HandleFast` | **FIXED** |
+| **TM-2026-005** | 4 | CWE-532 | The construction-time `slog.Warn` issued when `OAuth2Introspect` is configured with `AllowInsecureEndpoint: true` logged the full endpoint URL — including any credentials embedded in the query string. | `middleware/oauth2.go:229-233` — log `host` + `scheme` only, never the full URL | **FIXED** |
+
+### Audit-trail breakdown
+
+- **S1..S6:** initial security battery covering SAST, supply-chain, HTTP protocol, path-routing, DoS, concurrency, middleware, timing.
+- **S7:** focused fuzzing + property-based test infrastructure.
+- **S8:** delta-driven re-validation of S1..S7 closures with new harnesses.
+- **S9:** pre-release Onda 2 consolidation (95+ findings, 51 hypotheses,
+  three composite-attack hypotheses TM-COMPOSITE-2026-001..003).
+- **S10-PreCSA / S10-PreMSR:** S9 follow-up to close the
+  budget-exhaustion gaps. **9 of 9** UNTESTED concurrency hypotheses
+  (TM-007/008/019/025/027/028/036/037/045) **REFUTED** under
+  `-race -count=3`. **6 of 6** middleware hypotheses
+  (TM-001/002/004/005/022/044) closed (4 REFUTED, 2 documented as
+  defaults requiring operator opt-in).
+
+The maturity verdict (production-readiness for high-load, stress, and
+high-concurrency environments) is recorded in
+[`/reports/overview/2026-05-08-final-maturity-verdict.md`](reports/overview/2026-05-08-final-maturity-verdict.md).
+
+### Operator-facing defaults requiring opt-in
+
+Three middleware components ship with backwards-compatible defaults
+that are unsafe in production. Each emits a `slog.Warn` at construction
+time when the unsafe default is in effect; search startup logs for these
+warnings.
+
+| Middleware                 | Unsafe default                                  | Safe production setting                                | Finding ID    |
+|----------------------------|-------------------------------------------------|--------------------------------------------------------|---------------|
+| `JWTAuth`                  | `RequireExpiry: false` (no `exp` ⇒ replayable) | `RequireExpiry: true` (RFC 8725 §4.4)                  | TM-2026-001   |
+| `RealIP()`                 | called with no CIDRs                            | `RealIP(&proxyCIDR)` with explicit trusted CIDR list   | TM-2026-044   |
+| `OAuth2Introspect`         | `AllowInsecureEndpoint: true`                   | leave `false` — HTTPS endpoint only                    | MSR-2026-0067 |
+
+The README "Security defaults" section reproduces this matrix and the
+hardened-stack snippet.
+
 ## Thread-Safety Contract (MM-2026-0017 / CSA-2026-0052)
 
 All public `Mux` fields (`PanicHandler`, `NotFound`, `MethodNotAllowed`,

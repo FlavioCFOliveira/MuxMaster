@@ -64,7 +64,15 @@ type JWTOptions struct {
 	// RequireExpiry, when true, rejects any token whose payload has no "exp"
 	// claim. RFC 8725 §4.4 recommends rejecting tokens without expiry unless
 	// there is a compelling reason: a stolen token without "exp" is valid
-	// indefinitely. Default: false (backward compatible).
+	// indefinitely (TM-2026-001).
+	//
+	// SECURITY: production deployments SHOULD set RequireExpiry: true. The
+	// default is false ONLY for backward compatibility with code written
+	// before this option existed. JWTAuth emits a slog.Warn at construction
+	// time when this option is left at the unsafe default so the
+	// misconfiguration is visible in startup logs.
+	//
+	// Default: false (backward compatible — DO NOT use in production).
 	RequireExpiry bool
 }
 

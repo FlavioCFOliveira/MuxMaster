@@ -192,7 +192,7 @@ r.Use(requireAuth)
 r.GET("/private", privateHandler) // wrapped by auth
 ```
 
-This design eliminates per-request middleware iteration and contributes to zero allocations on the hot path.
+This design eliminates per-request middleware iteration. Combined with the radix tree and the tiered request bundle described in [Performance](performance.md), it allows static routes to dispatch with zero allocations and parameterised routes with a single fused allocation.
 
 ---
 

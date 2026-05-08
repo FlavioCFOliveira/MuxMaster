@@ -226,12 +226,13 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 		if !opts.AllowInsecureEndpoint {
 			panic("middleware: OAuth2Introspect: Endpoint must use https:// — bearer tokens over plaintext leak to passive observers (RFC 7662 §4). Set OAuth2Options.AllowInsecureEndpoint=true ONLY for testing.")
 		}
+		// TM-2026-005: log only the resolved host (no userinfo, no path, no
+		// query) so operators can see where their tokens are being sent
+		// without leaking credentials embedded in the URL via slog sinks.
 		slog.Warn("OAuth2Introspect: insecure plaintext endpoint accepted via AllowInsecureEndpoint — bearer tokens transmitted in clear",
-			"endpoint", opts.Endpoint, "scheme", parsedEndpoint.Scheme, "host", parsedEndpoint.Host)
+			"host", parsedEndpoint.Host, "scheme", parsedEndpoint.Scheme)
 	}
-	// TM-2026-005: log only the resolved host (no userinfo, no path/query) so
-	// operators can see where their tokens are being sent without leaking
-	// secrets via slog sinks.
+	// TM-2026-005: same redaction policy for the construction-time info log.
 	slog.Info("OAuth2Introspect: configured", "host", parsedEndpoint.Host, "scheme", parsedEndpoint.Scheme)
 	cacheTTL := opts.CacheTTL
 	if cacheTTL == 0 {

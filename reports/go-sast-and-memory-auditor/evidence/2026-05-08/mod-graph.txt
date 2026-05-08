@@ -1,0 +1,2 @@
+github.com/FlavioCFOliveira/MuxMaster go@1.26
+go@1.26 toolchain@go1.26

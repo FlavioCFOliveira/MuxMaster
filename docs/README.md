@@ -13,7 +13,8 @@ Welcome to the MuxMaster documentation. Use the table below to navigate to the t
 | [Error Handling](error-handling.md) | `HandlerFuncE`, `HTTPError`, custom error handlers, 404/405 handlers, and panic recovery |
 | [Configuration](configuration.md) | Every `*Mux` field with its default value, semantics, and example |
 | [Response Helpers](response-helpers.md) | `JSON`, `XML`, `Text`, `Redirect`, `NoContent` |
-| [Performance](performance.md) | How MuxMaster achieves zero allocations, benchmark results, and comparison notes against httprouter, bunrouter, and chi |
+| [Performance](performance.md) | How MuxMaster minimises allocations, benchmark results on AMD Ryzen 9 5900HX (Go 1.26.2), sustained-load numbers, and comparison notes against httprouter, bunrouter, and chi |
+| [Observability](observability.md) | Structured logging, request correlation, custom Prometheus metrics, OpenTelemetry tracing, health checks, pprof |
 | [Migration Guide](migration.md) | Step-by-step migration from gorilla/mux, chi, httprouter, and `net/http.ServeMux` |
 | [Cookbook](cookbook.md) | Ready-to-use patterns: REST API structure, JWT auth, validation, pagination, graceful shutdown, CORS for SPAs, testing, and more |
 
