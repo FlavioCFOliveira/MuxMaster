@@ -801,11 +801,12 @@ func TestMux_NotFound_DefaultAndCustom(t *testing.T) {
 		t.Errorf("default 404: code=%d", rec.Code)
 	}
 
-	// custom
+	// custom (Rebuild required after first dispatch — config is frozen)
 	r.NotFound = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusTeapot)
 		_, _ = w.Write([]byte("nope"))
 	})
+	r.Rebuild()
 	rec = httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/still-missing", nil))
 	if rec.Code != http.StatusTeapot {
@@ -829,10 +830,11 @@ func TestMux_MethodNotAllowed_DefaultAndCustom(t *testing.T) {
 		t.Errorf("Allow=%q want GET", allow)
 	}
 
-	// custom
+	// custom (Rebuild required after first dispatch — config is frozen)
 	r.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	})
+	r.Rebuild()
 	rec = httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/r", nil))
 	if rec.Code != http.StatusForbidden {
