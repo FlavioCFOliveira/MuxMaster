@@ -788,6 +788,100 @@ func TestTwoPhaseRegistrationPanic_LiveTreeIntact(t *testing.T) {
 	}
 }
 
+// COV-2026-007 — Mux customisable hooks.
+func TestMux_NotFound_DefaultAndCustom(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.GET("/exists", handler(http.StatusOK, "ok"))
+
+	// default
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/missing", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("default 404: code=%d", rec.Code)
+	}
+
+	// custom
+	r.NotFound = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTeapot)
+		_, _ = w.Write([]byte("nope"))
+	})
+	rec = httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/still-missing", nil))
+	if rec.Code != http.StatusTeapot {
+		t.Errorf("custom NotFound: code=%d", rec.Code)
+	}
+}
+
+func TestMux_MethodNotAllowed_DefaultAndCustom(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.HandleMethodNotAllowed = true
+	r.GET("/r", handler(http.StatusOK, "ok"))
+
+	// default
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/r", nil))
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("default 405: code=%d", rec.Code)
+	}
+	if allow := rec.Header().Get("Allow"); !strings.Contains(allow, "GET") {
+		t.Errorf("Allow=%q want GET", allow)
+	}
+
+	// custom
+	r.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	})
+	rec = httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/r", nil))
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("custom 405: code=%d", rec.Code)
+	}
+}
+
+func TestMux_PanicHandler_Custom(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	var captured any
+	r.PanicHandler = func(w http.ResponseWriter, _ *http.Request, rcv any) {
+		captured = rcv
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("recovered"))
+	}
+	r.GET("/boom", func(_ http.ResponseWriter, _ *http.Request) {
+		panic("oh no")
+	})
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/boom", nil))
+	if captured != "oh no" {
+		t.Errorf("recovered=%v", captured)
+	}
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("code=%d", rec.Code)
+	}
+}
+
+func TestMux_ErrorHandler_ChainsWithHandleE(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte(err.Error()))
+	}
+	r.GETE("/x", func(_ http.ResponseWriter, _ *http.Request) error {
+		return fmt.Errorf("upstream-fail")
+	})
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x", nil))
+	if rec.Code != http.StatusBadGateway {
+		t.Errorf("code=%d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "upstream-fail") {
+		t.Errorf("body=%q", rec.Body.String())
+	}
+}
+
 // COV-2026-006 — Group shortcuts (all method aliases).
 func TestGroup_AllMethodShortcuts(t *testing.T) {
 	t.Parallel()
