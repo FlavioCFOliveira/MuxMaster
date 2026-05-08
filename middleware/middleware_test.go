@@ -727,13 +727,19 @@ func TestThrottlePerIP_AllowsDifferentIPs(t *testing.T) {
 // IP-churn memory exhaustion.
 func TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn(t *testing.T) {
 	const maxTable = 64
-	mw := middleware.ThrottlePerIPCapped(1, 10*time.Millisecond, maxTable, func(r *http.Request) string {
+	mw := middleware.ThrottlePerIPCapped(1, 100*time.Millisecond, maxTable, func(r *http.Request) string {
 		host, _, _ := net.SplitHostPort(r.RemoteAddr)
 		return host
 	})
+	// release gates handler completion so every goroutine has reached acquire()
+	// before any accepted entry is freed. Without this barrier the test is
+	// flaky under slow schedulers (e.g. QEMU emulation in CI), where early
+	// handlers can finish and free their slot before late goroutines arrive.
+	release := make(chan struct{})
+	var entered sync.WaitGroup
+	entered.Add(maxTable * 2)
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Hold the slot just long enough to keep the entry alive across the loop.
-		time.Sleep(2 * time.Millisecond)
+		<-release
 		w.WriteHeader(200)
 	})
 
@@ -743,6 +749,7 @@ func TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn(t *testing.T) {
 	var wg sync.WaitGroup
 	rejected := make(chan int, maxTable*2)
 	accepted := make(chan int, maxTable*2)
+	start := make(chan struct{})
 	for i := 0; i < maxTable*2; i++ {
 		wg.Add(1)
 		go func(ip int) {
@@ -750,6 +757,8 @@ func TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn(t *testing.T) {
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/", nil)
 			req.RemoteAddr = fmt.Sprintf("10.0.%d.%d:1000", (ip>>8)&0xff, ip&0xff)
+			<-start
+			entered.Done()
 			mw(inner).ServeHTTP(rec, req)
 			if rec.Code == http.StatusServiceUnavailable {
 				rejected <- ip
@@ -758,6 +767,12 @@ func TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn(t *testing.T) {
 			}
 		}(i)
 	}
+	close(start)
+	// Wait for every goroutine to be past the start barrier, then give the
+	// scheduler a brief window for acquire() to be entered before releasing.
+	entered.Wait()
+	time.Sleep(20 * time.Millisecond)
+	close(release)
 	wg.Wait()
 	close(rejected)
 	close(accepted)
