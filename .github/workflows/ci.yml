@@ -105,6 +105,58 @@ jobs:
       - name: Run govulncheck
         run: govulncheck $(go list ./... | grep -v '/reports/')
 
+  api-diff:
+    name: API breaking-change check (apidiff)
+    runs-on: ubuntu-latest
+    # Only run on PRs targeting main; pushes to main use this for advisory
+    # output but never fail the merge (the comparison is against the latest
+    # tag, which the merge will have updated).
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0   # full history so we can resolve tags
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Install apidiff
+        run: go install golang.org/x/exp/cmd/apidiff@latest
+
+      - name: Resolve baseline tag
+        id: baseline
+        run: |
+          tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          if [ -z "$tag" ]; then
+            tag=$(git tag --sort=-v:refname | head -1)
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Comparing against ${tag:-(no tag)}"
+
+      - name: Compare API surface
+        if: steps.baseline.outputs.tag != ''
+        run: |
+          set -euo pipefail
+          tag="${{ steps.baseline.outputs.tag }}"
+          # Snapshot of the baseline export.
+          git worktree add /tmp/baseline "$tag"
+          (cd /tmp/baseline && apidiff -w /tmp/baseline.api .)
+          # Compare against HEAD.
+          report=$(apidiff /tmp/baseline.api . || true)
+          echo "$report"
+          # If incompatible changes are listed, fail unless the PR carries
+          # the api-break label.
+          if echo "$report" | grep -qiE '^Incompatible changes'; then
+            labels='${{ toJson(github.event.pull_request.labels.*.name) }}'
+            if echo "$labels" | grep -q 'api-break'; then
+              echo "PR is labelled api-break — incompatible changes accepted."
+            else
+              echo "::error::Incompatible API changes detected. Either revert or add the 'api-break' label and document in CHANGELOG."
+              exit 1
+            fi
+          fi
+
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
