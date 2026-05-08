@@ -1,3 +1,8 @@
+version: "2"
+
+run:
+  timeout: 5m
+
 linters:
   enable:
     - errcheck
@@ -7,6 +12,7 @@ linters:
     - unused
     - misspell
     - revive
+
   settings:
     revive:
       rules:
@@ -14,20 +20,20 @@ linters:
           arguments:
             - "disableStutteringCheck"
 
-issues:
-  exclude-dirs:
-    - reports
-    - competitor
-  exclude-rules:
-    - path: "_test\\.go"
-      linters:
-        - errcheck
-        - revive
-    - path: "(params|mux)\\.go"
-      linters:
-        - govet
-      text: "unsafeptr"
-    - path: "params\\.go"
-      linters:
-        - revive
-      text: "context-as-argument"
+  exclusions:
+    paths:
+      - reports
+      - competitor
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - errcheck
+          - revive
+      - path: "(params|mux)\\.go"
+        linters:
+          - govet
+        text: "unsafeptr"
+      - path: "params\\.go"
+        linters:
+          - revive
+        text: "context-as-argument"
