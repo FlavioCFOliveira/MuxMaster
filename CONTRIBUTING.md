@@ -77,9 +77,39 @@ make check    # runs all of the above
 
 ### API compatibility
 
+See [COMPATIBILITY.md](COMPATIBILITY.md) for the full SemVer policy and
+the Tier 1 / Tier 2 / Tier 3 / Tier 4 classification of every exported
+symbol.
+
 - Do not introduce breaking changes in MINOR or PATCH releases.
-- Deprecate before removing: add `// Deprecated: use X instead.` to the GoDoc.
 - Keep compatibility with the minimum Go version declared in `go.mod`.
+
+### Deprecation convention
+
+When a symbol must be removed, follow the staged deprecation:
+
+1. **Mark it.** Add a `// Deprecated:` line to the GoDoc, immediately
+   below the existing description. Reference the replacement and the
+   target removal version.
+
+   ```go
+   // OldThing does X.
+   //
+   // Deprecated: use NewThing instead. Will be removed in v2.0.0.
+   func OldThing() { /* ... */ }
+   ```
+
+2. **Announce.** Add an entry to the `### Deprecated` section of the
+   next release in `CHANGELOG.md`.
+
+3. **Wait.** The deprecated symbol must remain functional for at least
+   one MINOR release before removal (per
+   [COMPATIBILITY.md](COMPATIBILITY.md#deprecation-policy)).
+
+4. **Remove.** Removal is a MAJOR change, listed under `### Removed`.
+
+CI runs `staticcheck SA1019` against `examples/` to catch any internal
+reliance on deprecated symbols.
 
 ## Commit messages
 
