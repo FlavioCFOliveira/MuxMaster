@@ -2216,3 +2216,62 @@ func ExampleOAuth2Introspect() {
 	mw(inner).ServeHTTP(rec, req)
 	// Output: alice
 }
+
+// ExampleLogger demonstrates the Logger middleware writing access logs
+// to an io.Writer.
+func ExampleLogger() {
+	var buf bytes.Buffer
+	mw := middleware.Logger(&buf)
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	rec := httptest.NewRecorder()
+	wrapped.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if strings.Contains(buf.String(), "GET / 200") {
+		fmt.Println("logged ok")
+	}
+	// Output:
+	// logged ok
+}
+
+// ExampleRecoverer demonstrates panic recovery.
+func ExampleRecoverer() {
+	mw := middleware.Recoverer()
+	wrapped := mw(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+		panic("boom")
+	}))
+	rec := httptest.NewRecorder()
+	wrapped.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	fmt.Println(rec.Code)
+	// Output:
+	// 500
+}
+
+// ExampleTimeout demonstrates wrapping a handler with a request deadline.
+func ExampleTimeout() {
+	mw := middleware.Timeout(50 * time.Millisecond)
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	rec := httptest.NewRecorder()
+	wrapped.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	fmt.Println(rec.Code)
+	// Output:
+	// 200
+}
+
+// ExampleRequestID demonstrates injecting and reading a request ID.
+func ExampleRequestID() {
+	mw := middleware.RequestID()
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if id := middleware.GetRequestID(r.Context()); id != "" {
+			w.Header().Set("X-Got-ID", "yes")
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	rec := httptest.NewRecorder()
+	wrapped.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	fmt.Println(rec.Header().Get("X-Got-ID"))
+	// Output:
+	// yes
+}
