@@ -58,6 +58,16 @@ func APIKey(opts APIKeyOptions) func(http.Handler) http.Handler {
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
+			// TSC-2026-0008: equalise header-set cost across hit and miss paths.
+			// The miss branches above call w.Header().Set("WWW-Authenticate", …),
+			// which allocates a textproto MIMEHeader entry. Without an
+			// equivalent operation on the hit path the cost asymmetry leaks
+			// hit/miss via response latency (the auditor measured ~1.6 µs).
+			// We perform a matched Set + Del so the legitimate response carries
+			// no WWW-Authenticate header but pays the same map manipulation
+			// cost. crypto/subtle is not applicable here — headers, not secrets.
+			w.Header().Set("WWW-Authenticate", `ApiKey realm="api"`)
+			w.Header().Del("WWW-Authenticate")
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), apiKeyCtxKey{}, id)))
 		})
 	}

@@ -61,6 +61,11 @@ type JWTOptions struct {
 	Audiences []string
 	// ClockSkew is the permitted clock drift applied to exp and nbf checks. Default: 0.
 	ClockSkew time.Duration
+	// RequireExpiry, when true, rejects any token whose payload has no "exp"
+	// claim. RFC 8725 §4.4 recommends rejecting tokens without expiry unless
+	// there is a compelling reason: a stolen token without "exp" is valid
+	// indefinitely. Default: false (backward compatible).
+	RequireExpiry bool
 }
 
 // jwtHMACPool reuses HMAC hash objects across requests to avoid per-request
@@ -117,6 +122,13 @@ func JWTAuth(opts JWTOptions) func(http.Handler) http.Handler {
 			"timing oracle (TSC-2026-0003) leaks alg path via response latency; "+
 			"configure one family per endpoint.",
 			slog.Any("algorithms", opts.Algorithms))
+	}
+	// TM-2026-001: warn when RequireExpiry is left at the unsafe default.
+	// RFC 8725 §4.4 recommends rejecting tokens without "exp"; otherwise a
+	// stolen token without expiry is valid forever (replay).
+	if !opts.RequireExpiry {
+		slog.Default().Warn("JWTAuth: RequireExpiry=false — tokens without an \"exp\" claim are accepted. " +
+			"RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.")
 	}
 	issuers := make(map[string]struct{}, len(opts.Issuers))
 	for _, iss := range opts.Issuers {
@@ -216,7 +228,7 @@ func JWTAuth(opts JWTOptions) func(http.Handler) http.Handler {
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
-			claims, err := parseAndValidateJWT(token, allowedAlgs, issuers, audiences, opts.ClockSkew, verifyFn)
+			claims, err := parseAndValidateJWT(token, allowedAlgs, issuers, audiences, opts.ClockSkew, opts.RequireExpiry, verifyFn)
 			if err != nil {
 				w.Header().Set("WWW-Authenticate", `Bearer realm="api", error="invalid_token"`)
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -275,6 +287,7 @@ func parseAndValidateJWT(
 	token string,
 	allowedAlgs, issuers, audiences map[string]struct{},
 	clockSkew time.Duration,
+	requireExpiry bool,
 	verifyFn func(alg string, signingInput, sig []byte) bool,
 ) (*JWTClaims, error) {
 	headerB64, rest, ok := strings.Cut(token, ".")
@@ -326,6 +339,18 @@ func parseAndValidateJWT(
 		return nil, errJWTInvalid
 	}
 
+	// TM-2026-002: reject negative exp/nbf/iat. RFC 7519 §2 defines NumericDate
+	// as a non-negative seconds-since-epoch integer; any negative value is
+	// either a forged claim or a malformed client. We reject up-front so the
+	// downstream comparisons cannot silently treat an ancient Unix epoch as
+	// valid (e.g. exp=-1 → time.Unix(-1, 0) → 1969 → expired path is taken,
+	// which is correct, but we tighten the contract for future-proofing).
+	if raw.Exp < 0 || raw.Nbf < 0 || raw.Iat < 0 {
+		return nil, errJWTInvalid
+	}
+	if requireExpiry && raw.Exp == 0 {
+		return nil, errJWTInvalid
+	}
 	now := time.Now()
 	if raw.Exp != 0 && now.After(time.Unix(raw.Exp, 0).Add(clockSkew)) {
 		return nil, errJWTExpired

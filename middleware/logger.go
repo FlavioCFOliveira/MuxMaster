@@ -20,6 +20,15 @@ func (r *statusRecorder) WriteHeader(code int) {
 
 // sanitiseForLog removes control characters from s for safe log output.
 // Uses QuoteToASCII and strips the surrounding double-quotes.
+//
+// FPE-2026-0002: this function is NOT idempotent. strconv.QuoteToASCII
+// re-escapes already-escaped sequences, so calling sanitiseForLog twice
+// on the same string produces a doubly-escaped result (e.g. `"` →
+// `\"` → `\\\"`). All safety properties hold on every pass — there is
+// no path that lets raw control bytes reach the output — but callers
+// MUST apply the function exactly ONCE per log field. The Logger
+// middleware applies it once per request line; new call sites should
+// follow the same discipline.
 func sanitiseForLog(s string) string {
 	q := strconv.QuoteToASCII(s)
 	return q[1 : len(q)-1]
@@ -37,7 +46,7 @@ func Logger(out io.Writer) func(http.Handler) http.Handler {
 			next.ServeHTTP(rec, r)
 			fmt.Fprintf(out, "%s %s %s %d %s\n", //nolint:errcheck // log writes intentionally ignore I/O errors
 				time.Now().Format(time.RFC3339),
-				r.Method,
+				sanitiseForLog(r.Method),
 				sanitiseForLog(r.URL.Path),
 				rec.status,
 				time.Since(start),

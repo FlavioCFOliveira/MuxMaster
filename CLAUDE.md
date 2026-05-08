@@ -1,5 +1,9 @@
 # MuxMaster — Guide for Claude
 
+## Roadmap
+
+**Name:** muxmaster
+
 ## What this project is
 A high-performance HTTP router / HTTP muxer for Go, implemented **in pure Go** (zero external dependencies). It uses a radix tree (Patricia trie) for O(k) lookup where k is the path length.
 
@@ -109,6 +113,15 @@ http.ListenAndServe(":8080", r)
 
 ### Middleware applied at registration, not per request
 `wrapMiddleware` is invoked in `Handle()` at registration time. This means **zero per-request middleware overhead** — but `Use()` must be called before the routes it should wrap.
+
+### Pre vs Use × Handle vs HandleFast — the policy matrix (CDX-S8-003)
+| middleware family | wraps `Handle`? | wraps `HandleFast`? |
+|---|---|---|
+| `r.Pre(...)` | YES | YES |
+| `r.Use(...)` (stdlib `http.Handler`) | YES | NO — panics at `HandleFast` registration (CSA-2026-0054) |
+| `r.UseFast(...)` (`FastMiddleware`) | NO | YES |
+
+`Pre` runs OUTSIDE the dispatch (in `ServeHTTP` before tree lookup) and is the only middleware family that uniformly covers BOTH route types. Auth gates that must apply to fast routes MUST go through `Pre`, not `Use`. See SECURITY.md "Pre vs Use security boundary" / CDX-S8-003.
 
 ### Param accumulation — tiered reqBundle (1 alloc) + paramsBuf (stack)
 - `paramsBuf` is a fixed-size struct allocated on the stack during `getValue` — no `sync.Pool`, no heap escape for static routes

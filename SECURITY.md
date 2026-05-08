@@ -97,6 +97,38 @@ responsibilities — they are not router defects:
   `r.UseRawPath = true` — patterns then match against `r.URL.RawPath`,
   which preserves the percent-encoded form (PRF-2026-0002).
 
+#### UseRawPath traversal (PRF-2026-0002 / CDX-S8-002)
+
+When BOTH `UseRawPath = true` AND `UnescapePathValues = true`, `%2f`
+inside a single path segment is matched as one segment by the radix tree
+(because `/` is preserved as the path separator only via a literal
+slash) and is then DECODED in the captured param value. A request such
+as `/files/..%2fetc%2fpasswd` against the route `/files/:filepath`
+binds `:filepath` to the literal string `..\x2fetc\x2fpasswd` — i.e. the
+captured value contains a real slash.
+
+Handlers that pass `ParamsFromContext(...).ByName("filepath")` to
+`os.Open`, `http.FileServer`, or any URL/file API WITHOUT calling
+`path.Clean` (and rejecting values that contain `..`) are vulnerable to
+directory traversal. The `clean_path` middleware does NOT normalise
+post-decode values; it only canonicalises the request path before
+dispatch.
+
+**Mitigation.** Choose one of:
+
+1. Leave `UnescapePathValues = false` (default) and let the handler
+   call `url.PathUnescape` only after `path.Clean` and a `..` check.
+2. Use the safe pattern in `examples/static-site/` which calls
+   `path.Clean` on the param BEFORE filesystem dispatch and rejects
+   paths whose cleaned form starts with `..`.
+
+When `UseRawPath` and `UnescapePathValues` are both set, MuxMaster
+emits a one-time `slog.Warn` at the first `Handle`/`HandleFast` call
+to make the misconfiguration visible in startup logs. Additionally,
+`ServeFiles` PANICS at registration when both flags are set, since
+http.FileServer would treat decoded slashes as path separators inside
+the static-file root (CDX-S8-002).
+
 - **Catch-all `*filepath` parameters carry raw bytes**, including any
   `..` traversal sequences. The router does NOT sanitise catch-all values
   — that is the boundary between router and storage backend. Handlers
@@ -329,6 +361,113 @@ middleware and handlers registered *inside* it. Register it as the outermost
 middleware — or use `r.Pre(middleware.RecovererWithLogger(logger))` — to
 ensure it wraps the full dispatch chain.
 
+### Composite token-handling stack (CDX-S8-001)
+
+A bearer-token endpoint that combines OAuth2 introspection (or JWT) with
+per-IP throttling and reverse-proxy IP forwarding has FOUR distinct
+attack surfaces. Defaulting any one to "off" is exploitable end-to-end:
+a passive observer captures a bearer token over plaintext HTTP, replays
+it indefinitely (no `exp`), and forges `X-Forwarded-For` to bypass per-IP
+throttle. The hardened stack flips ALL of the following invariants ON:
+
+| # | Invariant                                              | Mechanism                                            | Default |
+|---|--------------------------------------------------------|------------------------------------------------------|---------|
+| 1 | Introspection endpoint MUST be HTTPS                   | `OAuth2Options.Endpoint` panics on non-HTTPS         | enforced |
+| 2 | JWT tokens MUST carry `exp`                            | `JWTOptions.RequireExpiry = true`                    | OFF (opt-in) |
+| 3 | XFF must be parsed RIGHTMOST past trusted CIDRs        | `RealIP(trustedCIDRs...)` walks rightmost-leftward   | enforced when `len(trustedCIDRs)>0` |
+| 4 | Per-IP table size must be CAPPED                       | `ThrottlePerIPCapped` (default `100_000`)            | enforced via `ThrottlePerIP` wrapper |
+
+A configuration that inadvertently leaves any of these OFF (e.g. opens
+`AllowInsecureEndpoint` "for testing", omits `RequireExpiry`, calls
+`RealIP()` with no CIDRs, or builds a custom throttle without a cap)
+is exploitable. The recommended pattern is:
+
+```go
+// Hardened token-handling stack — see CDX-S8-001 / SECURITY.md
+//   "Composite token-handling stack".
+trusted, _ := netip.ParsePrefix("10.0.0.0/8")
+r.Pre(
+    middleware.RealIP(&trusted),                  // (3) rightmost XFF
+)
+r.Use(
+    middleware.ThrottlePerIP(100, 5*time.Second, nil), // (4) capped per-IP
+    middleware.JWTAuth(middleware.JWTOptions{
+        Secret:        secret,
+        Algorithms:    []string{"HS256"},
+        RequireExpiry: true,                       // (2) reject no-exp
+    }),
+    // OR use OAuth2Introspect with HTTPS endpoint:
+    // middleware.OAuth2Introspect(middleware.OAuth2Options{
+    //   Endpoint: "https://idp.example/introspect",  // (1) HTTPS only
+    //   ...
+    // }),
+)
+```
+
+`examples/jwt/` and `examples/oauth2/` demonstrate the full pattern
+with comments cross-referencing CDX-S8-001.
+
+### Layered panic recovery (CSA-2026-0058 / CSA-2026-0059)
+
+MuxMaster has THREE layers that may catch panics. Understanding the order
+is essential when configuring PanicHandler and middleware.Recoverer.
+
+| Layer                         | What it catches                              | What it does on a second panic                |
+|-------------------------------|----------------------------------------------|-----------------------------------------------|
+| `Mux.PanicHandler`            | Panics in handler / `Use` / `UseFast` chain. | NOT recovered by MuxMaster.                   |
+| `middleware.Recoverer` (Pre)  | Panics anywhere downstream including the    | Catches if PanicHandler panicked.             |
+|                               | first PanicHandler invocation.               |                                               |
+| `net/http` per-conn recover   | Anything that escapes both above.            | Logs "http: panic serving ..." and closes TCP.|
+
+**Boundary rules.**
+
+1. `Mux.PanicHandler` MUST NOT panic. If it does, the secondary panic
+   propagates to the next layer (Recoverer in `Pre()`, or net/http) and
+   the connection is terminated mid-response. There is no goroutine leak
+   and no process crash, but the client sees a reset stream — confusing
+   for HTTP/2 multiplexing and reverse-proxy retries.
+2. To make recovery FULLY symmetric for both stdlib and FastHandler
+   routes, register `RecovererWithLogger` via `r.Pre(...)`. Pre wraps
+   ALL dispatch including HandleFast, so even a panic in fast routes
+   (which `Use`-registered Recoverer cannot catch — see CSA-2026-0054)
+   is contained.
+3. `Mux.PanicHandler` runs INSIDE the dispatch frame and covers both
+   stdlib and FastHandler routes; it is the single, route-type-agnostic
+   recovery point if you do not want to register a Pre middleware.
+
+### Pre vs Use security boundary (CSA-2026-0059 / H8-01)
+
+`Mux.Pre()` and `Mux.Use()` register middleware in different positions
+of the dispatch pipeline. Mistaking one for the other has direct
+authentication/authorisation consequences when `HandleFast` routes are
+also in play.
+
+| Middleware family        | Wraps `Handle` (stdlib)? | Wraps `HandleFast`?       | Mode                                |
+|--------------------------|--------------------------|---------------------------|-------------------------------------|
+| `r.Pre(...)`             | YES                      | YES                       | Outside dispatch — `http.Handler`.  |
+| `r.Use(...)`             | YES                      | NO — panics at register.  | Inside dispatch — `http.Handler`.   |
+| `r.UseFast(...)`         | NO                       | YES                       | Inside dispatch — `FastMiddleware`. |
+
+**Implications.**
+
+- An auth gate (e.g. `JWTAuth`) registered via `r.Use(...)` does NOT cover
+  `HandleFast` routes — MuxMaster panics at `HandleFast` registration to
+  expose this immediately (CSA-2026-0054). Either (a) register the auth
+  via `r.Pre(...)` so it covers BOTH route types, or (b) duplicate the
+  auth as a `FastMiddleware` and register it via `r.UseFast(...)`.
+- Because `Pre` runs OUTSIDE the dispatch (in `Mux.ServeHTTP` before the
+  radix-tree lookup), it sees the path BEFORE any route-specific handler
+  decision — useful for `CleanPath`, `RealIP`, `RecovererWithLogger`,
+  request ID assignment, or any policy that must be uniform across the
+  router.
+- `Use` runs INSIDE the dispatch (after the route is matched) and is
+  baked into the wrapped handler at registration time. Its only path
+  to a fast route is via `UseFast`.
+
+Operators auditing an auth/CORS/rate-limit policy by reading `Use(...)`
+calls SHOULD also inspect `HandleFast(...)` registrations and
+`UseFast(...)` calls; otherwise a fast-route bypass is invisible.
+
 ## HTTP/1.1 Smuggling (MM-2026-0045)
 
 Request smuggling (CL.TE / TE.CL / TE.TE) is defended by Go's `net/http`
@@ -341,3 +480,27 @@ Differential error responses (404 vs 405 vs 301) are intentional HTTP
 semantics and are present in all HTTP routers. If normalising error responses
 is required for your threat model, use a WAF or a custom `NotFound` /
 `MethodNotAllowed` handler.
+
+## ThrottlePerIPCapped saturation (TM-2026-013, DOS-2026-0057) — ACCEPTED
+
+When the per-IP throttle table reaches `maxTableSize` and every slot is
+in active use (`refs > 0`), new client IPs receive HTTP 503 immediately.
+An attacker controlling at least `maxTableSize` distinct IPs (default
+100 000) and keeping their requests open can sustain this lockout for
+as long as the connections remain.
+
+**Reproduction:** `reports/dos-resilience-tester/harness/s9_dos_test.go:TestThrottlePerIPCappedSaturationHoldout`.
+
+**Required operator mitigations:**
+
+- Deploy upstream DDoS scrubbing (Cloudflare, AWS Shield, GCP Cloud Armor).
+- Configure `http.Server{ReadHeaderTimeout, IdleTimeout, ReadTimeout}` so
+  slow-handler connections cannot hold throttle slots indefinitely.
+- Reduce `maxTableSize` for high-sensitivity endpoints — the cap
+  intentionally trades fairness for memory safety.
+
+This is accepted behaviour: the cap exists precisely to prevent
+unbounded memory growth under IP-churn attacks. See
+`/reports/dos-resilience-tester/harness/s9_dos_test.go` for the
+evidence and `MSR-2026-0068` for the cooperative refs-decrement fix
+that ensures the table drains correctly when timed-out requests release.

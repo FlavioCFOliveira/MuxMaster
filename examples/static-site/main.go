@@ -216,6 +216,12 @@ func main() {
 	//   HEAD /assets/style.css                → 200 headers only
 	//   GET  /assets/style.css (with ETag)    → 304 Not Modified
 	//   GET  /assets/large.js (Range: 0-1023) → 206 Partial Content
+	//
+	// SECURITY (CDX-S8-002): ServeFiles refuses to register when this Mux is
+	// configured with both UseRawPath=true AND UnescapePathValues=true. We
+	// keep both at default (false) to let net/http canonicalise the path
+	// before dispatch, and http.FileServer applies path.Clean internally.
+	// See SECURITY.md "UseRawPath traversal".
 	assetsGroup.ServeFiles("/assets/*filepath", staticRoot)
 
 	// ── Route inspection ──────────────────────────────────────────────────────

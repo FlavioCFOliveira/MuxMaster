@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -33,7 +34,16 @@ type IntrospectResponse struct {
 // OAuth2Options configures the OAuth2Introspect middleware.
 type OAuth2Options struct {
 	// Endpoint is the RFC 7662 introspection URL. Required.
+	// MUST use the https:// scheme — bearer tokens transmitted over plaintext
+	// are exposed to passive observers and MITM attackers (RFC 7662 §4 / RFC
+	// 6749 §1.6). Construction panics on a non-HTTPS endpoint unless
+	// AllowInsecureEndpoint is explicitly set to true (testing/localhost only).
 	Endpoint string
+	// AllowInsecureEndpoint disables the HTTPS-only enforcement on Endpoint.
+	// Set to true ONLY for testing or trusted-local-loopback deployments —
+	// production traffic must always use HTTPS. When true, a one-time slog
+	// warning is emitted at construction time. Default: false.
+	AllowInsecureEndpoint bool
 	// ClientID and ClientSecret authenticate to the introspection endpoint via HTTP Basic.
 	ClientID     string
 	ClientSecret string
@@ -187,11 +197,42 @@ func (c *oauth2Cache) evictExpiredLocked() {
 // Active tokens are cached (keyed by sha256(token)) to avoid per-request network calls.
 // On success, the IntrospectResponse is available via GetOAuth2Claims.
 //
-// Panics if opts.Endpoint is empty.
+// Panics if opts.Endpoint is empty, malformed, or non-HTTPS (unless
+// opts.AllowInsecureEndpoint is true). Bearer tokens transmitted over plaintext
+// are exposed to passive observers (MSR-2026-0067 / RFC 7662 §4).
 func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 	if opts.Endpoint == "" {
 		panic("middleware: OAuth2Introspect requires a non-empty opts.Endpoint")
 	}
+	parsedEndpoint, err := url.Parse(opts.Endpoint)
+	if err != nil {
+		panic("middleware: OAuth2Introspect: malformed Endpoint URL: " + err.Error())
+	}
+	// TM-2026-004: tighten Endpoint validation. url.Parse is permissive —
+	// "https://attacker@evil/x" parses with Scheme=https, Host=evil, User=attacker.
+	// We must:
+	//   (1) require non-empty Host (catches "https:///foo" and "https:?q=x"),
+	//   (2) reject embedded userinfo (catches "https://a@b/x" exfil tricks),
+	//   (3) only THEN check the scheme,
+	// otherwise a misconfigured Endpoint silently routes bearer tokens to an
+	// attacker-controlled host that happens to use https.
+	if parsedEndpoint.Host == "" {
+		panic("middleware: OAuth2Introspect: Endpoint URL has no host: " + opts.Endpoint)
+	}
+	if parsedEndpoint.User != nil {
+		panic("middleware: OAuth2Introspect: Endpoint URL must not contain userinfo (RFC 3986 §3.2.1) — credentials in URL are an exfiltration vector: " + opts.Endpoint)
+	}
+	if parsedEndpoint.Scheme != "https" {
+		if !opts.AllowInsecureEndpoint {
+			panic("middleware: OAuth2Introspect: Endpoint must use https:// — bearer tokens over plaintext leak to passive observers (RFC 7662 §4). Set OAuth2Options.AllowInsecureEndpoint=true ONLY for testing.")
+		}
+		slog.Warn("OAuth2Introspect: insecure plaintext endpoint accepted via AllowInsecureEndpoint — bearer tokens transmitted in clear",
+			"endpoint", opts.Endpoint, "scheme", parsedEndpoint.Scheme, "host", parsedEndpoint.Host)
+	}
+	// TM-2026-005: log only the resolved host (no userinfo, no path/query) so
+	// operators can see where their tokens are being sent without leaking
+	// secrets via slog sinks.
+	slog.Info("OAuth2Introspect: configured", "host", parsedEndpoint.Host, "scheme", parsedEndpoint.Scheme)
 	cacheTTL := opts.CacheTTL
 	if cacheTTL == 0 {
 		cacheTTL = 60 * time.Second
@@ -315,7 +356,16 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 						return cached, nil
 					}
 				}
-				return doIntrospect(r.Context(), token)
+				// MSR-2026-0071: detach the introspection call from the
+				// leader's request context. If the leader cancels (client
+				// disconnect) while followers are still waiting, completing
+				// the call lets every follower receive the legitimate result
+				// instead of being poisoned with a 401 derived from
+				// context.Cancelled. The HTTP client retains its own timeout
+				// (opts.HTTPClient.Timeout) so the call cannot run forever.
+				detached, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				return doIntrospect(detached, token)
 			})
 			if err != nil {
 				w.Header().Set("WWW-Authenticate", `Bearer realm="api", error="invalid_token"`)

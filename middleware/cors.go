@@ -34,6 +34,16 @@ type CORSOptions struct {
 // silently let cross-origin requests through with no ACAO header, hiding
 // the issue from the operator. We panic at construction time so the
 // misconfiguration is caught at boot.
+//
+// ORDERING (MSR-2026-0070): CORS sets `Access-Control-Allow-Origin` (and
+// related Access-Control-* + Vary headers) when its frame runs. If another
+// middleware that calls `Header().Set(...)` runs AFTER CORS in the request
+// flow (innermost in the Use() chain), the late Set will OVERWRITE the
+// CORS-managed values, silently bypassing the configured whitelist. To
+// keep CORS authoritative, register CORS as the INNERMOST middleware that
+// touches these headers (i.e. last in the Use() chain that handles them)
+// or avoid calling SetHeader on CORS-managed names. See SetHeader for the
+// composition rule.
 func CORS(opts CORSOptions) func(http.Handler) http.Handler {
 	if len(opts.AllowedOrigins) == 0 {
 		panic("middleware: CORS requires a non-empty AllowedOrigins (use []string{\"*\"} for wildcard, " +

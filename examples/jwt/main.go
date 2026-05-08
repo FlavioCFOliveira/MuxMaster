@@ -218,9 +218,13 @@ func main() {
 		}
 		_ = mm.JSON(w, http.StatusOK, map[string]string{"token": token})
 	})
+	// Hardened JWT configuration — see SECURITY.md "Composite token-handling
+	// stack" (CDX-S8-001). RequireExpiry rejects tokens without `exp`, which
+	// would otherwise be valid forever once stolen (RFC 8725 §4.4).
 	jwtAuth := mw.JWTAuth(mw.JWTOptions{
-		Secret:     secret,
-		Algorithms: []string{"HS256"},
+		Secret:        secret,
+		Algorithms:    []string{"HS256"},
+		RequireExpiry: true,
 	})
 	r.Handle(http.MethodPost, "/auth/refresh", jwtAuth(refresh))
 

@@ -367,8 +367,12 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler, fast Fas
 				path = path[i:]
 			}
 			nameEnd := 1 + colonIdx
+			// regexpNameEnd is uint8 (0..255). The name slice ends at this
+			// index, exclusive — so the maximum supported name length is
+			// 254 bytes (uint8(256) would wrap to 0). PRF-2026-0003 fixed
+			// the off-by-one in the panic message.
 			if nameEnd > 255 {
-				panic("muxmaster: regex param name exceeds 255 bytes in '" + fullPath + "'")
+				panic("muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'")
 			}
 			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(nameEnd)}
 			// Append: preserve existing static children so they remain reachable via n.indices.
@@ -661,23 +665,33 @@ func findWildcard(path string) (token string, start int, valid bool) {
 			return path[i:], i, valid
 
 		case '{':
-			// Scan for the matching '}', rejecting nested '{'.
-			depth := 1
-			valid = true
-			for j, ch := range []byte(path[i+1:]) {
-				switch ch {
-				case '{':
-					valid = false
-					depth++
-				case '}':
-					depth--
-					if depth == 0 {
-						return path[i : i+1+j+1], i, valid
-					}
+			// FPE-2026-0001: locate the closing '}' that ends the {name:expr}
+			// param token. The regex body may legitimately contain unbalanced
+			// '}' characters (literal `}`, char classes `[}]`, escaped `\}`,
+			// or quantifiers like `a{2,3}`), so a naive depth scan rejects
+			// valid Go regexes. Treat the path-segment delimiter ('/' or end
+			// of path) as the hard upper bound, and pick the LAST '}' inside
+			// that segment as the closing brace. The shortest valid token
+			// is `{a:x}` (5 bytes), so any '}' before that is too early.
+			end := len(path)
+			for k := i + 1; k < end; k++ {
+				if path[k] == '/' {
+					end = k
+					break
 				}
 			}
-			// No closing '}' found.
-			return "", -1, false
+			closeIdx := -1
+			for k := end - 1; k > i; k-- {
+				if path[k] == '}' {
+					closeIdx = k
+					break
+				}
+			}
+			if closeIdx < 0 {
+				// No closing '}' in this segment.
+				return "", -1, false
+			}
+			return path[i : closeIdx+1], i, true
 		}
 	}
 	return "", -1, false
@@ -709,6 +723,12 @@ func countOptionalSegments(path string) int {
 // expandOptional detects a {/:name} or {/:name:expr} optional segment and returns
 // the two expanded paths (without and with the segment). Returns (nil, false) when
 // no optional segment is found.
+//
+// PRF-2026-0001: consecutive optional segments (e.g. /a{/:p1}{/:p2}) cannot
+// be expanded into a coherent radix tree — both `:p1` and `:p2` would land
+// at the same depth as wildcard children, triggering the "only one wildcard
+// per path segment" invariant. Detect this at expansion time and panic with
+// a clear message that points the operator at the supported pattern.
 func expandOptional(path string) ([]string, bool) {
 	i := strings.Index(path, "{/:")
 	if i < 0 {
@@ -719,6 +739,14 @@ func expandOptional(path string) ([]string, bool) {
 		panic("muxmaster: unclosed { in path '" + path + "'")
 	}
 	j += i
+
+	// Reject consecutive optional segments: `}{/:`, possibly with no
+	// literal between them. The expansion would produce sibling wildcards.
+	if j+1 < len(path) && strings.HasPrefix(path[j+1:], "{/:") {
+		panic("muxmaster: consecutive optional segments not supported in path '" + path +
+			"' — separate optional segments with a literal segment, e.g. " +
+			"/users{/:id}/posts{/:post}")
+	}
 
 	inner := path[i+1 : j] // "/:name" or "/:name:expr"
 

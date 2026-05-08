@@ -22,6 +22,7 @@
 package muxmaster
 
 import (
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
@@ -170,6 +171,20 @@ type Mux struct {
 	// PRF-2026-0006 double-decode that let %2520 bypass space-blocking input
 	// validators). Set both UseRawPath and UnescapePathValues to retrieve
 	// decoded values from the original raw path bytes.
+	//
+	// SECURITY (PRF-2026-0002): when UseRawPath=true AND UnescapePathValues=true,
+	// `%2f` inside a single segment is matched as one path segment by the radix
+	// tree (because `/` is preserved as separator only via literal slash) and
+	// then DECODED in the captured param value. A request such as
+	// `/files/..%2fetc%2fpasswd` binds `:filepath` to the literal string
+	// `..\x2fetc\x2fpasswd` — i.e. the captured value contains a real slash.
+	// Handlers that pass `ParamsFromContext(...).ByName("filepath")` to
+	// `os.Open`, `http.FileServer`, or any URL/file API WITHOUT calling
+	// `path.Clean` (and rejecting values that contain `..`) are vulnerable to
+	// directory traversal. The `clean_path` middleware does NOT normalise
+	// post-decode values; it only canonicalises the request path before
+	// dispatch. See SECURITY.md "UseRawPath traversal" and
+	// examples/static-site/ for the safe pattern.
 	UnescapePathValues bool
 
 	// RedirectCode overrides the default redirect status code (301/307).
@@ -192,6 +207,16 @@ type Mux struct {
 
 	// PanicHandler recovers from panics in handlers and receives the
 	// ResponseWriter, Request, and recovered value.
+	//
+	// SECURITY (CSA-2026-0058 / H8-30): PanicHandler implementations MUST
+	// NOT themselves panic. MuxMaster's recover frame catches the FIRST
+	// panic and dispatches into PanicHandler; if PanicHandler panics again
+	// the secondary panic is NOT recovered by MuxMaster. It propagates up
+	// to the per-connection recover in net/http (server.go), which logs
+	// "http: panic serving ..." and closes the TCP connection. There is
+	// no goroutine leak and no process crash, but the connection is
+	// terminated mid-response, which can confuse clients and HTTP/2
+	// stream multiplexing. See SECURITY.md "Layered panic recovery".
 	PanicHandler func(http.ResponseWriter, *http.Request, any)
 
 	middleware     []func(http.Handler) http.Handler
@@ -215,6 +240,25 @@ type Mux struct {
 	optionsCache sync.Map
 
 	mu sync.RWMutex // guards Use/Pre/Handle/introspection
+
+	// rawPathDecodeWarnOnce emits a one-time slog warning when the operator
+	// enables UseRawPath+UnescapePathValues — the combination decodes %2f
+	// inside captured params and exposes handlers to path traversal unless
+	// the operator sanitises ParamsFromContext values (PRF-2026-0002).
+	rawPathDecodeWarnOnce sync.Once
+}
+
+// warnRawPathDecodeIfEnabled emits a one-time slog.Warn whenever the operator
+// has enabled the UseRawPath+UnescapePathValues combination, which decodes
+// %2f inside captured params and exposes handlers to path traversal unless
+// they sanitise the value (PRF-2026-0002 / CDX-S8-002).
+func (m *Mux) warnRawPathDecodeIfEnabled() {
+	if !m.UseRawPath || !m.UnescapePathValues {
+		return
+	}
+	m.rawPathDecodeWarnOnce.Do(func() {
+		slog.Warn("muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md \"UseRawPath traversal\" (PRF-2026-0002).")
+	})
 }
 
 // New returns a Mux with production-safe defaults enabled.
@@ -230,6 +274,14 @@ func New() *Mux {
 
 // Use appends one or more middleware to the chain. Each middleware wraps all
 // handlers registered after this call. The first middleware added is outermost.
+//
+// SECURITY (CSA-2026-0059): Use does NOT wrap HandleFast routes — registering
+// a fast route after Use(authMiddleware) panics at HandleFast call time on
+// BOTH the root Mux (FPE-2026-010) and Groups (CSA-2026-0054), so the bypass
+// cannot occur silently regardless of where the operator places the route.
+// To apply policy to both stdlib and fast routes, use Pre(...) (outermost,
+// route-type agnostic) or UseFast(...) for FastMiddleware. See SECURITY.md
+// "Pre vs Use security boundary".
 func (m *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -248,6 +300,12 @@ func (m *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 
 // Pre registers middleware that runs before dispatch (e.g. before routing).
 // Calling Pre rebuilds the pre-dispatch handler chain.
+//
+// SECURITY (CSA-2026-0059): Pre wraps the entire ServeHTTP dispatch and
+// covers BOTH Handle (stdlib) and HandleFast routes. This makes Pre the
+// correct registration point for cross-cutting policies that must apply
+// uniformly — auth gates, CleanPath, RealIP, RecovererWithLogger, request
+// IDs. See SECURITY.md "Pre vs Use security boundary".
 func (m *Mux) Pre(mw ...func(http.Handler) http.Handler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -274,6 +332,8 @@ func (m *Mux) Handle(method, pattern string, handler http.Handler) {
 	case handler == nil:
 		panic("muxmaster: handler must not be nil")
 	}
+
+	m.warnRawPathDecodeIfEnabled()
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -330,6 +390,12 @@ func (m *Mux) HandleE(method, pattern string, h HandlerFuncE) {
 // UseFast appends one or more FastMiddleware to the chain applied to all
 // HandleFast routes registered after this call. The first middleware added
 // is outermost. Has no effect on routes registered via Handle.
+//
+// SECURITY (CSA-2026-0059): UseFast is the FastHandler counterpart of
+// Use; together with Pre (which covers BOTH route types) it forms the
+// route-type matrix documented in SECURITY.md "Pre vs Use security
+// boundary". An auth gate applied only via Use(...) does NOT cover
+// HandleFast routes.
 func (m *Mux) UseFast(mw ...FastMiddleware) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -361,8 +427,22 @@ func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
 		panic("muxmaster: handler must not be nil")
 	}
 
+	m.warnRawPathDecodeIfEnabled()
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	// FPE-2026-010: panic if stdlib middleware (registered via Use) is present.
+	// Stdlib middleware is incompatible with the FastHandler dispatch path —
+	// silently mixing them would let HandleFast routes bypass authentication,
+	// authorisation, logging or any other Use()-registered middleware. This
+	// panic mirrors Group.HandleFast (CSA-2026-0054) and closes the gap where
+	// the same operator mistake on the root Mux silently succeeded.
+	if len(m.middleware) > 0 {
+		panic("muxmaster: HandleFast route registered on a Mux with stdlib middleware (Use) — " +
+			"stdlib middleware does not run on the FastHandler path. " +
+			"Use UseFast() for fast routes, or Handle() for stdlib-middleware-wrapped routes.")
+	}
 
 	idx := methodIdx(method)
 	if idx < 0 {
@@ -570,9 +650,27 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 
 // ServeFiles serves static files from root under the given prefix pattern.
 // prefix must end with "/*name" (e.g. "/static/*filepath").
+//
+// SECURITY (CDX-S8-002): http.FileServer applies path.Clean internally,
+// so a request like /static/../etc/passwd cannot escape root. However,
+// when the Mux is configured with UseRawPath=true AND UnescapePathValues=true
+// the captured filepath param contains decoded slashes (PRF-2026-0002) and
+// http.FileServer's clean step happens AFTER the param has already been
+// re-set as r2.URL.Path — the decoded slashes act as path separators
+// inside FileServer's tree. Registration with that combination panics so
+// the misconfiguration is caught at boot. Disable one of UseRawPath /
+// UnescapePathValues, or write a custom handler that calls path.Clean on
+// the captured value and rejects ".." segments before dispatch.
 func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 	if root == nil {
 		panic("muxmaster: nil root passed to ServeFiles")
+	}
+	if m.UseRawPath && m.UnescapePathValues {
+		panic("muxmaster: ServeFiles refuses to register with UseRawPath=true AND " +
+			"UnescapePathValues=true — captured filepath would contain decoded '/' " +
+			"and http.FileServer would treat them as separators (CDX-S8-002 / PRF-2026-0002). " +
+			"Disable one of the two, or implement a custom handler that path.Clean's " +
+			"the captured value before dispatch. See SECURITY.md \"UseRawPath traversal\".")
 	}
 	i := strings.LastIndex(prefix, "/*")
 	if i < 0 {
@@ -838,32 +936,34 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 			code := m.resolveRedirectCode(cfg, r.Method)
 
 			if tsr && cfg.redirectTrailingSlash {
+				var newPath string
 				if len(urlPath) > 1 && urlPath[len(urlPath)-1] == '/' {
-					r.URL.Path = urlPath[:len(urlPath)-1]
+					newPath = urlPath[:len(urlPath)-1]
 				} else {
-					r.URL.Path = urlPath + "/"
+					newPath = urlPath + "/"
 				}
-				target := r.URL.String()
-				r.URL.Path = urlPath // restore before passing to middleware
+				// HPS-2026-0005: build a path-only Location so that requests in
+				// absolute-form (RFC 7230 §5.3.2, e.g. "GET http://evil.com/x HTTP/1.1")
+				// cannot inject attacker-controlled scheme+host into the redirect.
+				target := (&url.URL{Path: newPath, RawQuery: r.URL.RawQuery}).String()
 				m.mu.RLock()
 				mw := m.middleware
 				m.mu.RUnlock()
 				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					http.Redirect(w, r, target, code) //#nosec G710 -- target is a same-origin path (TSR canonicalisation only mutates path; host/scheme untouched). Audited as H-007 (refuted) in /reports/overview/findings.md.
+					http.Redirect(w, r, target, code)
 				}), mw).ServeHTTP(w, r)
 				return
 			}
 
 			if cfg.redirectFixedPath {
 				if fixed, ok := m.cleanedPath(root, urlPath); ok {
-					r.URL.Path = fixed
-					target := r.URL.String()
-					r.URL.Path = urlPath // restore before passing to middleware
+					// HPS-2026-0005: same-origin path-only Location.
+					target := (&url.URL{Path: fixed, RawQuery: r.URL.RawQuery}).String()
 					m.mu.RLock()
 					mw := m.middleware
 					m.mu.RUnlock()
 					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						http.Redirect(w, r, target, code) //#nosec G710 -- target is the cleaned same-origin path; path.Clean reduces leading "//evil" to "/evil" producing a relative same-origin Location. Audited as H-007 (refuted) in /reports/overview/findings.md.
+						http.Redirect(w, r, target, code)
 					}), mw).ServeHTTP(w, r)
 					return
 				}

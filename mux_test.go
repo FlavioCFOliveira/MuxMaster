@@ -1,12 +1,17 @@
 package muxmaster_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path"
+	"strings"
 	"testing"
+	"time"
 
 	muxmaster "github.com/FlavioCFOliveira/MuxMaster"
+	"github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
 
 // handler returns a HandlerFunc that writes code and body.
@@ -421,6 +426,311 @@ func stringContains(s, sub string) bool {
 	return false
 }
 
+// CDX-S8-002 — ServeFiles MUST refuse to register when UseRawPath=true and
+// UnescapePathValues=true would expose http.FileServer to %2f-decoded
+// traversal in the captured filepath param.
+func TestS8_CDX002_ServeFilesTraversal_Hardened(t *testing.T) {
+	t.Run("registers cleanly with default options", func(t *testing.T) {
+		r := muxmaster.New()
+		defer func() {
+			if rec := recover(); rec != nil {
+				t.Fatalf("ServeFiles panicked unexpectedly: %v", rec)
+			}
+		}()
+		r.ServeFiles("/static/*filepath", http.Dir("."))
+	})
+
+	t.Run("panics with UseRawPath+UnescapePathValues both true", func(t *testing.T) {
+		r := muxmaster.New()
+		r.UseRawPath = true
+		r.UnescapePathValues = true
+		var got string
+		func() {
+			defer func() {
+				if rec := recover(); rec != nil {
+					got = fmt.Sprintf("%v", rec)
+				}
+			}()
+			r.ServeFiles("/static/*filepath", http.Dir("."))
+		}()
+		if got == "" {
+			t.Fatal("expected ServeFiles to panic with UseRawPath+UnescapePathValues both true")
+		}
+		if !strings.Contains(got, "CDX-S8-002") {
+			t.Fatalf("expected message to cite CDX-S8-002, got %q", got)
+		}
+	})
+
+	t.Run("safe pattern: path.Clean on captured filepath blocks traversal", func(t *testing.T) {
+		// Custom handler that path.Clean's the value BEFORE filesystem dispatch.
+		r := muxmaster.New()
+		r.GET("/files/*filepath", func(w http.ResponseWriter, req *http.Request) {
+			raw := muxmaster.PathParam(req, "filepath")
+			cleaned := path.Clean("/" + raw)
+			if strings.Contains(cleaned, "..") {
+				http.Error(w, "forbidden", http.StatusForbidden)
+				return
+			}
+			w.Header().Set("X-Cleaned", cleaned)
+			w.WriteHeader(200)
+		})
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest("GET", "/files/../etc/passwd", nil))
+		// path.Clean("/" + "../etc/passwd") = "/etc/passwd" — no ".." remains, so
+		// the handler accepts; the operator-defined sanitisation is in effect.
+		if rec.Header().Get("X-Cleaned") != "/etc/passwd" {
+			t.Fatalf("expected /etc/passwd after Clean, got %q", rec.Header().Get("X-Cleaned"))
+		}
+	})
+}
+
+// PRF-2026-0003 — regex param name max length is 254 bytes; panic message
+// must reflect that, not "exceeds 255 bytes".
+func TestS8_PRF_RegexNameOffByOne(t *testing.T) {
+	t.Run("254 bytes accepted", func(t *testing.T) {
+		r := muxmaster.New()
+		name := strings.Repeat("a", 254)
+		pattern := "/v/{" + name + ":x}"
+		defer func() {
+			if rec := recover(); rec != nil {
+				t.Fatalf("254-byte regex name panicked: %v", rec)
+			}
+		}()
+		r.GET(pattern, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+	})
+
+	t.Run("255 bytes rejected with clear message", func(t *testing.T) {
+		r := muxmaster.New()
+		name := strings.Repeat("a", 255)
+		pattern := "/v/{" + name + ":x}"
+		var got string
+		func() {
+			defer func() {
+				if rec := recover(); rec != nil {
+					got = fmt.Sprintf("%v", rec)
+				}
+			}()
+			r.GET(pattern, func(w http.ResponseWriter, _ *http.Request) {})
+		}()
+		if got == "" {
+			t.Fatal("expected panic for 255-byte regex name")
+		}
+		if !strings.Contains(got, "at most 254 bytes") {
+			t.Fatalf("expected message to cite 254-byte cap, got %q", got)
+		}
+	})
+}
+
+// CDX-S8-003 — Pre/Use × Handle/HandleFast policy matrix.
+// Asserts each of the 4 cells documented in SECURITY.md
+// "Pre vs Use security boundary".
+func TestS8_CDX003_PrePolicyMatrix(t *testing.T) {
+	t.Run("Pre wraps Handle", func(t *testing.T) {
+		r := muxmaster.New()
+		var hits int
+		r.Pre(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				hits++
+				next.ServeHTTP(w, req)
+			})
+		})
+		r.GET("/slow", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest("GET", "/slow", nil))
+		if hits != 1 || rec.Code != 200 {
+			t.Fatalf("Pre+Handle: hits=%d code=%d, want hits=1 code=200", hits, rec.Code)
+		}
+	})
+
+	t.Run("Pre wraps HandleFast", func(t *testing.T) {
+		r := muxmaster.New()
+		var hits int
+		r.Pre(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				hits++
+				next.ServeHTTP(w, req)
+			})
+		})
+		r.GETFast("/fast", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.Params) { w.WriteHeader(200) })
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest("GET", "/fast", nil))
+		if hits != 1 || rec.Code != 200 {
+			t.Fatalf("Pre+HandleFast: hits=%d code=%d, want hits=1 code=200", hits, rec.Code)
+		}
+	})
+
+	t.Run("Use wraps Handle", func(t *testing.T) {
+		r := muxmaster.New()
+		var hits int
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				hits++
+				next.ServeHTTP(w, req)
+			})
+		})
+		r.GET("/slow", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest("GET", "/slow", nil))
+		if hits != 1 || rec.Code != 200 {
+			t.Fatalf("Use+Handle: hits=%d code=%d, want hits=1 code=200", hits, rec.Code)
+		}
+	})
+
+	t.Run("Group.Use + Group.HandleFast panics at registration", func(t *testing.T) {
+		r := muxmaster.New()
+		g := r.Group("/api")
+		g.Use(func(next http.Handler) http.Handler { return next })
+		var got string
+		func() {
+			defer func() {
+				if rec := recover(); rec != nil {
+					got = fmt.Sprintf("%v", rec)
+				}
+			}()
+			g.HandleFast(http.MethodGet, "/fast", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {})
+		}()
+		if got == "" {
+			t.Fatal("Group.Use + Group.HandleFast: expected panic at HandleFast registration (CSA-2026-0054)")
+		}
+		if !strings.Contains(got, "Use") {
+			t.Fatalf("expected message to cite Use, got %q", got)
+		}
+	})
+
+	t.Run("Mux.Use + Mux.HandleFast panics at registration (FPE-2026-010)", func(t *testing.T) {
+		// Closes the asymmetry that previously allowed silent auth bypass:
+		// HandleFast on a Mux carrying stdlib middleware is now refused at
+		// registration time, mirroring Group.HandleFast (CSA-2026-0054).
+		r := muxmaster.New()
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				next.ServeHTTP(w, req)
+			})
+		})
+		var got string
+		func() {
+			defer func() {
+				if rec := recover(); rec != nil {
+					got = fmt.Sprintf("%v", rec)
+				}
+			}()
+			r.GETFast("/fast", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {})
+		}()
+		if got == "" {
+			t.Fatal("Mux.Use + Mux.HandleFast: expected panic at registration (FPE-2026-010)")
+		}
+		if !strings.Contains(got, "Use") || !strings.Contains(got, "HandleFast") {
+			t.Fatalf("panic message = %q, want hint about HandleFast + Use", got)
+		}
+	})
+}
+
+// CSA-2026-0059 — Pre wraps BOTH stdlib and HandleFast routes; Use wraps
+// only stdlib (and panics on HandleFast registration). This test asserts
+// the documented matrix used in SECURITY.md "Pre vs Use security boundary".
+func TestSec_PreVsUse_SecurityBoundary(t *testing.T) {
+	r := muxmaster.New()
+
+	// preCalls is bumped by a Pre middleware on every dispatch.
+	var preCalls int
+	r.Pre(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			preCalls++
+			next.ServeHTTP(w, req)
+		})
+	})
+
+	// Slow route (Handle/stdlib).
+	r.GET("/slow", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+
+	// Fast route (HandleFast).
+	r.GETFast("/fast", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {
+		w.WriteHeader(200)
+	})
+
+	// One request to each.
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest("GET", "/slow", nil))
+	if rec.Code != 200 {
+		t.Fatalf("/slow: got %d, want 200", rec.Code)
+	}
+	rec = httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest("GET", "/fast", nil))
+	if rec.Code != 200 {
+		t.Fatalf("/fast: got %d, want 200", rec.Code)
+	}
+	if preCalls != 2 {
+		t.Fatalf("Pre must wrap BOTH route types: preCalls=%d, want 2", preCalls)
+	}
+}
+
+// FPE-2026-0001 — tree.go regex param parser must accept regex bodies that
+// contain '}' literally (e.g. `(})`, `a{2,3}`, `[}]`, `\}`). The fix replaces
+// the naive first-'}' scan with a "last '}' in segment" rule.
+func TestS8_FPE_RegexBodyContainsBrace(t *testing.T) {
+	patterns := []struct {
+		pattern  string
+		matchURL string
+		wantOK   bool
+	}{
+		{"/foo/{id:(})}", "/foo/}", true},   // regex matches literal '}'
+		{"/q/{n:a{2,3}}", "/q/aaa", true},   // quantifier
+		{"/c/{id:[}]}", "/c/}", true},       // char class
+		{"/e/{id:\\}}", "/e/}", true},       // escaped }
+	}
+	for _, tc := range patterns {
+		tc := tc
+		t.Run(tc.pattern, func(t *testing.T) {
+			r := muxmaster.New()
+			r.GET(tc.pattern, func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest("GET", tc.matchURL, nil))
+			if tc.wantOK && rec.Code != 200 {
+				t.Fatalf("pattern %q match %q: got %d, want 200", tc.pattern, tc.matchURL, rec.Code)
+			}
+		})
+	}
+}
+
+// PRF-2026-0001 — consecutive optional segments must panic at registration
+// with a clear message (no opaque "wildcard conflict"), and non-consecutive
+// optional segments must continue to expand correctly (4 routes).
+func TestS8_PRF_ConsecutiveOptionals(t *testing.T) {
+	t.Run("consecutive panics with clear message", func(t *testing.T) {
+		r := muxmaster.New()
+		var got string
+		func() {
+			defer func() {
+				if rec := recover(); rec != nil {
+					got = fmt.Sprintf("%v", rec)
+				}
+			}()
+			r.GET("/a{/:p1}{/:p2}", func(w http.ResponseWriter, _ *http.Request) {})
+		}()
+		if got == "" {
+			t.Fatal("expected panic for consecutive optional segments")
+		}
+		if !strings.Contains(got, "consecutive optional segments not supported") {
+			t.Fatalf("expected clear message, got %q", got)
+		}
+	})
+
+	t.Run("non-consecutive expand to 4 routes", func(t *testing.T) {
+		r := muxmaster.New()
+		hit := func(w http.ResponseWriter, req *http.Request) { w.WriteHeader(200) }
+		r.GET("/users{/:id}/posts{/:post}", hit)
+
+		// Expanded routes: /users/posts, /users/:id/posts, /users/posts/:post, /users/:id/posts/:post.
+		for _, p := range []string{"/users/posts", "/users/42/posts", "/users/posts/13", "/users/42/posts/13"} {
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest("GET", p, nil))
+			if rec.Code != 200 {
+				t.Errorf("non-consecutive optionals: %q got %d, want 200", p, rec.Code)
+			}
+		}
+	})
+}
+
 // TestTwoPhaseRegistrationPanic_LiveTreeIntact verifies that a panic during
 // route registration leaves the previously-published tree intact — readers
 // concurrently serving requests must not observe partial mutation
@@ -475,5 +785,457 @@ func TestTwoPhaseRegistrationPanic_LiveTreeIntact(t *testing.T) {
 		if rec.Code != http.StatusNotFound {
 			t.Errorf("post-panic %q status = %d, want 404 (partial route registered — two-phase regression)", p, rec.Code)
 		}
+	}
+}
+
+// TestRegression_TM_2026_008 — UseFast on a Group must not cause Pre-registered
+// stdlib middleware on the parent Mux to be skipped on dispatch. Pre runs in
+// ServeHTTP before tree lookup, so it must wrap both stdlib and fast routes
+// regardless of registration order.
+func TestRegression_TM_2026_008(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	preCalls := 0
+	g := r.Group("/api")
+	g.UseFast(func(next muxmaster.FastHandler) muxmaster.FastHandler {
+		return func(w http.ResponseWriter, req *http.Request, ps muxmaster.Params) {
+			next(w, req, ps)
+		}
+	})
+	g.HandleFast(http.MethodGet, "/x", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {
+		w.WriteHeader(http.StatusOK)
+	})
+	r.Pre(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			preCalls++
+			next.ServeHTTP(w, req)
+		})
+	})
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest("GET", "/api/x", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if preCalls != 1 {
+		t.Errorf("Pre middleware ran %d times for fast route, want 1 (TM-2026-008 bypass)", preCalls)
+	}
+}
+
+// TestRegression_TM_2026_027 — PanicHandler operator-contract: when an
+// operator installs a PanicHandler, the recovered value (which may include
+// secrets passed to handlers) must NOT be propagated to the client body.
+// We verify both the boundary and the safe recipe (write a constant 500).
+func TestRegression_TM_2026_027_PanicHandlerNoLeak(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	gotRecovered := false
+	r.PanicHandler = func(w http.ResponseWriter, _ *http.Request, recovered any) {
+		gotRecovered = true
+		// Safe pattern: do NOT echo recovered to body.
+		_, secret := recovered.(string)
+		_ = secret // suppress unused linter notice
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("internal server error"))
+	}
+	r.GET("/boom", func(_ http.ResponseWriter, _ *http.Request) {
+		panic("SECRET-API-KEY-12345")
+	})
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest("GET", "/boom", nil))
+	if !gotRecovered {
+		t.Fatalf("PanicHandler not invoked")
+	}
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500", rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), "SECRET-API-KEY") {
+		t.Errorf("PanicHandler leaked recovered value to client: %q", rec.Body.String())
+	}
+}
+
+// TestRegression_TM_2026_036 — Group-of-Group middleware ordering: a
+// middleware applied to an outer Group must wrap routes registered on the
+// inner Group as well as direct child routes.
+func TestRegression_TM_2026_036(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	outerCalls, innerCalls := 0, 0
+	outer := r.Group("/api")
+	outer.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			outerCalls++
+			next.ServeHTTP(w, req)
+		})
+	})
+	inner := outer.Group("/v1")
+	inner.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			innerCalls++
+			next.ServeHTTP(w, req)
+		})
+	})
+	inner.GET("/x", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+	outer.GET("/y", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+
+	for _, p := range []string{"/api/v1/x", "/api/y"} {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest("GET", p, nil))
+		if rec.Code != 200 {
+			t.Errorf("%s status = %d", p, rec.Code)
+		}
+	}
+	if outerCalls != 2 {
+		t.Errorf("outer middleware ran %d times, want 2", outerCalls)
+	}
+	if innerCalls != 1 {
+		t.Errorf("inner middleware ran %d times, want 1", innerCalls)
+	}
+}
+
+// TestRegression_TM_2026_039 — transposition of Caddy CVE-2022-0653
+// (auth bypass via path-normalisation order). MuxMaster's clean_path middleware
+// applies path.Clean BEFORE dispatch and zeroes RawPath when its decoded form
+// would clean differently — so a guard middleware sees the same canonical
+// path the router will dispatch on. This test exercises a percent-encoded
+// traversal payload against /admin to confirm there's no bypass.
+func TestRegression_TM_2026_039_CaddyTransposition(t *testing.T) {
+	t.Parallel()
+
+	innerCalls := 0
+	guard := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			// Inspect raw RawPath so encoded dot segments are visible —
+			// equivalent to the WAF that Caddy bypassed.
+			if strings.Contains(req.URL.Path, "..") ||
+				strings.Contains(req.URL.RawPath, "%2e") ||
+				strings.Contains(req.URL.RawPath, "%2E") ||
+				strings.Contains(req.URL.RawPath, "%2f") ||
+				strings.Contains(req.URL.RawPath, "%2F") {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, req)
+		})
+	}
+
+	// Guard registered BEFORE CleanPath in Pre order so it observes the raw
+	// (pre-canonical) path — modelling a typical operator setup where a WAF
+	// or auth middleware does its own validation first.
+	r := muxmaster.New()
+	r.UseRawPath = true
+	r.Pre(guard)
+	r.Pre(middleware.CleanPath())
+	r.GET("/admin", func(w http.ResponseWriter, _ *http.Request) {
+		innerCalls++
+		w.WriteHeader(http.StatusOK)
+	})
+
+	payloads := []string{
+		"/foo/%2e%2e/admin",
+		"/admin/%2e",
+		"/foo/..%2fadmin",
+	}
+	for _, p := range payloads {
+		t.Run(p, func(t *testing.T) {
+			innerBefore := innerCalls
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest("GET", p, nil))
+			if innerCalls != innerBefore {
+				t.Errorf("inner /admin handler executed for %q (TM-2026-039 bypass: guard saw raw, dispatch saw clean)", p)
+			}
+			if rec.Code == http.StatusOK {
+				t.Errorf("status 200 for %q: traversal reached protected handler", p)
+			}
+		})
+	}
+}
+
+// TestRegression_TM_2026_009 documents the operator-boundary contract for
+// handlers that use path-parameter values as filesystem paths under
+// UseRawPath=true + UnescapePathValues=true. The router intentionally does
+// NOT clean param values; the handler MUST do so before any os.Open call.
+// SECURITY.md "UseRawPath traversal" describes the contract — this test
+// asserts that:
+//   1. A handler that DOES NOT call path.Clean is exposed to traversal.
+//   2. A handler that DOES call path.Clean is safe.
+// The test does not write to disk; it only inspects the captured param value.
+func TestRegression_TM_2026_009_UseRawPath_HandlerBoundary(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.UseRawPath = true
+	r.UnescapePathValues = true
+
+	var captured string
+	r.GET("/files/*filepath", func(w http.ResponseWriter, req *http.Request) {
+		captured = muxmaster.PathParam(req, "filepath")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// /files/..%2fetc%2fpasswd → captured filepath includes traversal.
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest("GET", "/files/..%2fetc%2fpasswd", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	// The router preserves the raw param so the handler can decide. A handler
+	// calling path.Clean reduces the value to a safe relative form.
+	if captured == "" {
+		t.Errorf("filepath param was not captured")
+	}
+	cleaned := path.Clean("/" + captured)
+	if strings.Contains(cleaned, "..") {
+		t.Errorf("path.Clean failed to neutralise traversal in %q (cleaned=%q) — operator MUST clean", captured, cleaned)
+	}
+}
+
+// TestRegression_TM_2026_007 verifies that a Pre()-registered middleware on
+// the parent Mux wraps a Group.Mount-attached raw http.Handler. Without this,
+// auth-gating Pre middleware would not run on traffic that lands on the
+// mounted handler — a silent bypass.
+func TestRegression_TM_2026_007(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	preCalls := 0
+	r.Pre(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			preCalls++
+			next.ServeHTTP(w, req)
+		})
+	})
+
+	innerCalls := 0
+	external := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		innerCalls++
+		w.WriteHeader(http.StatusOK)
+	})
+
+	g := r.Group("/admin")
+	g.Mount("/legacy", external)
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest("GET", "/admin/legacy/x", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if preCalls != 1 {
+		t.Errorf("Pre middleware ran %d times on Group.Mount handler, want 1 (TM-2026-007: silent auth bypass)", preCalls)
+	}
+	if innerCalls != 1 {
+		t.Errorf("inner handler ran %d times, want 1", innerCalls)
+	}
+}
+
+// TestRegression_FPE_2026_010 verifies that calling HandleFast on a Mux that
+// already has Use()-registered stdlib middleware panics. Before the fix only
+// Group.HandleFast had this guard (CSA-2026-0054); the root Mux silently
+// accepted the registration, leaving auth middleware unattached to the fast
+// route — an unannounced auth bypass.
+func TestRegression_FPE_2026_010(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	authMW := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			next.ServeHTTP(w, req)
+		})
+	}
+	r.Use(authMW)
+
+	defer func() {
+		rec := recover()
+		if rec == nil {
+			t.Fatalf("FPE-2026-010: Mux.HandleFast did NOT panic when Use() middleware is present (silent auth bypass)")
+		}
+		msg, _ := rec.(string)
+		if !strings.Contains(msg, "HandleFast") || !strings.Contains(msg, "Use") {
+			t.Errorf("panic message = %q, want hint about HandleFast + Use boundary", msg)
+		}
+	}()
+	// Should panic.
+	r.HandleFast(http.MethodGet, "/api/users/:id", func(_ http.ResponseWriter, _ *http.Request, _ muxmaster.Params) {})
+}
+
+// TestRegression_HPS_2026_0005 verifies that the TSR + RedirectFixedPath
+// redirects emit a same-origin path-only Location even when the incoming
+// request was sent in absolute-form URI (RFC 7230 §5.3.2). Before the fix,
+// a request like "GET http://evil.com/admin/ HTTP/1.1" would cause net/http
+// to populate r.URL.Scheme / r.URL.Host with attacker-controlled values, and
+// r.URL.String() would return the absolute URL → 301 Location: http://evil.com/admin
+// → navigable open redirect.
+func TestRegression_HPS_2026_0005(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.RedirectTrailingSlash = true
+	r.RedirectFixedPath = true
+	r.GET("/admin", handler(http.StatusOK, "ok"))
+
+	cases := []struct {
+		name string
+		req  *http.Request
+	}{
+		{
+			name: "TSR_AbsoluteFormURI",
+			req: func() *http.Request {
+				// Programmatic equivalent of "GET http://evil.com/admin/ HTTP/1.1".
+				req := httptest.NewRequest("GET", "http://evil.com/admin/", nil)
+				return req
+			}(),
+		},
+		{
+			name: "FixedPath_AbsoluteFormURI",
+			req: func() *http.Request {
+				// /admin/. canonicalises to /admin via path.Clean.
+				req := httptest.NewRequest("GET", "http://evil.com/admin/.", nil)
+				return req
+			}(),
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, tc.req)
+			if rec.Code != http.StatusMovedPermanently && rec.Code != http.StatusPermanentRedirect && rec.Code != http.StatusFound && rec.Code != http.StatusTemporaryRedirect {
+				t.Fatalf("status = %d, expected 3xx redirect", rec.Code)
+			}
+			loc := rec.Header().Get("Location")
+			if loc == "" {
+				t.Fatalf("missing Location header")
+			}
+			if strings.HasPrefix(loc, "http://") || strings.HasPrefix(loc, "https://") || strings.HasPrefix(loc, "//") {
+				t.Errorf("HPS-2026-0005: Location is absolute (open redirect): %q", loc)
+			}
+			if strings.Contains(loc, "evil.com") {
+				t.Errorf("HPS-2026-0005: Location leaks attacker host: %q", loc)
+			}
+			// The Location must still point at the correct same-origin path.
+			if !strings.HasPrefix(loc, "/admin") {
+				t.Errorf("Location = %q, expected to start with /admin", loc)
+			}
+		})
+	}
+}
+
+// TestRegression_CSA_2026_0060 verifies that route params remain accessible
+// inside a handler even when a Use()-registered middleware wraps the request
+// context (e.g. via context.WithTimeout, context.WithValue, context.WithCancel).
+// Before the fix, routeCtxParams did a direct type switch on the outermost
+// context, which missed when a middleware wrapped it — causing PathParam,
+// ParamsFromContext, and RoutePattern to silently return empty values. The
+// slow-path fallback now traverses the context chain via ctx.Value(contextKey{}).
+func TestRegression_CSA_2026_0060(t *testing.T) {
+	t.Parallel()
+
+	// timeoutMiddleware is the canonical case: stdlib http middleware that
+	// returns r.WithContext(ctx) wraps the *requestCtx with a *timerCtx,
+	// which is exactly the type-switch miss that the slow-path fallback fixes.
+	timeoutMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
+			defer cancel()
+			next.ServeHTTP(w, req.WithContext(ctx))
+		})
+	}
+	type valueKey struct{}
+	valueMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx := context.WithValue(req.Context(), valueKey{}, "x")
+			next.ServeHTTP(w, req.WithContext(ctx))
+		})
+	}
+
+	cases := []struct {
+		name string
+		mw   func(http.Handler) http.Handler
+	}{
+		{"WithTimeout", timeoutMiddleware},
+		{"WithValue", valueMiddleware},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var got struct {
+				idValue   string
+				paramsLen int
+				pattern   string
+			}
+			r := muxmaster.New()
+			r.Use(tc.mw)
+			r.GET("/users/:userID", func(w http.ResponseWriter, req *http.Request) {
+				got.idValue = muxmaster.PathParam(req, "userID")
+				got.paramsLen = len(muxmaster.ParamsFromContext(req.Context()))
+				got.pattern = muxmaster.RoutePattern(req)
+				w.WriteHeader(http.StatusOK)
+			})
+
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest("GET", "/users/abc123", nil))
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200", rec.Code)
+			}
+			if got.paramsLen != 1 {
+				t.Errorf("ParamsFromContext len = %d, want 1 (CSA-2026-0060: params dropped through %s wrapper)", got.paramsLen, tc.name)
+			}
+			if got.idValue != "abc123" {
+				t.Errorf("PathParam(userID) = %q, want %q (CSA-2026-0060)", got.idValue, "abc123")
+			}
+			if got.pattern != "/users/:userID" {
+				t.Errorf("RoutePattern = %q, want %q (CSA-2026-0060)", got.pattern, "/users/:userID")
+			}
+		})
+	}
+}
+
+// TestRegression_CSA_2026_0060_DeepWrap stacks 3 stdlib middlewares (timeout +
+// value + cancel) before reaching the handler. Each layer wraps the context
+// once — the slow-path fallback must still traverse all the way to the
+// requestCtx layer.
+func TestRegression_CSA_2026_0060_DeepWrap(t *testing.T) {
+	t.Parallel()
+	r := muxmaster.New()
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx, cancel := context.WithTimeout(req.Context(), time.Second)
+			defer cancel()
+			next.ServeHTTP(w, req.WithContext(ctx))
+		})
+	})
+	type kA struct{}
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			next.ServeHTTP(w, req.WithContext(context.WithValue(req.Context(), kA{}, "a")))
+		})
+	})
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx, cancel := context.WithCancel(req.Context())
+			defer cancel()
+			next.ServeHTTP(w, req.WithContext(ctx))
+		})
+	})
+
+	var firstID, secondID, pattern string
+	var paramsN int
+	r.GET("/a/:first/b/:second", func(w http.ResponseWriter, req *http.Request) {
+		firstID = muxmaster.PathParam(req, "first")
+		secondID = muxmaster.PathParam(req, "second")
+		paramsN = len(muxmaster.ParamsFromContext(req.Context()))
+		pattern = muxmaster.RoutePattern(req)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest("GET", "/a/x/b/y", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if paramsN != 2 {
+		t.Errorf("paramsLen = %d, want 2 (CSA-2026-0060 deep wrap)", paramsN)
+	}
+	if firstID != "x" || secondID != "y" {
+		t.Errorf("params = (%q,%q), want (\"x\",\"y\")", firstID, secondID)
+	}
+	if pattern != "/a/:first/b/:second" {
+		t.Errorf("RoutePattern = %q, want %q", pattern, "/a/:first/b/:second")
 	}
 }

@@ -345,7 +345,15 @@ func dispatchWithParams(w http.ResponseWriter, r *http.Request, handler http.Han
 
 // routeCtxFor extracts the routeCtx interface from ctx, or nil.
 // The type switch is ordered so the most common cases (requestCtx1, requestCtx)
-// are tested first.
+// are tested first (fast path — O(1) type assertion).
+//
+// Fallback (slow path): when a middleware registered via Use() wraps the request
+// context with a new context (e.g. context.WithTimeout, context.WithValue), the
+// outermost ctx is no longer a *requestCtx* type. In that case we call
+// ctx.Value(contextKey{}) which traverses the context chain until it reaches
+// the requestCtx layer, which returns itself. We then type-switch on that value.
+// This ensures ParamsFromContext and PathParam work correctly even when the
+// context has been wrapped by middleware (CSA-2026-0060).
 func routeCtxParams(ctx context.Context) Params {
 	switch rc := ctx.(type) {
 	case *requestCtx1:
@@ -354,6 +362,17 @@ func routeCtxParams(ctx context.Context) Params {
 		return rc.params
 	case *requestCtx2:
 		return rc.params
+	}
+	// Slow path: context has been wrapped by middleware; traverse the chain.
+	if v := ctx.Value(contextKey{}); v != nil {
+		switch rc := v.(type) {
+		case *requestCtx1:
+			return rc.params
+		case *requestCtx:
+			return rc.params
+		case *requestCtx2:
+			return rc.params
+		}
 	}
 	return nil
 }
@@ -366,6 +385,17 @@ func routeCtxPattern(ctx context.Context) string {
 		return rc.pattern
 	case *requestCtx2:
 		return rc.pattern
+	}
+	// Slow path: context has been wrapped by middleware; traverse the chain.
+	if v := ctx.Value(contextKey{}); v != nil {
+		switch rc := v.(type) {
+		case *requestCtx1:
+			return rc.pattern
+		case *requestCtx:
+			return rc.pattern
+		case *requestCtx2:
+			return rc.pattern
+		}
 	}
 	return ""
 }
