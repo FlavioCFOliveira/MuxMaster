@@ -1,0 +1,106 @@
+name: Bench (regression detection)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/bench.yml"
+
+permissions:
+  contents: read
+  pull-requests: write   # to leave the comparison comment
+
+concurrency:
+  group: bench-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bench:
+    name: Compare benchmarks against ${{ github.base_ref }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Install benchstat
+        run: go install golang.org/x/perf/cmd/benchstat@latest
+
+      - name: Bench HEAD
+        run: |
+          set -euo pipefail
+          # 5 runs at 2s each — enough variance for benchstat without
+          # blowing the CI minute budget.
+          go test -run='^$' -bench=. -benchmem -count=5 -benchtime=2s \
+            $(go list ./... | grep -v '/reports/' | grep -v '/competitor/') \
+            > head.bench
+
+      - name: Bench base
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.base_ref }}"
+          git checkout "origin/${{ github.base_ref }}"
+          go test -run='^$' -bench=. -benchmem -count=5 -benchtime=2s \
+            $(go list ./... | grep -v '/reports/' | grep -v '/competitor/') \
+            > base.bench
+
+      - name: Compare
+        id: cmp
+        run: |
+          set -euo pipefail
+          benchstat base.bench head.bench | tee benchstat.txt
+          # Fail the build if a benchmark regresses by more than 10% (geomean).
+          # benchstat prints "geomean" line at the bottom when -count >= 2.
+          regression=$(awk '
+            /^[A-Za-z].* +[0-9.]+(ns|µs|ms|s) ± *[0-9]+%[ \t]+[0-9.]+(ns|µs|ms|s) ± *[0-9]+%[ \t]+\+[0-9.]+%/ { print }
+          ' benchstat.txt | head -20)
+          if [ -n "$regression" ]; then
+            # Extract worst regression %, fail if > 10
+            worst=$(echo "$regression" | awk '{ for (i=1;i<=NF;i++) if ($i ~ /\+[0-9.]+%$/) { gsub("[^0-9.]","",$i); print $i } }' | sort -rn | head -1)
+            echo "Worst regression: $worst%"
+            echo "worst=$worst" >> "$GITHUB_OUTPUT"
+            if awk -v w="$worst" 'BEGIN { exit !(w+0 > 10) }'; then
+              echo "::error::Benchmark regression of $worst% exceeds 10% gate."
+            fi
+          fi
+
+      - name: Upload benchstat report
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchstat
+          path: |
+            head.bench
+            base.bench
+            benchstat.txt
+
+      - name: Comment on PR
+        if: always()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            let body = "### Benchmark comparison\n\n";
+            try {
+              const txt = fs.readFileSync('benchstat.txt', 'utf8');
+              body += "```\n" + txt.slice(0, 50000) + "\n```\n";
+            } catch (e) {
+              body += "(benchstat output unavailable)\n";
+            }
+            const worst = "${{ steps.cmp.outputs.worst }}";
+            if (worst && Number(worst) > 10) {
+              body += `\n:warning: Worst regression: ${worst}% — exceeds 10% gate.\n`;
+            }
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body,
+            });
