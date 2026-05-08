@@ -120,3 +120,13 @@ jobs:
 
       - name: Coverage summary
         run: go tool cover -func=coverage.out
+
+      - name: Coverage gate (>= 80%)
+        # COV-2026-013: fail CI if total coverage drops below 80%. The
+        # threshold ratchets up as new tests land — bumped in a separate
+        # commit when the floor is comfortably exceeded.
+        run: |
+          set -euo pipefail
+          coverage=$(go tool cover -func=coverage.out | awk '/^total:/ {print substr($NF, 1, length($NF)-1)}')
+          echo "Total coverage: ${coverage}%"
+          awk -v c="$coverage" -v t=80 'BEGIN { if (c+0 < t+0) { print "FAIL: coverage " c "% < " t "%"; exit 1 } print "OK: coverage " c "% >= " t "%" }'
