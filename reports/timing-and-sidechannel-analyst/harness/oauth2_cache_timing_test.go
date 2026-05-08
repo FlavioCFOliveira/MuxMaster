@@ -5,20 +5,21 @@
 // Hypothesis: cache hit vs cache miss latency is distinguishable.
 //   - Cache hit: RLock → map lookup → RUnlock → ~200ns
 //   - Cache miss: RLock → map miss → RUnlock → HTTP call → ... → ~10ms+
-//   This is an EXPECTED, ACCEPTED timing difference (network call dominates).
+//     This is an EXPECTED, ACCEPTED timing difference (network call dominates).
 //
 // Intra-cache timing tests:
-//   1. Active-cached vs inactive-cached tokens — should both return from cache
-//      in similar time (same code path: get() → Active check → return).
-//   2. Cache hit vs expired entry — expired entry falls through as a miss
-//      (expired check in get(): time.Now().After(e.expiry)).
+//  1. Active-cached vs inactive-cached tokens — should both return from cache
+//     in similar time (same code path: get() → Active check → return).
+//  2. Cache hit vs expired entry — expired entry falls through as a miss
+//     (expired check in get(): time.Now().After(e.expiry)).
 //
 // Note: the OAuth2 cache timing oracle is ACCEPTED because:
-//   (a) Cache hit always results in a valid response — attacker can infer "this
-//       token was seen recently" but not the token value.
-//   (b) The cache key is sha256(token) — not reversible.
-//   (c) The timing difference is dominated by the introspection network call,
-//       not by any secret comparison.
+//
+//	(a) Cache hit always results in a valid response — attacker can infer "this
+//	    token was seen recently" but not the token value.
+//	(b) The cache key is sha256(token) — not reversible.
+//	(c) The timing difference is dominated by the introspection network call,
+//	    not by any secret comparison.
 //
 // We test the INTRA-CACHE timing to ensure the Active=true vs Active=false
 // code paths within the cached response do not leak additional info.
@@ -78,15 +79,15 @@ func TestTiming_OAuth2_CacheHit_ActiveVsInactive(t *testing.T) {
 	// Build handler backed by active-server; pre-populate cache with one active token.
 	activeHandler := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: activeServer.URL,
-		CacheTTL: 10 * time.Minute,
+		Endpoint:              activeServer.URL,
+		CacheTTL:              10 * time.Minute,
 	})(inner)
 
 	// Build handler backed by inactive-server; pre-populate cache with inactive token.
 	inactiveHandler := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: inactiveServer.URL,
-		CacheTTL: 10 * time.Minute,
+		Endpoint:              inactiveServer.URL,
+		CacheTTL:              10 * time.Minute,
 	})(inner)
 
 	activeToken := "cached-active-token-abc123"
@@ -171,8 +172,8 @@ func TestTiming_OAuth2_Cache_RWMutex_Contention(t *testing.T) {
 
 	handler := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: activeServer.URL,
-		CacheTTL: 10 * time.Minute,
+		Endpoint:              activeServer.URL,
+		CacheTTL:              10 * time.Minute,
 	})(inner)
 
 	token := "mutex-contention-test-token"

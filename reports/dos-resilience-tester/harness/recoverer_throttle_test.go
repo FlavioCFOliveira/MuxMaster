@@ -1,9 +1,9 @@
 // Package harness — DoS Resilience: recoverer + throttle interaction
 //
 // Tests the composition hazard between Recoverer and Throttle:
-// - A panic inside a throttled handler must correctly release the throttle token
-//   so the concurrency slot is not permanently leaked.
-// - The Recoverer wrapper around the full chain must catch panics from any depth.
+//   - A panic inside a throttled handler must correctly release the throttle token
+//     so the concurrency slot is not permanently leaked.
+//   - The Recoverer wrapper around the full chain must catch panics from any depth.
 package harness
 
 import (
@@ -25,8 +25,9 @@ import (
 // the throttle's defer runs, the token is permanently consumed → limit-1 effective limit.
 //
 // The release path in ThrottleBacklog is:
-//   defer func() { tokens <- t }()
-//   next.ServeHTTP(w, r)   ← panic here
+//
+//	defer func() { tokens <- t }()
+//	next.ServeHTTP(w, r)   ← panic here
 //
 // Since the defer is registered BEFORE next.ServeHTTP, the panic correctly
 // unwinds through the defer and releases the token — IF the Recoverer is OUTSIDE

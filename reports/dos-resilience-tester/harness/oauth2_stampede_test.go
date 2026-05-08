@@ -49,8 +49,8 @@ func TestOAuth2CacheStampedeNoCaching(t *testing.T) {
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: introspectServer.URL,
-		CacheTTL: 60 * time.Second,
+		Endpoint:              introspectServer.URL,
+		CacheTTL:              60 * time.Second,
 	}))
 	r.GET("/protected", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -119,8 +119,8 @@ func TestOAuth2StaleReadAfterExpiry(t *testing.T) {
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: introspectServer.URL,
-		CacheTTL: 100 * time.Millisecond, // 100ms TTL
+		Endpoint:              introspectServer.URL,
+		CacheTTL:              100 * time.Millisecond, // 100ms TTL
 	}))
 	r.GET("/protected", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -146,7 +146,7 @@ func TestOAuth2StaleReadAfterExpiry(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if callCount.Load() == 0 {
-		t.Errorf("STALE READ: cache served expired entry without re-introspecting. "+
+		t.Errorf("STALE READ: cache served expired entry without re-introspecting. " +
 			"Time.Now().After(e.expiry) check in cache.get() may have an off-by-one or is not evaluated.")
 	} else {
 		t.Logf("Stale read correctly handled: re-introspected after TTL expiry (PASS)")
@@ -175,9 +175,9 @@ func TestOAuth2MaxCacheSizeExhaustion(t *testing.T) {
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint:     introspectServer.URL,
-		CacheTTL:     time.Hour,
-		MaxCacheSize: maxSize,
+		Endpoint:              introspectServer.URL,
+		CacheTTL:              time.Hour,
+		MaxCacheSize:          maxSize,
 	}))
 	r.GET("/protected", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -244,8 +244,8 @@ func TestDOS_OAuth2CacheStampede(t *testing.T) {
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: introspectServer.URL,
-		CacheTTL: 60 * time.Second,
+		Endpoint:              introspectServer.URL,
+		CacheTTL:              60 * time.Second,
 	}))
 	var hitCount atomic.Int64
 	r.GET("/protected", func(w http.ResponseWriter, _ *http.Request) {

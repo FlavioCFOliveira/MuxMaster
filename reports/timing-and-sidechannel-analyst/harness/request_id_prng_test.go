@@ -3,10 +3,10 @@
 // request_id_prng_test.go — PRNG audit for RequestID middleware.
 //
 // Audits:
-//   1. PRNG source: crypto/rand (PASS) vs math/rand (FAIL — predictable).
-//   2. Uniqueness: no two generated IDs are equal across N samples.
-//   3. Entropy quality: chi-square test on byte distribution.
-//   4. Validation bypass: X-Request-ID header injection (supply malformed ID).
+//  1. PRNG source: crypto/rand (PASS) vs math/rand (FAIL — predictable).
+//  2. Uniqueness: no two generated IDs are equal across N samples.
+//  3. Entropy quality: chi-square test on byte distribution.
+//  4. Validation bypass: X-Request-ID header injection (supply malformed ID).
 //
 // Expected results:
 //   - crypto/rand: PASS

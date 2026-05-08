@@ -59,7 +59,7 @@ func TestR3_01_TraversalInvariant_Comprehensive(t *testing.T) {
 		// Long traversal chains
 		"/static/" + strings.Repeat("../", 10) + "admin",
 		// Unicode look-alikes of .
-		"/\xe2\x80\x8e.\xe2\x80\x8e./admin",  // LRM before/after dot
+		"/\xe2\x80\x8e.\xe2\x80\x8e./admin", // LRM before/after dot
 		// Empty segments before admin
 		"//admin", "///admin", "////admin",
 		// Semicolon separator attempt
@@ -95,7 +95,10 @@ func TestR3_02_Differential_ExpandedCorpus(t *testing.T) {
 	hrR := buildHTTPRouter()
 	chiR := buildChi()
 
-	type result struct{ code int; handler string }
+	type result struct {
+		code    int
+		handler string
+	}
 	query := func(mux http.Handler, path string) result {
 		defer func() { recover() }()
 		req := httptest.NewRequest("GET", "http://example.com"+path, nil)
@@ -114,7 +117,7 @@ func TestR3_02_Differential_ExpandedCorpus(t *testing.T) {
 	}
 
 	cases := []struct {
-		path string
+		path        string
 		secCritical bool
 	}{
 		// Exact matches — all must agree
@@ -189,7 +192,7 @@ func TestR3_02_Differential_ExpandedCorpus(t *testing.T) {
 
 func TestR3_03_PropertyTest_RegisterThenRoute(t *testing.T) {
 	patterns := []struct {
-		pattern string
+		pattern  string
 		testPath string
 	}{
 		{"/a", "/a"},

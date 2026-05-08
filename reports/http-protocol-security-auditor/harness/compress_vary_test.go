@@ -4,19 +4,19 @@
 // path and never emit Vary: Accept-Encoding.  This file investigates whether
 // the blast radius extends to a full CDN/reverse-proxy cache-poisoning scenario:
 //
-//	1. HPS-2026-0007: Small-response Vary absence — blast radius verification.
-//	   A CDN that caches without a Vary key will serve the non-gzip body to a
-//	   gzip-capable client, causing garbled content — not a security hole per
-//	   se, but a correctness defect exploitable for cache deception.
+//  1. HPS-2026-0007: Small-response Vary absence — blast radius verification.
+//     A CDN that caches without a Vary key will serve the non-gzip body to a
+//     gzip-capable client, causing garbled content — not a security hole per
+//     se, but a correctness defect exploitable for cache deception.
 //
-//	2. HPS-2026-0008: Mixed-cache scenario — CDN serves compressed response to
-//	   non-gzip client because the cached entry was populated by a gzip request.
+//  2. HPS-2026-0008: Mixed-cache scenario — CDN serves compressed response to
+//     non-gzip client because the cached entry was populated by a gzip request.
 //
-//	3. HPS-2026-0009: Threshold boundary — a response of exactly 1024 bytes
-//	   (the minCompressSize boundary) must always emit Vary, never omit it.
+//  3. HPS-2026-0009: Threshold boundary — a response of exactly 1024 bytes
+//     (the minCompressSize boundary) must always emit Vary, never omit it.
 //
-//	4. HPS-2026-0010: Vary header absent when handler pre-sets Content-Encoding
-//	   — confirm Compress() does not double-compress or drop Vary in this case.
+//  4. HPS-2026-0010: Vary header absent when handler pre-sets Content-Encoding
+//     — confirm Compress() does not double-compress or drop Vary in this case.
 //
 // Run with:
 //
@@ -157,17 +157,17 @@ func TestCompressVary_SmallResponse_BlastRadius(t *testing.T) {
 	if cached.contentEncoding == "gzip" {
 		// If a compressed response were cached and served to a non-gzip client,
 		// that client would receive garbled gzip bytes — THIS would be the vulnerability.
-		t.Errorf("FINDING HPS-2026-0007: CDN cache-poisoning scenario is exploitable — "+
+		t.Errorf("FINDING HPS-2026-0007: CDN cache-poisoning scenario is exploitable — " +
 			"compressed response cached without Vary will garble non-gzip clients")
 		t.Errorf("CWE-345: Insufficient Verification of Data Authenticity (cache poisoning)")
-		t.Errorf("Mitigation: small responses should not suppress Vary header when the "+
+		t.Errorf("Mitigation: small responses should not suppress Vary header when the " +
 			"Compress middleware is present in the chain")
 	} else {
-		t.Logf("PASS HPS-2026-0007: Small response is NOT compressed — "+
-			"no Vary required, no cache-poisoning risk. "+
+		t.Logf("PASS HPS-2026-0007: Small response is NOT compressed — " +
+			"no Vary required, no cache-poisoning risk. " +
 			"CDN serves plain text to both gzip and non-gzip clients correctly.")
-		t.Logf("ANALYSIS: Vary absence on small responses is a correctness/interop issue "+
-			"(RFC 7234 §4.1 recommends Vary when content varies) but NOT exploitable "+
+		t.Logf("ANALYSIS: Vary absence on small responses is a correctness/interop issue " +
+			"(RFC 7234 §4.1 recommends Vary when content varies) but NOT exploitable " +
 			"for cache poisoning because Content-Encoding is absent.")
 	}
 }
@@ -216,7 +216,7 @@ func TestCompressVary_LargeResponse_CDNPoisoningRisk(t *testing.T) {
 
 	// Security assertion 1: Vary MUST be present when Content-Encoding is gzip.
 	if ce1 == "gzip" && !strings.Contains(vary1, "Accept-Encoding") {
-		t.Errorf("FINDING HPS-2026-0008: Content-Encoding: gzip emitted WITHOUT Vary: Accept-Encoding — "+
+		t.Errorf("FINDING HPS-2026-0008: Content-Encoding: gzip emitted WITHOUT Vary: Accept-Encoding — " +
 			"CDN cache-poisoning is possible if CDN ignores missing Vary")
 		t.Errorf("CWE-345: Cache poisoning — non-gzip clients will receive garbled compressed body")
 		t.Errorf("CWE-693: Protection Mechanism Failure (cache layer bypass)")
@@ -285,10 +285,10 @@ func TestCompressVary_ThresholdBoundary(t *testing.T) {
 	const minSize = 1024 // minCompressSize in middleware/compress.go
 
 	cases := []struct {
-		size         int
-		expectGzip   bool
-		expectVary   bool
-		desc         string
+		size       int
+		expectGzip bool
+		expectVary bool
+		desc       string
 	}{
 		{minSize - 1, false, false, "below threshold — no compression, no Vary"},
 		{minSize, true, true, "at threshold — compressed, Vary required"},
@@ -396,7 +396,7 @@ func TestCompressVary_PreSetContentEncoding_NoDoubleCompress(t *testing.T) {
 			gr.Close()
 			// If inner2 starts with gzip magic bytes, it was double-compressed.
 			if len(inner2) >= 2 && inner2[0] == 0x1f && inner2[1] == 0x8b {
-				t.Errorf("FINDING HPS-2026-0010: double-compression detected — "+
+				t.Errorf("FINDING HPS-2026-0010: double-compression detected — " +
 					"Compress middleware re-compressed a body that already had Content-Encoding: gzip")
 				t.Errorf("CWE-116: Improper Encoding — clients cannot decode double-gzip body")
 			} else {

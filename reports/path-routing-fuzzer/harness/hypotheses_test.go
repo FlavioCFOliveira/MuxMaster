@@ -77,13 +77,13 @@ func TestHA_CleanPathThenStripSlashes(t *testing.T) {
 	// This is expected behavior given how path.Clean works, but operators must
 	// understand that route-level auth on /admin won't see the original path.
 	type tc struct {
-		path         string
-		expectAdmin  bool // true = CleanPath causes re-route to /admin
+		path        string
+		expectAdmin bool // true = CleanPath causes re-route to /admin
 	}
 	cases := []tc{
-		{"/static/../admin", true},      // path.Clean → /admin
-		{"/static/..%2fadmin", true},    // URL.Path decoded: /static/../admin → /admin
-		{"/static/%2e%2e/admin", true},  // URL.Path decoded: /static/../admin → /admin
+		{"/static/../admin", true},     // path.Clean → /admin
+		{"/static/..%2fadmin", true},   // URL.Path decoded: /static/../admin → /admin
+		{"/static/%2e%2e/admin", true}, // URL.Path decoded: /static/../admin → /admin
 		{"/static/..%2F..%2Fadmin", true},
 		{"/static/./../../admin", true},
 	}
@@ -297,8 +297,8 @@ func TestInvariant_ParamMustNotCaptureSlash(t *testing.T) {
 
 	// A %2f-encoded slash should NOT span the segment boundary.
 	paths := []string{
-		"/users/1%2f2/posts",  // %2f = /
-		"/users/a%2Fb/posts",  // %2F = /
+		"/users/1%2f2/posts",   // %2f = /
+		"/users/a%2Fb/posts",   // %2F = /
 		"/users/x%252fy/posts", // double-encoded
 	}
 	for _, p := range paths {
@@ -332,7 +332,7 @@ func TestInvariant_CatchallNotEscapingPrefix(t *testing.T) {
 	// The filepath param contains traversal sequences — this is documented behavior
 	// (the router is not responsible for file-system path safety).
 	traversalPaths := []string{
-		"/static/../../etc/passwd",         // literal .. segments
+		"/static/../../etc/passwd", // literal .. segments
 		"/static/../etc/passwd",
 		"/static/%2e%2e/%2e%2e/etc/passwd", // %2e decoded by net/url → ..
 		"/static/..%2f..%2fetc%2fpasswd",   // %2f decoded by net/url → /
@@ -382,11 +382,11 @@ func TestEncoding_SinglePercent(t *testing.T) {
 		path        string
 		wantHandler string // "" means don't care; "admin" = bypass; "admin-by-design" = expected
 	}{
-		{"/admin", "admin"},              // control: must match
-		{"/%61dmin", "admin-by-design"},  // %61='a' → URL.Path="/admin" → matches (net/url decodes)
+		{"/admin", "admin"},                     // control: must match
+		{"/%61dmin", "admin-by-design"},         // %61='a' → URL.Path="/admin" → matches (net/url decodes)
 		{"/%61%64%6d%69%6e", "admin-by-design"}, // all-encoded → URL.Path="/admin" → matches
-		{"/admın", ""},                   // Latin dotless-i — different Unicode code point
-		{"/ADMIN", ""},                   // case mismatch (CaseInsensitive=false)
+		{"/admın", ""},                          // Latin dotless-i — different Unicode code point
+		{"/ADMIN", ""},                          // case mismatch (CaseInsensitive=false)
 	}
 
 	for _, tc := range cases {
@@ -416,8 +416,8 @@ func TestEncoding_DoublePercent(t *testing.T) {
 
 	// Double-encoded paths: %25 encodes the '%' character itself.
 	doubleEncoded := []string{
-		"/%2561dmin",      // %25 = '%', so this is /%61dmin after one decode
-		"/%252e%252e/admin", // double-encoded dot-dot
+		"/%2561dmin",                // %25 = '%', so this is /%61dmin after one decode
+		"/%252e%252e/admin",         // double-encoded dot-dot
 		"/%25%32%65%25%32%65/admin", // double-encoded dot-dot verbose
 	}
 	for _, p := range doubleEncoded {
@@ -441,8 +441,8 @@ func TestNullByte_InPath(t *testing.T) {
 	// §3.2.6 — control characters forbidden). Null bytes are blocked at the
 	// HTTP parsing layer before reaching the router. We test percent-encoded nulls.
 	nullPaths := []string{
-		"/%00admin",   // %00 = null byte percent-encoded
-		"/admin%00",   // trailing percent-encoded null
+		"/%00admin", // %00 = null byte percent-encoded
+		"/admin%00", // trailing percent-encoded null
 		"/admin%00.txt",
 		"/users%00/1",
 	}
@@ -479,12 +479,12 @@ func TestUnicode_ConfusableGlyphs(t *testing.T) {
 	// Cyrillic 'а' (U+0430) vs Latin 'a' (U+0061): these are different code points.
 	// With CaseInsensitive=false they must not match.
 	confusables := []string{
-		"/аdmin",                 // Cyrillic а (U+0430)
-		"/ɑdmin",                 // Latin alpha (U+0251)
-		"/admin",                       // all explicit latin → must match
-		"/admin​",                // zero-width space appended (U+200B)
-		"/admin\xef\xbb\xbf",          // BOM (U+FEFF) via hex escape
-		"/‮admin",                // RTL override before (U+202E)
+		"/аdmin",             // Cyrillic а (U+0430)
+		"/ɑdmin",             // Latin alpha (U+0251)
+		"/admin",             // all explicit latin → must match
+		"/admin​",            // zero-width space appended (U+200B)
+		"/admin\xef\xbb\xbf", // BOM (U+FEFF) via hex escape
+		"/‮admin",            // RTL override before (U+202E)
 	}
 	for _, p := range confusables {
 		if !utf8.ValidString(p) {
@@ -510,7 +510,7 @@ func TestUnicode_FullwidthSlash(t *testing.T) {
 	// Fullwidth slash: U+FF0F (／), percent-encoded as %EF%BC%8F.
 	// Must not be treated as a path separator.
 	fullwidthPaths := []string{
-		"/static/／etc／passwd",   // raw fullwidth slash
+		"/static/／etc／passwd",                 // raw fullwidth slash
 		"/static/%EF%BC%8Fetc%EF%BC%8Fpasswd", // percent-encoded
 	}
 	for _, p := range fullwidthPaths {
@@ -572,8 +572,8 @@ func TestExpandOptional_MalformedPatterns(t *testing.T) {
 		pattern     string
 		shouldPanic bool
 	}{
-		{"/users{/:id}", false},  // valid optional
-		{"/a{/:b}{/:c}", false},  // two optionals — potential exponential
+		{"/users{/:id}", false},      // valid optional
+		{"/a{/:b}{/:c}", false},      // two optionals — potential exponential
 		{"/a{/:b}{/:c}{/:d}", false}, // three optionals — 2^3 = 8 expansions
 	}
 
@@ -644,7 +644,7 @@ func TestCaseInsensitive_MatchingBehavior(t *testing.T) {
 		path    string
 		wantHit bool
 	}{
-		{"/ADMIN", true},   // case-insensitive match expected
+		{"/ADMIN", true}, // case-insensitive match expected
 		{"/Admin", true},
 		{"/aDmIn", true},
 		{"/admin", true},
@@ -797,12 +797,12 @@ func TestStructural_EmptyAndDoubleSlash(t *testing.T) {
 	r.GET("/users/:id", h("users"))
 
 	cases := []string{
-		"//admin",         // double slash
-		"///admin",        // triple slash
-		"//users//1",      // double slashes around segment
-		"/admin/",         // trailing slash (TSR kicks in but not bypass)
-		"/;admin",         // semicolon prefix (not a path separator in HTTP)
-		"/admin;ignore",   // semicolon param in segment
+		"//admin",       // double slash
+		"///admin",      // triple slash
+		"//users//1",    // double slashes around segment
+		"/admin/",       // trailing slash (TSR kicks in but not bypass)
+		"/;admin",       // semicolon prefix (not a path separator in HTTP)
+		"/admin;ignore", // semicolon param in segment
 	}
 	for _, p := range cases {
 		func() {
@@ -899,7 +899,7 @@ func TestUnescapePathValues_NoDoubleDecode(t *testing.T) {
 	// This is a double-decode: %2520 should decode to %20, not to space.
 	serve(r, "GET", "/users/hello%2520world")
 	if capturedID == "hello world" {
-		t.Errorf("PRF-006 DOUBLE-DECODE CONFIRMED: UnescapePathValues double-decoded %%2520 → 'hello world', "+
+		t.Errorf("PRF-006 DOUBLE-DECODE CONFIRMED: UnescapePathValues double-decoded %%2520 → 'hello world', " +
 			"expected 'hello%%20world'. Attack: %%2520 bypasses input validation that blocks spaces.")
 	} else {
 		t.Logf("PRF-006 note: id=%q (expected 'hello%%20world')", capturedID)

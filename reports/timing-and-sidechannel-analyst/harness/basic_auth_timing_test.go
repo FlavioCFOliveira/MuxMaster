@@ -3,8 +3,8 @@
 // basic_auth_timing_test.go — Statistical timing analysis for BasicAuth middleware.
 //
 // Hypotheses tested:
-//   1. valid-password vs invalid-password (constant-time MUST hold)
-//   2. existing-user vs non-existing-user (user-enumeration oracle MUST NOT exist)
+//  1. valid-password vs invalid-password (constant-time MUST hold)
+//  2. existing-user vs non-existing-user (user-enumeration oracle MUST NOT exist)
 //
 // Methodology: pinned OS thread, GC disabled, 1 M samples, p99 outlier trim,
 // Welch t-test + KS 2-sample + Mann-Whitney U.

@@ -88,14 +88,14 @@ func TestJWT_AlgNoneVariantsRejected(t *testing.T) {
 		"NONE",
 		"nOnE",
 		"NoNe",
-		" none",      // leading space
-		"none ",      // trailing space
-		"none\x00",  // NUL suffix
-		"\x00none",  // NUL prefix
-		"None\r\n",  // CRLF
+		" none",       // leading space
+		"none ",       // trailing space
+		"none\x00",    // NUL suffix
+		"\x00none",    // NUL prefix
+		"None\r\n",    // CRLF
 		"HS256\nnone", // multi-line
-		"alg:none",  // colon-injection
-		"NONE,HS256", // comma-separated
+		"alg:none",    // colon-injection
+		"NONE,HS256",  // comma-separated
 	}
 
 	for _, alg := range noneVariants {
@@ -176,8 +176,8 @@ func FuzzJWTParserNoPanic(f *testing.F) {
 	f.Add("eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0.") // alg:none
 	f.Add("eyJhbGciOiJIUzI1NiJ9.e30.AAAA")
 	f.Add("!invalid base64!.payload.sig")
-	f.Add(string(make([]byte, 65536))) // large input
-	f.Add("a." + string(make([]byte, 65536)) + ".c") // large payload
+	f.Add(string(make([]byte, 65536)))                                                       // large input
+	f.Add("a." + string(make([]byte, 65536)) + ".c")                                         // large payload
 	f.Add("eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJ0ZXN0IiwiZXhwIjo5OTk5OTk5OTk5fQ.") // none with valid payload
 
 	handler := mw.JWTAuth(mw.JWTOptions{
@@ -259,10 +259,10 @@ func FuzzJWTKidInjection(f *testing.F) {
 // ============================================================
 
 // TestProp_JWTClaimsContextSafety verifies that:
-// 1. GetJWTClaims on any arbitrary context does not panic.
-// 2. When JWTAuth injects claims, a downstream handler can access them without panic.
-// 3. If a downstream handler uses context.WithValue with the same key type,
-//    GetJWTClaims still returns the correct claims (type-safety of the key).
+//  1. GetJWTClaims on any arbitrary context does not panic.
+//  2. When JWTAuth injects claims, a downstream handler can access them without panic.
+//  3. If a downstream handler uses context.WithValue with the same key type,
+//     GetJWTClaims still returns the correct claims (type-safety of the key).
 func TestProp_JWTClaimsContextSafety(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		defer func() {

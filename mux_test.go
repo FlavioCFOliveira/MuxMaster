@@ -673,10 +673,10 @@ func TestS8_FPE_RegexBodyContainsBrace(t *testing.T) {
 		matchURL string
 		wantOK   bool
 	}{
-		{"/foo/{id:(})}", "/foo/}", true},   // regex matches literal '}'
-		{"/q/{n:a{2,3}}", "/q/aaa", true},   // quantifier
-		{"/c/{id:[}]}", "/c/}", true},       // char class
-		{"/e/{id:\\}}", "/e/}", true},       // escaped }
+		{"/foo/{id:(})}", "/foo/}", true}, // regex matches literal '}'
+		{"/q/{n:a{2,3}}", "/q/aaa", true}, // quantifier
+		{"/c/{id:[}]}", "/c/}", true},     // char class
+		{"/e/{id:\\}}", "/e/}", true},     // escaped }
 	}
 	for _, tc := range patterns {
 		tc := tc
@@ -735,11 +735,11 @@ func TestS8_PRF_ConsecutiveOptionals(t *testing.T) {
 // route registration leaves the previously-published tree intact — readers
 // concurrently serving requests must not observe partial mutation
 // (MM-2026-0033 / rmp #13). The test:
-//   1. Registers a working route /ok and confirms it serves 200.
-//   2. Attempts to register a pattern that panics during expansion (more
-//      than maxOptionalSegments=8 optional segments).
-//   3. Asserts the live tree still serves /ok and that the failed pattern
-//      is NOT registered.
+//  1. Registers a working route /ok and confirms it serves 200.
+//  2. Attempts to register a pattern that panics during expansion (more
+//     than maxOptionalSegments=8 optional segments).
+//  3. Asserts the live tree still serves /ok and that the failed pattern
+//     is NOT registered.
 func TestTwoPhaseRegistrationPanic_LiveTreeIntact(t *testing.T) {
 	r := muxmaster.New()
 	r.GET("/ok", func(w http.ResponseWriter, _ *http.Request) {
@@ -1516,8 +1516,9 @@ func TestRegression_TM_2026_039_CaddyTransposition(t *testing.T) {
 // NOT clean param values; the handler MUST do so before any os.Open call.
 // SECURITY.md "UseRawPath traversal" describes the contract — this test
 // asserts that:
-//   1. A handler that DOES NOT call path.Clean is exposed to traversal.
-//   2. A handler that DOES call path.Clean is safe.
+//  1. A handler that DOES NOT call path.Clean is exposed to traversal.
+//  2. A handler that DOES call path.Clean is safe.
+//
 // The test does not write to disk; it only inspects the captured param value.
 func TestRegression_TM_2026_009_UseRawPath_HandlerBoundary(t *testing.T) {
 	t.Parallel()

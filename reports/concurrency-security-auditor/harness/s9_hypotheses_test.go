@@ -723,7 +723,7 @@ func TestH9_11_MassiveParallel_AllRouteTypes(t *testing.T) {
 		go func(g int) {
 			defer wg.Done()
 			for i := 0; i < iters; i++ {
-				idx := (g*i)%100
+				idx := (g * i) % 100
 				req := httptest.NewRequest("GET", fmt.Sprintf("/h911/static/%d", idx), nil)
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, req)

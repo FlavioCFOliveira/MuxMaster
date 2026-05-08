@@ -143,10 +143,10 @@ func TestSec_JWT_NoExpClaim_AcceptedForever(t *testing.T) {
 	mw(inner).ServeHTTP(rec, req)
 
 	if rec.Code == http.StatusOK && reached {
-		t.Logf("MSR-2026-0066 CONFIRMED: JWT with no exp claim accepted (iat=1 year ago). "+
-			"RFC 8725 §4.4 recommends rejecting tokens without expiry. "+
-			"JWTOptions has no RequireExpiry field to enforce this. "+
-			"Severity: MEDIUM. Recommended fix: add RequireExpiry bool to JWTOptions; "+
+		t.Logf("MSR-2026-0066 CONFIRMED: JWT with no exp claim accepted (iat=1 year ago). " +
+			"RFC 8725 §4.4 recommends rejecting tokens without expiry. " +
+			"JWTOptions has no RequireExpiry field to enforce this. " +
+			"Severity: MEDIUM. Recommended fix: add RequireExpiry bool to JWTOptions; " +
 			"when true, reject tokens where raw.Exp == 0.")
 	} else {
 		t.Logf("JWT no-exp token rejected (code=%d) — behaviour changed from expected", rec.Code)
@@ -525,7 +525,7 @@ func TestSec_Composition_RequestID_LogNotEntangled(t *testing.T) {
 	mu.Unlock()
 
 	if strings.Contains(output, "fixed-collision-id") {
-		t.Logf("H8-06 NOTE: request ID appears in log — custom loggers using GetRequestID "+
+		t.Logf("H8-06 NOTE: request ID appears in log — custom loggers using GetRequestID " +
 			"would have collision-ambiguity risk")
 	} else {
 		t.Logf("H8-06 PASS: standard Logger does not include request ID — no collision entanglement. "+
@@ -615,8 +615,8 @@ func TestSec_Composition_ThrottlePerIP_Before_RealIP_WrongKey(t *testing.T) {
 	t.Logf("H8-01 wrong order results (limit=1, sequential): %v", results)
 	// With limit=1 and sequential requests, both may succeed (refs cleanup between calls).
 	// Under concurrent load the second gets throttled because both key on 10.0.0.1.
-	t.Logf("H8-01 NOTE: ThrottlePerIP before RealIP keys on proxy IP 10.0.0.1, not client IP. "+
-		"Under concurrent load from distinct clients, the proxy IP hits the limit and "+
+	t.Logf("H8-01 NOTE: ThrottlePerIP before RealIP keys on proxy IP 10.0.0.1, not client IP. " +
+		"Under concurrent load from distinct clients, the proxy IP hits the limit and " +
 		"legitimate clients are throttled. Correct order: RealIP THEN ThrottlePerIP.")
 }
 

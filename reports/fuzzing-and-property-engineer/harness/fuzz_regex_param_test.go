@@ -70,12 +70,12 @@ func FuzzRegexParamRegistration(f *testing.F) {
 	f.Add(".*")
 	f.Add("(a+)+")        // valid but ReDoS-prone
 	f.Add("(a|aa)+")      // valid but ReDoS-prone
-	f.Add("[")             // invalid: unclosed bracket
+	f.Add("[")            // invalid: unclosed bracket
 	f.Add("(?P<name>x)")  // valid with named group
 	f.Add("x{1,1000000}") // large quantifier
 	f.Add("a|b|c|d")
-	f.Add("")              // empty — may be accepted or rejected
-	f.Add("(")             // invalid: unclosed paren
+	f.Add("")  // empty — may be accepted or rejected
+	f.Add("(") // invalid: unclosed paren
 
 	f.Fuzz(func(t *testing.T, expr string) {
 		// First check if the expression is a valid Go regex.

@@ -51,8 +51,8 @@ type slowWriter struct {
 	delay time.Duration
 }
 
-func (s *slowWriter) Header() http.Header         { return s.w.Header() }
-func (s *slowWriter) WriteHeader(code int)         { s.w.WriteHeader(code) }
+func (s *slowWriter) Header() http.Header  { return s.w.Header() }
+func (s *slowWriter) WriteHeader(code int) { s.w.WriteHeader(code) }
 func (s *slowWriter) Write(b []byte) (int, error) {
 	// Write one byte at a time to simulate drip-feed upstream
 	total := 0

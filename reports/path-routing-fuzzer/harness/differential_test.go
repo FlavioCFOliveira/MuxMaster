@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	mm "github.com/FlavioCFOliveira/MuxMaster"
 	chi "github.com/go-chi/chi/v5"
 	"github.com/julienschmidt/httprouter"
-	mm "github.com/FlavioCFOliveira/MuxMaster"
 	bunrouter "github.com/uptrace/bunrouter"
 )
 
@@ -336,9 +336,9 @@ func TestDifferential_CorpusPaths(t *testing.T) {
 		{"/static/%2e%2e/admin", true},
 
 		// --- Encoding attacks ---
-		{"/%61dmin", false},       // %61 = 'a' — should 404 (no pre-routing decode)
-		{"/ad%6din", false},       // %6d = 'm'
-		{"/%2561dmin", false},     // double-encoded
+		{"/%61dmin", false},   // %61 = 'a' — should 404 (no pre-routing decode)
+		{"/ad%6din", false},   // %6d = 'm'
+		{"/%2561dmin", false}, // double-encoded
 		// Note: null bytes are tested separately in hypotheses_test.go;
 		// httptest.NewRequest rejects them before reaching the router.
 
@@ -350,16 +350,16 @@ func TestDifferential_CorpusPaths(t *testing.T) {
 		{"/admin#fragment", false}, // fragment should not reach server
 
 		// --- Param attacks ---
-		{"/users/1%2f2", false},   // %2f = '/' in param
-		{"/users/", false},        // empty param after slash
-		{"/users", false},         // missing param (TSR candidate)
+		{"/users/1%2f2", false}, // %2f = '/' in param
+		{"/users/", false},      // empty param after slash
+		{"/users", false},       // missing param (TSR candidate)
 
 		// --- Unicode ---
 		{"/аdmin", false}, // Cyrillic а ≠ Latin a
 
 		// --- Wildcard ---
-		{"/static/", false},  // empty filepath (TSR candidate)
-		{"/static", false},   // missing slash (TSR candidate)
+		{"/static/", false}, // empty filepath (TSR candidate)
+		{"/static", false},  // missing slash (TSR candidate)
 		{"/static/a/b/c", false},
 		{"/static/../../etc/passwd", true},
 	}

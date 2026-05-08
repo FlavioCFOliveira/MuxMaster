@@ -220,10 +220,10 @@ func TestHPS0003_Mount_RawPath_Asymmetry(t *testing.T) {
 	defer srv.Close()
 
 	testCases := []struct {
-		rawURL        string
-		expectedPath  string
-		expectedRaw   string
-		desc          string
+		rawURL       string
+		expectedPath string
+		expectedRaw  string
+		desc         string
 	}{
 		{
 			rawURL:       "/api/users/123",
@@ -752,12 +752,12 @@ func TestHPS0012_RequestID_CRLF_Rejected(t *testing.T) {
 	ridHandler := middleware.RequestID()(next)
 
 	attackIDs := []string{
-		"valid-id-123",                               // should be echoed
-		"evil\r\nX-Injected: yes",                   // CRLF — must be replaced
-		"evil\nX-Injected: yes",                      // bare LF — must be replaced
-		strings.Repeat("A", 200),                     // >128 chars — must be replaced
-		"evil\x00null",                               // NUL byte — must be replaced
-		"valid.id_with-all.allowed-chars",            // valid with all allowed chars
+		"valid-id-123",                    // should be echoed
+		"evil\r\nX-Injected: yes",         // CRLF — must be replaced
+		"evil\nX-Injected: yes",           // bare LF — must be replaced
+		strings.Repeat("A", 200),          // >128 chars — must be replaced
+		"evil\x00null",                    // NUL byte — must be replaced
+		"valid.id_with-all.allowed-chars", // valid with all allowed chars
 	}
 
 	for _, id := range attackIDs {

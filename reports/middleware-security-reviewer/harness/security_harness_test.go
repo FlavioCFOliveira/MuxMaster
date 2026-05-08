@@ -48,7 +48,11 @@ func makeJWT(alg string, hdrExtra map[string]any, claims map[string]any, signFn 
 	return signingInput + "." + base64.RawURLEncoding.EncodeToString(sig)
 }
 
-func hmacSign(secret []byte, h func() interface{ Write([]byte) (int, error); Sum([]byte) []byte; Reset() }) func([]byte) []byte {
+func hmacSign(secret []byte, h func() interface {
+	Write([]byte) (int, error)
+	Sum([]byte) []byte
+	Reset()
+}) func([]byte) []byte {
 	_ = h // unused in call site, using direct below
 	return nil
 }
@@ -651,8 +655,8 @@ func TestSec_OAuth2_CacheStaleActiveAfterExpiry(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: server.URL,
-		CacheTTL: 100 * time.Millisecond,
+		Endpoint:              server.URL,
+		CacheTTL:              100 * time.Millisecond,
 	})
 
 	// First request — caches the token.
@@ -688,8 +692,8 @@ func TestSec_OAuth2_InactiveTokenCached_NotAccepted(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: server.URL,
-		CacheTTL: 60 * time.Second,
+		Endpoint:              server.URL,
+		CacheTTL:              60 * time.Second,
 	})
 
 	// Inactive tokens: oauth2.go lines 220-225 check !resp.Active and return 401;
@@ -720,8 +724,8 @@ func TestSec_OAuth2_RevocationLag_Documented(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: server.URL,
-		CacheTTL: 60 * time.Second, // long cache TTL
+		Endpoint:              server.URL,
+		CacheTTL:              60 * time.Second, // long cache TTL
 	})
 
 	serve(mw, "GET", "/", func(r *http.Request) {
@@ -746,8 +750,8 @@ func TestSec_OAuth2_EndpointErrorReturns401(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: server.URL,
-		CacheTTL: -1,
+		Endpoint:              server.URL,
+		CacheTTL:              -1,
 	})
 	rec := serve(mw, "GET", "/", func(r *http.Request) {
 		r.Header.Set("Authorization", "Bearer token")
@@ -770,8 +774,8 @@ func TestSec_OAuth2_ResponseBodyLimitedTo64KB(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: server.URL,
-		CacheTTL: -1,
+		Endpoint:              server.URL,
+		CacheTTL:              -1,
 	})
 	// Should not panic or OOM; returns 401 or 200 depending on truncation.
 	rec := serve(mw, "GET", "/", func(r *http.Request) {
@@ -2298,7 +2302,7 @@ func TestSec_RealIP_WithCIDR_SpoofPrevented(t *testing.T) {
 		w.WriteHeader(200)
 	})
 	req := httptest.NewRequest("GET", "/", nil)
-	req.RemoteAddr = "1.2.3.4:9999" // NOT in trusted CIDR
+	req.RemoteAddr = "1.2.3.4:9999"              // NOT in trusted CIDR
 	req.Header.Set("X-Forwarded-For", "9.8.7.6") // spoofed
 	mw(inner).ServeHTTP(httptest.NewRecorder(), req)
 	if capturedAddr == "9.8.7.6" {

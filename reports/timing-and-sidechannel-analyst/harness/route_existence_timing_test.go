@@ -5,10 +5,10 @@
 // Reference: MM-2026-0026 (accepted: radix-tree depth correlates with lookup time).
 //
 // This test quantifies the ACTUAL magnitude of the timing difference between:
-//   1. Registered route vs unregistered route (at same depth).
-//   2. Short path (depth 1) vs long path (depth 5).
-//   3. Static route vs parameterised route at same depth.
-//   4. "Hidden admin" route vs random unregistered route.
+//  1. Registered route vs unregistered route (at same depth).
+//  2. Short path (depth 1) vs long path (depth 5).
+//  3. Static route vs parameterised route at same depth.
+//  4. "Hidden admin" route vs random unregistered route.
 //
 // The goal is to confirm whether the oracle is exploitable at network latency
 // (<1ms RTT LAN, ~10-50ms WAN) given the measured effect size.

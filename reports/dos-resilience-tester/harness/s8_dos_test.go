@@ -593,8 +593,8 @@ func TestH8_06_OAuth2SingleflightLeaderCancel(t *testing.T) {
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: introspectServer.URL,
-		CacheTTL: 60 * time.Second,
+		Endpoint:              introspectServer.URL,
+		CacheTTL:              60 * time.Second,
 	}))
 	r.GET("/protected", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -694,8 +694,8 @@ func TestH8_06_OAuth2LeaderErrorPropagation(t *testing.T) {
 	r := mm.New()
 	r.Use(middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: introspectServer.URL,
-		CacheTTL: 60 * time.Second,
+		Endpoint:              introspectServer.URL,
+		CacheTTL:              60 * time.Second,
 	}))
 	r.GET("/protected", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -755,7 +755,7 @@ func TestRadixTreeComplexitySlope(t *testing.T) {
 	}
 
 	type point struct {
-		depth  int
+		depth   int
 		nsPerOp float64
 	}
 

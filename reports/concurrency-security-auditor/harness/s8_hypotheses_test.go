@@ -229,8 +229,8 @@ func TestH8_06_Timeout_OAuth2_SingleflightCancel(t *testing.T) {
 
 	mwChain := mw.OAuth2Introspect(mw.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: slowServer.URL,
-		CacheTTL: 5 * time.Second,
+		Endpoint:              slowServer.URL,
+		CacheTTL:              5 * time.Second,
 	})
 
 	r := mm.New()
@@ -505,9 +505,9 @@ func TestH8_44_OAuth2Cache_Singleflight_Regression(t *testing.T) {
 
 	mwChain := mw.OAuth2Introspect(mw.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint:     fakeServer.URL,
-		CacheTTL:     10 * time.Second,
-		MaxCacheSize: 100,
+		Endpoint:              fakeServer.URL,
+		CacheTTL:              10 * time.Second,
+		MaxCacheSize:          100,
 	})
 
 	r := mm.New()
@@ -994,9 +994,9 @@ func TestS8_LazyBuilders_AllThree_UseAndRebuild(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 3000; i++ {
-				serve("GET", "/missing")      // lazyNotFound
-				serve("DELETE", "/exists")    // lazyMethodNotAllowed
-				serve("OPTIONS", "/exists")   // lazyOPTIONS
+				serve("GET", "/missing")    // lazyNotFound
+				serve("DELETE", "/exists")  // lazyMethodNotAllowed
+				serve("OPTIONS", "/exists") // lazyOPTIONS
 			}
 		}()
 	}

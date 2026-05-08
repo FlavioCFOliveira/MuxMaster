@@ -14,10 +14,11 @@
 //   - After N requests the secret can be recovered character-by-character.
 //
 // This harness:
-//   (a) registers an endpoint that echoes OAuth2 scope + attacker input under Compress
-//   (b) runs two populations: random guesses vs. correct-prefix guesses
-//   (c) computes mean compressed size per population and Cohen's d
-//   (d) FAILS if effect size |d| >= 0.3 (medium effect — oracle is exploitable)
+//
+//	(a) registers an endpoint that echoes OAuth2 scope + attacker input under Compress
+//	(b) runs two populations: random guesses vs. correct-prefix guesses
+//	(c) computes mean compressed size per population and Cohen's d
+//	(d) FAILS if effect size |d| >= 0.3 (medium effect — oracle is exploitable)
 package harness
 
 import (
@@ -125,14 +126,15 @@ func randString(rng *rand.Rand, length int) string {
 // wrong ones by comparing compressed sizes.
 //
 // Effect size interpretation (Cohen 1988):
-//   d < 0.2  — negligible (oracle not exploitable in practice)
-//   0.2–0.5  — small (marginal risk)
-//   0.5–0.8  — medium (WARN — oracle exploitable with ~50 requests per bit)
-//   >= 0.8   — large (CRITICAL — oracle exploitable with ~20 requests per bit)
+//
+//	d < 0.2  — negligible (oracle not exploitable in practice)
+//	0.2–0.5  — small (marginal risk)
+//	0.5–0.8  — medium (WARN — oracle exploitable with ~50 requests per bit)
+//	>= 0.8   — large (CRITICAL — oracle exploitable with ~20 requests per bit)
 func TestBREACHOracleEmpirical(t *testing.T) {
 	const (
-		nSamples    = 200
-		minDEffect  = 0.3 // threshold: medium-small effect triggers finding
+		nSamples   = 200
+		minDEffect = 0.3 // threshold: medium-small effect triggers finding
 	)
 
 	router := buildBREACHRouter(gzip.DefaultCompression)

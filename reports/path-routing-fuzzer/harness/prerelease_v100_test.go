@@ -32,9 +32,9 @@ func TestTM039_CaddyCVE20220653(t *testing.T) {
 		"/static/%2E%2E/admin",
 		"/static/%2e./admin",
 		"/static/.%2e/admin",
-		"/static/..%252fadmin",      // double-encoded
+		"/static/..%252fadmin",       // double-encoded
 		"/static/%c0%ae%c0%ae/admin", // overlong UTF-8 for ..
-		"/static/..%5cadmin",        // backslash separator
+		"/static/..%5cadmin",         // backslash separator
 	}
 
 	t.Run("without_CleanPath", func(t *testing.T) {
@@ -113,7 +113,7 @@ func TestTM047_ApacheCVE20211773(t *testing.T) {
 		"/static/..%2F..%2Fetc%2Fpasswd",
 		"/static/%2e%2e%2fetc%2fpasswd",
 		"/static/%2e%2e/%2e%2e/etc/passwd",
-		"/static/..%2f..%2fadmin",   // attempt to reach /admin
+		"/static/..%2f..%2fadmin",       // attempt to reach /admin
 		"/cgi-bin/.%2e/.%2e/etc/passwd", // Apache-style cgi path (should 404)
 	}
 
@@ -244,8 +244,8 @@ func TestTM038_NginxMergeSlashes(t *testing.T) {
 		{"///admin", true},
 		{"//admin", true},
 		{"/admin//extra", false},
-		{"///x///y", false},          // not a registered route
-		{"/api//v1//items", false},   // double slash between segments
+		{"///x///y", false},        // not a registered route
+		{"/api//v1//items", false}, // double slash between segments
 	}
 
 	for _, tc := range cases {
@@ -283,10 +283,10 @@ func TestTM038_NginxMergeSlashes(t *testing.T) {
 // =============================================================================
 
 // TestTM046_HEADGETDivergence verifies:
-// 1. HEAD request on a GET-registered route: MuxMaster does NOT automatically
-//    serve HEAD — it returns 405 with Allow: GET, OPTIONS (no implicit HEAD).
-// 2. When HEAD is explicitly registered, it dispatches correctly.
-// 3. Compare with httprouter (which DOES implicit HEAD for GET routes).
+//  1. HEAD request on a GET-registered route: MuxMaster does NOT automatically
+//     serve HEAD — it returns 405 with Allow: GET, OPTIONS (no implicit HEAD).
+//  2. When HEAD is explicitly registered, it dispatches correctly.
+//  3. Compare with httprouter (which DOES implicit HEAD for GET routes).
 func TestTM046_HEADGETDivergence(t *testing.T) {
 	r := mm.New()
 	r.GET("/items", h("items-get"))
@@ -435,7 +435,7 @@ func TestS9_GroupDoubleSlash(t *testing.T) {
 // =============================================================================
 
 // TestS9007_RegexEmptySegment reproduces PRF-S9-007:
-// Route /{id:[a-z]*}/profile — //profile (double-slash) → id='' if [a-z]* matches empty.
+// Route /{id:[a-z]*}/profile — //profile (double-slash) → id=” if [a-z]* matches empty.
 // This is a WAF bypass if WAF expects non-empty first segment.
 //
 // Note: registering /admin on the same mux as /{id:[a-z]*}/... panics because

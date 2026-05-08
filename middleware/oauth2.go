@@ -168,9 +168,9 @@ func (c *oauth2Cache) set(key [32]byte, resp *IntrospectResponse, expiry time.Ti
 // Caller must hold c.mu.Lock().
 func (c *oauth2Cache) evictSoonestExpiryLocked() {
 	var (
-		victim     [32]byte
-		earliest   time.Time
-		hasVictim  bool
+		victim    [32]byte
+		earliest  time.Time
+		hasVictim bool
 	)
 	for k, e := range c.entries {
 		if !hasVictim || e.expiry.Before(earliest) {

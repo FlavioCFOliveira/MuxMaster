@@ -220,14 +220,14 @@ func verifyWalkInvariants(t *testing.T, mux *mm.Mux, label string) {
 // Invariants: I-WALK-01 through I-WALK-04.
 func FuzzWalkCorrupted(f *testing.F) {
 	// Seeds: pairs of (route1, route2) where route2 may conflict.
-	f.Add("/a/:id", "/a/:id")                    // duplicate
-	f.Add("/a/b", "/a/:p")                        // wildcard after static leaf
-	f.Add("/static/*fp", "/static/*fp")           // duplicate catch-all
-	f.Add("/a/:p/b", "/a/*rest")                  // catch-all vs param
-	f.Add("/valid", "/invalid\xff")               // invalid UTF-8
-	f.Add("/x/:", "/x/:param")                    // unnamed wildcard first
-	f.Add("/only-one", "/only-one")               // simple duplicate
-	f.Add("/a/b/c", "/a/b/c/d/e/f/g/h/i/j/k")   // deep path after shallow
+	f.Add("/a/:id", "/a/:id")                 // duplicate
+	f.Add("/a/b", "/a/:p")                    // wildcard after static leaf
+	f.Add("/static/*fp", "/static/*fp")       // duplicate catch-all
+	f.Add("/a/:p/b", "/a/*rest")              // catch-all vs param
+	f.Add("/valid", "/invalid\xff")           // invalid UTF-8
+	f.Add("/x/:", "/x/:param")                // unnamed wildcard first
+	f.Add("/only-one", "/only-one")           // simple duplicate
+	f.Add("/a/b/c", "/a/b/c/d/e/f/g/h/i/j/k") // deep path after shallow
 
 	f.Fuzz(func(t *testing.T, route1, route2 string) {
 		defer func() {
@@ -308,7 +308,7 @@ func TestWalkCorruptedTreeRace(t *testing.T) {
 	// Trigger a corruption.
 	func() {
 		defer func() { recover() }() //nolint:errcheck
-		mux.GET("/api/:id", h200) // duplicate — panics
+		mux.GET("/api/:id", h200)    // duplicate — panics
 	}()
 
 	// Concurrent readers.

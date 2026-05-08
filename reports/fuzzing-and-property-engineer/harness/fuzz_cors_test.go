@@ -12,10 +12,11 @@ import (
 
 // FuzzCORS exercises the CORS middleware with arbitrary Origin and method header values.
 // Invariants:
-//   I-CORS-01: CORS must never panic for any header value.
-//   I-CORS-02: When allowAll=true, response must reflect "*" not the request origin.
-//   I-CORS-03: Origins containing CR, LF, or NUL must be rejected (400), not reflected.
-//   I-CORS-04: Non-whitelisted origins must be rejected (403) when AllowedOrigins is non-empty.
+//
+//	I-CORS-01: CORS must never panic for any header value.
+//	I-CORS-02: When allowAll=true, response must reflect "*" not the request origin.
+//	I-CORS-03: Origins containing CR, LF, or NUL must be rejected (400), not reflected.
+//	I-CORS-04: Non-whitelisted origins must be rejected (403) when AllowedOrigins is non-empty.
 func FuzzCORS(f *testing.F) {
 	corsAllowAll := mw.CORS(mw.CORSOptions{
 		AllowedOrigins: []string{"*"},
@@ -45,9 +46,9 @@ func FuzzCORS(f *testing.F) {
 	f.Add("\x00https://evil.com")
 	f.Add("*")
 	f.Add("http://localhost:8080")
-	f.Add("https://example.com/path")  // invalid origin (has path)
+	f.Add("https://example.com/path") // invalid origin (has path)
 	f.Add("//evil.com")
-	f.Add(strings.Repeat("A", 4096))   // oversized
+	f.Add(strings.Repeat("A", 4096)) // oversized
 
 	fuzzCORSWith := func(t *testing.T, origin string, corsMW func(http.Handler) http.Handler, allowAll bool) {
 		t.Helper()

@@ -92,7 +92,7 @@ func FuzzJWTRequireExpiry(f *testing.F) {
 		RequireExpiry: true,
 	})
 
-	f.Add("Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.AAAA")  // no exp
+	f.Add("Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.AAAA")                        // no exp
 	f.Add("Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwiZXhwIjo5OTk5OTk5OTk5fQ.AAAA") // with exp
 	f.Add("")
 	f.Add("Bearer ...")

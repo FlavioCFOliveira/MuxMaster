@@ -2,34 +2,34 @@
 //
 // Covers new attack vectors identified in S9:
 //
-//  DOS-2026-0057: ThrottlePerIPCapped saturation hold-out
-//    Attacker fills all maxTableSize slots with long-lived concurrent requests
-//    so every NEW IP is rejected with 503. Legitimate clients behind a NAT
-//    (distinct IP range) are locked out for the duration of the attack.
+//	DOS-2026-0057: ThrottlePerIPCapped saturation hold-out
+//	  Attacker fills all maxTableSize slots with long-lived concurrent requests
+//	  so every NEW IP is rejected with 503. Legitimate clients behind a NAT
+//	  (distinct IP range) are locked out for the duration of the attack.
 //
-//  DOS-2026-0058: methodNotAllowedCache + optionsCache sync.Map unbounded growth
-//    Both caches are keyed by Allow header value (comma-separated method list).
-//    With MuxMaster using a fixed set of known methods, the key space is bounded
-//    (≤ 2^10 = 1024 distinct method combinations). Confirm no attacker-controlled
-//    key reaches these maps.
+//	DOS-2026-0058: methodNotAllowedCache + optionsCache sync.Map unbounded growth
+//	  Both caches are keyed by Allow header value (comma-separated method list).
+//	  With MuxMaster using a fixed set of known methods, the key space is bounded
+//	  (≤ 2^10 = 1024 distinct method combinations). Confirm no attacker-controlled
+//	  key reaches these maps.
 //
-//  DOS-2026-0059: selectXFFRightmost O(N×M) — XFF with N=10000 entries, M CIDRs
-//    strings.Split(",") on a 10KB XFF header creates a slice of N entries; the
-//    rightmost walk then checks each entry against M trusted CIDRs.
-//    Total cost: O(N×M) per request. With N=10000 and M=50: 500000 comparisons.
-//    This test measures the wall-clock cost and confirms it stays bounded.
+//	DOS-2026-0059: selectXFFRightmost O(N×M) — XFF with N=10000 entries, M CIDRs
+//	  strings.Split(",") on a 10KB XFF header creates a slice of N entries; the
+//	  rightmost walk then checks each entry against M trusted CIDRs.
+//	  Total cost: O(N×M) per request. With N=10000 and M=50: 500000 comparisons.
+//	  This test measures the wall-clock cost and confirms it stays bounded.
 //
-//  DOS-2026-0060: strconv.QuoteToASCII CPU on adversarial UTF-8 in Logger
-//    sanitiseForLog calls strconv.QuoteToASCII on request path/method for CRLF
-//    protection. For a path of length L the cost is O(L). Confirm bounded.
+//	DOS-2026-0060: strconv.QuoteToASCII CPU on adversarial UTF-8 in Logger
+//	  sanitiseForLog calls strconv.QuoteToASCII on request path/method for CRLF
+//	  protection. For a path of length L the cost is O(L). Confirm bounded.
 //
-//  DOS-2026-0061: ThrottlePerIP timeout-on-all-paths ref-count decrement
-//    Under a surge of concurrent requests that ALL time out, refs must decrement
-//    correctly and entries must be evicted. Stress test with -race.
+//	DOS-2026-0061: ThrottlePerIP timeout-on-all-paths ref-count decrement
+//	  Under a surge of concurrent requests that ALL time out, refs must decrement
+//	  correctly and entries must be evicted. Stress test with -race.
 //
-//  DOS-2026-0062: compress middleware response-slowread / slow-write
-//    Attacker reads the response body 1 byte/sec. Does the compress middleware
-//    hold memory proportional to unread bytes? Or does it stream?
+//	DOS-2026-0062: compress middleware response-slowread / slow-write
+//	  Attacker reads the response body 1 byte/sec. Does the compress middleware
+//	  hold memory proportional to unread bytes? Or does it stream?
 package harness
 
 import (
@@ -69,8 +69,8 @@ import (
 // total for new IPs.
 func TestThrottlePerIPCappedSaturationHoldout(t *testing.T) {
 	const (
-		cap        = 20 // table cap — small for fast test
-		timeout    = 200 * time.Millisecond
+		cap         = 20 // table cap — small for fast test
+		timeout     = 200 * time.Millisecond
 		handlerHold = 2 * time.Second // slow handler holds the slot
 	)
 

@@ -3,22 +3,24 @@
 // jwt_alg_confusion_timing_test.go — Statistical timing analysis for JWTAuth middleware.
 //
 // PRIORITY HYPOTHESIS #1 (sprint 2026-05-07):
-//   JWT algorithm-confusion timing oracle: when a server accepts multiple algorithms,
-//   the latency of the rejection path REVEALS which algorithm code-path was executed,
-//   allowing an attacker to infer which algorithm was used to sign a token.
+//
+//	JWT algorithm-confusion timing oracle: when a server accepts multiple algorithms,
+//	the latency of the rejection path REVEALS which algorithm code-path was executed,
+//	allowing an attacker to infer which algorithm was used to sign a token.
 //
 // Attack scenario:
-//   A server configured with Algorithms: ["HS256", "RS256"] will take different time
-//   for HS256 (HMAC pool: ~1µs) vs RS256 (RSA verify: ~300µs) paths.
-//   Even on rejection (wrong sig), the hash computation or RSA operation leaves a
-//   measurable timing trace. An attacker submitting tokens with alg=HS256 vs alg=RS256
-//   can distinguish these paths from timing alone.
+//
+//	A server configured with Algorithms: ["HS256", "RS256"] will take different time
+//	for HS256 (HMAC pool: ~1µs) vs RS256 (RSA verify: ~300µs) paths.
+//	Even on rejection (wrong sig), the hash computation or RSA operation leaves a
+//	measurable timing trace. An attacker submitting tokens with alg=HS256 vs alg=RS256
+//	can distinguish these paths from timing alone.
 //
 // Additionally tested:
-//   3. Empty token vs malformed token vs valid-format-wrong-sig timing.
-//   4. HMAC pool hit (warm) vs pool cold (first call) — sync.Pool eviction.
-//   5. JWT with alg=none vs alg=HS256 — should be rejected at allowedAlgs check,
-//      both paths should have similar timing (both fail at header decode / alg check).
+//  3. Empty token vs malformed token vs valid-format-wrong-sig timing.
+//  4. HMAC pool hit (warm) vs pool cold (first call) — sync.Pool eviction.
+//  5. JWT with alg=none vs alg=HS256 — should be rejected at allowedAlgs check,
+//     both paths should have similar timing (both fail at header decode / alg check).
 package harness
 
 import (

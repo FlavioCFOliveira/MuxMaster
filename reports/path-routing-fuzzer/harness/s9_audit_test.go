@@ -74,12 +74,12 @@ func TestS9_H01_PRF001_RevalidateCleanPath(t *testing.T) {
 	// Auth MUST run. After 32d3c77 the RawPath handling was tightened —
 	// verify the core PRF-001 bypass behaviour is unchanged (documented).
 	cases := []struct {
-		path          string
-		expectAdmin   bool // if true, CleanPath re-routes to /admin
+		path        string
+		expectAdmin bool // if true, CleanPath re-routes to /admin
 	}{
 		{"/static/../admin", true},
-		{"/static/..%2fadmin", true},     // net/url decodes → /static/../admin → /admin
-		{"/static/%2e%2e/admin", true},   // net/url decodes → /static/../admin → /admin
+		{"/static/..%2fadmin", true},   // net/url decodes → /static/../admin → /admin
+		{"/static/%2e%2e/admin", true}, // net/url decodes → /static/../admin → /admin
 		{"/static/./../../admin", true},
 	}
 
@@ -145,13 +145,13 @@ func TestS9_H03_PRF005_RevalidateCatchallTraversal(t *testing.T) {
 	})
 
 	traversals := []struct {
-		path      string
+		path              string
 		mustNotReachAdmin bool
 	}{
 		{"/static/../../etc/passwd", true},
 		{"/static/../etc/passwd", true},
-		{"/static/%2e%2e/%2e%2e/etc/passwd", true},   // decoded by net/url
-		{"/static/..%2f..%2fetc%2fpasswd", true},      // decoded by net/url
+		{"/static/%2e%2e/%2e%2e/etc/passwd", true}, // decoded by net/url
+		{"/static/..%2f..%2fetc%2fpasswd", true},   // decoded by net/url
 		{"/static/.%2e/.%2e/etc/passwd", true},
 	}
 
@@ -337,9 +337,9 @@ func TestS9_H06b_TwoPhaseRegistration_MultiPanicConsistency(t *testing.T) {
 	r.GET("/c/*fp", s9h("c"))
 
 	panics := []string{
-		"/a",      // duplicate
-		"/b/z",    // conflicts with :id
-		"/c/sub",  // conflicts with *fp
+		"/a",     // duplicate
+		"/b/z",   // conflicts with :id
+		"/c/sub", // conflicts with *fp
 	}
 	for _, p := range panics {
 		func() {
@@ -577,7 +577,7 @@ func TestS9_H11_SemicolonMatrixParams(t *testing.T) {
 	// Semicolons are valid path characters per RFC 3986 and must NOT be treated
 	// as segment separators by the router.
 	cases := []struct {
-		path  string
+		path      string
 		wantAdmin bool
 	}{
 		{"/admin;jsessionid=abc", false},
@@ -719,21 +719,21 @@ func TestS9_H14_PRF004_RouteExistenceDisclosure(t *testing.T) {
 
 func TestS9_H15_MiddlewareMatrix(t *testing.T) {
 	type mwConfig struct {
-		cleanPath   bool
-		stripSlash  bool
-		rts         bool // RedirectTrailingSlash
+		cleanPath  bool
+		stripSlash bool
+		rts        bool // RedirectTrailingSlash
 	}
 	type matrixCase struct {
-		path         string
-		expectAdmin  bool // if true: routing to /admin is always wrong unless cleanPath is causing PRF-001
+		path        string
+		expectAdmin bool // if true: routing to /admin is always wrong unless cleanPath is causing PRF-001
 	}
 
 	payloads := []matrixCase{
-		{"/admin", false},             // base case — should always match
-		{"/static/../admin", false},   // traversal; CleanPath re-routes (PRF-001)
-		{"//admin", false},            // double slash
-		{"/admin/", false},            // trailing slash
-		{"/%61dmin", false},           // percent-encoded (by-design matches with net/url)
+		{"/admin", false},              // base case — should always match
+		{"/static/../admin", false},    // traversal; CleanPath re-routes (PRF-001)
+		{"//admin", false},             // double slash
+		{"/admin/", false},             // trailing slash
+		{"/%61dmin", false},            // percent-encoded (by-design matches with net/url)
 		{"/users/%2e%2e/admin", false}, // traversal via param
 	}
 
@@ -954,8 +954,8 @@ func TestS9_H20_ReservedCharsInParams(t *testing.T) {
 		wantCode    int
 		desc        string
 	}{
-		{"/items/abc%3fdef", 200, "%3f=? in param (URL.Path decoded to ?)"},  // net/url decodes %3f
-		{"/items/abc%23def", 200, "%23=# in param (URL.Path decoded to #)"},  // net/url decodes %23
+		{"/items/abc%3fdef", 200, "%3f=? in param (URL.Path decoded to ?)"}, // net/url decodes %3f
+		{"/items/abc%23def", 200, "%23=# in param (URL.Path decoded to #)"}, // net/url decodes %23
 		{"/items/abc%3bdef", 200, "%3b=; in param value"},
 	}
 	for _, tc := range cases {

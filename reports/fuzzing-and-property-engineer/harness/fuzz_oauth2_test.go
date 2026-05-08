@@ -25,16 +25,16 @@ func FuzzOAuth2Authorization(f *testing.F) {
 
 	opts := mw.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint:     stub.URL,
-		CacheTTL:     -1, // disable cache to exercise the network path every time
-		MaxCacheSize: 10,
+		Endpoint:              stub.URL,
+		CacheTTL:              -1, // disable cache to exercise the network path every time
+		MaxCacheSize:          10,
 	}
 	oauthMW := mw.OAuth2Introspect(opts)
 
 	f.Add("Bearer valid-token")
 	f.Add("Bearer ")
 	f.Add("")
-	f.Add("bearer TOKEN")  // case-insensitive
+	f.Add("bearer TOKEN") // case-insensitive
 	f.Add("BEARER token")
 	f.Add("Basic dXNlcjpwYXNz") // wrong scheme
 	f.Add("Bearer " + makeJunk(4096))
@@ -69,13 +69,13 @@ func FuzzOAuth2IntrospectionResponse(f *testing.F) {
 	f.Add(`{"active":false}`)
 	f.Add(`{}`)
 	f.Add(`not-json`)
-	f.Add(`{"active":true,"exp":0}`)                           // exp=0 means no expiry check
-	f.Add(`{"active":true,"exp":1}`)                           // already expired unix epoch
-	f.Add(`{"active":true,"aud":"single"}`)                    // string aud
-	f.Add(`{"active":true,"aud":["a","b"]}`)                   // array aud
+	f.Add(`{"active":true,"exp":0}`)         // exp=0 means no expiry check
+	f.Add(`{"active":true,"exp":1}`)         // already expired unix epoch
+	f.Add(`{"active":true,"aud":"single"}`)  // string aud
+	f.Add(`{"active":true,"aud":["a","b"]}`) // array aud
 	f.Add(`{"active":true,"aud":null}`)
 	f.Add(`{"active":true,"aud":123}`)
-	f.Add(makeJunk(65537))                                     // > 64KB limit
+	f.Add(makeJunk(65537))                                      // > 64KB limit
 	f.Add(`{"active":true` + string(make([]byte, 65000)) + `}`) // near limit
 
 	f.Fuzz(func(t *testing.T, introspectBody string) {
@@ -93,11 +93,11 @@ func FuzzOAuth2IntrospectionResponse(f *testing.F) {
 		defer stub.Close()
 
 		opts := mw.OAuth2Options{
-		AllowInsecureEndpoint: true,
-			Endpoint:     stub.URL,
-			CacheTTL:     -1,
-			MaxCacheSize: 5,
-			HTTPClient:   &http.Client{Timeout: 2 * time.Second},
+			AllowInsecureEndpoint: true,
+			Endpoint:              stub.URL,
+			CacheTTL:              -1,
+			MaxCacheSize:          5,
+			HTTPClient:            &http.Client{Timeout: 2 * time.Second},
 		}
 		oauthMW := mw.OAuth2Introspect(opts)
 		handler := oauthMW(h200)
@@ -137,11 +137,11 @@ func FuzzOAuth2CacheEviction(f *testing.F) {
 		defer stub.Close()
 
 		opts := mw.OAuth2Options{
-		AllowInsecureEndpoint: true,
-			Endpoint:     stub.URL,
-			CacheTTL:     1 * time.Second,
-			MaxCacheSize: maxSize,
-			HTTPClient:   &http.Client{Timeout: 2 * time.Second},
+			AllowInsecureEndpoint: true,
+			Endpoint:              stub.URL,
+			CacheTTL:              1 * time.Second,
+			MaxCacheSize:          maxSize,
+			HTTPClient:            &http.Client{Timeout: 2 * time.Second},
 		}
 		oauthMW := mw.OAuth2Introspect(opts)
 		handler := oauthMW(h200)

@@ -3,7 +3,8 @@
 // error_oracle_test.go — Error oracle timing analysis.
 //
 // Tests whether different error conditions produce distinguishable timing:
-//   404 Not Found vs 405 Method Not Allowed vs 401 Unauthorized vs 200 OK
+//
+//	404 Not Found vs 405 Method Not Allowed vs 401 Unauthorized vs 200 OK
 //
 // An error oracle exists when an attacker can determine which error occurred
 // by measuring response latency. This leaks:
@@ -169,7 +170,7 @@ func TestTiming_ErrorOracle_404vs401(t *testing.T) {
 
 // TestTiming_ErrorOracle_200vs401 tests authenticated success vs auth failure.
 // For BasicAuth specifically, this should be constant-time (already tested in basic_auth_timing_test.go).
-func TestTiming_ErrorOracle_200vs401 (t *testing.T) {
+func TestTiming_ErrorOracle_200vs401(t *testing.T) {
 	mux := buildErrorOracleMux()
 
 	runtime.LockOSThread()
@@ -187,7 +188,7 @@ func TestTiming_ErrorOracle_200vs401 (t *testing.T) {
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, req200)
 		req401 := httptest.NewRequest(http.MethodGet, "/exists", nil)
-		req401.Header.Set("Authorization", "Basic " + base64.StdEncoding.EncodeToString([]byte("user:wrongpass")))
+		req401.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("user:wrongpass")))
 		w2 := httptest.NewRecorder()
 		mux.ServeHTTP(w2, req401)
 	}

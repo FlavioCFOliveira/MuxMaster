@@ -111,10 +111,10 @@ func FuzzRealIPNoPanic(f *testing.F) {
 // RemoteAddr before vs after when the peer is outside the trusted CIDR.
 func FuzzRealIPBypassCheck(f *testing.F) {
 	// Seeds: untrusted peers with enticing XFF values.
-	f.Add("8.8.8.8", "127.0.0.1")          // attacker claims localhost IP via XFF
-	f.Add("1.2.3.4", "10.0.0.1")            // attacker claims RFC-1918 IP
-	f.Add("203.0.113.5", "203.0.113.5")     // attacker echoes own IP
-	f.Add("2001:db8::beef", "::1")           // IPv6 attacker claims loopback
+	f.Add("8.8.8.8", "127.0.0.1")       // attacker claims localhost IP via XFF
+	f.Add("1.2.3.4", "10.0.0.1")        // attacker claims RFC-1918 IP
+	f.Add("203.0.113.5", "203.0.113.5") // attacker echoes own IP
+	f.Add("2001:db8::beef", "::1")      // IPv6 attacker claims loopback
 	f.Add("198.51.100.1", "192.168.0.1, 10.0.0.1")
 
 	trustedStr := "127.0.0.0/8"
@@ -179,8 +179,8 @@ func FuzzRealIPZoneID(f *testing.F) {
 	f.Add("fe80::1%25eth0") // percent-encoded zone
 	f.Add("::1%lo")
 	f.Add("::1%0")
-	f.Add("fe80::1%")           // trailing % with no zone
-	f.Add("fe80::1%eth0%eth1")  // double zone
+	f.Add("fe80::1%")          // trailing % with no zone
+	f.Add("fe80::1%eth0%eth1") // double zone
 	f.Add("::ffff:127.0.0.1%eth0")
 	// Mixed with brackets (not valid in X-Forwarded-For but should not panic).
 	f.Add("[fe80::1%25eth0]")

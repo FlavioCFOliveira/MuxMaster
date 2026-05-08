@@ -15,7 +15,7 @@ import (
 
 var (
 	// Pre-generated keys for fuzz tests — generation is expensive; do it once.
-	jwtRSAKey  *rsa.PrivateKey
+	jwtRSAKey   *rsa.PrivateKey
 	jwtECKey256 *ecdsa.PrivateKey
 )
 

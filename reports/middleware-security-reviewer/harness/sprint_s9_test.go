@@ -138,8 +138,9 @@ func TestSec_JWT_RequireExpiryFalse_NoExpAccepted(t *testing.T) {
 // TestSec_Logger_Method_Sanitised_Regression verifies that the fix for MSR-2026-0069
 // is in place: sanitiseForLog(r.Method) is called so that CRLF in r.Method cannot
 // produce a forged log line. Checks that:
-//  (a) no actual CR or LF bytes appear in the log output
-//  (b) the injected content (literal INJECTED string) may still appear but escaped
+//
+//	(a) no actual CR or LF bytes appear in the log output
+//	(b) the injected content (literal INJECTED string) may still appear but escaped
 func TestSec_Logger_Method_Sanitised_Regression(t *testing.T) {
 	var logBuf bytes.Buffer
 	mw := middleware.Logger(&logBuf)
@@ -189,8 +190,8 @@ func TestSec_OAuth2_HTTPSEnforcement_Regression(t *testing.T) {
 		})
 	}()
 	if !panicked {
-		t.Errorf("MSR-2026-0067 REGRESSION: OAuth2Introspect does NOT panic on http:// endpoint. "+
-			"Bearer tokens are sent in clear text to plaintext endpoint. "+
+		t.Errorf("MSR-2026-0067 REGRESSION: OAuth2Introspect does NOT panic on http:// endpoint. " +
+			"Bearer tokens are sent in clear text to plaintext endpoint. " +
 			"Fix (scheme check + panic) may have been reverted.")
 	} else {
 		t.Logf("MSR-2026-0067 PASS: OAuth2Introspect panics on http:// endpoint (fix confirmed)")
@@ -432,15 +433,15 @@ func TestSec_OAuth2_SingleflightLeaderCancel_PoisonsFollowers(t *testing.T) {
 	// Document the finding regardless of outcome — the test is a reproducibility probe.
 	followerGot401 := results[1] == http.StatusUnauthorized || results[2] == http.StatusUnauthorized
 	if followerGot401 {
-		t.Logf("MSR-2026-0071 CONFIRMED: At least one follower got 401 after leader cancellation. "+
-			"A valid token was rejected because the singleflight leader's client disconnected. "+
-			"Severity: LOW (availability only). CWE-400. "+
-			"Mitigation: do not share leader's context cancellation with followers; "+
-			"run doIntrospect with context.WithoutCancel(r.Context()) for the leader, "+
+		t.Logf("MSR-2026-0071 CONFIRMED: At least one follower got 401 after leader cancellation. " +
+			"A valid token was rejected because the singleflight leader's client disconnected. " +
+			"Severity: LOW (availability only). CWE-400. " +
+			"Mitigation: do not share leader's context cancellation with followers; " +
+			"run doIntrospect with context.WithoutCancel(r.Context()) for the leader, " +
 			"so client disconnect does not abort in-flight IDP calls that serve multiple requesters.")
 	} else {
-		t.Logf("MSR-2026-0071 INFO: followers did not get 401 in this run (timing-dependent). "+
-			"The theoretical vulnerability exists: leader cancellation shares c.err=context.Cancelled "+
+		t.Logf("MSR-2026-0071 INFO: followers did not get 401 in this run (timing-dependent). " +
+			"The theoretical vulnerability exists: leader cancellation shares c.err=context.Cancelled " +
 			"with all followers via the c.done channel. Under higher IDP latency the window is larger.")
 	}
 }
@@ -504,9 +505,9 @@ func TestSec_BasicAuth_UsernameTimingViaMapLookup(t *testing.T) {
 		}
 	}
 
-	t.Logf("MSR-2026-0072 DOCUMENTED: BasicAuth map lookup for username is not constant-time. "+
-		"Both valid-user/wrong-pass and invalid-user/wrong-pass return 401 correctly, "+
-		"but the Go map lookup duration differs by ~5-50ns (below the noise floor in production). "+
+	t.Logf("MSR-2026-0072 DOCUMENTED: BasicAuth map lookup for username is not constant-time. " +
+		"Both valid-user/wrong-pass and invalid-user/wrong-pass return 401 correctly, " +
+		"but the Go map lookup duration differs by ~5-50ns (below the noise floor in production). " +
 		"Severity: LOW. Accepted oracle: TSC-2026-0001. CWE-208.")
 }
 

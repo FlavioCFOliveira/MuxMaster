@@ -1,16 +1,17 @@
 // Package loadtest — Production readiness load test for MuxMaster HEAD
 //
 // Tasks covered:
-//   1. Sustained 10kRPS × 30s with 1000 goroutines: heap, GC, goroutines.
-//   2. Worst-case radix-tree complexity: depth N, common-prefix N, wide fanout.
-//   3. Memory exhaustion: giant paths, many params (overflow), huge headers.
-//   4. Slowloris / timeout leak: goroutines before/after 1k slow connections.
-//   5. GC pressure: 1000 param routes at 10kRPS — steady-state heap.
-//   6. ThrottlePerIPCapped saturation hold-out revalidation.
+//  1. Sustained 10kRPS × 30s with 1000 goroutines: heap, GC, goroutines.
+//  2. Worst-case radix-tree complexity: depth N, common-prefix N, wide fanout.
+//  3. Memory exhaustion: giant paths, many params (overflow), huge headers.
+//  4. Slowloris / timeout leak: goroutines before/after 1k slow connections.
+//  5. GC pressure: 1000 param routes at 10kRPS — steady-state heap.
+//  6. ThrottlePerIPCapped saturation hold-out revalidation.
 //
 // Run with:
-//   go test -v -count=1 -timeout=300s -run=. ./...
-//   go test -bench=. -benchmem -benchtime=5s -run='^$' ./...
+//
+//	go test -v -count=1 -timeout=300s -run=. ./...
+//	go test -bench=. -benchmem -benchtime=5s -run='^$' ./...
 package loadtest
 
 import (
@@ -378,7 +379,7 @@ func TestRadixTreeComplexitySlope(t *testing.T) {
 				vals[j] = fmt.Sprintf("v%d", j)
 			}
 			r.GET("/"+strings.Join(segs, "/"), nopHandler)
-			reqPath := "/"+strings.Join(vals, "/")
+			reqPath := "/" + strings.Join(vals, "/")
 			result := testing.Benchmark(func(b *testing.B) {
 				req := httptest.NewRequest("GET", "http://x"+reqPath, nil)
 				w := httptest.NewRecorder()
@@ -615,7 +616,7 @@ func TestSlowlorisLikeConnectionDrain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	go server.Serve(ln) //nolint:errcheck
+	go server.Serve(ln)                         //nolint:errcheck
 	defer server.Shutdown(context.Background()) //nolint:errcheck
 
 	addr := ln.Addr().String()
@@ -746,9 +747,9 @@ func TestGCPressure1000Routes(t *testing.T) {
 // hold-out window and confirms the documented trade-off.
 func TestThrottlePerIPCappedSaturationRevalidation(t *testing.T) {
 	const (
-		tableSize   = 100   // small for test speed
-		limit       = 1     // 1 concurrent request per IP
-		attackerIPs = 100   // exactly fills the table
+		tableSize   = 100 // small for test speed
+		limit       = 1   // 1 concurrent request per IP
+		attackerIPs = 100 // exactly fills the table
 		timeout     = 2 * time.Second
 	)
 

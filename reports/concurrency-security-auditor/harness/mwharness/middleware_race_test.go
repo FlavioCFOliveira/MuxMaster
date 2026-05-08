@@ -161,9 +161,9 @@ func TestOAuth2Cache_RWMutex_Race(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint:     fakeServer.URL,
-		CacheTTL:     30 * time.Second,
-		MaxCacheSize: 1000,
+		Endpoint:              fakeServer.URL,
+		CacheTTL:              30 * time.Second,
+		MaxCacheSize:          1000,
 	})
 
 	var accepted int64
@@ -215,9 +215,9 @@ func TestOAuth2Cache_Eviction_Race(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint:     fakeServer.URL,
-		CacheTTL:     100 * time.Millisecond,
-		MaxCacheSize: 5, // tiny to force evictions
+		Endpoint:              fakeServer.URL,
+		CacheTTL:              100 * time.Millisecond,
+		MaxCacheSize:          5, // tiny to force evictions
 	})
 
 	h := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

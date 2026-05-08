@@ -2,12 +2,12 @@
 //
 // Covers six UNTESTED hypotheses from S9 posture §5:
 //
-//   TM-2026-001  JWT RequireExpiry default false — token without exp accepted ad infinitum
-//   TM-2026-002  JWT exp type confusion — null/string/-1/NaN/0/1e308/true in exp field
-//   TM-2026-004  OAuth2 url.Parse divergence — userinfo/bad-scheme/CRLF in URL
-//   TM-2026-005  OAuth2 slog endpoint leak — credentials in error log
-//   TM-2026-022  Logger leaks Authorization header — Bearer token in log output
-//   TM-2026-044  RealIP trusted-proxies-all default — XFF accepted from any origin
+//	TM-2026-001  JWT RequireExpiry default false — token without exp accepted ad infinitum
+//	TM-2026-002  JWT exp type confusion — null/string/-1/NaN/0/1e308/true in exp field
+//	TM-2026-004  OAuth2 url.Parse divergence — userinfo/bad-scheme/CRLF in URL
+//	TM-2026-005  OAuth2 slog endpoint leak — credentials in error log
+//	TM-2026-022  Logger leaks Authorization header — Bearer token in log output
+//	TM-2026-044  RealIP trusted-proxies-all default — XFF accepted from any origin
 //
 // Every test is named TestSec_<Middleware>_<Threat>.
 // Evidence: test output verbatim.
@@ -189,11 +189,11 @@ func TestSec_JWT_ExpNull(t *testing.T) {
 	code := s10ServeJWT(mw, token)
 
 	if code == http.StatusOK {
-		t.Logf("TM-2026-002 exp=null: accepted (200). "+
-			"json.Unmarshal(null→int64)=0, code treats exp==0 as no-expiry. "+
-			"Behaviour: same as no exp field. "+
-			"With RequireExpiry=false this is accepted — expected but documented as risk. "+
-			"With RequireExpiry=true this would be rejected (raw.Exp==0 check). "+
+		t.Logf("TM-2026-002 exp=null: accepted (200). " +
+			"json.Unmarshal(null→int64)=0, code treats exp==0 as no-expiry. " +
+			"Behaviour: same as no exp field. " +
+			"With RequireExpiry=false this is accepted — expected but documented as risk. " +
+			"With RequireExpiry=true this would be rejected (raw.Exp==0 check). " +
 			"VERDICT: PARTIAL — no type-confusion bypass, but null silently becomes 0.")
 	} else {
 		t.Logf("TM-2026-002 exp=null: rejected (%d). "+
@@ -232,7 +232,7 @@ func TestSec_JWT_ExpStringValue(t *testing.T) {
 		t.Errorf("TM-2026-002 exp=string: expected 401 (json decode error), got %d. "+
 			"A string-typed exp should cause json.Unmarshal to error and the token to be rejected.", code)
 	} else {
-		t.Logf("TM-2026-002 exp=string: correctly rejected (401). "+
+		t.Logf("TM-2026-002 exp=string: correctly rejected (401). " +
 			"json.Unmarshal rejects string→int64 coercion.")
 	}
 }
@@ -251,7 +251,7 @@ func TestSec_JWT_ExpNegative(t *testing.T) {
 		t.Errorf("TM-2026-002 exp=-1: expected 401, got %d. "+
 			"Negative exp must be rejected per RFC 7519 §2 (NumericDate is non-negative).", code)
 	} else {
-		t.Logf("TM-2026-002 exp=-1: correctly rejected (401). "+
+		t.Logf("TM-2026-002 exp=-1: correctly rejected (401). " +
 			"Guard: raw.Exp < 0 returns errJWTInvalid.")
 	}
 }
@@ -268,10 +268,10 @@ func TestSec_JWT_ExpZero(t *testing.T) {
 	code := s10ServeJWT(mw, token)
 
 	if code == http.StatusOK {
-		t.Logf("TM-2026-002 exp=0: accepted (200). "+
-			"Design: raw.Exp==0 is treated as absent (same as no exp field). "+
-			"An attacker who can forge a signed token with exp=0 bypasses expiry checks. "+
-			"However: signature must still be valid — this is not a standalone bypass. "+
+		t.Logf("TM-2026-002 exp=0: accepted (200). " +
+			"Design: raw.Exp==0 is treated as absent (same as no exp field). " +
+			"An attacker who can forge a signed token with exp=0 bypasses expiry checks. " +
+			"However: signature must still be valid — this is not a standalone bypass. " +
 			"With RequireExpiry=true this is correctly rejected.")
 	} else {
 		t.Logf("TM-2026-002 exp=0: rejected (%d).", code)
@@ -292,7 +292,7 @@ func TestSec_JWT_ExpLargeFloat(t *testing.T) {
 	if code != http.StatusUnauthorized {
 		t.Errorf("TM-2026-002 exp=1e308: expected 401 (overflow → decode error), got %d", code)
 	} else {
-		t.Logf("TM-2026-002 exp=1e308: correctly rejected (401). "+
+		t.Logf("TM-2026-002 exp=1e308: correctly rejected (401). " +
 			"json.Unmarshal rejects overflowing float64→int64.")
 	}
 }
@@ -349,8 +349,8 @@ func TestSec_JWT_ExpInRangeFloat(t *testing.T) {
 
 	// Go's encoding/json rejects float → int64 coercion when the field is typed int64.
 	if code == http.StatusOK {
-		t.Errorf("TM-2026-002 exp=float (in-range): accepted (200). "+
-			"A fractional float64 in exp should fail json.Unmarshal into int64. "+
+		t.Errorf("TM-2026-002 exp=float (in-range): accepted (200). " +
+			"A fractional float64 in exp should fail json.Unmarshal into int64. " +
 			"This may indicate the JSON decoder is performing lossy truncation.")
 	} else {
 		t.Logf("TM-2026-002 exp=float (in-range): rejected (%d). "+
@@ -382,9 +382,9 @@ func TestSec_OAuth2_URLParse_UserinfoRejected(t *testing.T) {
 	}()
 
 	if !panicked {
-		t.Errorf("TM-2026-004 CONFIRMED-VULN: OAuth2Introspect does NOT panic on URL with userinfo "+
-			"(https://user:pass@host/). Bearer tokens would be sent to an attacker-controlled host. "+
-			"CWE-20 / CWE-918 (SSRF). Severity: 6. "+
+		t.Errorf("TM-2026-004 CONFIRMED-VULN: OAuth2Introspect does NOT panic on URL with userinfo " +
+			"(https://user:pass@host/). Bearer tokens would be sent to an attacker-controlled host. " +
+			"CWE-20 / CWE-918 (SSRF). Severity: 6. " +
 			"Fix: add parsedEndpoint.User != nil check before scheme check.")
 	} else {
 		t.Logf("TM-2026-004 PASS: OAuth2Introspect panics on userinfo URL. msg=%q", panicMsg)
@@ -467,12 +467,12 @@ func TestSec_OAuth2_URLParse_CRLFInPath(t *testing.T) {
 		// If no panic, the URL is accepted at construction. We verify that the Go
 		// HTTP client would reject it at runtime. We cannot make a live request here
 		// without an active server, so we document the gap.
-		t.Logf("TM-2026-004 CRLF-in-path: construction does NOT panic. "+
-			"The CRLF-containing endpoint URL is accepted at middleware construction. "+
-			"Go's http.NewRequestWithContext will reject CRLF in the URL at request time "+
-			"(net/http URL validation). "+
-			"PARTIAL: no construction-time guard against CRLF in path. "+
-			"The middleware should call url.EscapedPath() validation or reject control chars. "+
+		t.Logf("TM-2026-004 CRLF-in-path: construction does NOT panic. " +
+			"The CRLF-containing endpoint URL is accepted at middleware construction. " +
+			"Go's http.NewRequestWithContext will reject CRLF in the URL at request time " +
+			"(net/http URL validation). " +
+			"PARTIAL: no construction-time guard against CRLF in path. " +
+			"The middleware should call url.EscapedPath() validation or reject control chars. " +
 			"CWE-20. Severity: LOW (Go HTTP client provides defence in depth).")
 	}
 }
@@ -660,10 +660,10 @@ func TestSec_Logger_LogFormat_OnlyMethodPathStatusDuration(t *testing.T) {
 
 	logOutput := logBuf.String()
 	secretValues := []string{
-		"dXNlcjpwYXNz",    // base64 Basic auth
+		"dXNlcjpwYXNz", // base64 Basic auth
 		"my-secret-api-key",
-		"abc", "xyz",       // cookie values
-		"Authorization",   // header name itself
+		"abc", "xyz", // cookie values
+		"Authorization", // header name itself
 		"X-Api-Key",
 		"Cookie",
 	}

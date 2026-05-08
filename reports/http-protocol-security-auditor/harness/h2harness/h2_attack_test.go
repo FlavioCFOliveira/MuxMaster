@@ -199,9 +199,9 @@ func TestH2_HPACKBombing(t *testing.T) {
 	runtime.ReadMemStats(&ms0)
 
 	const (
-		numRequests    = 200
-		headersPerReq  = 50
-		headerValSize  = 4096 // 4 KB per unique header value
+		numRequests   = 200
+		headersPerReq = 50
+		headerValSize = 4096 // 4 KB per unique header value
 	)
 
 	var failCount atomic.Int64
@@ -293,7 +293,7 @@ func TestH2_ContinuationFlood_CVE202427316(t *testing.T) {
 	const (
 		concurrency   = 30
 		iterations    = 5
-		headerCount   = 200   // many headers per request to force CONTINUATION frames
+		headerCount   = 200 // many headers per request to force CONTINUATION frames
 		headerValSize = 512
 	)
 

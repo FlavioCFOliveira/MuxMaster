@@ -327,9 +327,9 @@ func TestR2_07_RegexParam_EmptyCapture(t *testing.T) {
 		// Actually router sees //<something> as double-slash
 		// Test: /<empty match>/profile
 		cases := []struct{ path string }{
-			{"/abc/profile"},       // normal match
-			{"/123/profile"},       // digits — should not match [a-z]*? Actually [a-z]* matches empty
-			{"//profile"},          // empty segment
+			{"/abc/profile"}, // normal match
+			{"/123/profile"}, // digits — should not match [a-z]*? Actually [a-z]* matches empty
+			{"//profile"},    // empty segment
 		}
 		for _, tc := range cases {
 			req := httptest.NewRequest("GET", "http://example.com"+tc.path, nil)
@@ -364,7 +364,7 @@ func TestR2_08_BackslashInPath(t *testing.T) {
 		desc string
 	}{
 		{"/static/..\\admin", "backslash in literal path"},
-		{"/static/%5c..%5cadmin", "%5c = backslash"},      // %5c = '\'
+		{"/static/%5c..%5cadmin", "%5c = backslash"}, // %5c = '\'
 		{"/static/%5c%2e%2e%5cadmin", "%5c%2e%2e%5c"},
 	}
 	for _, tc := range backslashPaths {

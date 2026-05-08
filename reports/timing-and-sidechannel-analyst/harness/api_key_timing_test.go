@@ -3,16 +3,17 @@
 // api_key_timing_test.go — Statistical timing analysis for APIKey middleware.
 //
 // Key finding to investigate:
-//   The APIKey middleware uses sha256.Sum256(raw) as a Go map key ([32]byte).
-//   A map lookup on [32]byte is NOT constant-time: Go maps use a hash function
-//   that may short-circuit on miss vs hit (different code paths). Furthermore,
-//   map miss returns immediately with ok=false while map hit traverses the
-//   bucket chain. This is an accepted "statistical" timing difference but not
-//   a cryptographic constant-time guarantee.
+//
+//	The APIKey middleware uses sha256.Sum256(raw) as a Go map key ([32]byte).
+//	A map lookup on [32]byte is NOT constant-time: Go maps use a hash function
+//	that may short-circuit on miss vs hit (different code paths). Furthermore,
+//	map miss returns immediately with ok=false while map hit traverses the
+//	bucket chain. This is an accepted "statistical" timing difference but not
+//	a cryptographic constant-time guarantee.
 //
 // Hypotheses tested:
-//   1. Valid key (hit) vs invalid key (miss) — is the map lookup timing distinguishable?
-//   2. Multiple valid keys (different identities) — identity does not affect timing.
+//  1. Valid key (hit) vs invalid key (miss) — is the map lookup timing distinguishable?
+//  2. Multiple valid keys (different identities) — identity does not affect timing.
 package harness
 
 import (

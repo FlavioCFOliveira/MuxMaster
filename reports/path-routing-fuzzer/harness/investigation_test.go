@@ -101,9 +101,9 @@ func TestInvestigation_S9H01_FullRevalidation(t *testing.T) {
 
 	// Without CleanPath — traversal paths should NOT reach /admin
 	noCleanPaths := []struct{ path, expected string }{
-		{"/static/../admin", "static"},       // literal traversal stays in catch-all
-		{"/static/..%2fadmin", "static"},     // decoded by net/url → /static/../admin → stays in catch-all
-		{"/static/%2e%2e/admin", "static"},   // decoded by net/url → /static/../admin → stays in catch-all
+		{"/static/../admin", "static"},     // literal traversal stays in catch-all
+		{"/static/..%2fadmin", "static"},   // decoded by net/url → /static/../admin → stays in catch-all
+		{"/static/%2e%2e/admin", "static"}, // decoded by net/url → /static/../admin → stays in catch-all
 	}
 	for _, tc := range noCleanPaths {
 		req := httptest.NewRequest("GET", "http://example.com"+tc.path, nil)

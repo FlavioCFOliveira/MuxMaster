@@ -49,8 +49,8 @@ func TestHPS_AbsoluteFormURI_TSR_OpenRedirect(t *testing.T) {
 	addr := srv.Listener.Addr().String()
 
 	cases := []struct {
-		desc    string
-		rawReq  string
+		desc     string
+		rawReq   string
 		wantSafe bool
 	}{
 		{

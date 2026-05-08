@@ -131,10 +131,10 @@ func TestHPSExt02_HostHeaderConfusion(t *testing.T) {
 	})
 
 	cases := []struct {
-		desc        string
-		host        string
-		path        string
-		expectSafe  bool
+		desc       string
+		host       string
+		path       string
+		expectSafe bool
 	}{
 		{"normal host", "localhost", "/admin/", true},
 		{"host with port", "localhost:8080", "/admin/", true},
@@ -583,7 +583,7 @@ func TestHPSExt09_H2AuthorityHeader(t *testing.T) {
 		expectSafe bool
 	}{
 		{"normal host", "localhost", "/admin/", true},
-		{"attacker :authority for TSR", "evil.com", "/admin/", true},    // TSR redirect target must not include evil.com
+		{"attacker :authority for TSR", "evil.com", "/admin/", true}, // TSR redirect target must not include evil.com
 		{"port in authority", "evil.com:9000", "/admin/", true},
 		{"authority with userinfo", "user@evil.com", "/admin/", true},
 	}
@@ -716,9 +716,9 @@ func TestHPSExt12_DoublePercentEncoding(t *testing.T) {
 		expectSecret bool
 	}{
 		{"normal /admin/secret", "/admin/secret", true},
-		{"double-encoded %252f", "/admin%252fsecret", false},   // %25 = % + 2f = /f → /admin%2fsecret
+		{"double-encoded %252f", "/admin%252fsecret", false}, // %25 = % + 2f = /f → /admin%2fsecret
 		{"triple-encoded", "/admin%25252fsecret", false},
-		{"overlong path", "/admin%2F%2F%2Fsecret", false},      // path.Clean would normalise this
+		{"overlong path", "/admin%2F%2F%2Fsecret", false}, // path.Clean would normalise this
 	}
 
 	for _, tc := range cases {

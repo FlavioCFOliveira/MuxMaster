@@ -1,11 +1,11 @@
 package harness
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"runtime/debug"
 	"strings"
 	"testing"
-	"net/http"
 
 	mm "github.com/FlavioCFOliveira/MuxMaster"
 )
@@ -17,8 +17,8 @@ func FuzzGroup(f *testing.F) {
 	f.Add("/api", "/v1", "/users")
 	f.Add("/", "/a", "/b")
 	f.Add("/deep", "/nested", "/path")
-	f.Add("", "/api", "/v1")       // empty prefix — may panic at Handle level
-	f.Add("/api", "", "/v1")       // empty sub-prefix
+	f.Add("", "/api", "/v1")               // empty prefix — may panic at Handle level
+	f.Add("/api", "", "/v1")               // empty sub-prefix
 	f.Add("/api", "/v1/../hack", "/users") // traversal attempt in prefix
 	f.Add("/api", "/v1", "no-slash")       // leaf without slash
 	f.Add("/a/b/c", "/d/e", "/f")
@@ -66,8 +66,8 @@ func FuzzMount(f *testing.F) {
 	f.Add("/api")
 	f.Add("/api/v1")
 	f.Add("/static")
-	f.Add("")           // should panic — non-absolute
-	f.Add("no-slash")   // should panic — non-absolute
+	f.Add("")         // should panic — non-absolute
+	f.Add("no-slash") // should panic — non-absolute
 
 	f.Fuzz(func(t *testing.T, prefix string) {
 		var innerPath string

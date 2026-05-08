@@ -215,7 +215,7 @@ func mannWhitneyU(a, b []int64) float64 {
 		i = j
 	}
 	nf := float64(n)
-	sigma2 := float64(na)*float64(nb)/12.0*(nf+1.0-tieSum/(nf*(nf-1.0)))
+	sigma2 := float64(na) * float64(nb) / 12.0 * (nf + 1.0 - tieSum/(nf*(nf-1.0)))
 	if sigma2 <= 0 {
 		return 1.0
 	}
@@ -370,11 +370,11 @@ func Summarise(samples []int64) SummaryStats {
 
 // StatResult holds results from all three hypothesis tests.
 type StatResult struct {
-	WelchP float64
-	KSP    float64
-	MWUP   float64
+	WelchP     float64
+	KSP        float64
+	MWUP       float64
 	MeanDiffNs float64
-	Leak   bool
+	Leak       bool
 }
 
 // RunTests runs Welch, KS, and MWU on trimmed samples.

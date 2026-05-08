@@ -42,11 +42,11 @@ func (s *introspectServer) handler(w http.ResponseWriter, r *http.Request) {
 	exp := time.Now().Add(time.Hour).Unix()
 	if s.active.Load() {
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"active":  true,
-			"sub":     "user1",
-			"exp":     exp,
-			"scope":   "read",
-			"iss":     "https://idp.example.com",
+			"active":    true,
+			"sub":       "user1",
+			"exp":       exp,
+			"scope":     "read",
+			"iss":       "https://idp.example.com",
 			"client_id": "client1",
 		})
 	} else {
@@ -71,8 +71,8 @@ func TestSec_OAuth2_CachePoisonBlastRadius(t *testing.T) {
 	const cacheTTL = 200 * time.Millisecond
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: ts.URL,
-		CacheTTL: cacheTTL,
+		Endpoint:              ts.URL,
+		CacheTTL:              cacheTTL,
 	})
 
 	reached := false
@@ -152,8 +152,8 @@ func TestSec_OAuth2_CacheKeyIsSHA256OfToken(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: ts.URL,
-		CacheTTL: 60 * time.Second,
+		Endpoint:              ts.URL,
+		CacheTTL:              60 * time.Second,
 	})
 	var lastToken string
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -192,8 +192,8 @@ func TestSec_OAuth2_CacheDoesNotStoreFalseActiveResponse(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: ts.URL,
-		CacheTTL: 60 * time.Second,
+		Endpoint:              ts.URL,
+		CacheTTL:              60 * time.Second,
 	})
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -257,8 +257,8 @@ func TestSec_OAuth2_CacheExpiresOnTokenExp(t *testing.T) {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		AllowInsecureEndpoint: true,
-		Endpoint: ts.URL,
-		CacheTTL: 10 * time.Second, // long TTL — token exp should win
+		Endpoint:              ts.URL,
+		CacheTTL:              10 * time.Second, // long TTL — token exp should win
 	})
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

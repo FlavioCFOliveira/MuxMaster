@@ -75,7 +75,7 @@ func FuzzParamsRoundtrip(f *testing.F) {
 	f.Add("hello")
 	f.Add("123")
 	f.Add("")
-	f.Add("a/b/c")  // slashes in param values (catch-all)
+	f.Add("a/b/c")        // slashes in param values (catch-all)
 	f.Add("\xe2\x9c\x93") // unicode checkmark
 
 	f.Fuzz(func(t *testing.T, paramValue string) {

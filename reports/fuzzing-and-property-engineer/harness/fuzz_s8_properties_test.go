@@ -151,12 +151,12 @@ func FuzzCaseFoldUTF8NoPanic(f *testing.F) {
 	f.Add("/ITEMS")
 	f.Add("/Items")
 	f.Add("/Users/123")
-	f.Add("/\xC3\xA9tems")  // é (2-byte)
-	f.Add("/\xE4\xB8\xAD")  // 中 (3-byte)
+	f.Add("/\xC3\xA9tems")     // é (2-byte)
+	f.Add("/\xE4\xB8\xAD")     // 中 (3-byte)
 	f.Add("/\xF0\x9F\x98\x80") // emoji (4-byte)
-	f.Add("/items\xC0\x80")  // overlong NUL (invalid UTF-8)
-	f.Add("/\xFF\xFE")       // invalid UTF-8
-	f.Add("/a\x80b")         // continuation byte without start byte
+	f.Add("/items\xC0\x80")    // overlong NUL (invalid UTF-8)
+	f.Add("/\xFF\xFE")         // invalid UTF-8
+	f.Add("/a\x80b")           // continuation byte without start byte
 
 	f.Fuzz(func(t *testing.T, path string) {
 		if containsControlBytes(path) {
@@ -418,13 +418,13 @@ func TestCaseFoldMultiByteIndex(t *testing.T) {
 
 	// Paths that exercise boundary conditions in the byte-indexed trie.
 	paths := []string{
-		"/HELLO",          // simple ASCII fold
-		"/World/123",      // mixed case
-		"/hello",          // exact match (should 200 directly)
-		"/\xc3\xa9",      // UTF-8 é — starts at 0xC3, may index wrongly
-		"/\xe4\xb8\xad",  // CJK — 3-byte sequence
+		"/HELLO",                 // simple ASCII fold
+		"/World/123",             // mixed case
+		"/hello",                 // exact match (should 200 directly)
+		"/\xc3\xa9",              // UTF-8 é — starts at 0xC3, may index wrongly
+		"/\xe4\xb8\xad",          // CJK — 3-byte sequence
 		"/\xf0\x9f\x98\x80/test", // 4-byte emoji as first byte of a path segment
-		"/hell\xc3\xb6",  // ASCII + multi-byte
+		"/hell\xc3\xb6",          // ASCII + multi-byte
 	}
 
 	for _, path := range paths {

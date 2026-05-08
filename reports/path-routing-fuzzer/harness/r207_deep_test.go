@@ -44,7 +44,7 @@ func TestR2_07_Deep_RegexEmptySegmentMechanism(t *testing.T) {
 	r.ServeHTTP(w1, req1)
 	t.Logf("REGEX-EMPTY: //profile → code=%d handler=%q id=%q", w1.Code, w1.Header().Get("X-Handler"), capturedID)
 
-	// The concern: //profile could bypass auth checks that pattern-match on the 
+	// The concern: //profile could bypass auth checks that pattern-match on the
 	// specific URL /user/profile (expecting the id segment).
 	// Also: the empty segment means id="" — any code that uses id as a user lookup
 	// would get an empty string, which might match a default/admin user.

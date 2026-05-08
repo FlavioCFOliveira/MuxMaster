@@ -1520,10 +1520,10 @@ func TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass(t *testing.T) {
 // panic at construction so the misconfiguration cannot reach production.
 func TestSec_OAuth2_EndpointHardening(t *testing.T) {
 	cases := []struct {
-		name       string
-		endpoint   string
-		insecure   bool
-		wantPanic  string
+		name      string
+		endpoint  string
+		insecure  bool
+		wantPanic string
 	}{
 		{"empty_host_https", "https:///path", false, "no host"},
 		{"empty_host_scheme_only", "https:?q=x", false, "no host"},
@@ -1570,9 +1570,9 @@ func TestSec_JWT_Exp_TypeConfusion(t *testing.T) {
 	}{
 		{"negative_exp", `{"sub":"u","exp":-1}`},
 		{"negative_nbf", `{"sub":"u","exp":99999999999,"nbf":-1}`},
-		{"string_exp", `{"sub":"u","exp":"123"}`},                                  // json.Unmarshal fails: string into int64
-		{"object_exp", `{"sub":"u","exp":{"v":123}}`},                              // json.Unmarshal fails
-		{"array_exp", `{"sub":"u","exp":[123]}`},                                   // json.Unmarshal fails
+		{"string_exp", `{"sub":"u","exp":"123"}`},                                   // json.Unmarshal fails: string into int64
+		{"object_exp", `{"sub":"u","exp":{"v":123}}`},                               // json.Unmarshal fails
+		{"array_exp", `{"sub":"u","exp":[123]}`},                                    // json.Unmarshal fails
 		{"overflow_exp", `{"sub":"u","exp":99999999999999999999999999999999999.0}`}, // overflow
 	}
 	for _, tc := range cases {

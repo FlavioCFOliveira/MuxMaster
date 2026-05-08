@@ -66,10 +66,10 @@ func TestReproFPE2026REGEX01(t *testing.T) {
 	// These regex expressions are all valid per regexp.Compile but contain '}'
 	// which the tree parser misinterprets as the end of the {name:expr} block.
 	problematicExprs := []string{
-		"(})",      // original fuzzer find
-		"a{2,3}",   // quantifier
-		"[}]",      // character class with }
-		"\\}",      // escaped }
+		"(})",    // original fuzzer find
+		"a{2,3}", // quantifier
+		"[}]",    // character class with }
+		"\\}",    // escaped }
 	}
 
 	for _, expr := range problematicExprs {

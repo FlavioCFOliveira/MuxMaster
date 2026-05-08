@@ -188,7 +188,7 @@ func TestProp_ParamsFromContextRoundtrip(t *testing.T) {
 		mux := mm.New()
 		var got string
 		var ok bool
-		mux.GET("/items/:" + key, func(w http.ResponseWriter, r *http.Request) {
+		mux.GET("/items/:"+key, func(w http.ResponseWriter, r *http.Request) {
 			ps := mm.ParamsFromContext(r.Context())
 			got = ps.Get(key)
 			_, ok = ps.Lookup(key)

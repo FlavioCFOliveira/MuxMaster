@@ -132,24 +132,24 @@ func TestS8_H803_ServeFilesTraversalBoundary(t *testing.T) {
 
 func TestS8_H820_RawPathMatrix(t *testing.T) {
 	type state struct {
-		useRaw    bool
-		unescape  bool
-		label     string
+		useRaw   bool
+		unescape bool
+		label    string
 	}
 
 	states := []state{
 		{false, false, "UseRaw=F,Unescape=F (default)"},
-		{true, false,  "UseRaw=T,Unescape=F"},
-		{true, true,   "UseRaw=T,Unescape=T"},
+		{true, false, "UseRaw=T,Unescape=F"},
+		{true, true, "UseRaw=T,Unescape=T"},
 		// {false, true} is explicitly disallowed by the docs (Unescape only takes
 		// effect when UseRaw=true), so we only test the interaction.
 	}
 
 	type testPath struct {
-		urlPath    string
-		rawPath    string // empty = same as urlPath
-		wantParam  string // expected :id value
-		wantCode   int
+		urlPath   string
+		rawPath   string // empty = same as urlPath
+		wantParam string // expected :id value
+		wantCode  int
 	}
 
 	cases := []testPath{
@@ -581,7 +581,7 @@ func TestS8_H847_RegexParamReDoS(t *testing.T) {
 			select {
 			case <-done:
 				t.Logf("H8-47 OK: {%s} with input %q did not hang (Go RE2 is linear)", tc.routeExpr, tc.inputSeg)
-			// Use a reasonable timeout for the test (the test framework timeout handles the rest).
+				// Use a reasonable timeout for the test (the test framework timeout handles the rest).
 			}
 		})
 	}
@@ -838,16 +838,16 @@ func TestS8_WildcardShadow_AllMethods(t *testing.T) {
 	// POST does not have /users/admin registered.
 
 	cases := []struct {
-		method  string
-		path    string
-		want    string
+		method   string
+		path     string
+		want     string
 		wantCode int
 	}{
-		{"GET", "/users/admin", "static", 200},   // static wins over :id for GET
-		{"GET", "/users/123", "param", 200},       // :id wins for other values
+		{"GET", "/users/admin", "static", 200},      // static wins over :id for GET
+		{"GET", "/users/123", "param", 200},         // :id wins for other values
 		{"POST", "/users/admin", "post-param", 200}, // POST: no static, :id matches
 		{"POST", "/users/123", "post-param", 200},
-		{"DELETE", "/users/admin", "", 405},        // no DELETE registered
+		{"DELETE", "/users/admin", "", 405}, // no DELETE registered
 	}
 
 	for _, tc := range cases {
@@ -956,7 +956,7 @@ func TestS8_GroupPrefixConcatenation(t *testing.T) {
 
 	// Finding: if double-slash path is reachable but single-slash is not, document it.
 	if code == 200 && code2 != 200 {
-		t.Logf("S8-GROUP-CONCAT NOTED: group prefix '/api/' + route '/users' creates double-slash path '/api//users' — "+
+		t.Logf("S8-GROUP-CONCAT NOTED: group prefix '/api/' + route '/users' creates double-slash path '/api//users' — " +
 			"only reachable via double-slash, not /api/users. This is a routing confusion issue.")
 	}
 }
@@ -1209,7 +1209,7 @@ func TestS8_TraversalCorpus_Extended(t *testing.T) {
 		"/%252e%252e%252fadmin",
 
 		// Overlong UTF-8 (invalid in Go, but test encoded form).
-		"/%c0%ae%c0%ae/admin",  // overlong '.' — invalid UTF-8, URL.Path decodes differently
+		"/%c0%ae%c0%ae/admin", // overlong '.' — invalid UTF-8, URL.Path decodes differently
 		"/%c0%ae%c0%ae%c0%afadmin",
 
 		// Mixed dot + encoded.
@@ -1291,9 +1291,9 @@ func TestS8_Differential_Extended(t *testing.T) {
 		"/static/../../etc/passwd",
 		"/static/%2e%2e/%2e%2e/etc/passwd",
 		// Unicode.
-		"/аdmin",   // Cyrillic а
-		"/ɑdmin",   // Latin alpha
-		"/ADMIN",   // uppercase
+		"/аdmin", // Cyrillic а
+		"/ɑdmin", // Latin alpha
+		"/ADMIN", // uppercase
 		// Deep paths.
 		"/api/v1/items/1/children/",
 		"/api/v1/items/1/children",
