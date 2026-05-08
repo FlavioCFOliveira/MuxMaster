@@ -56,7 +56,7 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 // commit flushes the sniff buffer and sets decided=true.
 func (g *gzipResponseWriter) commit() error {
 	g.decided = true
-	hdr := g.ResponseWriter.Header()
+	hdr := g.Header()
 	// MSR-2026-0060: Vary: Accept-Encoding must always be emitted when this
 	// middleware is in scope, even if the response was too small to compress
 	// — otherwise a CDN may serve the small uncompressed body to a client

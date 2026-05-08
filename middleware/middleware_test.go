@@ -1507,12 +1507,10 @@ func TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass(t *testing.T) {
 			if tc.wantHandlerHit && !handlerHit {
 				t.Errorf("%s: handler not hit but expected", tc.name)
 			}
-			if !tc.wantHandlerHit && handlerHit {
-				// CleanPath itself unconditionally forwards; the bypass would
-				// manifest in mux dispatch, not here. We only assert that the
-				// middleware does not panic or alter Path in a way that would
-				// re-introduce the encoded form.
-			}
+			// Note: CleanPath itself unconditionally forwards; bypass would
+			// manifest in mux dispatch, not here. We only assert that the
+			// middleware does not panic or alter Path in a way that would
+			// re-introduce the encoded form.
 		})
 	}
 }
