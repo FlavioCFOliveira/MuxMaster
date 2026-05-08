@@ -7,6 +7,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.0.0-rc1] - 2026-05-08
+
+First release candidate. Public API is considered stable; breaking
+changes between rc1 and 1.0.0 will be enumerated in this changelog and
+discussed in a GitHub issue before landing.
+
+### Security
+
+- **Sprint S9 audit closed** — 95 findings across 9 specialist domains
+  (CSA-2026-0060 sev 8 silent params loss; HPS-2026-0005 sev 7 open
+  redirect via absolute-form URI; FPE-2026-010 sev 6 silent
+  middleware-skip on root `Mux.HandleFast`; plus JWT/OAuth2/APIKey
+  hardening).
+
 ### Added
 - Radix tree router with O(k) lookup (k = path length)
 - Named path parameters (`:id`), regex-constrained parameters (`{id:[0-9]+}`), and catch-all parameters (`*filepath`)
@@ -47,4 +61,5 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **Configuration snapshot** — Mux flags are frozen into a `muxConfig` snapshot on the first `ServeHTTP` call; subsequent requests use a single atomic pointer load instead of 6–8 struct field reads
 - **FastHandler footprint** — `FastHandler` struct reduced to 32 B (from 128 B) via exact `Params` slice allocation bounded by `maxParams = 3`
 
-[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/commits/main
+[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.0-rc1...HEAD
+[1.0.0-rc1]: https://github.com/FlavioCFOliveira/MuxMaster/releases/tag/v1.0.0-rc1
