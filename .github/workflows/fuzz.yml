@@ -1,0 +1,128 @@
+name: Fuzz (nightly)
+
+on:
+  schedule:
+    # 03:00 UTC every day. Cheap CI-credits time slot.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: "Per-target fuzz duration (e.g. 10m, 30m)"
+        required: false
+        default: "10m"
+
+permissions:
+  contents: read
+  issues: write   # to file an issue if a crash is found
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  list-targets:
+    name: Discover fuzz targets
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.find.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - id: find
+        name: Enumerate Fuzz functions in main packages
+        # /reports/fuzzing-and-property-engineer/harness has a separate
+        # go.mod and is intentionally excluded from go test ./...; we still
+        # exercise its targets here.
+        run: |
+          set -euo pipefail
+          targets=$(grep -rEn "^func Fuzz[A-Z][A-Za-z0-9_]*" \
+              --include='*.go' . 2>/dev/null \
+            | grep -v '/competitor/' \
+            | grep -v '/examples/' \
+            | awk -F: '{print $1 "::" $3}' \
+            | sed -E 's|^./||; s|/[^/]+\.go::func ([A-Za-z0-9_]+).*|::\1|' \
+            | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
+          echo "Found targets:"
+          echo "$targets" | jq .
+
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    needs: list-targets
+    if: needs.list-targets.outputs.targets != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.list-targets.outputs.targets) }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Resolve target
+        id: t
+        run: |
+          # Format: "<package-path>::<FuncName>"
+          pkg="${TARGET%%::*}"
+          fn="${TARGET##*::}"
+          echo "pkg=$pkg" >> "$GITHUB_OUTPUT"
+          echo "fn=$fn"   >> "$GITHUB_OUTPUT"
+        env:
+          TARGET: ${{ matrix.target }}
+
+      - name: Run fuzzer
+        run: |
+          set -euo pipefail
+          duration="${{ inputs.duration || '10m' }}"
+          dir="${{ steps.t.outputs.pkg }}"
+          fn="${{ steps.t.outputs.fn }}"
+          # Some fuzz targets live under a side-loaded module (the
+          # /reports/fuzzing-and-property-engineer/harness has its own
+          # go.mod). Detect and run from inside.
+          if [ -f "$dir/go.mod" ]; then
+            cd "$dir"
+            target="."
+          else
+            target="./$dir"
+          fi
+          echo "Running $fn ($target) for $duration"
+          go test -run='^$' -fuzz="^${fn}$" -fuzztime="$duration" "$target"
+
+      - name: Upload corpus on crash
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-corpus-${{ steps.t.outputs.fn }}
+          path: |
+            **/testdata/fuzz/${{ steps.t.outputs.fn }}/**
+          if-no-files-found: ignore
+
+  notify:
+    name: Notify on failure
+    needs: fuzz
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Nightly fuzz failure (${today})`,
+              body: `One or more fuzz targets crashed during the nightly run.\n\n` +
+                    `See: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n` +
+                    `Reproduce locally with the corpus uploaded in the run artifacts.`,
+              labels: ["fuzz", "nightly", "needs-triage"],
+            });
