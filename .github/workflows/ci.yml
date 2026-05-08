@@ -11,13 +11,16 @@ permissions:
 
 jobs:
   test:
-    name: Test (Go ${{ matrix.go }})
-    runs-on: ubuntu-latest
+    name: Test (Go ${{ matrix.go }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         # go.mod requires go 1.26; "stable" catches future releases
         go: ["1.26", "stable"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        # CI-2026-005: race detector is well-supported across all 3 OSes;
+        # if a Windows-specific path quirk emerges, scope it via build tags.
     steps:
       - uses: actions/checkout@v6.0.2
 
@@ -28,16 +31,22 @@ jobs:
       - name: Verify modules
         run: go mod verify
 
+      # The shell trick: bash on every runner (Windows ships git-bash via
+      # actions/setup-go), so the `grep -v '/reports/'` pipeline is portable.
       - name: Build
+        shell: bash
         run: go build $(go list ./... | grep -v '/reports/')
 
       - name: Test
+        shell: bash
         run: go test -count=1 $(go list ./... | grep -v '/reports/')
 
       - name: Test (race detector)
+        shell: bash
         run: go test -race -count=1 $(go list ./... | grep -v '/reports/')
 
       - name: Vet
+        shell: bash
         run: go vet $(go list ./... | grep -v '/reports/')
 
   lint:
