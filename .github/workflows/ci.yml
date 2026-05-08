@@ -142,6 +142,51 @@ jobs:
       - name: Run govulncheck
         run: govulncheck $(go list ./... | grep -v '/reports/')
 
+  changelog-touched:
+    name: CHANGELOG.md updated
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Verify CHANGELOG entry on behavioural changes
+        # CI-2026-016: PRs touching .go files (excluding _test.go,
+        # /reports/, /competitor/, /examples/) must update CHANGELOG.md
+        # under [Unreleased]. Pure-test or doc-only PRs are exempt.
+        # Override with the 'no-changelog' label.
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          changed=$(git diff --name-only "$base" "$head")
+
+          # Behavioural change = any non-test .go outside excluded dirs
+          beh=$(echo "$changed" | grep -E '\.go$' | grep -vE '_test\.go$' | grep -vE '^reports/|^competitor/|^examples/' || true)
+          if [ -z "$beh" ]; then
+            echo "No behavioural .go changes — CHANGELOG check skipped."
+            exit 0
+          fi
+
+          if echo "$changed" | grep -q '^CHANGELOG\.md$'; then
+            echo "CHANGELOG.md updated."
+            exit 0
+          fi
+
+          labels='${{ toJson(github.event.pull_request.labels.*.name) }}'
+          if echo "$labels" | grep -q 'no-changelog'; then
+            echo "PR carries 'no-changelog' label — exempt."
+            exit 0
+          fi
+
+          echo "::error::Behavioural .go changes detected without a CHANGELOG.md update."
+          echo "Either add an entry under [Unreleased] or apply the 'no-changelog' label if this is intentional."
+          echo ""
+          echo "Files changed:"
+          echo "$beh"
+          exit 1
+
   api-md-fresh:
     name: api.md is up to date
     runs-on: ubuntu-latest
