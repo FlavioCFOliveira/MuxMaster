@@ -1,0 +1,62 @@
+name: Bug report
+description: Report a defect in MuxMaster
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! For security issues,
+        please follow [SECURITY.md](../SECURITY.md) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the unexpected behaviour.
+      placeholder: |
+        Calling Mux.GET("/users/:id") with a request to /users/abc returned 404.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Smallest piece of Go code that reproduces the bug. Include the request used.
+      render: go
+      placeholder: |
+        package main
+
+        import (
+            "net/http"
+            muxmaster "github.com/FlavioCFOliveira/MuxMaster"
+        )
+
+        func main() {
+            r := muxmaster.New()
+            r.GET("/users/:id", func(w http.ResponseWriter, _ *http.Request) {})
+            http.ListenAndServe(":8080", r)
+        }
+    validations:
+      required: true
+  - type: input
+    id: muxmaster-version
+    attributes:
+      label: MuxMaster version
+      description: Output of `go list -m github.com/FlavioCFOliveira/MuxMaster` or commit SHA.
+      placeholder: v1.0.0-rc1
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      description: Output of `go version`.
+      placeholder: go version go1.26.2 linux/amd64
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What should have happened instead?
+    validations:
+      required: true

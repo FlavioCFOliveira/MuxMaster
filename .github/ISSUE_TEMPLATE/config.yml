@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/FlavioCFOliveira/MuxMaster/security/advisories/new
+    about: For security issues, do not open a public issue. Use the GitHub Security Advisory form instead. See SECURITY.md.
+  - name: Question / discussion
+    url: https://github.com/FlavioCFOliveira/MuxMaster/discussions
+    about: For "how do I...?" or design discussions, please use Discussions.

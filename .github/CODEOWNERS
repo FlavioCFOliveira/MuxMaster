@@ -1,0 +1,32 @@
+# MuxMaster — code owners
+#
+# Owners are auto-requested as reviewers on every PR that touches the
+# matching paths. The repository owner (@FlavioCFOliveira) is the
+# default for everything; section-specific owners override.
+
+# Default catch-all
+*                                       @FlavioCFOliveira
+
+# Hot-path files: any change requires explicit review
+/mux.go                                 @FlavioCFOliveira
+/tree.go                                @FlavioCFOliveira
+/params.go                              @FlavioCFOliveira
+
+# Security-relevant middlewares
+/middleware/jwt_auth.go                 @FlavioCFOliveira
+/middleware/oauth2.go                   @FlavioCFOliveira
+/middleware/api_key.go                  @FlavioCFOliveira
+/middleware/basic_auth.go               @FlavioCFOliveira
+/middleware/recoverer.go                @FlavioCFOliveira
+/middleware/cors.go                     @FlavioCFOliveira
+/middleware/throttle.go                 @FlavioCFOliveira
+/middleware/timeout.go                  @FlavioCFOliveira
+
+# CI / build / release
+/.github/                               @FlavioCFOliveira
+/Makefile                               @FlavioCFOliveira
+
+# Public contract
+/COMPATIBILITY.md                       @FlavioCFOliveira
+/SECURITY.md                            @FlavioCFOliveira
+/CHANGELOG.md                           @FlavioCFOliveira

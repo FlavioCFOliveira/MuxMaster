@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose a new feature or enhancement
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! Please describe the use case so we
+        can evaluate whether it fits the project's scope (a high-
+        performance, zero-deps router) and SemVer policy.
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What real-world problem does this feature solve?
+    validations:
+      required: true
+  - type: textarea
+    id: api-sketch
+    attributes:
+      label: Proposed API
+      description: A sketch of the API change. Include the GoDoc-style comment for any new exported symbol.
+      render: go
+    validations:
+      required: false
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Compatibility tier
+      description: See COMPATIBILITY.md for tier definitions.
+      options:
+        - Tier 1 — Core Router (MAJOR for breaking)
+        - Tier 2 — Middleware sub-package
+        - Tier 3 — Introspection / Debug
+        - Tier 4 — Internal (no guarantee)
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing routers / patterns / workarounds you considered.
+    validations:
+      required: false
