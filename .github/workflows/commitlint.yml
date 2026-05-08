@@ -1,0 +1,48 @@
+name: Commitlint
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    name: Validate commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Validate Conventional Commits
+        # CI-2026-015: enforce CONTRIBUTING.md commit-message convention.
+        # Allowed types: feat, fix, perf, refactor, test, docs, ci,
+        # chore, build, style, revert, security.
+        # Allowed scopes (optional): any lowercase identifier or a comma-
+        # separated list. Subject must be 1-100 chars.
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          range="${base}..${head}"
+          re='^(feat|fix|perf|refactor|test|docs|ci|chore|build|style|revert|security)(\([a-z0-9_,/.-]+\))?(!)?: .{1,100}$'
+          fail=0
+          while IFS= read -r line; do
+            sha=$(echo "$line" | awk '{print $1}')
+            msg=$(echo "$line" | cut -d' ' -f2-)
+            if ! echo "$msg" | grep -qE "$re"; then
+              echo "::error::commit $sha does not match Conventional Commits: \"$msg\""
+              fail=1
+            fi
+          done < <(git log --pretty=format:'%H %s' "$range")
+          if [ $fail -ne 0 ]; then
+            echo ""
+            echo "Allowed format: <type>(scope): <subject>"
+            echo "Allowed types: feat, fix, perf, refactor, test, docs, ci, chore, build, style, revert, security"
+            echo "See CONTRIBUTING.md for examples."
+            exit 1
+          fi
+          echo "All commits validate."
