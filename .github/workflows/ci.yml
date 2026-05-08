@@ -72,6 +72,13 @@ jobs:
         # /reports contains intentional anti-patterns (exploit reproducers); excluded.
         run: staticcheck $(go list ./... | grep -v '/reports/')
 
+      - name: pkg.go.dev quality gate (godoc + naming)
+        # API-2026-008: enforce the same checks pkg.go.dev surfaces in
+        # the "Documentation" tab so a fresh deploy never shows warnings.
+        run: |
+          staticcheck -checks=ST1000,ST1020,ST1021,ST1022,ST1003 \
+            $(go list ./... | grep -v '/reports/' | grep -v '/competitor/' | grep -v '/examples/')
+
   gosec:
     name: SAST (gosec)
     runs-on: ubuntu-latest
