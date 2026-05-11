@@ -68,7 +68,7 @@ jobs:
       - name: Generate SBOM
         run: cyclonedx-gomod mod -licenses -json -output sbom.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: sbom.json
