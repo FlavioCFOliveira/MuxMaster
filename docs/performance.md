@@ -80,9 +80,13 @@ On the first `ServeHTTP` call, the Mux flags (`RedirectTrailingSlash`, `Redirect
 
 ## Benchmarks
 
-Measured on AMD Ryzen 9 5900HX (16 logical cores), Linux 6.8, Go 1.26.2. Numbers are medians over `count=10` runs against the same route set, captured immediately before the v1.0.0 release. The full evidence is archived under `reports/overview/2026-05-08-perf-validation.md` and `reports/overview/2026-05-08-final-maturity-verdict.md`.
+Results are medians from `go test -bench=. -benchmem -count=5 -benchtime=3s`. Full raw data is archived under `reports/`.
 
-### Serial (single goroutine)
+### AMD Ryzen 9 5900HX — 16 cores @ ~4.6 GHz, Go 1.26.2, Linux 6.8
+
+Captured immediately before v1.0.0 release. Evidence: `reports/overview/2026-05-08-perf-validation.md`.
+
+#### Serial (single goroutine)
 
 | Route type   | `Handle` (default) | `Handle` + Pool¹ | `HandleFast` | httprouter |
 |--------------|--------------------|------------------|--------------|------------|
@@ -92,9 +96,7 @@ Measured on AMD Ryzen 9 5900HX (16 logical cores), Linux 6.8, Go 1.26.2. Numbers
 | 3 parameters | 135 ns, 1 alloc    | **59 ns, 0 allocs** | 77 ns, 1 alloc | 78.4 ns, 1 alloc |
 | Catch-all    | 108 ns, 1 alloc    | **44 ns, 0 allocs** | 50 ns, 1 alloc | 51.3 ns, 1 alloc |
 
-¹ Opt-in: `Mux.PoolRequestBundle = true`. Handlers MUST NOT retain `*http.Request` past return — see [Maximum Performance Guide](max-performance.md).
-
-### Parallel (GOMAXPROCS cores)
+#### Parallel (GOMAXPROCS=16)
 
 | Route type   | `Handle` (default) | `Handle` + Pool   | `HandleFast`     | httprouter       |
 |--------------|--------------------|-------------------|------------------|------------------|
@@ -102,6 +104,31 @@ Measured on AMD Ryzen 9 5900HX (16 logical cores), Linux 6.8, Go 1.26.2. Numbers
 | 1 parameter  | 100 ns, 1 alloc    | **6.3 ns, 0 allocs** | 17 ns, 1 alloc | 22.2 ns, 1 alloc |
 
 The parallel static benchmark shows near-linear CPU scaling on the 16-core box: 25 ns serial → 3.6 ns parallel (~7× speed-up). With `PoolRequestBundle = true` the parallel 1-param case drops to **6.3 ns**, beating `httprouter`'s 22.2 ns by **3.5×** on the same hardware. Sustained-load testing with a four-middleware stack and 1 000 concurrent goroutines reaches **67 275 RPS at 0.00 % error rate** with a maximum GC pause of 2.95 ms (`reports/dos-resilience-tester/2026-05-08-production-loadtest.md`).
+
+---
+
+### Raspberry Pi 5 — 4 cores @ 2.4 GHz (ARM64 Cortex-A76), Go 1.26.3, Debian 12
+
+Measured 2026-05-12. Raw data: `reports/rpi5-benchmarks-2026-05-12.md`.
+
+#### Serial (single goroutine)
+
+| Route type   | `Handle` (default) | `Handle` + Pool¹ | `HandleFast` |
+|--------------|--------------------|------------------|--------------|
+| Static       | **52 ns, 0 allocs** | 52 ns, 0 allocs | 52 ns, 0 allocs |
+| 1 parameter  | 287 ns, 1 alloc    | **99 ns, 0 allocs** | 149 ns, 1 alloc |
+| 2 parameters | 335 ns, 1 alloc    | **128 ns, 0 allocs** | 218 ns, 1 alloc |
+| 3 parameters | 351 ns, 1 alloc    | **138 ns, 0 allocs** | 242 ns, 1 alloc |
+| Catch-all    | 282 ns, 1 alloc    | **100 ns, 0 allocs** | — |
+
+#### Parallel (GOMAXPROCS=4)
+
+| Route type   | `Handle` (default) | `Handle` + Pool¹ | `HandleFast`     |
+|--------------|--------------------|------------------|------------------|
+| Static       | **14 ns, 0 allocs** | 14 ns, 0 allocs | — |
+| 1 parameter  | 184 ns, 1 alloc    | **25 ns, 0 allocs** | 45 ns, 1 alloc |
+
+All allocation invariants (0 allocs static, 1 alloc default param, 0 allocs pooled) are identical on ARM64. The ~2–3× ns/op ratio vs the Ryzen 9 5900HX is consistent with the raw clock-speed ratio (2.4 GHz vs ~4.6 GHz).
 
 ### Why one allocation on parameterised `Handle` routes (default)
 
