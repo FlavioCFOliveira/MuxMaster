@@ -66,6 +66,23 @@ func CORS(opts CORSOptions) func(http.Handler) http.Handler {
 	allowedHeaders := strings.Join(opts.AllowedHeaders, ", ")
 	exposedHeaders := strings.Join(opts.ExposedHeaders, ", ")
 
+	// Opt L3: pre-allocate value slices that are constant for this CORS()
+	// instance, so the handler can do direct map assignment (zero allocs per
+	// request) instead of Header.Set (which allocates []string{value} on every
+	// call and runs textproto.CanonicalMIMEHeaderKey). The header names are
+	// already in canonical form (Access-Control-Allow-Origin, etc.), letting us
+	// skip the canonicalisation step too.
+	allowAllVal := []string{"*"}
+	credTrueVal := []string{"true"}
+	varyOriginVal := []string{"Origin"}
+	methodsVal := []string{allowedMethods}
+	headersVal := []string{allowedHeaders}
+	exposeVal := []string{exposedHeaders}
+	var maxAgeVal []string
+	if opts.MaxAge > 0 {
+		maxAgeVal = []string{strconv.Itoa(opts.MaxAge)}
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
@@ -89,29 +106,34 @@ func CORS(opts CORSOptions) func(http.Handler) http.Handler {
 			h := w.Header()
 			// When allowAll, emit the literal "*" — never reflect the request origin (MM-2026-0012).
 			if allowAll {
-				h.Set("Access-Control-Allow-Origin", "*")
+				h["Access-Control-Allow-Origin"] = allowAllVal
 			} else {
-				h.Set("Access-Control-Allow-Origin", origin)
+				h["Access-Control-Allow-Origin"] = []string{origin}
 				// MM-2026-0051: any per-origin response must carry Vary: Origin
 				// so caches do not serve a response intended for origin A to a
-				// client from origin B.
-				h.Add("Vary", "Origin")
+				// client from origin B. Preserve Add semantics: if Vary already
+				// exists, append; otherwise assign our pre-allocated single slot.
+				if existing, ok := h["Vary"]; ok {
+					h["Vary"] = append(existing, "Origin")
+				} else {
+					h["Vary"] = varyOriginVal
+				}
 			}
 			if opts.AllowCredentials {
-				h.Set("Access-Control-Allow-Credentials", "true")
+				h["Access-Control-Allow-Credentials"] = credTrueVal
 			}
 			if exposedHeaders != "" {
-				h.Set("Access-Control-Expose-Headers", exposedHeaders)
+				h["Access-Control-Expose-Headers"] = exposeVal
 			}
 			if r.Method == http.MethodOptions {
 				if allowedMethods != "" {
-					h.Set("Access-Control-Allow-Methods", allowedMethods)
+					h["Access-Control-Allow-Methods"] = methodsVal
 				}
 				if allowedHeaders != "" {
-					h.Set("Access-Control-Allow-Headers", allowedHeaders)
+					h["Access-Control-Allow-Headers"] = headersVal
 				}
-				if opts.MaxAge > 0 {
-					h.Set("Access-Control-Max-Age", strconv.Itoa(opts.MaxAge))
+				if maxAgeVal != nil {
+					h["Access-Control-Max-Age"] = maxAgeVal
 				}
 				w.WriteHeader(http.StatusNoContent)
 				return

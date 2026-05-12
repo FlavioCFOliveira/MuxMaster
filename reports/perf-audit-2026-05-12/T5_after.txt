@@ -1,0 +1,46 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMiddleware_CORS_NoOrigin-16         	59331805	        19.54 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16         	61230356	        19.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16         	60198247	        19.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16         	60912991	        19.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16         	58721647	        19.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16         	60492855	        19.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16         	58498524	        19.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16         	60770586	        19.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16         	59403819	        19.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16         	60355587	        19.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 6030817	       197.8 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 6082609	       198.5 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 6067186	       197.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 5990684	       197.3 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 6112274	       197.6 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 5988025	       198.0 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 5971662	       198.2 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 6027319	       198.0 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 6094245	       197.5 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16    	 5774442	       208.2 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5374905	       220.0 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5495319	       219.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5008640	       242.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5432887	       221.4 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5421322	       218.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5450846	       219.8 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5459006	       218.9 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5460063	       218.8 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5514061	       220.3 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16        	 5474414	       219.0 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7343856	       159.2 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7427889	       159.7 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7391922	       160.3 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7421248	       160.2 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7492461	       160.3 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7547541	       159.4 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7384914	       160.6 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7477134	       160.0 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7446232	       160.0 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16               	 7477248	       160.5 ns/op	     400 B/op	       2 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12	53.847s
