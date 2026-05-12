@@ -1,0 +1,10 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkStaticRoute-16        	139163191	        25.85 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute1-16        	24846812	       151.0 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute3-16        	20489841	       183.8 ns/op	     480 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16    	64183610	        55.69 ns/op	      32 B/op	       1 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	17.707s

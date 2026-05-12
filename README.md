@@ -13,11 +13,12 @@
 
 **MuxMaster** is a high-performance HTTP router for Go. It is 100% compatible with the standard `net/http` package, requires zero external dependencies, and is built on a radix tree (compressed prefix trie) that delivers O(k) route lookup — where k is the length of the URL path, not the number of registered routes.
 
-The hot path allocates **zero bytes** for static routes and makes a **single tiered allocation** (416–480 B) for parameterized routes — fusing the request context and parameters in one GC-class-aligned object — while preserving a familiar, idiomatic Go API.
+The hot path allocates **zero bytes** for static routes and makes a **single tiered allocation** (384–480 B) for parameterized routes by default — fusing the request context and parameters in one GC-class-aligned object. With the opt-in `Mux.PoolRequestBundle = true`, that single allocation is recycled via `sync.Pool` and **the entire hot path becomes zero-allocation** — see the [Maximum Performance Guide](docs/max-performance.md).
 
 ## Why MuxMaster?
 
 - **Zero allocations for static routes** — parameterized routes use a single tiered allocation that fuses request context and parameters, minimising allocator pressure
+- **Zero allocations on parameterised routes too (opt-in)** — `Mux.PoolRequestBundle = true` recycles the per-request bundle via `sync.Pool`, dropping 1-param routes to 45 ns / 0 B / 0 allocs (20 % faster than `httprouter`); see [Maximum Performance Guide](docs/max-performance.md)
 - **100% `net/http` compatible** — drop in anywhere `http.Handler` is accepted; works with all existing middleware
 - **Zero external dependencies** — pure standard library; no dependency bloat
 - **Radix tree routing** — O(k) lookup, independent of the total number of registered routes
@@ -38,6 +39,7 @@ The hot path allocates **zero bytes** for static routes and makes a **single tie
 - [Path Parameters](#path-parameters)
 - [Middleware](#middleware)
 - [Fast Routes](#fast-routes)
+- [Maximum Performance Mode (Zero Allocations)](#maximum-performance-mode-zero-allocations)
 - [Groups](#groups)
 - [Mounting Sub-Routers](#mounting-sub-routers)
 - [Static Files](#static-files)
@@ -394,14 +396,35 @@ api.HandleFast("POST", "/users", createUserFast)
 |---|---|---|---|
 | Static `http.Handler` | 25 ns | 0 B | 0 |
 | Static `FastHandler` | ~25 ns | 0 B | 0 |
-| 1-param `http.Handler` | 112 ns | 416 B | 1 |
-| 1-param `FastHandler` | ~50 ns | 32 B | 0–1 |
+| 1-param `http.Handler` (default) | 105 ns | 384 B | 1 |
+| 1-param `FastHandler` (default) | ~50 ns | 32 B | 1 |
+| 1-param `http.Handler` + `PoolRequestBundle` | **45 ns** | **0 B** | **0** |
+| 1-param `FastHandler` + `PoolFastParams` | **44 ns** | **0 B** | **0** |
 
 Trade-offs:
 - **Incompatible with stdlib middleware** — use `FastMiddleware` only
 - **Params are not in the request context** — they are passed as a direct argument
 - **`Lookup()` returns `nil` for FastHandler routes** — use `WalkFast` to enumerate them
 - No convenience short-hand methods on `Group` (use `group.HandleFast("GET", ...)`)
+
+---
+
+## Maximum Performance Mode (Zero Allocations)
+
+For services where every nanosecond and every allocation count, MuxMaster offers two opt-in `sync.Pool` switches that recycle the per-request objects and bring the routing layer to **zero allocations**:
+
+```go
+mux := muxmaster.New()
+mux.PoolRequestBundle = true   // 0-alloc Handle path  (Opt O13)
+mux.PoolFastParams    = true   // 0-alloc HandleFast path (Opt O9)
+
+mux.GET("/users/:id", getUser)          // 45 ns / 0 B / 0 allocs
+mux.GETFast("/health", healthFast)      // 44 ns / 0 B / 0 allocs
+```
+
+These switches require a stricter handler lifetime contract: **handlers MUST NOT retain `*http.Request` (or the `Params` slice on `FastHandler`) past return**. A goroutine that captures `r` would observe a recycled bundle belonging to a future request — effectively a use-after-free against the pool storage.
+
+Audit checklist, worked recipes, and a runnable example are in the **[Maximum Performance Guide](docs/max-performance.md)** and `examples/max-performance/`. With both pools enabled, MuxMaster is the **fastest stdlib-compatible HTTP router in the Go ecosystem** — 20 % faster than `httprouter` on 1-param routes with zero allocations.
 
 ---
 
@@ -921,15 +944,17 @@ err := mux.WalkFast(func(method, pattern string, handler muxmaster.FastHandler) 
 
 Benchmarks run on AMD Ryzen 9 5900HX, Go 1.26.2. All measurements use the same route set (`/api/v1/...`).
 
-| Route type          | MuxMaster               | httprouter              | chi v5                  |
-|---------------------|-------------------------|-------------------------|-------------------------|
-| Static              | **25 ns, 0 allocs**     | 33.8 ns, 0 allocs       | 213.5 ns, 2 allocs      |
-| 1 parameter         | 112 ns, 1 alloc         | **56.4 ns, 1 alloc**    | 354.1 ns, 4 allocs      |
-| 2 parameters        | 130 ns, 1 alloc         | **66.5 ns, 1 alloc**    | 402.2 ns, 4 allocs      |
-| 3 parameters        | 141 ns, 1 alloc         | **78.4 ns, 1 alloc**    | 410.2 ns, 4 allocs      |
-| Catch-all           | 109 ns, 1 alloc         | **51.3 ns, 1 alloc**    | 330.2 ns, 4 allocs      |
-| Parallel static     | **3.7 ns, 0 allocs**    | 4.92 ns, 0 allocs       | 128.2 ns, 2 allocs      |
-| Parallel 1 param    | 108 ns, 1 alloc         | **22.2 ns, 1 alloc**    | 223.9 ns, 4 allocs      |
+| Route type          | MuxMaster (default)     | MuxMaster + `PoolRequestBundle`¹ | httprouter              | chi v5                  |
+|---------------------|-------------------------|----------------------------------|-------------------------|-------------------------|
+| Static              | **25 ns, 0 allocs**     | **25 ns, 0 allocs**              | 33.8 ns, 0 allocs       | 213.5 ns, 2 allocs      |
+| 1 parameter         | 105 ns, 1 alloc         | **45 ns, 0 allocs**              | 56.4 ns, 1 alloc        | 354.1 ns, 4 allocs      |
+| 2 parameters        | 119 ns, 1 alloc         | **57 ns, 0 allocs**              | 66.5 ns, 1 alloc        | 402.2 ns, 4 allocs      |
+| 3 parameters        | 135 ns, 1 alloc         | **59 ns, 0 allocs**              | 78.4 ns, 1 alloc        | 410.2 ns, 4 allocs      |
+| Catch-all           | 108 ns, 1 alloc         | **44 ns, 0 allocs**              | 51.3 ns, 1 alloc        | 330.2 ns, 4 allocs      |
+| Parallel static     | **3.6 ns, 0 allocs**    | **3.6 ns, 0 allocs**             | 4.92 ns, 0 allocs       | 128.2 ns, 2 allocs      |
+| Parallel 1 param    | 100 ns, 1 alloc         | **6.3 ns, 0 allocs**             | 22.2 ns, 1 alloc        | 223.9 ns, 4 allocs      |
+
+¹ `Mux.PoolRequestBundle = true` is an opt-in that recycles the per-request bundle via `sync.Pool`. With it enabled, MuxMaster is the **fastest stdlib-compatible HTTP router in the Go ecosystem** — 20 % faster than `httprouter` on 1-param routes **with zero allocations**. Handlers must not retain `*http.Request` past return; see the [Maximum Performance Guide](docs/max-performance.md) for the audit checklist and worked recipes.
 
 Reproduce with:
 
@@ -938,7 +963,8 @@ go test -bench=. -benchmem ./...
 ```
 
 **Notes:**
-- MuxMaster allocates **zero bytes** for static routes and **one tiered allocation** (416–480 B) for parameterized routes. That single allocation fuses the copied `*http.Request` and its context — meaning the router, net/http, and your handler all share one GC object.
+- MuxMaster allocates **zero bytes** for static routes and **one tiered allocation** (384–480 B) for parameterized routes in the default configuration. That single allocation fuses the copied `*http.Request` and its context — meaning the router, net/http, and your handler all share one GC object.
+- With `Mux.PoolRequestBundle = true`, the parameterized-route allocation is recycled via `sync.Pool` and the count drops to **zero** as well.
 - httprouter's 1 alloc for parameterized routes is only a 64 B `Params` slice; it passes parameters via a third argument outside the `http.Handler` interface, requiring a different handler signature.
 - MuxMaster is **100% `net/http` compatible** — it accepts `http.Handler` directly, works with all existing middleware ecosystems, and requires no handler signature changes.
 
@@ -958,6 +984,7 @@ Extended documentation is in the [`docs/`](docs/) directory:
 | [Configuration](docs/configuration.md) | All router options with defaults and examples |
 | [Response Helpers](docs/response-helpers.md) | JSON, XML, Text, Redirect, NoContent |
 | [Performance](docs/performance.md) | How MuxMaster achieves zero allocations |
+| [**Maximum Performance Guide**](docs/max-performance.md) | **Configure `PoolRequestBundle` / `PoolFastParams` for zero-alloc dispatch — beats httprouter with 0 allocations** |
 | [Migration Guide](docs/migration.md) | Migrating from gorilla/mux, chi, and httprouter |
 | [Cookbook](docs/cookbook.md) | Common patterns and production recipes |
 

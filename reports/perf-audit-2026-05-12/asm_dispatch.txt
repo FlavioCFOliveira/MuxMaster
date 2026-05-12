@@ -1,0 +1,100 @@
+TEXT github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch(SB) /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+  mux.go:865		0x135685		4c8da42490fcffff		LEAQ 0xfffffc90(SP), R12					[4:4]R_USEIFACEMETHOD:type:net/http.Handler+96 [4:4]R_USEIFACE:type:net/http.HandlerFunc [4:4]R_USEIFACEMETHOD:type:net/http.Handler+96 [4:4]R_USEIFACE:type:net/http.HandlerFunc [4:4]R_USEIFACEMETHOD:type:net/http.Handler+96 [4:4]R_USEIFACEMETHOD:type:net/http.Handler+96 [4:4]R_USEIFACEMETHOD:type:net/http.Handler+96 [4:4]R_USEIFACEMETHOD:type:net/http.Handler+96 [4:4]R_USEIFACEMETHOD:type:net/http.Handler+96	
+  mux.go:865		0x13568d		4d3b6610			CMPQ R12, 0x10(R14)						
+  mux.go:865		0x135691		0f8643130000			JBE 0x1369da							
+  mux.go:865		0x135697		55				PUSHQ BP							
+  mux.go:865		0x135698		4889e5				MOVQ SP, BP							
+  mux.go:865		0x13569b		4881ece8030000			SUBQ $0x3e8, SP							
+  mux.go:865		0x1356a2		48899c2400040000		MOVQ BX, 0x400(SP)						
+  mux.go:865		0x1356aa		48898c2408040000		MOVQ CX, 0x408(SP)						
+  mux.go:867		0x1356b2		488b5710			MOVQ 0x10(DI), DX						
+  mux.go:867		0x1356b6		4c8b4238			MOVQ 0x38(DX), R8						
+  mux.go:867		0x1356ba		4c8b4a40			MOVQ 0x40(DX), R9						
+  mux.go:868		0x1356be		803e00				CMPB 0(SI), $0x0						
+  mux.go:868		0x1356c1		7414				JE 0x1356d7							
+  mux.go:868		0x1356c3		4c8b5270			MOVQ 0x70(DX), R10						
+  mux.go:868		0x1356c7		4d85d2				TESTQ R10, R10							
+  mux.go:868		0x1356ca		7406				JE 0x1356d2							
+  mux.go:868		0x1356cc		4c8b4268			MOVQ 0x68(DX), R8						
+  mux.go:869		0x1356d0		eb08				JMP 0x1356da							
+  mux.go:873		0x1356d2		4d89ca				MOVQ R9, R10							
+  mux.go:868		0x1356d5		eb03				JMP 0x1356da							
+  mux.go:873		0x1356d7		4d89ca				MOVQ R9, R10							
+  type.go:58		0x1356da		488b10				MOVQ 0(AX), DX							
+  type.go:58		0x1356dd		0f1f840000000000		NOPL 0(AX)(AX*1)						
+  mux.go:875		0x1356e5		4885d2				TESTQ DX, DX							
+  mux.go:875		0x1356e8		0f8469010000			JE 0x135857							
+  mux.go:876		0x1356ee		4c8b4f08			MOVQ 0x8(DI), R9						
+  mux.go:876		0x1356f2		4c8b1f				MOVQ 0(DI), R11							
+  mux.go:77		0x1356f5		4983f904			CMPQ R9, $0x4							
+  mux.go:80		0x1356f9		0f8f9c000000			JG 0x13579b							
+  mux.go:80		0x1356ff		660f1f440000			NOPW 0(AX)(AX*1)						
+  mux.go:96		0x135705		4983f901			CMPQ R9, $0x1							
+  mux.go:96		0x135709		751a				JNE 0x135725							
+  mux.go:96		0x13570b		41803b2a			CMPB 0(R11), $0x2a						
+  mux.go:96		0x13570f		0f852b010000			JNE 0x135840							
+  mux.go:96		0x135715		41b909000000			MOVL $0x9, R9							
+  mux.go:876		0x13571b		e927010000			JMP 0x135847							
+  mux.go:876		0x135720		0f1f440000			NOPL 0(AX)(AX*1)						
+  mux.go:78		0x135725		4983f903			CMPQ R9, $0x3							
+  mux.go:78		0x135729		753a				JNE 0x135765							
+  mux.go:78		0x13572b		6641813b4745			CMPW 0(R11), $0x4547						
+  mux.go:78		0x135731		750f				JNE 0x135742							
+  mux.go:78		0x135733		41807b0254			CMPB 0x2(R11), $0x54						
+  mux.go:78		0x135738		7508				JNE 0x135742							
+  mux.go:78		0x13573a		4531c9				XORL R9, R9							
+  mux.go:876		0x13573d		e905010000			JMP 0x135847							
+  mux.go:84		0x135742		6641813b5055			CMPW 0(R11), $0x5550						
+  mux.go:84		0x135748		0f85f2000000			JNE 0x135840							
+  mux.go:84		0x13574e		41807b0254			CMPB 0x2(R11), $0x54						
+  mux.go:84		0x135753		0f85e7000000			JNE 0x135840							
+  mux.go:84		0x135759		41b903000000			MOVL $0x3, R9							
+  mux.go:876		0x13575f		e9e3000000			JMP 0x135847							
+  mux.go:876		0x135764		90				NOPL								
+  mux.go:77		0x135765		4983f904			CMPQ R9, $0x4							
+  mux.go:80		0x135769		0f85d1000000			JNE 0x135840							
+  mux.go:80		0x13576f		41813b48454144			CMPL 0(R11), $0x44414548					
+  mux.go:80		0x135776		750b				JNE 0x135783							
+  mux.go:80		0x135778		41b901000000			MOVL $0x1, R9							
+  mux.go:876		0x13577e		e9c4000000			JMP 0x135847							
+  mux.go:82		0x135783		41813b504f5354			CMPL 0(R11), $0x54534f50					
+  mux.go:82		0x13578a		0f85b0000000			JNE 0x135840							
+  mux.go:82		0x135790		41b902000000			MOVL $0x2, R9							
+  mux.go:876		0x135796		e9ac000000			JMP 0x135847							
+  mux.go:86		0x13579b		4983f905			CMPQ R9, $0x5							
+  mux.go:86		0x13579f		7535				JNE 0x1357d6							
+  mux.go:86		0x1357a1		41813b50415443			CMPL 0(R11), $0x43544150					
+  mux.go:86		0x1357a8		7512				JNE 0x1357bc							
+  mux.go:86		0x1357aa		41807b0448			CMPB 0x4(R11), $0x48						
+  mux.go:86		0x1357af		750b				JNE 0x1357bc							
+  mux.go:86		0x1357b1		41b904000000			MOVL $0x4, R9							
+  mux.go:876		0x1357b7		e98b000000			JMP 0x135847							
+  mux.go:94		0x1357bc		41813b54524143			CMPL 0(R11), $0x43415254					
+  mux.go:94		0x1357c3		6690				NOPW								
+  mux.go:94		0x1357c5		7579				JNE 0x135840							
+  mux.go:94		0x1357c7		41807b0445			CMPB 0x4(R11), $0x45						
+  mux.go:94		0x1357cc		7572				JNE 0x135840							
+  mux.go:94		0x1357ce		41b908000000			MOVL $0x8, R9							
+  mux.go:876		0x1357d4		eb71				JMP 0x135847							
+  mux.go:88		0x1357d6		4983f906			CMPQ R9, $0x6							
+  mux.go:88		0x1357da		751c				JNE 0x1357f8							
+  mux.go:88		0x1357dc		41813b44454c45			CMPL 0(R11), $0x454c4544					
+  mux.go:88		0x1357e3		6690				NOPW								
+  mux.go:88		0x1357e5		7559				JNE 0x135840							
+  mux.go:88		0x1357e7		6641817b045445			CMPW 0x4(R11), $0x4554						
+  mux.go:88		0x1357ee		7550				JNE 0x135840							
+  mux.go:88		0x1357f0		41b905000000			MOVL $0x5, R9							
+  mux.go:876		0x1357f6		eb4f				JMP 0x135847							
+  mux.go:92		0x1357f8		4983f907			CMPQ R9, $0x7							
+  mux.go:92		0x1357fc		7542				JNE 0x135840							
+  mux.go:92		0x1357fe		41813b434f4e4e			CMPL 0(R11), $0x4e4e4f43					
+  mux.go:92		0x135805		7518				JNE 0x13581f							
+  mux.go:92		0x135807		6641817b044543			CMPW 0x4(R11), $0x4345						
+  mux.go:92		0x13580e		750f				JNE 0x13581f							
+  mux.go:92		0x135810		41807b0654			CMPB 0x6(R11), $0x54						
+  mux.go:92		0x135815		7508				JNE 0x13581f							
+  mux.go:92		0x135817		41b907000000			MOVL $0x7, R9							
+  mux.go:876		0x13581d		eb28				JMP 0x135847							
+  mux.go:90		0x13581f		41813b4f505449			CMPL 0(R11), $0x4954504f					
+  mux.go:90		0x135826		7518				JNE 0x135840							
+  mux.go:90		0x135828		6641817b044f4e			CMPW 0x4(R11), $0x4e4f						

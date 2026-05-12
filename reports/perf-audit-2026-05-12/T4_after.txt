@@ -1,0 +1,26 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMiddleware_RequestID_Generate-16     	 1246500	       950.5 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16     	 1257009	       950.0 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16     	 1263289	       952.4 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16     	 1264425	       948.2 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16     	 1267230	       949.3 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16     	 1271103	       944.3 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16     	 1264978	       947.9 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16     	 1259824	       947.1 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16     	 1263690	       949.0 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16     	 1270351	       951.3 ns/op	     864 B/op	       9 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2703872	       444.7 ns/op	     832 B/op	       8 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2714229	       446.2 ns/op	     832 B/op	       8 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2705086	       446.4 ns/op	     832 B/op	       8 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2702049	       443.8 ns/op	     832 B/op	       8 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2720725	       445.8 ns/op	     832 B/op	       8 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2663490	       447.8 ns/op	     832 B/op	       8 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2703037	       447.6 ns/op	     832 B/op	       8 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2703442	       446.7 ns/op	     832 B/op	       8 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2709321	       448.8 ns/op	     832 B/op	       8 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16    	 2687746	       446.4 ns/op	     832 B/op	       8 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12	38.203s

@@ -1,0 +1,46 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkFastParamRoute1-16            	23162049	        50.39 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16            	23311730	        50.35 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16            	23199422	        50.41 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16            	23294758	        50.20 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16            	23686028	        50.07 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16            	16571859	        70.92 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16            	16851649	        71.62 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16            	16041609	        71.48 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16            	16536516	        70.88 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16            	16542406	        71.91 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16            	15291489	        79.52 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16            	13454449	        80.59 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16            	15141517	        79.90 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16            	14834764	        79.39 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16            	15234286	        79.60 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParallelParamRoute-16     	92668435	        13.95 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParallelParamRoute-16     	89091514	        14.19 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParallelParamRoute-16     	83588282	        14.48 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParallelParamRoute-16     	79808511	        14.56 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParallelParamRoute-16     	75095634	        14.85 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPooledFastParam1-16           	29733094	        40.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam1-16           	29740042	        39.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam1-16           	29663845	        39.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam1-16           	29879476	        39.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam1-16           	30116625	        39.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam2-16           	24481011	        47.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam2-16           	25495587	        46.12 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam2-16           	25581872	        46.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam2-16           	25573304	        45.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam2-16           	25786279	        46.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam3-16           	20165504	        60.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam3-16           	19490410	        59.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam3-16           	19928754	        60.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam3-16           	19708750	        59.88 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParam3-16           	20029628	        60.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParallelParam-16    	197099721	         5.876 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParallelParam-16    	197829538	         5.754 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParallelParam-16    	189112129	         5.784 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParallelParam-16    	193302345	         6.204 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledFastParallelParam-16    	188469372	         6.306 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	52.380s

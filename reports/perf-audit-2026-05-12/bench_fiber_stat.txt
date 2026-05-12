@@ -1,0 +1,44 @@
+goos: linux
+goarch: amd64
+pkg: competitor/fiber_bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                       │ reports/perf-audit-2026-05-12/bench_fiber.txt │
+                       │                    sec/op                     │
+StaticRoute-16                                            187.2n ± ∞ ¹
+ParamRoute1-16                                            212.3n ± ∞ ¹
+ParamRoute2-16                                            285.9n ± ∞ ¹
+ParamRoute3-16                                            269.0n ± ∞ ¹
+WildcardRoute-16                                          212.3n ± ∞ ¹
+NotFound-16                                               471.1n ± ∞ ¹
+ParallelStaticRoute-16                                    25.82n ± ∞ ¹
+ParallelParamRoute-16                                     28.87n ± ∞ ¹
+geomean                                                   147.8n
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                       │ reports/perf-audit-2026-05-12/bench_fiber.txt │
+                       │                     B/op                      │
+StaticRoute-16                                             0.000 ± ∞ ¹
+ParamRoute1-16                                             0.000 ± ∞ ¹
+ParamRoute2-16                                             0.000 ± ∞ ¹
+ParamRoute3-16                                             0.000 ± ∞ ¹
+WildcardRoute-16                                           0.000 ± ∞ ¹
+NotFound-16                                                8.000 ± ∞ ¹
+ParallelStaticRoute-16                                     0.000 ± ∞ ¹
+ParallelParamRoute-16                                      0.000 ± ∞ ¹
+geomean                                                              ²
+¹ need >= 6 samples for confidence interval at level 0.95
+² summaries must be >0 to compute geomean
+
+                       │ reports/perf-audit-2026-05-12/bench_fiber.txt │
+                       │                   allocs/op                   │
+StaticRoute-16                                             0.000 ± ∞ ¹
+ParamRoute1-16                                             0.000 ± ∞ ¹
+ParamRoute2-16                                             0.000 ± ∞ ¹
+ParamRoute3-16                                             0.000 ± ∞ ¹
+WildcardRoute-16                                           0.000 ± ∞ ¹
+NotFound-16                                                1.000 ± ∞ ¹
+ParallelStaticRoute-16                                     0.000 ± ∞ ¹
+ParallelParamRoute-16                                      0.000 ± ∞ ¹
+geomean                                                              ²
+¹ need >= 6 samples for confidence interval at level 0.95
+² summaries must be >0 to compute geomean

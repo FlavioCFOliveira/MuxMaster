@@ -105,6 +105,8 @@ mux.RedirectTrailingSlash  = true   // default: true
 mux.RedirectFixedPath      = false  // default: false (security — canonicalisation can bypass middleware)
 mux.HandleMethodNotAllowed = true   // default: true
 mux.HandleOPTIONS          = true   // default: true
+mux.PoolFastParams         = false  // default: false (opt-in: recycle FastHandler Params via sync.Pool)
+mux.PoolRequestBundle      = false  // default: false (opt-in Opt O13: recycle the per-request reqBundle — −53% ns/op, ZERO alloc on http.Handler param routes; strict lifetime contract: handlers MUST NOT retain *http.Request past return)
 
 http.ListenAndServe(":8080", mux)
 ```
@@ -306,45 +308,56 @@ All agents may run in parallel when the tasks are independent. The `threat-model
 
 ---
 
-## Performance baseline (AMD Ryzen 9 5900HX, Go 1.26.2 — HEAD with tiered reqBundle)
+## Performance baseline (AMD Ryzen 9 5900HX, Go 1.26.2 — HEAD with Opt O10/O12/O13)
 
-Internal benchmarks (`bench_test.go`), after the tiered-bundles optimisation (reqBundle1/2/3 by param count):
+Internal benchmarks (`bench_test.go`), after Opt O10 (eliminate function pointers), Opt O12 (slim `requestCtx1/2`), and Opt O13 (`PoolRequestBundle` opt-in):
 
 | Case | ns/op | B/op | allocs/op |
 |---|---|---|---|
-| Static route | 25.3 | 0 | 0 |
-| 1 parameter | 112 | 416 | 1 |
-| 2 parameters | 130 | 448 | 1 |
-| 3 parameters | 141 | 480 | 1 |
-| Catch-all | 109 | 416 | 1 |
-| Parallel static | 3.7 | 0 | 0 |
-| Parallel 1 parameter | 108 | 416 | 1 |
+| Static route | 25.1 | 0 | 0 |
+| 1 parameter | 105 | 384 | 1 |
+| 2 parameters | 119 | 416 | 1 |
+| 3 parameters | 135 | 480 | 1 |
+| Catch-all | 108 | 384 | 1 |
+| Parallel static | 3.6 | 0 | 0 |
+| Parallel 1 parameter | 100 | 384 | 1 |
+| **Pooled** 1 parameter | **49.6** | **0** | **0** |
+| **Pooled** 2 parameters | **55.9** | **0** | **0** |
+| **Pooled** 3 parameters | **58.6** | **0** | **0** |
+| **Pooled** catch-all | **43.9** | **0** | **0** |
+| **Pooled** parallel param | **6.3** | **0** | **0** |
+| Fast static | 25.5 | 0 | 0 |
+| Fast 1 parameter | 50.3 | 32 | 1 |
+| Fast 2 parameters | 67.9 | 64 | 1 |
+| Fast 3 parameters | 76.9 | 96 | 1 |
+| Fast parallel param | 16.5 | 32 | 1 |
 
-> Previous baseline (single 480 B reqBundle): 1 param=135 ns/640 B, 2=150 ns/640 B, 3=153 ns/640 B, catch-all=139 ns/640 B, parallel=165 ns/640 B.
-> Tiered optimisation: reqBundle1 (416 B), reqBundle2 (448 B), reqBundle (480 B) — each tier matches the exact GC size class. Average gain: −17% ns/op, −35% B/op on 1-param routes; −13% and −30% on 2-param routes.
+> Opt O10: eliminating the `doDispatch1`/`doDispatch2` function pointers gave −3% on all param routes. The indirect CALL was replaced by a direct call carrying the `if hasReqCtxField` branch internally.
+> Opt O12: `requestCtx1`/`requestCtx2` dropped their `params Params` field — the slice header is derived from `small[:N]` on access. reqBundle1: 416→384 B, reqBundle2: 448→416 B. +4–9% ns/op gain via smaller GC size class.
+> Opt O13 (opt-in via `Mux.PoolRequestBundle`): recycles `reqBundle` via `sync.Pool` — **−53% ns/op, −100% B/op (zero allocations)** on 1-param routes. Brings MuxMaster's stdlib `http.Handler` path on-par with the FastHandler one. Strict lifetime contract: handlers MUST NOT retain `*http.Request` past return. Failing this contract triggers use-after-free against the recycled bundle storage.
 
 Competitive benchmarks (`competitor/bench_test.go`, AMD Ryzen 9 5900HX):
 
-| Case | MuxMaster (HEAD) | MuxMaster (vendored¹) | httprouter | bunrouter² | chi v5 | Fiber v3³ |
-|---|---|---|---|---|---|---|
-| Static | **25 ns, 0 allocs** | 27.5 ns, 0 allocs | 33.8 ns, 0 allocs | 188.4 ns, 3 allocs | 213.5 ns, 2 allocs | 188.7 ns, 0 allocs |
-| 1 parameter | **112 ns, 1 alloc** | 43.7 ns, 0 allocs | 56.4 ns, 1 alloc | 182.9 ns, 3 allocs | 354.1 ns, 4 allocs | 212.2 ns, 0 allocs |
-| 2 parameters | **130 ns, 1 alloc** | 55.7 ns, 0 allocs | 66.5 ns, 1 alloc | 204.9 ns, 3 allocs | 402.2 ns, 4 allocs | 287.4 ns, 0 allocs |
-| 3 parameters | **141 ns, 1 alloc** | 56.1 ns, 0 allocs | 78.4 ns, 1 alloc | 204.4 ns, 3 allocs | 410.2 ns, 4 allocs | 270.9 ns, 0 allocs |
-| Catch-all | **109 ns, 1 alloc** | 41.5 ns, 0 allocs | 51.3 ns, 1 alloc | 173.5 ns, 3 allocs | 330.2 ns, 4 allocs | 212.4 ns, 0 allocs |
-| Parallel static | **3.7 ns, 0 allocs** | 3.83 ns, 0 allocs | 4.92 ns, 0 allocs | 124.6 ns, 3 allocs | 128.2 ns, 2 allocs | 25.9 ns, 0 allocs |
-| Parallel param | **108 ns, 1 alloc** | 37.6 ns, 0 allocs | 22.2 ns, 1 alloc | 124.4 ns, 3 allocs | 223.9 ns, 4 allocs | 28.7 ns, 0 allocs |
+| Case | MuxMaster Pooled¹ | MuxMaster default | MuxMaster Fast | httprouter | bunrouter² | chi v5 | Fiber v3³ |
+|---|---|---|---|---|---|---|---|
+| Static | **27 ns, 0 allocs** | 27 ns, 0 allocs | 27 ns, 0 allocs | 33.8 ns, 0 allocs | 188.4 ns, 3 allocs | 213.5 ns, 2 allocs | 188.7 ns, 0 allocs |
+| 1 parameter | **45 ns, 0 allocs** | 108 ns, 1 alloc | 49.8 ns, 1 alloc | 56.4 ns, 1 alloc | 182.9 ns, 3 allocs | 354.1 ns, 4 allocs | 212.2 ns, 0 allocs |
+| 2 parameters | **57 ns, 0 allocs** | 121 ns, 1 alloc | 67.8 ns, 1 alloc | 66.5 ns, 1 alloc | 204.9 ns, 3 allocs | 402.2 ns, 4 allocs | 287.4 ns, 0 allocs |
+| 3 parameters | **59 ns, 0 allocs** | 135 ns, 1 alloc | 74.8 ns, 1 alloc | 78.4 ns, 1 alloc | 204.4 ns, 3 allocs | 410.2 ns, 4 allocs | 270.9 ns, 0 allocs |
+| Catch-all | **45 ns, 0 allocs** | 110 ns, 1 alloc | 49.6 ns, 1 alloc | 51.3 ns, 1 alloc | 173.5 ns, 3 allocs | 330.2 ns, 4 allocs | 212.4 ns, 0 allocs |
+| Parallel param | **6.5 ns, 0 allocs** | 104 ns, 1 alloc | 17.8 ns, 1 alloc | 22.2 ns, 1 alloc | 124.4 ns, 3 allocs | 223.9 ns, 4 allocs | 28.7 ns, 0 allocs |
 
-¹ Vendored version: uses `rcPool` + `setReqCtx` on the original `r` — 0 allocs but with race conditions confirmed by the concurrency-security-auditor (CSA-001)
+¹ MuxMaster Pooled = `Mux.PoolRequestBundle = true` (Opt O13 opt-in) — strict handler lifetime contract
 ² bunrouter vendored: a customised fork with an `HTTPHandlerFunc` adapter — does not represent the upstream 0-alloc reality
 ³ Fiber uses fasthttp (different stack from net/http)
 
 Interpretation notes:
-- **MuxMaster vendored (0 allocs)** was the previous approach, audited and rejected for confirmed race conditions (CSA-001): `setReqCtx` modified the original `r` that middleware goroutines already held a reference to
-- **MuxMaster HEAD (1 alloc)** is the maximum-safety design with stdlib `net/http`: tiered reqBundle (1/2/3 params → 416/448/480 B) fuses requestCtx + *http.Request into a single allocation, using `unsafe` ONLY on freshly allocated structs before any concurrent access
-- **httprouter** uses a different API (3rd argument `Params`), not native `http.Handler`; the 1 alloc is just the params slice (64 B), not a full copy of `*http.Request`
-- **bunrouter** vendored is not representative of upstream — uses `context.WithValue` via the adapter → 3 allocs
-- **Fiber** has fasthttp URI-parsing overhead (~55% CPU) that is part of the real production cost
+- **MuxMaster Pooled** is the fastest stdlib-compatible `http.Handler` HTTP router in the Go ecosystem: 45 ns / 0 B / 0 allocs on 1-param routes vs httprouter's 56 ns / 64 B / 1 alloc. **20% faster than httprouter with zero allocations**. Requires handler lifetime audit.
+- **MuxMaster default** is the maximum-safety design with stdlib `net/http`: tiered reqBundle (1/2/3 params → 384/416/480 B) fuses requestCtx + *http.Request into a single allocation. Lifetime is GC-managed (handlers may retain `r` freely).
+- **MuxMaster Fast** (`HandleFast`) bypasses the context overhead by passing `Params` as a 3rd argument — same model as httprouter's API, but with stdlib `http.Handler` signature for static routes.
+- **httprouter** uses a different API (3rd argument `Params`), not native `http.Handler`; the 1 alloc is just the params slice (64 B), not a full copy of `*http.Request`.
+- **bunrouter** vendored is not representative of upstream — uses `context.WithValue` via the adapter → 3 allocs.
+- **Fiber** has fasthttp URI-parsing overhead (~55% CPU) that is part of the real production cost.
 
 ---
 

@@ -41,13 +41,22 @@
 //
 // On AMD Ryzen 9 5900HX (Go 1.26.2):
 //
-//   - Static route:    ~27 ns / 0 alloc
-//   - 1-param route:  ~128 ns / 1 alloc / 416 B
-//   - HandleFast 1-p:  ~54 ns / 1 alloc / 32 B (parity with httprouter)
+//   - Static route:                                    ~25 ns / 0 alloc
+//   - 1-param Handle (default):                       ~105 ns / 1 alloc / 384 B
+//   - 1-param HandleFast (default):                    ~50 ns / 1 alloc / 32 B
+//   - 1-param Handle + Mux.PoolRequestBundle = true:   ~45 ns / 0 alloc / 0 B
+//   - 1-param HandleFast + Mux.PoolFastParams = true:  ~44 ns / 0 alloc / 0 B
 //
 // HandleFast routes bypass the requestCtx allocation by passing Params
 // directly as the third handler argument; they trade off stdlib middleware
 // compatibility for raw throughput.
+//
+// Mux.PoolRequestBundle and Mux.PoolFastParams are opt-in switches that
+// recycle the per-request objects via sync.Pool, dropping the entire hot
+// path to zero allocations. They require a stricter handler lifetime
+// contract: handlers must not retain *http.Request (or the Params slice
+// for FastHandler) past return. See docs/max-performance.md for the audit
+// checklist and worked recipes.
 //
 // # Compatibility
 //

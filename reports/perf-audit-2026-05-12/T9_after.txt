@@ -1,0 +1,36 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMiddleware_Logger-16    	  192314	      6165 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16    	  195448	      6144 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16    	  194606	      6182 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16    	  194397	      6139 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16    	  195188	      6153 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16    	  195261	      6146 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16    	  194124	      6145 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16    	  194413	      6142 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16    	  196318	      6155 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16    	  194206	      6140 ns/op	      40 B/op	       4 allocs/op
+BenchmarkChain_Production-16     	  154386	      7637 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Production-16     	  154674	      7618 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Production-16     	  153788	      7599 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Production-16     	  155464	      7615 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Production-16     	  155653	      7632 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Production-16     	  155420	      7609 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Production-16     	  154484	      7618 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Production-16     	  155906	      7606 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Production-16     	  155440	      7633 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Production-16     	  155203	      7635 ns/op	    1001 B/op	      16 allocs/op
+BenchmarkChain_Heavy-16          	  136684	      8614 ns/op	    1786 B/op	      22 allocs/op
+BenchmarkChain_Heavy-16          	  138802	      8568 ns/op	    1786 B/op	      22 allocs/op
+BenchmarkChain_Heavy-16          	  137044	      8587 ns/op	    1786 B/op	      22 allocs/op
+BenchmarkChain_Heavy-16          	  139086	      8530 ns/op	    1786 B/op	      22 allocs/op
+BenchmarkChain_Heavy-16          	  137040	      8547 ns/op	    1786 B/op	      22 allocs/op
+BenchmarkChain_Heavy-16          	  137170	      8576 ns/op	    1786 B/op	      22 allocs/op
+BenchmarkChain_Heavy-16          	  137977	      8560 ns/op	    1786 B/op	      22 allocs/op
+BenchmarkChain_Heavy-16          	  137682	      8544 ns/op	    1786 B/op	      22 allocs/op
+BenchmarkChain_Heavy-16          	  139165	      8529 ns/op	    1786 B/op	      22 allocs/op
+BenchmarkChain_Heavy-16          	  138549	      8615 ns/op	    1786 B/op	      22 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12	37.970s

@@ -5,29 +5,31 @@
 //
 // Usage:
 //
-//	r := muxmaster.New()
-//	r.Use(logger, auth)          // middleware applied to every route below
-//	r.GET("/users", listUsers)
-//	r.GET("/users/:id", getUser)
-//	r.GET("/static/*filepath", serveFiles)
+//	mux := muxmaster.New()
+//	mux.Use(logger, auth)          // middleware applied to every route below
+//	mux.GET("/users", listUsers)
+//	mux.GET("/users/:id", getUser)
+//	mux.GET("/static/*filepath", serveFiles)
 //
-//	api := r.Group("/api/v1")
+//	api := mux.Group("/api/v1")
 //	api.Use(apiKeyCheck)
 //	api.POST("/items", createItem)
 //
-//	http.ListenAndServe(":8080", r)
+//	http.ListenAndServe(":8080", mux)
 //
 // Middleware must be registered (via Use) before the routes it should wrap.
 // Dynamic route registration after the server starts serving is not supported.
 package muxmaster
 
 import (
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode/utf8"
 )
 
 // anyMethods is the full set of HTTP methods registered by ANY and Group.ANY.
@@ -110,7 +112,20 @@ type muxConfig struct {
 	handleMethodNotAllowed bool
 	handleOPTIONS          bool
 	hasPanicHandler        bool
+	poolFastParams         bool
+	poolRequestBundle      bool
 	redirectCode           int
+
+	// Snapshotted public handler fields (CSA-2026-0052). Reads from these
+	// frozen copies replace direct m.NotFound / m.MethodNotAllowed /
+	// m.GlobalOPTIONS / m.PanicHandler / m.ErrorHandler reads in the
+	// dispatch path, eliminating the data race against post-startup
+	// mutation.
+	notFound         http.Handler
+	methodNotAllowed http.Handler
+	globalOPTIONS    http.Handler
+	panicHandler     func(http.ResponseWriter, *http.Request, any)
+	errorHandler     func(http.ResponseWriter, *http.Request, error)
 }
 
 // Mux is a high-performance HTTP request multiplexer.
@@ -124,8 +139,11 @@ type Mux struct {
 	treesPtr atomic.Pointer[methodTrees]
 
 	// cfg is the frozen config snapshot, populated on the first ServeHTTP call.
-	cfg     atomic.Pointer[muxConfig]
-	cfgOnce sync.Once
+	// Initialisation is single-shot via atomic CAS — no sync.Once is needed
+	// because the CAS is itself the once-guard, and Rebuild() resets the
+	// snapshot via a single atomic Store(nil), avoiding the struct-write race
+	// that a sync.Once reset would introduce.
+	cfg atomic.Pointer[muxConfig]
 
 	// RedirectTrailingSlash redirects /foo/ → /foo (or /foo → /foo/) when a
 	// handler exists at the alternate path.
@@ -148,8 +166,27 @@ type Mux struct {
 	// UseRawPath uses r.URL.RawPath for matching when set and non-empty.
 	UseRawPath bool
 
-	// UnescapePathValues percent-decodes path parameter values before storing them.
-	// Defaults to false — opt in explicitly if you need it.
+	// UnescapePathValues percent-decodes path parameter values before storing
+	// them. Only takes effect when UseRawPath is also true: when UseRawPath is
+	// false (the default) net/http already decodes the URL path during parsing
+	// and a second decode would corrupt values containing literal '%XX' (the
+	// PRF-2026-0006 double-decode that let %2520 bypass space-blocking input
+	// validators). Set both UseRawPath and UnescapePathValues to retrieve
+	// decoded values from the original raw path bytes.
+	//
+	// SECURITY (PRF-2026-0002): when UseRawPath=true AND UnescapePathValues=true,
+	// `%2f` inside a single segment is matched as one path segment by the radix
+	// tree (because `/` is preserved as separator only via literal slash) and
+	// then DECODED in the captured param value. A request such as
+	// `/files/..%2fetc%2fpasswd` binds `:filepath` to the literal string
+	// `..\x2fetc\x2fpasswd` — i.e. the captured value contains a real slash.
+	// Handlers that pass `ParamsFromContext(...).ByName("filepath")` to
+	// `os.Open`, `http.FileServer`, or any URL/file API WITHOUT calling
+	// `path.Clean` (and rejecting values that contain `..`) are vulnerable to
+	// directory traversal. The `clean_path` middleware does NOT normalise
+	// post-decode values; it only canonicalises the request path before
+	// dispatch. See SECURITY.md "UseRawPath traversal" and
+	// examples/static-site/ for the safe pattern.
 	UnescapePathValues bool
 
 	// RedirectCode overrides the default redirect status code (301/307).
@@ -172,7 +209,61 @@ type Mux struct {
 
 	// PanicHandler recovers from panics in handlers and receives the
 	// ResponseWriter, Request, and recovered value.
+	//
+	// SECURITY (CSA-2026-0058 / H8-30): PanicHandler implementations MUST
+	// NOT themselves panic. MuxMaster's recover frame catches the FIRST
+	// panic and dispatches into PanicHandler; if PanicHandler panics again
+	// the secondary panic is NOT recovered by MuxMaster. It propagates up
+	// to the per-connection recover in net/http (server.go), which logs
+	// "http: panic serving ..." and closes the TCP connection. There is
+	// no goroutine leak and no process crash, but the connection is
+	// terminated mid-response, which can confuse clients and HTTP/2
+	// stream multiplexing. See SECURITY.md "Layered panic recovery".
 	PanicHandler func(http.ResponseWriter, *http.Request, any)
+
+	// PoolFastParams, when true, recycles the Params slice handed to
+	// FastHandler routes via a sync.Pool tier (1/2/3). It eliminates the
+	// per-request allocation but enforces a strict lifetime contract:
+	// handlers MUST NOT retain the Params slice (or any backing element)
+	// past their return. Goroutines that capture ps and outlive the handler
+	// see zeroed values at best, or another request's values at worst —
+	// effectively a use-after-free.
+	//
+	// Default is FALSE for backward compatibility with handlers that rely
+	// on the goroutine-safe lifetime previously documented (verified by
+	// TestFastHandlerGoroutineSafe). Operators who audit their FastHandler
+	// implementations and confirm they do not retain ps may opt in for the
+	// allocation/variance reduction.
+	PoolFastParams bool
+
+	// PoolRequestBundle, when true, recycles the per-request reqBundle (the
+	// fused requestCtx + http.Request copy) handed to http.Handler routes
+	// with path parameters via a tiered sync.Pool. It eliminates the
+	// 368/400/480-byte allocation on every param-route request and is the
+	// single largest performance lever for stdlib-style handlers — but it
+	// enforces a strict lifetime contract:
+	//
+	//   Handlers MUST NOT retain the *http.Request (the one passed to
+	//   ServeHTTP) past their return. Goroutines that capture r and outlive
+	//   the handler observe a recycled request bound to an unrelated route —
+	//   effectively a use-after-free against the bundle storage.
+	//
+	// This contract is stricter than the Go stdlib's documented invariant
+	// (net/http itself recycles request structs internally, but only via the
+	// per-connection serve loop, which guarantees the handler has returned
+	// before recycling). With PoolRequestBundle the recycling happens at
+	// MuxMaster's dispatch boundary, which is finer-grained.
+	//
+	// Default is FALSE for full stdlib semantics. Operators who audit their
+	// handlers and confirm they do not retain r past return may opt in to
+	// drive ParamRoute1 from ~106 ns / 384 B / 1 alloc down to roughly
+	// 40-50 ns / 0 B / 0 allocs on the hot path.
+	//
+	// SECURITY (Opt O13): the bundle is fully zeroed before returning to
+	// the pool, so secrets accidentally stored in request fields by a
+	// handler cannot leak across requests. The zeroing cost (~10 ns) is
+	// already included in the projected savings.
+	PoolRequestBundle bool
 
 	middleware     []func(http.Handler) http.Handler
 	pre            []func(http.Handler) http.Handler
@@ -195,6 +286,25 @@ type Mux struct {
 	optionsCache sync.Map
 
 	mu sync.RWMutex // guards Use/Pre/Handle/introspection
+
+	// rawPathDecodeWarnOnce emits a one-time slog warning when the operator
+	// enables UseRawPath+UnescapePathValues — the combination decodes %2f
+	// inside captured params and exposes handlers to path traversal unless
+	// the operator sanitises ParamsFromContext values (PRF-2026-0002).
+	rawPathDecodeWarnOnce sync.Once
+}
+
+// warnRawPathDecodeIfEnabled emits a one-time slog.Warn whenever the operator
+// has enabled the UseRawPath+UnescapePathValues combination, which decodes
+// %2f inside captured params and exposes handlers to path traversal unless
+// they sanitise the value (PRF-2026-0002 / CDX-S8-002).
+func (m *Mux) warnRawPathDecodeIfEnabled() {
+	if !m.UseRawPath || !m.UnescapePathValues {
+		return
+	}
+	m.rawPathDecodeWarnOnce.Do(func() {
+		slog.Warn("muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md \"UseRawPath traversal\" (PRF-2026-0002).")
+	})
 }
 
 // New returns a Mux with production-safe defaults enabled.
@@ -210,6 +320,14 @@ func New() *Mux {
 
 // Use appends one or more middleware to the chain. Each middleware wraps all
 // handlers registered after this call. The first middleware added is outermost.
+//
+// SECURITY (CSA-2026-0059): Use does NOT wrap HandleFast routes — registering
+// a fast route after Use(authMiddleware) panics at HandleFast call time on
+// BOTH the root Mux (FPE-2026-010) and Groups (CSA-2026-0054), so the bypass
+// cannot occur silently regardless of where the operator places the route.
+// To apply policy to both stdlib and fast routes, use Pre(...) (outermost,
+// route-type agnostic) or UseFast(...) for FastMiddleware. See SECURITY.md
+// "Pre vs Use security boundary".
 func (m *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -228,12 +346,18 @@ func (m *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 
 // Pre registers middleware that runs before dispatch (e.g. before routing).
 // Calling Pre rebuilds the pre-dispatch handler chain.
+//
+// SECURITY (CSA-2026-0059): Pre wraps the entire ServeHTTP dispatch and
+// covers BOTH Handle (stdlib) and HandleFast routes. This makes Pre the
+// correct registration point for cross-cutting policies that must apply
+// uniformly — auth gates, CleanPath, RealIP, RecovererWithLogger, request
+// IDs. See SECURITY.md "Pre vs Use security boundary".
 func (m *Mux) Pre(mw ...func(http.Handler) http.Handler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pre = append(m.pre, mw...)
 	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		m.dispatch(w, r, m.frozenConfig())
+		m.dispatch(w, r, m.config())
 	}), m.pre)
 	m.preHandlerPtr.Store(&h)
 }
@@ -255,6 +379,8 @@ func (m *Mux) Handle(method, pattern string, handler http.Handler) {
 		panic("muxmaster: handler must not be nil")
 	}
 
+	m.warnRawPathDecodeIfEnabled()
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -263,11 +389,17 @@ func (m *Mux) Handle(method, pattern string, handler http.Handler) {
 		panic("muxmaster: unsupported HTTP method '" + method + "'")
 	}
 
-	// Copy-on-write: load current array, clone, mutate, then store atomically.
-	// Readers in ServeHTTP/dispatch never need a lock — they just load the pointer.
+	// Two-phase copy-on-write (MM-2026-0033): deep-clone the affected tree
+	// root into a new methodTrees array, mutate the clone, then publish via
+	// atomic.Pointer.Store. If addRoute panics mid-mutation, the clone is
+	// discarded and the previous live tree remains intact — eliminating the
+	// "tree corruption after registration panic" class of bugs.
 	var trees methodTrees
 	if old := m.treesPtr.Load(); old != nil {
 		trees = *old
+	}
+	if trees[idx] != nil {
+		trees[idx] = cloneTree(trees[idx])
 	}
 
 	root := trees[idx]
@@ -286,11 +418,14 @@ func (m *Mux) HandleFunc(method, pattern string, h http.HandlerFunc) {
 
 // HandleE registers a HandlerFuncE for the given method and path.
 // Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
+// The error handler is read from the frozen muxConfig snapshot at request
+// time, eliminating the data race against post-startup mutation of
+// m.ErrorHandler (CSA-2026-0052).
 func (m *Mux) HandleE(method, pattern string, h HandlerFuncE) {
 	m.Handle(method, pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := h(w, r); err != nil {
-			if m.ErrorHandler != nil {
-				m.ErrorHandler(w, r, err)
+			if eh := m.config().errorHandler; eh != nil {
+				eh(w, r, err)
 			} else {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
@@ -301,6 +436,12 @@ func (m *Mux) HandleE(method, pattern string, h HandlerFuncE) {
 // UseFast appends one or more FastMiddleware to the chain applied to all
 // HandleFast routes registered after this call. The first middleware added
 // is outermost. Has no effect on routes registered via Handle.
+//
+// SECURITY (CSA-2026-0059): UseFast is the FastHandler counterpart of
+// Use; together with Pre (which covers BOTH route types) it forms the
+// route-type matrix documented in SECURITY.md "Pre vs Use security
+// boundary". An auth gate applied only via Use(...) does NOT cover
+// HandleFast routes.
 func (m *Mux) UseFast(mw ...FastMiddleware) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -313,8 +454,13 @@ func (m *Mux) UseFast(mw ...FastMiddleware) {
 // routes. Params are passed as a direct argument — see FastHandler for
 // lifetime guarantees.
 //
-// stdlib middleware (registered via Use) does NOT apply to fast routes.
-// Use UseFast to attach middleware to fast routes instead.
+// SECURITY: stdlib middleware (registered via Use) does NOT apply to fast
+// routes. This includes the Recoverer middleware — a panic in a FastHandler
+// is NOT recovered by middleware.Recoverer, regardless of the order Use was
+// called. Set Mux.PanicHandler to recover panics on the FastHandler path:
+// PanicHandler is invoked from dispatchWithRecover and covers both
+// http.Handler and FastHandler routes. Use UseFast to attach FastMiddleware
+// to fast routes; FastMiddleware runs on the FastHandler dispatch path.
 //
 // Panics on empty method, non-absolute path, nil handler, or route conflict.
 func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
@@ -327,17 +473,35 @@ func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
 		panic("muxmaster: handler must not be nil")
 	}
 
+	m.warnRawPathDecodeIfEnabled()
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	// FPE-2026-010: panic if stdlib middleware (registered via Use) is present.
+	// Stdlib middleware is incompatible with the FastHandler dispatch path —
+	// silently mixing them would let HandleFast routes bypass authentication,
+	// authorisation, logging or any other Use()-registered middleware. This
+	// panic mirrors Group.HandleFast (CSA-2026-0054) and closes the gap where
+	// the same operator mistake on the root Mux silently succeeded.
+	if len(m.middleware) > 0 {
+		panic("muxmaster: HandleFast route registered on a Mux with stdlib middleware (Use) — " +
+			"stdlib middleware does not run on the FastHandler path. " +
+			"Use UseFast() for fast routes, or Handle() for stdlib-middleware-wrapped routes.")
+	}
 
 	idx := methodIdx(method)
 	if idx < 0 {
 		panic("muxmaster: unsupported HTTP method '" + method + "'")
 	}
 
+	// Two-phase copy-on-write (MM-2026-0033) — see Handle for rationale.
 	var trees methodTrees
 	if old := m.treesPtr.Load(); old != nil {
 		trees = *old
+	}
+	if trees[idx] != nil {
+		trees[idx] = cloneTree(trees[idx])
 	}
 
 	root := trees[idx]
@@ -491,6 +655,11 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 	if len(prefix) == 0 || prefix[0] != '/' {
 		panic("muxmaster: Mount prefix must begin with '/'")
 	}
+	if !utf8.ValidString(prefix) {
+		// FPE-2026-002: a tree.go panic on invalid UTF-8 leaks the internal
+		// "*mux_mount" param name. Validate up-front with a clean message.
+		panic("muxmaster: Mount prefix contains invalid UTF-8")
+	}
 	prefix = strings.TrimRight(prefix, "/")
 
 	mountH := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -504,10 +673,18 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 		r2.URL.Path = p
 		if r.URL.RawPath != "" {
 			trimmed := strings.TrimPrefix(r.URL.RawPath, prefix)
-			if len(trimmed) == len(r.URL.RawPath) {
+			switch {
+			case len(trimmed) == len(r.URL.RawPath):
 				// TrimPrefix didn't match — zero RawPath to prevent stale encoded prefix.
 				r2.URL.RawPath = ""
-			} else {
+			case trimmed != "" && trimmed[0] != '/':
+				// HPS-2026-0001: prefix matched a leading byte of an encoded
+				// segment (e.g. /api%2fusers trimmed against /api leaves
+				// %2fusers — not a rooted path). Zero RawPath rather than
+				// publish a non-rooted URL that would violate the url.URL
+				// contract and confuse downstream handlers.
+				r2.URL.RawPath = ""
+			default:
 				r2.URL.RawPath = trimmed
 			}
 		}
@@ -519,9 +696,27 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 
 // ServeFiles serves static files from root under the given prefix pattern.
 // prefix must end with "/*name" (e.g. "/static/*filepath").
+//
+// SECURITY (CDX-S8-002): http.FileServer applies path.Clean internally,
+// so a request like /static/../etc/passwd cannot escape root. However,
+// when the Mux is configured with UseRawPath=true AND UnescapePathValues=true
+// the captured filepath param contains decoded slashes (PRF-2026-0002) and
+// http.FileServer's clean step happens AFTER the param has already been
+// re-set as r2.URL.Path — the decoded slashes act as path separators
+// inside FileServer's tree. Registration with that combination panics so
+// the misconfiguration is caught at boot. Disable one of UseRawPath /
+// UnescapePathValues, or write a custom handler that calls path.Clean on
+// the captured value and rejects ".." segments before dispatch.
 func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 	if root == nil {
 		panic("muxmaster: nil root passed to ServeFiles")
+	}
+	if m.UseRawPath && m.UnescapePathValues {
+		panic("muxmaster: ServeFiles refuses to register with UseRawPath=true AND " +
+			"UnescapePathValues=true — captured filepath would contain decoded '/' " +
+			"and http.FileServer would treat them as separators (CDX-S8-002 / PRF-2026-0002). " +
+			"Disable one of the two, or implement a custom handler that path.Clean's " +
+			"the captured value before dispatch. See SECURITY.md \"UseRawPath traversal\".")
 	}
 	i := strings.LastIndex(prefix, "/*")
 	if i < 0 {
@@ -547,45 +742,85 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 // caching it on first use. Two concurrent first-callers may both build the
 // handler; the second Store simply overwrites with a functionally identical
 // value — safe because the mux is fully configured before serving begins.
-func (m *Mux) lazyNotFound() http.Handler {
+//
+// Reads cfg.notFound (the frozen snapshot) instead of m.NotFound to avoid
+// racing concurrent post-startup mutation (CSA-2026-0052).
+func (m *Mux) lazyNotFound(cfg *muxConfig) http.Handler {
 	if h := m.lazyNotFoundPtr.Load(); h != nil {
 		return *h
 	}
-	notFound := m.NotFound
+	notFound := cfg.notFound
 	if notFound == nil {
 		notFound = http.HandlerFunc(http.NotFound)
 	}
-	h := wrapMiddleware(notFound, m.middleware)
+	m.mu.RLock()
+	mw := m.middleware
+	m.mu.RUnlock()
+	h := wrapMiddleware(notFound, mw)
 	m.lazyNotFoundPtr.Store(&h)
 	return h
 }
 
+// Opt M1: pre-built response constants used by the default lazyMethodNotAllowed
+// handler so that 405 responses skip http.Error's per-call Header().Set +
+// fmt.Fprintln overhead.
+var (
+	method405Body              = []byte(http.StatusText(http.StatusMethodNotAllowed) + "\n")
+	method405ContentTypeVal    = []string{"text/plain; charset=utf-8"}
+	method405XContentOptionVal = []string{"nosniff"}
+)
+
 // lazyMethodNotAllowed returns the middleware-wrapped 405 handler for the
 // given Allow header value, building and caching it on first use per allow key.
-func (m *Mux) lazyMethodNotAllowed(allow string) http.Handler {
+// Reads cfg.methodNotAllowed (frozen snapshot) — see CSA-2026-0052.
+func (m *Mux) lazyMethodNotAllowed(cfg *muxConfig, allow string) http.Handler {
 	if v, ok := m.methodNotAllowedCache.Load(allow); ok {
 		return v.(http.Handler)
 	}
-	methodNotAllowed := m.MethodNotAllowed
-	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Allow", allow)
-		if methodNotAllowed != nil {
+	methodNotAllowed := cfg.methodNotAllowed
+	m.mu.RLock()
+	mw := m.middleware
+	m.mu.RUnlock()
+
+	// Opt M1: pre-allocate the per-cache-entry Allow value slice once so the
+	// handler does direct map assignment (zero allocs per request).
+	allowVal := []string{allow}
+
+	var inner http.HandlerFunc
+	if methodNotAllowed != nil {
+		inner = func(w http.ResponseWriter, r *http.Request) {
+			w.Header()["Allow"] = allowVal
 			methodNotAllowed.ServeHTTP(w, r)
-		} else {
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		}
-	}), m.middleware)
+	} else {
+		// Default branch: emit the plain-text 405 response with the same byte
+		// sequence as net/http's http.Error would, but without rebuilding
+		// header slices or fmt-formatting the body.
+		inner = func(w http.ResponseWriter, r *http.Request) {
+			h := w.Header()
+			h["Allow"] = allowVal
+			h["Content-Type"] = method405ContentTypeVal
+			h["X-Content-Type-Options"] = method405XContentOptionVal
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			_, _ = w.Write(method405Body)
+		}
+	}
+	h := wrapMiddleware(inner, mw)
 	m.methodNotAllowedCache.Store(allow, h)
 	return h
 }
 
 // lazyOPTIONS returns the middleware-wrapped OPTIONS handler for the given
 // Allow header value, building and caching it on first use per allow key.
-func (m *Mux) lazyOPTIONS(allow string) http.Handler {
+// Reads cfg.globalOPTIONS (frozen snapshot) — see CSA-2026-0052.
+func (m *Mux) lazyOPTIONS(cfg *muxConfig, allow string) http.Handler {
 	if v, ok := m.optionsCache.Load(allow); ok {
 		return v.(http.Handler)
 	}
-	globalOPTS := m.GlobalOPTIONS
+	globalOPTS := cfg.globalOPTIONS
+	m.mu.RLock()
+	mw := m.middleware
+	m.mu.RUnlock()
 	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", allow)
 		if globalOPTS != nil {
@@ -593,22 +828,32 @@ func (m *Mux) lazyOPTIONS(allow string) http.Handler {
 		} else {
 			w.WriteHeader(http.StatusNoContent)
 		}
-	}), m.middleware)
+	}), mw)
 	m.optionsCache.Store(allow, h)
 	return h
 }
 
-// frozenConfig returns the frozen configuration snapshot, building and storing
-// it atomically on the first call. Subsequent calls are a single pointer load.
-//
-// The sync.Once ensures that exactly one snapshot is built even under concurrent
-// first calls — each concurrent caller constructs a candidate from the same
-// (pre-serving) field values, but only the winner's copy is stored. Every caller
-// returns the winner's copy via the final Load, guaranteeing consistency.
-func (m *Mux) frozenConfig() *muxConfig {
+// config returns the frozen Mux configuration, building it on the first call.
+// The fast path (atomic load of a non-nil pointer) is inlineable; the slow
+// initialisation path is split into frozenConfigSlow to keep this function
+// within the compiler's inline budget.
+func (m *Mux) config() *muxConfig {
 	if c := m.cfg.Load(); c != nil {
 		return c
 	}
+	return m.frozenConfigSlow()
+}
+
+// frozenConfigSlow builds and stores the frozen config snapshot on the first
+// call. Marked noinline so that config() stays within the inline budget.
+//
+// The atomic CompareAndSwap is itself the once-guard: every concurrent caller
+// constructs a candidate from the same (pre-serving) field values, but only
+// the winner's copy is stored. Losers discard their candidate and Load the
+// winner's copy, guaranteeing all callers observe the same snapshot.
+//
+//go:noinline
+func (m *Mux) frozenConfigSlow() *muxConfig {
 	c := &muxConfig{
 		useRawPath:             m.UseRawPath,
 		caseInsensitive:        m.CaseInsensitive,
@@ -618,18 +863,47 @@ func (m *Mux) frozenConfig() *muxConfig {
 		handleMethodNotAllowed: m.HandleMethodNotAllowed,
 		handleOPTIONS:          m.HandleOPTIONS,
 		hasPanicHandler:        m.PanicHandler != nil,
+		poolFastParams:         m.PoolFastParams,
+		poolRequestBundle:      m.PoolRequestBundle,
 		redirectCode:           m.RedirectCode,
+		notFound:               m.NotFound,
+		methodNotAllowed:       m.MethodNotAllowed,
+		globalOPTIONS:          m.GlobalOPTIONS,
+		panicHandler:           m.PanicHandler,
+		errorHandler:           m.ErrorHandler,
 	}
-	m.cfgOnce.Do(func() { m.cfg.Store(c) })
-	return m.cfg.Load()
+	// Retry loop guards against a concurrent Rebuild() racing with our CAS:
+	// Rebuild may Store(nil) between a losing CAS and the subsequent Load,
+	// which would otherwise return nil and crash the dispatch path.
+	for {
+		if m.cfg.CompareAndSwap(nil, c) {
+			return c
+		}
+		if existing := m.cfg.Load(); existing != nil {
+			return existing
+		}
+	}
 }
 
-// Rebuild resets the frozen configuration snapshot so the next ServeHTTP call
-// re-reads all configuration fields. Intended for tests only — do not call
-// Rebuild while the server is actively serving requests.
+// Rebuild resets the frozen configuration snapshot and the lazy NotFound /
+// MethodNotAllowed / OPTIONS handler caches so the next ServeHTTP call
+// re-reads every configuration field and rebuilds the wrapped handlers.
+//
+// Safe to call concurrently with ServeHTTP: every reset is a single atomic
+// operation, and the next config() / lazyNotFound() / lazyMethodNotAllowed()
+// / lazyOPTIONS() call re-initialises via CompareAndSwap or sync.Map
+// re-population. Intended for tests and dynamic reconfiguration scenarios.
 func (m *Mux) Rebuild() {
 	m.cfg.Store(nil)
-	m.cfgOnce = sync.Once{}
+	m.lazyNotFoundPtr.Store(nil)
+	m.methodNotAllowedCache.Range(func(k, _ any) bool {
+		m.methodNotAllowedCache.Delete(k)
+		return true
+	})
+	m.optionsCache.Range(func(k, _ any) bool {
+		m.optionsCache.Delete(k)
+		return true
+	})
 }
 
 // ServeHTTP implements http.Handler, dispatching through pre-middleware if set.
@@ -638,7 +912,7 @@ func (m *Mux) Rebuild() {
 // overhead entirely by going straight to dispatch. Deferred paths are isolated
 // in dispatchWithRecover to keep this function inlineable.
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cfg := m.frozenConfig()
+	cfg := m.config()
 	if cfg.hasPanicHandler {
 		m.dispatchWithRecover(w, r, cfg)
 		return
@@ -653,7 +927,7 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // dispatchWithRecover is the slow-path variant used only when PanicHandler is
 // configured. Kept in a separate function so the common path avoids defer setup.
 func (m *Mux) dispatchWithRecover(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
-	defer m.recoverPanic(w, r)
+	defer m.recoverPanic(cfg, w, r)
 	if ph := m.preHandlerPtr.Load(); ph != nil {
 		(*ph).ServeHTTP(w, r)
 		return
@@ -681,32 +955,108 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 	if root != nil {
 		// paramsBuf is a fixed-size struct — no slice header, no append, no heap escape.
 		// Zero allocs for static routes; 1 alloc (reqBundle) for param routes.
-		// When the tree has no wildcard routes, pass nil to skip zeroing 264 B of stack.
 		var ps paramsBuf
-		var psBuf *paramsBuf
-		if root.maxParams > 0 {
-			psBuf = &ps
+		var (
+			handler http.Handler
+			fast    FastHandler
+			pattern string
+			tsr     bool
+		)
+		if root.maxParams == 0 {
+			// Opt O1: when the entire subtree is static (no param/regex/wildcard),
+			// dispatch through the dedicated getValueStatic that omits the param
+			// switch, the params buffer dereferences, and the wildchild branches.
+			// Also skips zeroing the 128B `ps` stack slot (never written).
+			handler, fast, pattern, tsr = root.getValueStatic(urlPath, cfg.caseInsensitive)
+		} else {
+			handler, fast, pattern, tsr = root.getValue(urlPath, &ps, cfg.caseInsensitive)
 		}
-		handler, fast, pattern, tsr := root.getValue(urlPath, psBuf, cfg.caseInsensitive)
 
 		if handler != nil || fast != nil {
 			if ps.count > 0 {
-				pslice := ps.buf[:ps.count]
-				if cfg.unescapePathValues {
-					for i := range pslice {
-						if v, err := url.QueryUnescape(pslice[i].Value); err == nil {
-							pslice[i].Value = v
+				if fast != nil {
+					// Opt O9 (opt-in via Mux.PoolFastParams): pull a tier-matched
+					// Params slice from sync.Pool. Default (PoolFastParams=false)
+					// allocates fresh each call to preserve the original
+					// goroutine-safe lifetime documented in handler.go.
+					var fps Params
+					if cfg.poolFastParams {
+						fps = getFastParams(ps.count)
+					} else {
+						fps = make(Params, ps.count)
+					}
+					if len(ps.overflow) == 0 {
+						copy(fps, ps.buf[:ps.count])
+					} else {
+						copy(fps, ps.buf[:maxParams])
+						copy(fps[maxParams:], ps.overflow)
+					}
+					if cfg.unescapePathValues && cfg.useRawPath {
+						for i := range fps {
+							if v, err := url.PathUnescape(fps[i].Value); err == nil {
+								fps[i].Value = v
+							}
 						}
 					}
-				}
-				if fast != nil {
-					// FastHandler: allocate a small Params slice (1 alloc ~64 B)
-					// so goroutines spawned in the handler can safely reference params.
-					fps := make(Params, ps.count)
-					copy(fps, pslice)
 					fast(w, r, fps)
+					if cfg.poolFastParams {
+						putFastParams(fps)
+					}
 				} else {
-					dispatchWithParams(w, r, handler, pattern, pslice)
+					// Inline 1-param dispatch (Opt O5): bypass the dispatchWithParams
+					// wrapper + switch for the most common REST case (single :id).
+					// Saves one non-inlineable function call and one switch.
+					//
+					// Opt O13: when poolRequestBundle is enabled and the unsafe
+					// ctx field shortcut is available, dispatch via the pooled
+					// path which recycles the reqBundle1 across requests and
+					// eliminates the per-request allocation.
+					if ps.count == 1 {
+						p0 := ps.buf[0]
+						if cfg.unescapePathValues && cfg.useRawPath {
+							if v, err := url.PathUnescape(p0.Value); err == nil {
+								p0.Value = v
+							}
+						}
+						if cfg.poolRequestBundle && hasReqCtxField {
+							dispatchParams1Pooled(w, r, handler, pattern, p0)
+						} else {
+							dispatchParams1(w, r, handler, pattern, p0)
+						}
+						return
+					}
+					if ps.count == 2 {
+						p0 := ps.buf[0]
+						p1 := ps.buf[1]
+						if cfg.unescapePathValues && cfg.useRawPath {
+							if v, err := url.PathUnescape(p0.Value); err == nil {
+								p0.Value = v
+							}
+							if v, err := url.PathUnescape(p1.Value); err == nil {
+								p1.Value = v
+							}
+						}
+						if cfg.poolRequestBundle && hasReqCtxField {
+							dispatchParams2Pooled(w, r, handler, pattern, p0, p1)
+						} else {
+							dispatchParams2(w, r, handler, pattern, p0, p1)
+						}
+						return
+					}
+					pslice := ps.params()
+					if cfg.unescapePathValues && cfg.useRawPath {
+						for i := range pslice {
+							if v, err := url.PathUnescape(pslice[i].Value); err == nil {
+								pslice[i].Value = v
+							}
+						}
+					}
+					// Opt O13: 3+-param pooled path mirrors the 1/2 path.
+					if cfg.poolRequestBundle && hasReqCtxField {
+						dispatchParamsNPooled(w, r, handler, pattern, pslice)
+					} else {
+						dispatchWithParams(w, r, handler, pattern, pslice)
+					}
 				}
 			} else {
 				// static route — 0 allocs
@@ -723,27 +1073,25 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 			code := m.resolveRedirectCode(cfg, r.Method)
 
 			if tsr && cfg.redirectTrailingSlash {
+				var newPath string
 				if len(urlPath) > 1 && urlPath[len(urlPath)-1] == '/' {
-					r.URL.Path = urlPath[:len(urlPath)-1]
+					newPath = urlPath[:len(urlPath)-1]
 				} else {
-					r.URL.Path = urlPath + "/"
+					newPath = urlPath + "/"
 				}
-				target := r.URL.String()
-				r.URL.Path = urlPath // restore before passing to middleware
-				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					http.Redirect(w, r, target, code)
-				}), m.middleware).ServeHTTP(w, r)
+				// HPS-2026-0005: path-only Location — requests in absolute-form
+				// (RFC 7230 §5.3.2) cannot inject scheme+host into the redirect
+				// because we never serialise r.URL.Scheme/r.URL.Host.
+				// Opt R1: manual concatenation avoids the url.URL{}.String() pair
+				// of allocations (url.URL struct + serialised string).
+				m.serveRedirect(w, r, buildRedirectTarget(newPath, r.URL.RawQuery), code)
 				return
 			}
 
 			if cfg.redirectFixedPath {
 				if fixed, ok := m.cleanedPath(root, urlPath); ok {
-					r.URL.Path = fixed
-					target := r.URL.String()
-					r.URL.Path = urlPath // restore before passing to middleware
-					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						http.Redirect(w, r, target, code)
-					}), m.middleware).ServeHTTP(w, r)
+					// HPS-2026-0005: same-origin path-only Location.
+					m.serveRedirect(w, r, buildRedirectTarget(fixed, r.URL.RawQuery), code)
 					return
 				}
 			}
@@ -764,19 +1112,40 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 		h2, f2, pat2, _ := starRoot.getValue(urlPath, ps2Buf, cfg.caseInsensitive)
 		if h2 != nil || f2 != nil {
 			if ps2.count > 0 {
-				pslice2 := ps2.buf[:ps2.count]
-				if cfg.unescapePathValues {
-					for i := range pslice2 {
-						if v, err := url.QueryUnescape(pslice2[i].Value); err == nil {
-							pslice2[i].Value = v
+				if f2 != nil {
+					// Opt O9 (opt-in via Mux.PoolFastParams).
+					var fps2 Params
+					if cfg.poolFastParams {
+						fps2 = getFastParams(ps2.count)
+					} else {
+						fps2 = make(Params, ps2.count)
+					}
+					if len(ps2.overflow) == 0 {
+						copy(fps2, ps2.buf[:ps2.count])
+					} else {
+						copy(fps2, ps2.buf[:maxParams])
+						copy(fps2[maxParams:], ps2.overflow)
+					}
+					if cfg.unescapePathValues && cfg.useRawPath {
+						for i := range fps2 {
+							if v, err := url.PathUnescape(fps2[i].Value); err == nil {
+								fps2[i].Value = v
+							}
 						}
 					}
-				}
-				if f2 != nil {
-					fps2 := make(Params, ps2.count)
-					copy(fps2, pslice2)
 					f2(w, r, fps2)
+					if cfg.poolFastParams {
+						putFastParams(fps2)
+					}
 				} else {
+					pslice2 := ps2.params()
+					if cfg.unescapePathValues && cfg.useRawPath {
+						for i := range pslice2 {
+							if v, err := url.PathUnescape(pslice2[i].Value); err == nil {
+								pslice2[i].Value = v
+							}
+						}
+					}
 					dispatchWithParams(w, r, h2, pat2, pslice2)
 				}
 			} else {
@@ -792,22 +1161,59 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 
 	if r.Method == http.MethodOptions && cfg.handleOPTIONS {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
-			m.lazyOPTIONS(allow).ServeHTTP(w, r)
+			m.lazyOPTIONS(cfg, allow).ServeHTTP(w, r)
 			return
 		}
 	} else if cfg.handleMethodNotAllowed {
 		if allow := m.allowed(urlPath, r.Method); allow != "" {
-			m.lazyMethodNotAllowed(allow).ServeHTTP(w, r)
+			m.lazyMethodNotAllowed(cfg, allow).ServeHTTP(w, r)
 			return
 		}
 	}
 
-	m.lazyNotFound().ServeHTTP(w, r)
+	m.lazyNotFound(cfg).ServeHTTP(w, r)
 }
 
-func (m *Mux) recoverPanic(w http.ResponseWriter, r *http.Request) {
+// buildRedirectTarget produces the path-only Location header value for an
+// internal redirect. It avoids the &url.URL{...}.String() pair of allocations
+// in the hot redirect path: instead of constructing a temporary url.URL struct
+// (104B) and asking it to serialise itself (another string allocation), we
+// concatenate the path with `?` + raw query when one is present.
+//
+// SECURITY (HPS-2026-0005): the path is always taken from the request path
+// (already validated by net/http) and never carries a scheme or host. The
+// raw query is appended verbatim, matching url.URL{Path, RawQuery}.String()
+// behaviour — net/http does not validate the query for control characters
+// either, so a downstream client may receive arbitrary query bytes (same
+// posture as before the refactor).
+func buildRedirectTarget(newPath, rawQuery string) string {
+	if rawQuery == "" {
+		return newPath
+	}
+	return newPath + "?" + rawQuery
+}
+
+// serveRedirect emits a redirect response. Opt R1: when no Use()-registered
+// middleware wraps the redirect (the common case), we skip wrapMiddleware
+// entirely — http.Redirect is invoked directly, avoiding the closure escape
+// + middleware-chain rebuild that the previous code paid on every request.
+// With middleware present, the previous behaviour is preserved.
+func (m *Mux) serveRedirect(w http.ResponseWriter, r *http.Request, target string, code int) {
+	m.mu.RLock()
+	mw := m.middleware
+	m.mu.RUnlock()
+	if len(mw) == 0 {
+		http.Redirect(w, r, target, code)
+		return
+	}
+	wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target, code)
+	}), mw).ServeHTTP(w, r)
+}
+
+func (m *Mux) recoverPanic(cfg *muxConfig, w http.ResponseWriter, r *http.Request) {
 	if rcv := recover(); rcv != nil {
-		m.PanicHandler(w, r, rcv)
+		cfg.panicHandler(w, r, rcv)
 	}
 }
 

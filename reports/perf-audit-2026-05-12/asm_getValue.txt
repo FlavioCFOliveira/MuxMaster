@@ -1,0 +1,855 @@
+TEXT github.com/FlavioCFOliveira/MuxMaster.(*node).getValue(SB) /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+  tree.go:442		0x13bb0e		4c8d6424a8		LEAQ -0x58(SP), R12						[3:3]R_USEIFACE:type:string	
+  tree.go:442		0x13bb13		4d3b6610		CMPQ R12, 0x10(R14)						
+  tree.go:442		0x13bb17		0f86b60c0000		JBE 0x13c7d3							
+  tree.go:442		0x13bb1d		55			PUSHQ BP							
+  tree.go:442		0x13bb1e		4889e5			MOVQ SP, BP							
+  tree.go:442		0x13bb21		4881ecd0000000		SUBQ $0xd0, SP							
+  tree.go:442		0x13bb28		48899c24e8000000	MOVQ BX, 0xe8(SP)						
+  tree.go:443		0x13bb30		4889bc24f8000000	MOVQ DI, 0xf8(SP)						
+  tree.go:443		0x13bb38		4088b42400010000	MOVB SI, 0x100(SP)						
+  tree.go:443		0x13bb40		eb11			JMP 0x13bb53							
+  tree.go:443		0x13bb42		0fb6b42400010000	MOVZX 0x100(SP), SI						
+  tree.go:539		0x13bb4a		4c89ef			MOVQ R13, DI							
+  tree.go:539		0x13bb4d		4c89e0			MOVQ R12, AX							
+  tree.go:539		0x13bb50		4c89cb			MOVQ R9, BX							
+  tree.go:539		0x13bb53		48894c2468		MOVQ CX, 0x68(SP)						
+  tree.go:539		0x13bb58		48899c24a0000000	MOVQ BX, 0xa0(SP)						
+  tree.go:539		0x13bb60		48898424c8000000	MOVQ AX, 0xc8(SP)						
+  tree.go:445		0x13bb68		488b5008		MOVQ 0x8(AX), DX						
+  tree.go:445		0x13bb6c		4889542470		MOVQ DX, 0x70(SP)						
+  tree.go:445		0x13bb71		4c8b20			MOVQ 0(AX), R12							
+  tree.go:447		0x13bb74		4839d1			CMPQ CX, DX							
+  tree.go:447		0x13bb77		0f8eb7030000		JLE 0x13bf34							
+  tree.go:443		0x13bb7d		4084f6			TESTL SI, SI							
+  tree.go:584		0x13bb80		7408			JE 0x13bb8a							
+  tree.go:584		0x13bb82		4531c0			XORL R8, R8							
+  tree.go:590		0x13bb85		e9050c0000		JMP 0x13c78f							
+  tree.go:585		0x13bb8a		4889d8			MOVQ BX, AX							
+  tree.go:585		0x13bb8d		4c89e3			MOVQ R12, BX							
+  tree.go:585		0x13bb90		4889d1			MOVQ DX, CX							
+  tree.go:585		0x13bb93		e800000000		CALL 0x13bb98							[1:5]R_CALL:runtime.memequal<1>	
+  tree.go:448		0x13bb98		84c0			TESTL AL, AL							
+  tree.go:448		0x13bb9a		0f8485060000		JE 0x13c225							
+  tree.go:451		0x13bba0		488b542468		MOVQ 0x68(SP), DX						
+  tree.go:451		0x13bba5		4c8b642470		MOVQ 0x70(SP), R12						
+  tree.go:451		0x13bbaa		4c29e2			SUBQ R12, DX							
+  tree.go:451		0x13bbad		4989d5			MOVQ DX, R13							
+  tree.go:451		0x13bbb0		48f7da			NEGQ DX								
+  tree.go:451		0x13bbb3		48c1fa3f		SARQ $0x3f, DX							
+  tree.go:451		0x13bbb7		4c21e2			ANDQ R12, DX							
+  tree.go:451		0x13bbba		4c8ba424a0000000	MOVQ 0xa0(SP), R12						
+  tree.go:451		0x13bbc2		4d8d0c14		LEAQ 0(R12)(DX*1), R9						
+  tree.go:451		0x13bbc6		0f1f840000000000	NOPL 0(AX)(AX*1)						
+  tree.go:454		0x13bbce		4d85ed			TESTQ R13, R13							
+  tree.go:454		0x13bbd1		0f86b00b0000		JBE 0x13c787							
+  tree.go:455		0x13bbd7		4c8bbc24c8000000	MOVQ 0xc8(SP), R15						
+  tree.go:455		0x13bbdf		498b4740		MOVQ 0x40(R15), AX						
+  tree.go:455		0x13bbe3		498b4f28		MOVQ 0x28(R15), CX						
+  tree.go:454		0x13bbe7		410fb61414		MOVZX 0(R12)(DX*1), DX						
+  tree.go:454		0x13bbec		6690			NOPW								
+  tree.go:455		0x13bbee		4839c1			CMPQ CX, AX							
+  tree.go:455		0x13bbf1		0f878b0b0000		JA 0x13c782							
+  tree.go:455		0x13bbf7		4d8b6730		MOVQ 0x30(R15), R12						
+  tree.go:455		0x13bbfb		498b4720		MOVQ 0x20(R15), AX						
+  tree.go:456		0x13bbff		0fb69c2400010000	MOVZX 0x100(SP), BX						
+  tree.go:456		0x13bc07		31f6			XORL SI, SI							
+  tree.go:456		0x13bc09		eb03			JMP 0x13bc0e							
+  tree.go:456		0x13bc0b		48ffc6			INCQ SI								
+  tree.go:456		0x13bc0e		4839ce			CMPQ SI, CX							
+  tree.go:456		0x13bc11		7d54			JGE 0x13bc67							
+  tree.go:457		0x13bc13		0fb63c06		MOVZX 0(SI)(AX*1), DI						
+  tree.go:443		0x13bc17		84db			TESTL BL, BL							
+  tree.go:600		0x13bc19		7429			JE 0x13bc44							
+  tree.go:603		0x13bc1b		448d42bf		LEAL -0x41(DX), R8						
+  tree.go:603		0x13bc1f		4180f819		CMPL R8, $0x19							
+  tree.go:603		0x13bc23		7706			JA 0x13bc2b							
+  tree.go:604		0x13bc25		448d4220		LEAL 0x20(DX), R8						
+  tree.go:604		0x13bc29		eb03			JMP 0x13bc2e							
+  tree.go:606		0x13bc2b		4189d0			MOVL DX, R8							
+  tree.go:606		0x13bc2e		448d57bf		LEAL -0x41(DI), R10						
+  tree.go:606		0x13bc32		4180fa19		CMPL R10, $0x19							
+  tree.go:606		0x13bc36		7703			JA 0x13bc3b							
+  tree.go:607		0x13bc38		83c720			ADDL $0x20, DI							
+  tree.go:609		0x13bc3b		4138f8			CMPL R8, DI							
+  tree.go:609		0x13bc3e		400f94c7		SETE DI								
+  tree.go:457		0x13bc42		eb0a			JMP 0x13bc4e							
+  tree.go:601		0x13bc44		4038d7			CMPL DI, DL							
+  tree.go:601		0x13bc47		400f94c7		SETE DI								
+  tree.go:601		0x13bc4b		0f1f00			NOPL 0(AX)							
+  tree.go:457		0x13bc4e		4084ff			TESTL DI, DI							
+  tree.go:457		0x13bc51		74b8			JE 0x13bc0b							
+  tree.go:458		0x13bc53		4d8b24f4		MOVQ 0(R12)(SI*8), R12						
+  tree.go:445		0x13bc57		4c89e9			MOVQ R13, CX							
+  tree.go:539		0x13bc5a		4c8bac24f8000000	MOVQ 0xf8(SP), R13						
+  tree.go:459		0x13bc62		e9dbfeffff		JMP 0x13bb42							
+  tree.go:463		0x13bc67		41807f6500		CMPB 0x65(R15), $0x0						
+  tree.go:463		0x13bc6c		6690			NOPW								
+  tree.go:463		0x13bc6e		0f844f070000		JE 0x13c3c3							
+  tree.go:455		0x13bc74		498b5738		MOVQ 0x38(R15), DX						
+  tree.go:469		0x13bc78		4c8d7aff		LEAQ -0x1(DX), R15						
+  tree.go:469		0x13bc7c		4c39fa			CMPQ DX, R15							
+  tree.go:469		0x13bc7f		0f86f80a0000		JBE 0x13c77d							
+  tree.go:451		0x13bc85		4c89ac2490000000	MOVQ R13, 0x90(SP)						
+  tree.go:451		0x13bc8d		4c898c2498000000	MOVQ R9, 0x98(SP)						
+  tree.go:469		0x13bc95		498b54d4f8		MOVQ -0x8(R12)(DX*8), DX					
+  tree.go:469		0x13bc9a		48899424c8000000	MOVQ DX, 0xc8(SP)						
+  tree.go:471		0x13bca2		440fb66264		MOVZX 0x64(DX), R12						
+  tree.go:472		0x13bca7		4180fc02		CMPL R12, $0x2							
+  tree.go:472		0x13bcab		7507			JNE 0x13bcb4							
+  tree.go:472		0x13bcad		31c0			XORL AX, AX							
+  tree.go:475		0x13bcaf		e92c080000		JMP 0x13c4e0							
+  tree.go:538		0x13bcb4		4180fc03		CMPL R12, $0x3							
+  tree.go:538		0x13bcb8		0f847e050000		JE 0x13c23c							
+  tree.go:502		0x13bcbe		4180fc04		CMPL R12, $0x4							
+  tree.go:502		0x13bcc2		0f8502080000		JNE 0x13c4ca							
+  tree.go:502		0x13bcc8		31c0			XORL AX, AX							
+  tree.go:504		0x13bcca		eb03			JMP 0x13bccf							
+  tree.go:504		0x13bccc		48ffc0			INCQ AX								
+  tree.go:504		0x13bccf		4c39e8			CMPQ AX, R13							
+  tree.go:504		0x13bcd2		7d0d			JGE 0x13bce1							
+  tree.go:505		0x13bcd4		460fb62408		MOVZX 0(AX)(R9*1), R12						
+  tree.go:505		0x13bcd9		4180fc2f		CMPL R12, $0x2f							
+  tree.go:505		0x13bcdd		75ed			JNE 0x13bccc							
+  tree.go:505		0x13bcdf		eb03			JMP 0x13bce4							
+  tree.go:510		0x13bce1		4c89e8			MOVQ R13, AX							
+  tree.go:510		0x13bce4		4c39e8			CMPQ AX, R13							
+  tree.go:510		0x13bce7		0f87d8070000		JA 0x13c4c5							
+  tree.go:510		0x13bced		4889442478		MOVQ AX, 0x78(SP)						
+  tree.go:511		0x13bcf2		488b5268		MOVQ 0x68(DX), DX						
+  regexp.go:507		0x13bcf6		90			NOPL								
+  exec.go:514		0x13bcf7		440f113c24		MOVUPS X15, 0(SP)						
+  exec.go:514		0x13bcfc		440f117c2410		MOVUPS X15, 0x10(SP)						
+  exec.go:514		0x13bd02		31db			XORL BX, BX							
+  exec.go:514		0x13bd04		31c9			XORL CX, CX							
+  exec.go:514		0x13bd06		4889cf			MOVQ CX, DI							
+  exec.go:514		0x13bd09		31f6			XORL SI, SI							
+  exec.go:514		0x13bd0b		4989f0			MOVQ SI, R8							
+  exec.go:514		0x13bd0e		4989c2			MOVQ AX, R10							
+  exec.go:514		0x13bd11		4989f3			MOVQ SI, R11							
+  exec.go:514		0x13bd14		4889d0			MOVQ DX, AX							
+  exec.go:514		0x13bd17		e800000000		CALL 0x13bd1c							[1:5]R_CALL:regexp.(*Regexp).doExecute	
+  exec.go:514		0x13bd1c		4885c0			TESTQ AX, AX							
+  tree.go:511		0x13bd1f		0f847a070000		JE 0x13c49f							
+  tree.go:516		0x13bd25		488b9424c8000000	MOVQ 0xc8(SP), DX						
+  tree.go:516		0x13bd2d		4c8b6208		MOVQ 0x8(DX), R12						
+  tree.go:516		0x13bd31		440fb66a66		MOVZX 0x66(DX), R13						
+  tree.go:516		0x13bd36		4d39ec			CMPQ R12, R13							
+  tree.go:516		0x13bd39		0f8281070000		JB 0x13c4c0							
+  tree.go:516		0x13bd3f		4983fd01		CMPQ R13, $0x1							
+  tree.go:516		0x13bd43		0f8272070000		JB 0x13c4bb							
+  tree.go:516		0x13bd49		4c8b22			MOVQ 0(DX), R12							
+  tree.go:516		0x13bd4c		49ffcd			DECQ R13							
+  tree.go:516		0x13bd4f		4d89ef			MOVQ R13, R15							
+  tree.go:516		0x13bd52		49f7dd			NEGQ R13							
+  tree.go:516		0x13bd55		49c1fd3f		SARQ $0x3f, R13							
+  tree.go:516		0x13bd59		4183e501		ANDL $0x1, R13							
+  tree.go:516		0x13bd5d		4d01ec			ADDQ R13, R12							
+  tree.go:517		0x13bd60		4c8bac24f8000000	MOVQ 0xf8(SP), R13						
+  tree.go:517		0x13bd68		660f1f440000		NOPW 0(AX)(AX*1)						
+  tree.go:517		0x13bd6e		4d85ed			TESTQ R13, R13							
+  tree.go:517		0x13bd71		0f8465010000		JE 0x13bedc							
+  tree.go:32		0x13bd77		498b4500		MOVQ 0(R13), AX							
+  tree.go:32		0x13bd7b		4883f803		CMPQ AX, $0x3							
+  tree.go:32		0x13bd7f		7d67			JGE 0x13bde8							
+  tree.go:33		0x13bd81		0f832f070000		JAE 0x13c4b6							
+  tree.go:33		0x13bd87		48c1e005		SHLQ $0x5, AX							
+  tree.go:33		0x13bd8b		4d897c0510		MOVQ R15, 0x10(R13)(AX*1)					
+  tree.go:33		0x13bd90		4c8b7c2478		MOVQ 0x78(SP), R15						
+  tree.go:33		0x13bd95		4d897c0520		MOVQ R15, 0x20(R13)(AX*1)					
+  tree.go:33		0x13bd9a		833d0000000000		CMPL 0(IP), $0x0						[2:6]R_PCREL:runtime.writeBarrier+-1	
+  tree.go:33		0x13bda1		750d			JNE 0x13bdb0							
+  tree.go:530		0x13bda3		4889d1			MOVQ DX, CX							
+  tree.go:33		0x13bda6		488b942498000000	MOVQ 0x98(SP), DX						
+  tree.go:33		0x13bdae		eb29			JMP 0x13bdd9							
+  tree.go:33		0x13bdb0		498b4c0508		MOVQ 0x8(R13)(AX*1), CX						
+  tree.go:33		0x13bdb5		498b5c0518		MOVQ 0x18(R13)(AX*1), BX					
+  tree.go:33		0x13bdba		e800000000		CALL 0x13bdbf							[1:5]R_CALL:runtime.gcWriteBarrier4	
+  tree.go:33		0x13bdbf		4d8923			MOVQ R12, 0(R11)						
+  tree.go:33		0x13bdc2		49894b08		MOVQ CX, 0x8(R11)						
+  tree.go:469		0x13bdc6		4889d1			MOVQ DX, CX							
+  tree.go:33		0x13bdc9		488b942498000000	MOVQ 0x98(SP), DX						
+  tree.go:33		0x13bdd1		49895310		MOVQ DX, 0x10(R11)						
+  tree.go:33		0x13bdd5		49895b18		MOVQ BX, 0x18(R11)						
+  tree.go:33		0x13bdd9		4d89640508		MOVQ R12, 0x8(R13)(AX*1)					
+  tree.go:33		0x13bdde		4989540518		MOVQ DX, 0x18(R13)(AX*1)					
+  tree.go:33		0x13bde3		e9e3000000		JMP 0x13becb							
+  tree.go:35		0x13bde8		498b4d78		MOVQ 0x78(R13), CX						
+  tree.go:35		0x13bdec		498b5d70		MOVQ 0x70(R13), BX						
+  tree.go:35		0x13bdf0		48ffc3			INCQ BX								
+  tree.go:35		0x13bdf3		498b4568		MOVQ 0x68(R13), AX						
+  tree.go:35		0x13bdf7		4839d9			CMPQ CX, BX							
+  tree.go:35		0x13bdfa		736a			JAE 0x13be66							
+  tree.go:516		0x13bdfc		4c89bc2488000000	MOVQ R15, 0x88(SP)						
+  tree.go:516		0x13be04		4c89a424b0000000	MOVQ R12, 0xb0(SP)						
+  tree.go:35		0x13be0c		bf01000000		MOVL $0x1, DI							
+  tree.go:35		0x13be11		488d3500000000		LEAQ 0(IP), SI							[3:7]R_PCREL:type:github.com/FlavioCFOliveira/MuxMaster.Param	
+  tree.go:35		0x13be18		e800000000		CALL 0x13be1d							[1:5]R_CALL:runtime.growslice<1>				
+  tree.go:35		0x13be1d		488b9424f8000000	MOVQ 0xf8(SP), DX						
+  tree.go:35		0x13be25		48894a78		MOVQ CX, 0x78(DX)						
+  tree.go:35		0x13be29		833d0000000000		CMPL 0(IP), $0x0						[2:6]R_PCREL:runtime.writeBarrier+-1	
+  tree.go:35		0x13be30		7410			JE 0x13be42							
+  tree.go:35		0x13be32		4c8b6268		MOVQ 0x68(DX), R12						
+  tree.go:35		0x13be36		e800000000		CALL 0x13be3b							[1:5]R_CALL:runtime.gcWriteBarrier2	
+  tree.go:35		0x13be3b		498903			MOVQ AX, 0(R11)							
+  tree.go:35		0x13be3e		4d896308		MOVQ R12, 0x8(R11)						
+  tree.go:35		0x13be42		48894268		MOVQ AX, 0x68(DX)						
+  tree.go:530		0x13be46		488b9424c8000000	MOVQ 0xc8(SP), DX						
+  tree.go:35		0x13be4e		4c8ba424b0000000	MOVQ 0xb0(SP), R12						
+  tree.go:35		0x13be56		4c8bac24f8000000	MOVQ 0xf8(SP), R13						
+  tree.go:35		0x13be5e		4c8bbc2488000000	MOVQ 0x88(SP), R15						
+  tree.go:35		0x13be66		49895d70		MOVQ BX, 0x70(R13)						
+  tree.go:35		0x13be6a		488d4bff		LEAQ -0x1(BX), CX						
+  tree.go:35		0x13be6e		48c1e105		SHLQ $0x5, CX							
+  tree.go:35		0x13be72		4c897c0808		MOVQ R15, 0x8(AX)(CX*1)						
+  tree.go:35		0x13be77		4c8b7c2478		MOVQ 0x78(SP), R15						
+  tree.go:35		0x13be7c		4c897c0818		MOVQ R15, 0x18(AX)(CX*1)					
+  tree.go:35		0x13be81		833d0000000000		CMPL 0(IP), $0x0						[2:6]R_PCREL:runtime.writeBarrier+-1	
+  tree.go:35		0x13be88		750d			JNE 0x13be97							
+  tree.go:530		0x13be8a		4889d3			MOVQ DX, BX							
+  tree.go:35		0x13be8d		488b942498000000	MOVQ 0x98(SP), DX						
+  tree.go:35		0x13be95		eb28			JMP 0x13bebf							
+  tree.go:35		0x13be97		488b1c08		MOVQ 0(AX)(CX*1), BX						
+  tree.go:35		0x13be9b		488b740810		MOVQ 0x10(AX)(CX*1), SI						
+  tree.go:35		0x13bea0		e800000000		CALL 0x13bea5							[1:5]R_CALL:runtime.gcWriteBarrier4	
+  tree.go:35		0x13bea5		4d8923			MOVQ R12, 0(R11)						
+  tree.go:35		0x13bea8		49895b08		MOVQ BX, 0x8(R11)						
+  tree.go:469		0x13beac		4889d3			MOVQ DX, BX							
+  tree.go:35		0x13beaf		488b942498000000	MOVQ 0x98(SP), DX						
+  tree.go:35		0x13beb7		49895310		MOVQ DX, 0x10(R11)						
+  tree.go:35		0x13bebb		49897318		MOVQ SI, 0x18(R11)						
+  tree.go:35		0x13bebf		4c892408		MOVQ R12, 0(AX)(CX*1)						
+  tree.go:35		0x13bec3		4889540810		MOVQ DX, 0x10(AX)(CX*1)						
+  tree.go:530		0x13bec8		4889d9			MOVQ BX, CX							
+  tree.go:37		0x13becb		49ff4500		INCQ 0(R13)							
+  tree.go:510		0x13becf		4c8ba42490000000	MOVQ 0x90(SP), R12						
+  tree.go:510		0x13bed7		4d39e7			CMPQ R15, R12							
+  tree.go:518		0x13beda		eb24			JMP 0x13bf00							
+  tree.go:510		0x13bedc		4c8b642478		MOVQ 0x78(SP), R12						
+  tree.go:510		0x13bee1		4c8bbc2490000000	MOVQ 0x90(SP), R15						
+  tree.go:510		0x13bee9		4d39fc			CMPQ R12, R15							
+  tree.go:530		0x13beec		4889d1			MOVQ DX, CX							
+  tree.go:531		0x13beef		488b942498000000	MOVQ 0x98(SP), DX						
+  tree.go:531		0x13bef7		4c89e0			MOVQ R12, AX							
+  tree.go:531		0x13befa		4d89fc			MOVQ R15, R12							
+  tree.go:531		0x13befd		4989c7			MOVQ AX, R15							
+  tree.go:520		0x13bf00		0f842c050000		JE 0x13c432							
+  tree.go:530		0x13bf06		4883793800		CMPQ 0x38(CX), $0x0						
+  tree.go:530		0x13bf0b		0f1f00			NOPL 0(AX)							
+  tree.go:530		0x13bf0e		0f84ff040000		JE 0x13c413							
+  tree.go:530		0x13bf14		488b4130		MOVQ 0x30(CX), AX						
+  tree.go:531		0x13bf18		4d29fc			SUBQ R15, R12							
+  tree.go:531		0x13bf1b		4c89e1			MOVQ R12, CX							
+  tree.go:531		0x13bf1e		49f7dc			NEGQ R12							
+  tree.go:531		0x13bf21		49c1fc3f		SARQ $0x3f, R12							
+  tree.go:531		0x13bf25		4d21e7			ANDQ R12, R15							
+  tree.go:531		0x13bf28		4d8d0c17		LEAQ 0(R15)(DX*1), R9						
+  tree.go:532		0x13bf2c		4c8b20			MOVQ 0(AX), R12							
+  tree.go:533		0x13bf2f		e90efcffff		JMP 0x13bb42							
+  tree.go:443		0x13bf34		4084f6			TESTL SI, SI							
+  tree.go:584		0x13bf37		7415			JE 0x13bf4e							
+  tree.go:447		0x13bf39		4839d1			CMPQ CX, DX							
+  tree.go:587		0x13bf3c		7404			JE 0x13bf42							
+  tree.go:587		0x13bf3e		31ff			XORL DI, DI							
+  tree.go:552		0x13bf40		eb54			JMP 0x13bf96							
+  tree.go:552		0x13bf42		31ff			XORL DI, DI							
+  tree.go:590		0x13bf44		e99b020000		JMP 0x13c1e4							
+  tree.go:590		0x13bf49		0f1f440000		NOPL 0(AX)(AX*1)						
+  tree.go:447		0x13bf4e		4839d1			CMPQ CX, DX							
+  tree.go:585		0x13bf51		7404			JE 0x13bf57							
+  tree.go:585		0x13bf53		31ff			XORL DI, DI							
+  tree.go:585		0x13bf55		eb3f			JMP 0x13bf96							
+  tree.go:445		0x13bf57		4c89a424a8000000	MOVQ R12, 0xa8(SP)						
+  tree.go:585		0x13bf5f		4889d8			MOVQ BX, AX							
+  tree.go:585		0x13bf62		4c89e3			MOVQ R12, BX							
+  tree.go:585		0x13bf65		e800000000		CALL 0x13bf6a							[1:5]R_CALL:runtime.memequal<1>	
+  tree.go:447		0x13bf6a		488b4c2468		MOVQ 0x68(SP), CX						
+  tree.go:447		0x13bf6f		488b542470		MOVQ 0x70(SP), DX						
+  tree.go:572		0x13bf74		488b9c24a0000000	MOVQ 0xa0(SP), BX						
+  tree.go:443		0x13bf7c		0fb6b42400010000	MOVZX 0x100(SP), SI						
+  tree.go:574		0x13bf84		4c8ba424a8000000	MOVQ 0xa8(SP), R12						
+  tree.go:552		0x13bf8c		89c7			MOVL AX, DI							
+  tree.go:553		0x13bf8e		488b8424c8000000	MOVQ 0xc8(SP), AX						
+  tree.go:552		0x13bf96		4084ff			TESTL DI, DI							
+  tree.go:552		0x13bf99		7453			JE 0x13bfee							
+  tree.go:447		0x13bf9b		4839d1			CMPQ CX, DX							
+  tree.go:552		0x13bf9e		754e			JNE 0x13bfee							
+  tree.go:553		0x13bfa0		488b5010		MOVQ 0x10(AX), DX						
+  tree.go:553		0x13bfa4		4c8b4818		MOVQ 0x18(AX), R9						
+  tree.go:554		0x13bfa8		4c8b5048		MOVQ 0x48(AX), R10						
+  tree.go:555		0x13bfac		488b7058		MOVQ 0x58(AX), SI						
+  tree.go:555		0x13bfb0		488b7850		MOVQ 0x50(AX), DI						
+  tree.go:556		0x13bfb4		4885d2			TESTQ DX, DX							
+  tree.go:556		0x13bfb7		751a			JNE 0x13bfd3							
+  tree.go:556		0x13bfb9		4d85d2			TESTQ R10, R10							
+  tree.go:556		0x13bfbc		7515			JNE 0x13bfd3							
+  tree.go:559		0x13bfbe		4c8b5028		MOVQ 0x28(AX), R10						
+  tree.go:559		0x13bfc2		4c8b5820		MOVQ 0x20(AX), R11						
+  tree.go:559		0x13bfc6		4531c0			XORL R8, R8							
+  tree.go:559		0x13bfc9		0f1f440000		NOPL 0(AX)(AX*1)						
+  tree.go:559		0x13bfce		e900010000		JMP 0x13c0d3							
+  tree.go:557		0x13bfd3		4889d0			MOVQ DX, AX							
+  tree.go:557		0x13bfd6		4c89cb			MOVQ R9, BX							
+  tree.go:557		0x13bfd9		4c89d1			MOVQ R10, CX							
+  tree.go:557		0x13bfdc		4531c0			XORL R8, R8							
+  tree.go:557		0x13bfdf		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:557		0x13bfe6		5d			POPQ BP								
+  tree.go:557		0x13bfe7		c3			RET								
+  tree.go:557		0x13bfe8		660f1f440000		NOPW 0(AX)(AX*1)						
+  tree.go:572		0x13bfee		4883f901		CMPQ CX, $0x1							
+  tree.go:572		0x13bff2		750c			JNE 0x13c000							
+  tree.go:572		0x13bff4		803b2f			CMPB 0(BX), $0x2f						
+  tree.go:572		0x13bff7		7507			JNE 0x13c000							
+  tree.go:572		0x13bff9		b801000000		MOVL $0x1, AX							
+  tree.go:572		0x13bffe		eb56			JMP 0x13c056							
+  tree.go:573		0x13c000		4c8d4901		LEAQ 0x1(CX), R9						
+  tree.go:573		0x13c004		4c39ca			CMPQ DX, R9							
+  tree.go:573		0x13c007		754b			JNE 0x13c054							
+  tree.go:574		0x13c009		460fb60c21		MOVZX 0(CX)(R12*1), R9						
+  tree.go:574		0x13c00e		4180f92f		CMPL R9, $0x2f							
+  tree.go:574		0x13c012		753c			JNE 0x13c050							
+  tree.go:575		0x13c014		48ffca			DECQ DX								
+  tree.go:443		0x13c017		4084f6			TESTL SI, SI							
+  tree.go:584		0x13c01a		7412			JE 0x13c02e							
+  tree.go:587		0x13c01c		4839d1			CMPQ CX, DX							
+  tree.go:587		0x13c01f		7504			JNE 0x13c025							
+  tree.go:587		0x13c021		31d2			XORL DX, DX							
+  tree.go:590		0x13c023		eb6e			JMP 0x13c093							
+  tree.go:590		0x13c025		31c9			XORL CX, CX							
+  tree.go:575		0x13c027		eb45			JMP 0x13c06e							
+  tree.go:575		0x13c029		0f1f440000		NOPL 0(AX)(AX*1)						
+  tree.go:585		0x13c02e		4839d1			CMPQ CX, DX							
+  tree.go:585		0x13c031		7404			JE 0x13c037							
+  tree.go:585		0x13c033		31c9			XORL CX, CX							
+  tree.go:585		0x13c035		eb37			JMP 0x13c06e							
+  tree.go:585		0x13c037		4889d8			MOVQ BX, AX							
+  tree.go:585		0x13c03a		4c89e3			MOVQ R12, BX							
+  tree.go:585		0x13c03d		e800000000		CALL 0x13c042							[1:5]R_CALL:runtime.memequal<1>	
+  tree.go:575		0x13c042		89c1			MOVL AX, CX							
+  tree.go:576		0x13c044		488b8424c8000000	MOVQ 0xc8(SP), AX						
+  tree.go:576		0x13c04c		6690			NOPW								
+  tree.go:585		0x13c04e		eb1e			JMP 0x13c06e							
+  tree.go:585		0x13c050		31c0			XORL AX, AX							
+  tree.go:574		0x13c052		eb02			JMP 0x13c056							
+  tree.go:574		0x13c054		31c0			XORL AX, AX							
+  tree.go:577		0x13c056		31db			XORL BX, BX							
+  tree.go:577		0x13c058		31c9			XORL CX, CX							
+  tree.go:577		0x13c05a		4889df			MOVQ BX, DI							
+  tree.go:577		0x13c05d		31f6			XORL SI, SI							
+  tree.go:577		0x13c05f		4189c0			MOVL AX, R8							
+  tree.go:577		0x13c062		31c0			XORL AX, AX							
+  tree.go:577		0x13c064		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:577		0x13c06b		5d			POPQ BP								
+  tree.go:577		0x13c06c		c3			RET								
+  tree.go:577		0x13c06d		90			NOPL								
+  tree.go:574		0x13c06e		84c9			TESTL CL, CL							
+  tree.go:575		0x13c070		741a			JE 0x13c08c							
+  tree.go:576		0x13c072		4883781000		CMPQ 0x10(AX), $0x0						
+  tree.go:576		0x13c077		7407			JE 0x13c080							
+  tree.go:576		0x13c079		ba01000000		MOVL $0x1, DX							
+  tree.go:576		0x13c07e		eb08			JMP 0x13c088							
+  tree.go:576		0x13c080		4883784800		CMPQ 0x48(AX), $0x0						
+  tree.go:576		0x13c085		0f95c2			SETNE DL							
+  tree.go:572		0x13c088		89d0			MOVL DX, AX							
+  tree.go:575		0x13c08a		ebca			JMP 0x13c056							
+  tree.go:575		0x13c08c		31c0			XORL AX, AX							
+  tree.go:575		0x13c08e		ebc6			JMP 0x13c056							
+  tree.go:590		0x13c090		48ffc2			INCQ DX								
+  tree.go:590		0x13c093		4839ca			CMPQ DX, CX							
+  tree.go:590		0x13c096		7d2f			JGE 0x13c0c7							
+  tree.go:591		0x13c098		440fb60c1a		MOVZX 0(DX)(BX*1), R9						
+  tree.go:603		0x13c09d		458d51bf		LEAL -0x41(R9), R10						
+  tree.go:591		0x13c0a1		460fb61c22		MOVZX 0(DX)(R12*1), R11						
+  tree.go:603		0x13c0a6		4180fa19		CMPL R10, $0x19							
+  tree.go:603		0x13c0aa		7704			JA 0x13c0b0							
+  tree.go:604		0x13c0ac		4183c120		ADDL $0x20, R9							
+  tree.go:606		0x13c0b0		458d53bf		LEAL -0x41(R11), R10						
+  tree.go:606		0x13c0b4		4180fa19		CMPL R10, $0x19							
+  tree.go:606		0x13c0b8		7704			JA 0x13c0be							
+  tree.go:607		0x13c0ba		4183c320		ADDL $0x20, R11							
+  tree.go:609		0x13c0be		4538d9			CMPL R9, R11							
+  tree.go:591		0x13c0c1		74cd			JE 0x13c090							
+  tree.go:591		0x13c0c3		31c9			XORL CX, CX							
+  tree.go:575		0x13c0c5		eba7			JMP 0x13c06e							
+  tree.go:575		0x13c0c7		b901000000		MOVL $0x1, CX							
+  tree.go:575		0x13c0cc		6690			NOPW								
+  tree.go:575		0x13c0ce		eb9e			JMP 0x13c06e							
+  tree.go:559		0x13c0d0		49ffc0			INCQ R8								
+  tree.go:559		0x13c0d3		4d39d0			CMPQ R8, R10							
+  tree.go:559		0x13c0d6		0f8d96000000		JGE 0x13c172							
+  tree.go:560		0x13c0dc		470fb62418		MOVZX 0(R8)(R11*1), R12						
+  tree.go:560		0x13c0e1		4180fc2f		CMPL R12, $0x2f							
+  tree.go:560		0x13c0e5		75e9			JNE 0x13c0d0							
+  tree.go:561		0x13c0e7		4c8b5038		MOVQ 0x38(AX), R10						
+  tree.go:561		0x13c0eb		0f1f00			NOPL 0(AX)							
+  tree.go:561		0x13c0ee		4d39d0			CMPQ R8, R10							
+  tree.go:561		0x13c0f1		0f83e5000000		JAE 0x13c1dc							
+  tree.go:561		0x13c0f7		4c8b5030		MOVQ 0x30(AX), R10						
+  tree.go:561		0x13c0fb		4f8b14c2		MOVQ 0(R10)(R8*8), R10						
+  tree.go:562		0x13c0ff		49837a0801		CMPQ 0x8(R10), $0x1						
+  tree.go:562		0x13c104		7520			JNE 0x13c126							
+  tree.go:562		0x13c106		4d8b1a			MOVQ 0(R10), R11						
+  tree.go:562		0x13c109		41803b2f		CMPB 0(R11), $0x2f						
+  tree.go:562		0x13c10d		90			NOPL								
+  tree.go:562		0x13c10e		7516			JNE 0x13c126							
+  tree.go:562		0x13c110		49837a1000		CMPQ 0x10(R10), $0x0						
+  tree.go:562		0x13c115		7507			JNE 0x13c11e							
+  tree.go:562		0x13c117		49837a4800		CMPQ 0x48(R10), $0x0						
+  tree.go:562		0x13c11c		7408			JE 0x13c126							
+  tree.go:562		0x13c11e		41ba01000000		MOVL $0x1, R10							
+  tree.go:562		0x13c124		eb38			JMP 0x13c15e							
+  tree.go:563		0x13c126		41807a6403		CMPB 0x64(R10), $0x3						
+  tree.go:563		0x13c12b		752e			JNE 0x13c15b							
+  tree.go:563		0x13c12d		49837a3800		CMPQ 0x38(R10), $0x0						
+  tree.go:563		0x13c132		0f869f000000		JBE 0x13c1d7							
+  tree.go:563		0x13c138		4d8b5230		MOVQ 0x30(R10), R10						
+  tree.go:563		0x13c13c		4d8b12			MOVQ 0(R10), R10						
+  tree.go:563		0x13c13f		49837a1000		CMPQ 0x10(R10), $0x0						
+  tree.go:563		0x13c144		740a			JE 0x13c150							
+  tree.go:563		0x13c146		41ba01000000		MOVL $0x1, R10							
+  tree.go:563		0x13c14c		6690			NOPW								
+  tree.go:563		0x13c14e		eb0e			JMP 0x13c15e							
+  tree.go:563		0x13c150		49837a4800		CMPQ 0x48(R10), $0x0						
+  tree.go:563		0x13c155		410f95c2		SETNE R10							
+  tree.go:563		0x13c159		eb03			JMP 0x13c15e							
+  tree.go:563		0x13c15b		4531d2			XORL R10, R10							
+  tree.go:564		0x13c15e		4889d0			MOVQ DX, AX							
+  tree.go:564		0x13c161		4c89cb			MOVQ R9, BX							
+  tree.go:564		0x13c164		31c9			XORL CX, CX							
+  tree.go:564		0x13c166		4589d0			MOVL R10, R8							
+  tree.go:564		0x13c169		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:564		0x13c170		5d			POPQ BP								
+  tree.go:564		0x13c171		c3			RET								
+  tree.go:567		0x13c172		4883f901		CMPQ CX, $0x1							
+  tree.go:567		0x13c176		750d			JNE 0x13c185							
+  tree.go:567		0x13c178		803b2f			CMPB 0(BX), $0x2f						
+  tree.go:567		0x13c17b		7508			JNE 0x13c185							
+  tree.go:567		0x13c17d		41ba01000000		MOVL $0x1, R10							
+  tree.go:567		0x13c183		eb39			JMP 0x13c1be							
+  tree.go:568		0x13c185		4983fa01		CMPQ R10, $0x1							
+  tree.go:568		0x13c189		7530			JNE 0x13c1bb							
+  tree.go:568		0x13c18b		41803b2f		CMPB 0(R11), $0x2f						
+  tree.go:568		0x13c18f		752a			JNE 0x13c1bb							
+  tree.go:568		0x13c191		4883783800		CMPQ 0x38(AX), $0x0						
+  tree.go:568		0x13c196		763a			JBE 0x13c1d2							
+  tree.go:568		0x13c198		4c8b5030		MOVQ 0x30(AX), R10						
+  tree.go:568		0x13c19c		4d8b12			MOVQ 0(R10), R10						
+  tree.go:568		0x13c19f		49837a1000		CMPQ 0x10(R10), $0x0						
+  tree.go:568		0x13c1a4		740a			JE 0x13c1b0							
+  tree.go:568		0x13c1a6		41ba01000000		MOVL $0x1, R10							
+  tree.go:568		0x13c1ac		6690			NOPW								
+  tree.go:568		0x13c1ae		eb0e			JMP 0x13c1be							
+  tree.go:568		0x13c1b0		49837a4800		CMPQ 0x48(R10), $0x0						
+  tree.go:568		0x13c1b5		410f95c2		SETNE R10							
+  tree.go:568		0x13c1b9		eb03			JMP 0x13c1be							
+  tree.go:568		0x13c1bb		4531d2			XORL R10, R10							
+  tree.go:569		0x13c1be		4889d0			MOVQ DX, AX							
+  tree.go:569		0x13c1c1		4c89cb			MOVQ R9, BX							
+  tree.go:569		0x13c1c4		31c9			XORL CX, CX							
+  tree.go:569		0x13c1c6		4589d0			MOVL R10, R8							
+  tree.go:569		0x13c1c9		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:569		0x13c1d0		5d			POPQ BP								
+  tree.go:569		0x13c1d1		c3			RET								
+  tree.go:568		0x13c1d2		e800000000		CALL 0x13c1d7							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:563		0x13c1d7		e800000000		CALL 0x13c1dc							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:561		0x13c1dc		e800000000		CALL 0x13c1e1							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:590		0x13c1e1		48ffc7			INCQ DI								
+  tree.go:590		0x13c1e4		4839cf			CMPQ DI, CX							
+  tree.go:590		0x13c1e7		7d32			JGE 0x13c21b							
+  tree.go:591		0x13c1e9		440fb60c3b		MOVZX 0(BX)(DI*1), R9						
+  tree.go:603		0x13c1ee		458d51bf		LEAL -0x41(R9), R10						
+  tree.go:591		0x13c1f2		460fb61c27		MOVZX 0(DI)(R12*1), R11						
+  tree.go:603		0x13c1f7		4180fa19		CMPL R10, $0x19							
+  tree.go:603		0x13c1fb		7704			JA 0x13c201							
+  tree.go:604		0x13c1fd		4183c120		ADDL $0x20, R9							
+  tree.go:606		0x13c201		458d53bf		LEAL -0x41(R11), R10						
+  tree.go:606		0x13c205		4180fa19		CMPL R10, $0x19							
+  tree.go:606		0x13c209		7704			JA 0x13c20f							
+  tree.go:607		0x13c20b		4183c320		ADDL $0x20, R11							
+  tree.go:609		0x13c20f		4538d9			CMPL R9, R11							
+  tree.go:591		0x13c212		74cd			JE 0x13c1e1							
+  tree.go:591		0x13c214		31ff			XORL DI, DI							
+  tree.go:552		0x13c216		e97bfdffff		JMP 0x13bf96							
+  tree.go:552		0x13c21b		bf01000000		MOVL $0x1, DI							
+  tree.go:552		0x13c220		e971fdffff		JMP 0x13bf96							
+  tree.go:449		0x13c225		31c0			XORL AX, AX							
+  tree.go:449		0x13c227		31db			XORL BX, BX							
+  tree.go:449		0x13c229		31c9			XORL CX, CX							
+  tree.go:449		0x13c22b		4889df			MOVQ BX, DI							
+  tree.go:449		0x13c22e		31f6			XORL SI, SI							
+  tree.go:449		0x13c230		4531c0			XORL R8, R8							
+  tree.go:449		0x13c233		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:449		0x13c23a		5d			POPQ BP								
+  tree.go:449		0x13c23b		c3			RET								
+  tree.go:539		0x13c23c		4c8b9424f8000000	MOVQ 0xf8(SP), R10						
+  tree.go:539		0x13c244		4d85d2			TESTQ R10, R10							
+  tree.go:539		0x13c247		0f8456010000		JE 0x13c3a3							
+  tree.go:540		0x13c24d		4c8b5a08		MOVQ 0x8(DX), R11						
+  tree.go:540		0x13c251		4983fb02		CMPQ R11, $0x2							
+  tree.go:540		0x13c255		0f82ae010000		JB 0x13c409							
+  tree.go:540		0x13c25b		4c8b22			MOVQ 0(DX), R12							
+  tree.go:540		0x13c25e		4983c3fe		ADDQ $-0x2, R11							
+  tree.go:540		0x13c262		4d89df			MOVQ R11, R15							
+  tree.go:540		0x13c265		49f7db			NEGQ R11							
+  tree.go:540		0x13c268		49c1fb3f		SARQ $0x3f, R11							
+  tree.go:540		0x13c26c		4183e302		ANDL $0x2, R11							
+  tree.go:32		0x13c270		498b02			MOVQ 0(R10), AX							
+  tree.go:540		0x13c273		4d01e3			ADDQ R12, R11							
+  tree.go:32		0x13c276		4883f803		CMPQ AX, $0x3							
+  tree.go:32		0x13c27a		7d50			JGE 0x13c2cc							
+  tree.go:33		0x13c27c		0f8382010000		JAE 0x13c404							
+  tree.go:33		0x13c282		48c1e005		SHLQ $0x5, AX							
+  tree.go:33		0x13c286		4d897c0210		MOVQ R15, 0x10(R10)(AX*1)					
+  tree.go:33		0x13c28b		4d896c0220		MOVQ R13, 0x20(R10)(AX*1)					
+  tree.go:33		0x13c290		833d0000000000		CMPL 0(IP), $0x0						[2:6]R_PCREL:runtime.writeBarrier+-1	
+  tree.go:33		0x13c297		7424			JE 0x13c2bd							
+  tree.go:33		0x13c299		4d8b640208		MOVQ 0x8(R10)(AX*1), R12					
+  tree.go:33		0x13c29e		4d8b6c0218		MOVQ 0x18(R10)(AX*1), R13					
+  tree.go:540		0x13c2a3		4c89d9			MOVQ R11, CX							
+  tree.go:33		0x13c2a6		e800000000		CALL 0x13c2ab							[1:5]R_CALL:runtime.gcWriteBarrier4	
+  tree.go:33		0x13c2ab		49890b			MOVQ CX, 0(R11)							
+  tree.go:33		0x13c2ae		4d896308		MOVQ R12, 0x8(R11)						
+  tree.go:33		0x13c2b2		4d894b10		MOVQ R9, 0x10(R11)						
+  tree.go:33		0x13c2b6		4d896b18		MOVQ R13, 0x18(R11)						
+  tree.go:33		0x13c2ba		4989cb			MOVQ CX, R11							
+  tree.go:33		0x13c2bd		4d895c0208		MOVQ R11, 0x8(R10)(AX*1)					
+  tree.go:33		0x13c2c2		4d894c0218		MOVQ R9, 0x18(R10)(AX*1)					
+  tree.go:33		0x13c2c7		e9d4000000		JMP 0x13c3a0							
+  tree.go:35		0x13c2cc		498b4a78		MOVQ 0x78(R10), CX						
+  tree.go:35		0x13c2d0		498b5a70		MOVQ 0x70(R10), BX						
+  tree.go:35		0x13c2d4		48ffc3			INCQ BX								
+  tree.go:35		0x13c2d7		498b4268		MOVQ 0x68(R10), AX						
+  tree.go:35		0x13c2db		4839d9			CMPQ CX, BX							
+  tree.go:35		0x13c2de		7375			JAE 0x13c355							
+  tree.go:540		0x13c2e0		4c89bc2488000000	MOVQ R15, 0x88(SP)						
+  tree.go:540		0x13c2e8		4c899c24b8000000	MOVQ R11, 0xb8(SP)						
+  tree.go:35		0x13c2f0		bf01000000		MOVL $0x1, DI							
+  tree.go:35		0x13c2f5		488d3500000000		LEAQ 0(IP), SI							[3:7]R_PCREL:type:github.com/FlavioCFOliveira/MuxMaster.Param	
+  tree.go:35		0x13c2fc		e800000000		CALL 0x13c301							[1:5]R_CALL:runtime.growslice<1>				
+  tree.go:35		0x13c301		488b9424f8000000	MOVQ 0xf8(SP), DX						
+  tree.go:35		0x13c309		48894a78		MOVQ CX, 0x78(DX)						
+  tree.go:35		0x13c30d		833d0000000000		CMPL 0(IP), $0x0						[2:6]R_PCREL:runtime.writeBarrier+-1	
+  tree.go:35		0x13c314		7410			JE 0x13c326							
+  tree.go:35		0x13c316		4c8b4a68		MOVQ 0x68(DX), R9						
+  tree.go:35		0x13c31a		e800000000		CALL 0x13c31f							[1:5]R_CALL:runtime.gcWriteBarrier2	
+  tree.go:35		0x13c31f		498903			MOVQ AX, 0(R11)							
+  tree.go:35		0x13c322		4d894b08		MOVQ R9, 0x8(R11)						
+  tree.go:35		0x13c326		48894268		MOVQ AX, 0x68(DX)						
+  tree.go:35		0x13c32a		4c8b8c2498000000	MOVQ 0x98(SP), R9						
+  tree.go:35		0x13c332		4989d2			MOVQ DX, R10							
+  tree.go:35		0x13c335		4c8b9c24b8000000	MOVQ 0xb8(SP), R11						
+  tree.go:35		0x13c33d		4c8bac2490000000	MOVQ 0x90(SP), R13						
+  tree.go:35		0x13c345		4c8bbc2488000000	MOVQ 0x88(SP), R15						
+  tree.go:542		0x13c34d		488b9424c8000000	MOVQ 0xc8(SP), DX						
+  tree.go:35		0x13c355		49895a70		MOVQ BX, 0x70(R10)						
+  tree.go:35		0x13c359		4c8d63ff		LEAQ -0x1(BX), R12						
+  tree.go:35		0x13c35d		49c1e405		SHLQ $0x5, R12							
+  tree.go:35		0x13c361		4e897c2008		MOVQ R15, 0x8(AX)(R12*1)					
+  tree.go:35		0x13c366		4e896c2018		MOVQ R13, 0x18(AX)(R12*1)					
+  tree.go:35		0x13c36b		833d0000000000		CMPL 0(IP), $0x0						[2:6]R_PCREL:runtime.writeBarrier+-1	
+  tree.go:35		0x13c372		7423			JE 0x13c397							
+  tree.go:35		0x13c374		4e8b2c20		MOVQ 0(AX)(R12*1), R13						
+  tree.go:35		0x13c378		4e8b7c2010		MOVQ 0x10(AX)(R12*1), R15					
+  tree.go:540		0x13c37d		4c89d9			MOVQ R11, CX							
+  tree.go:35		0x13c380		e800000000		CALL 0x13c385							[1:5]R_CALL:runtime.gcWriteBarrier4	
+  tree.go:35		0x13c385		49890b			MOVQ CX, 0(R11)							
+  tree.go:35		0x13c388		4d896b08		MOVQ R13, 0x8(R11)						
+  tree.go:35		0x13c38c		4d894b10		MOVQ R9, 0x10(R11)						
+  tree.go:35		0x13c390		4d897b18		MOVQ R15, 0x18(R11)						
+  tree.go:35		0x13c394		4989cb			MOVQ CX, R11							
+  tree.go:35		0x13c397		4e891c20		MOVQ R11, 0(AX)(R12*1)						
+  tree.go:35		0x13c39b		4e894c2010		MOVQ R9, 0x10(AX)(R12*1)					
+  tree.go:37		0x13c3a0		49ff02			INCQ 0(R10)							
+  tree.go:542		0x13c3a3		488b5a18		MOVQ 0x18(DX), BX						
+  tree.go:542		0x13c3a7		488b4210		MOVQ 0x10(DX), AX						
+  tree.go:543		0x13c3ab		488b4a48		MOVQ 0x48(DX), CX						
+  tree.go:544		0x13c3af		488b7258		MOVQ 0x58(DX), SI						
+  tree.go:544		0x13c3b3		488b7a50		MOVQ 0x50(DX), DI						
+  tree.go:545		0x13c3b7		4531c0			XORL R8, R8							
+  tree.go:545		0x13c3ba		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:545		0x13c3c1		5d			POPQ BP								
+  tree.go:545		0x13c3c2		c3			RET								
+  tree.go:464		0x13c3c3		4983fd01		CMPQ R13, $0x1							
+  tree.go:464		0x13c3c7		7522			JNE 0x13c3eb							
+  tree.go:464		0x13c3c9		0f1f440000		NOPL 0(AX)(AX*1)						
+  tree.go:464		0x13c3ce		80fa2f			CMPL DL, $0x2f							
+  tree.go:464		0x13c3d1		7518			JNE 0x13c3eb							
+  tree.go:464		0x13c3d3		49837f1000		CMPQ 0x10(R15), $0x0						
+  tree.go:464		0x13c3d8		7407			JE 0x13c3e1							
+  tree.go:464		0x13c3da		ba01000000		MOVL $0x1, DX							
+  tree.go:464		0x13c3df		eb0c			JMP 0x13c3ed							
+  tree.go:464		0x13c3e1		49837f4800		CMPQ 0x48(R15), $0x0						
+  tree.go:464		0x13c3e6		0f95c2			SETNE DL							
+  tree.go:464		0x13c3e9		eb02			JMP 0x13c3ed							
+  tree.go:464		0x13c3eb		31d2			XORL DX, DX							
+  tree.go:465		0x13c3ed		31c0			XORL AX, AX							
+  tree.go:465		0x13c3ef		31db			XORL BX, BX							
+  tree.go:465		0x13c3f1		31c9			XORL CX, CX							
+  tree.go:465		0x13c3f3		4889df			MOVQ BX, DI							
+  tree.go:465		0x13c3f6		31f6			XORL SI, SI							
+  tree.go:465		0x13c3f8		4189d0			MOVL DX, R8							
+  tree.go:465		0x13c3fb		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:465		0x13c402		5d			POPQ BP								
+  tree.go:465		0x13c403		c3			RET								
+  tree.go:33		0x13c404		e800000000		CALL 0x13c409							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:540		0x13c409		0f1f440000		NOPL 0(AX)(AX*1)						
+  tree.go:540		0x13c40e		e800000000		CALL 0x13c413							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:535		0x13c413		498d5701		LEAQ 0x1(R15), DX						
+  tree.go:535		0x13c417		4939d4			CMPQ R12, DX							
+  tree.go:535		0x13c41a		410f94c0		SETE R8								
+  tree.go:536		0x13c41e		31c0			XORL AX, AX							
+  tree.go:536		0x13c420		31db			XORL BX, BX							
+  tree.go:536		0x13c422		31c9			XORL CX, CX							
+  tree.go:536		0x13c424		4889df			MOVQ BX, DI							
+  tree.go:536		0x13c427		31f6			XORL SI, SI							
+  tree.go:536		0x13c429		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:536		0x13c430		5d			POPQ BP								
+  tree.go:536		0x13c431		c3			RET								
+  tree.go:521		0x13c432		488b4110		MOVQ 0x10(CX), AX						
+  tree.go:522		0x13c436		488b5148		MOVQ 0x48(CX), DX						
+  tree.go:524		0x13c43a		4885c0			TESTQ AX, AX							
+  tree.go:524		0x13c43d		7542			JNE 0x13c481							
+  tree.go:524		0x13c43f		4885d2			TESTQ DX, DX							
+  tree.go:524		0x13c442		753d			JNE 0x13c481							
+  tree.go:524		0x13c444		4883793801		CMPQ 0x38(CX), $0x1						
+  tree.go:524		0x13c449		7536			JNE 0x13c481							
+  tree.go:524		0x13c44b		4c8b4930		MOVQ 0x30(CX), R9						
+  tree.go:525		0x13c44f		4d8b09			MOVQ 0(R9), R9							
+  tree.go:526		0x13c452		4983790801		CMPQ 0x8(R9), $0x1						
+  tree.go:526		0x13c457		7523			JNE 0x13c47c							
+  tree.go:526		0x13c459		4d8b11			MOVQ 0(R9), R10							
+  tree.go:526		0x13c45c		41803a2f		CMPB 0(R10), $0x2f						
+  tree.go:526		0x13c460		751a			JNE 0x13c47c							
+  tree.go:526		0x13c462		4983791000		CMPQ 0x10(R9), $0x0						
+  tree.go:526		0x13c467		7408			JE 0x13c471							
+  tree.go:526		0x13c469		41b901000000		MOVL $0x1, R9							
+  tree.go:526		0x13c46f		eb13			JMP 0x13c484							
+  tree.go:526		0x13c471		4983794800		CMPQ 0x48(R9), $0x0						
+  tree.go:526		0x13c476		410f95c1		SETNE R9							
+  tree.go:526		0x13c47a		eb08			JMP 0x13c484							
+  tree.go:526		0x13c47c		4531c9			XORL R9, R9							
+  tree.go:526		0x13c47f		eb03			JMP 0x13c484							
+  tree.go:526		0x13c481		4531c9			XORL R9, R9							
+  tree.go:521		0x13c484		488b5918		MOVQ 0x18(CX), BX						
+  tree.go:523		0x13c488		488b7158		MOVQ 0x58(CX), SI						
+  tree.go:523		0x13c48c		488b7950		MOVQ 0x50(CX), DI						
+  tree.go:528		0x13c490		4889d1			MOVQ DX, CX							
+  tree.go:528		0x13c493		4589c8			MOVL R9, R8							
+  tree.go:528		0x13c496		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:528		0x13c49d		5d			POPQ BP								
+  tree.go:528		0x13c49e		c3			RET								
+  tree.go:512		0x13c49f		31c0			XORL AX, AX							
+  tree.go:512		0x13c4a1		31db			XORL BX, BX							
+  tree.go:512		0x13c4a3		31c9			XORL CX, CX							
+  tree.go:512		0x13c4a5		4889df			MOVQ BX, DI							
+  tree.go:512		0x13c4a8		31f6			XORL SI, SI							
+  tree.go:512		0x13c4aa		4531c0			XORL R8, R8							
+  tree.go:512		0x13c4ad		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:512		0x13c4b4		5d			POPQ BP								
+  tree.go:512		0x13c4b5		c3			RET								
+  tree.go:33		0x13c4b6		e800000000		CALL 0x13c4bb							[1:5]R_CALL:runtime.panicBounds					
+  tree.go:516		0x13c4bb		e800000000		CALL 0x13c4c0							[1:5]R_CALL:runtime.panicBounds					
+  tree.go:516		0x13c4c0		e800000000		CALL 0x13c4c5							[1:5]R_CALL:runtime.panicBounds					
+  tree.go:510		0x13c4c5		e800000000		CALL 0x13c4ca							[1:5]R_CALL:runtime.panicBounds					
+  tree.go:548		0x13c4ca		488d0500000000		LEAQ 0(IP), AX							[3:7]R_PCREL:type:string					
+  tree.go:548		0x13c4d1		488d1d00000000		LEAQ 0(IP), BX							[3:7]R_PCREL:github.com/FlavioCFOliveira/MuxMaster..stmp_35<1>	
+  tree.go:548		0x13c4d8		e800000000		CALL 0x13c4dd							[1:5]R_CALL:runtime.gopanic<1>					
+  tree.go:475		0x13c4dd		48ffc0			INCQ AX								
+  tree.go:475		0x13c4e0		4c39e8			CMPQ AX, R13							
+  tree.go:475		0x13c4e3		7d11			JGE 0x13c4f6							
+  tree.go:476		0x13c4e5		460fb62408		MOVZX 0(AX)(R9*1), R12						
+  tree.go:476		0x13c4ea		0f1f4000		NOPL 0(AX)							
+  tree.go:476		0x13c4ee		4180fc2f		CMPL R12, $0x2f							
+  tree.go:476		0x13c4f2		75e9			JNE 0x13c4dd							
+  tree.go:476		0x13c4f4		eb03			JMP 0x13c4f9							
+  tree.go:481		0x13c4f6		4c89e8			MOVQ R13, AX							
+  tree.go:481		0x13c4f9		4c8ba424f8000000	MOVQ 0xf8(SP), R12						
+  tree.go:481		0x13c501		4d85e4			TESTQ R12, R12							
+  tree.go:481		0x13c504		0f8495010000		JE 0x13c69f							
+  tree.go:482		0x13c50a		4c8b7a08		MOVQ 0x8(DX), R15						
+  tree.go:482		0x13c50e		4983ff01		CMPQ R15, $0x1							
+  tree.go:482		0x13c512		0f8260020000		JB 0x13c778							
+  tree.go:482		0x13c518		488b0a			MOVQ 0(DX), CX							
+  tree.go:482		0x13c51b		49ffcf			DECQ R15							
+  tree.go:482		0x13c51e		4c89fe			MOVQ R15, SI							
+  tree.go:482		0x13c521		49f7df			NEGQ R15							
+  tree.go:482		0x13c524		49c1ff3f		SARQ $0x3f, R15							
+  tree.go:482		0x13c528		4183e701		ANDL $0x1, R15							
+  tree.go:482		0x13c52c		4901cf			ADDQ CX, R15							
+  tree.go:482		0x13c52f		4c39e8			CMPQ AX, R13							
+  tree.go:482		0x13c532		0f873b020000		JA 0x13c773							
+  tree.go:32		0x13c538		498b0c24		MOVQ 0(R12), CX							
+  tree.go:32		0x13c53c		4883f903		CMPQ CX, $0x3							
+  tree.go:32		0x13c540		7d51			JGE 0x13c593							
+  tree.go:33		0x13c542		0f8322020000		JAE 0x13c76a							
+  tree.go:33		0x13c548		48c1e105		SHLQ $0x5, CX							
+  tree.go:33		0x13c54c		4989740c10		MOVQ SI, 0x10(R12)(CX*1)					
+  tree.go:33		0x13c551		4989440c20		MOVQ AX, 0x20(R12)(CX*1)					
+  tree.go:33		0x13c556		833d0000000000		CMPL 0(IP), $0x0						[2:6]R_PCREL:runtime.writeBarrier+-1	
+  tree.go:33		0x13c55d		7423			JE 0x13c582							
+  tree.go:33		0x13c55f		498b740c08		MOVQ 0x8(R12)(CX*1), SI						
+  tree.go:33		0x13c564		498b7c0c18		MOVQ 0x18(R12)(CX*1), DI					
+  tree.go:33		0x13c569		0f1f440000		NOPL 0(AX)(AX*1)						
+  tree.go:33		0x13c56e		e800000000		CALL 0x13c573							[1:5]R_CALL:runtime.gcWriteBarrier4	
+  tree.go:33		0x13c573		4d893b			MOVQ R15, 0(R11)						
+  tree.go:33		0x13c576		49897308		MOVQ SI, 0x8(R11)						
+  tree.go:33		0x13c57a		4d894b10		MOVQ R9, 0x10(R11)						
+  tree.go:33		0x13c57e		49897b18		MOVQ DI, 0x18(R11)						
+  tree.go:33		0x13c582		4d897c0c08		MOVQ R15, 0x8(R12)(CX*1)					
+  tree.go:33		0x13c587		4d894c0c18		MOVQ R9, 0x18(R12)(CX*1)					
+  tree.go:33		0x13c58c		6690			NOPW								
+  tree.go:33		0x13c58e		e908010000		JMP 0x13c69b							
+  tree.go:35		0x13c593		498b4c2478		MOVQ 0x78(R12), CX						
+  tree.go:35		0x13c598		498b7c2470		MOVQ 0x70(R12), DI						
+  tree.go:35		0x13c59d		48ffc7			INCQ DI								
+  tree.go:35		0x13c5a0		4d8b442468		MOVQ 0x68(R12), R8						
+  tree.go:35		0x13c5a5		660f1f840000000000	NOPW 0(AX)(AX*1)						
+  tree.go:35		0x13c5ae		4839f9			CMPQ CX, DI							
+  tree.go:35		0x13c5b1		0f839e000000		JAE 0x13c655							
+  tree.go:482		0x13c5b7		4889b42488000000	MOVQ SI, 0x88(SP)						
+  tree.go:482		0x13c5bf		4c89bc24c0000000	MOVQ R15, 0xc0(SP)						
+  tree.go:481		0x13c5c7		4889842480000000	MOVQ AX, 0x80(SP)						
+  tree.go:35		0x13c5cf		4c89c0			MOVQ R8, AX							
+  tree.go:35		0x13c5d2		4889fb			MOVQ DI, BX							
+  tree.go:35		0x13c5d5		bf01000000		MOVL $0x1, DI							
+  tree.go:35		0x13c5da		488d3500000000		LEAQ 0(IP), SI							[3:7]R_PCREL:type:github.com/FlavioCFOliveira/MuxMaster.Param	
+  tree.go:35		0x13c5e1		e800000000		CALL 0x13c5e6							[1:5]R_CALL:runtime.growslice<1>				
+  tree.go:35		0x13c5e6		488b9424f8000000	MOVQ 0xf8(SP), DX						
+  tree.go:35		0x13c5ee		48894a78		MOVQ CX, 0x78(DX)						
+  tree.go:35		0x13c5f2		833d0000000000		CMPL 0(IP), $0x0						[2:6]R_PCREL:runtime.writeBarrier+-1	
+  tree.go:35		0x13c5f9		7410			JE 0x13c60b							
+  tree.go:35		0x13c5fb		4c8b6268		MOVQ 0x68(DX), R12						
+  tree.go:35		0x13c5ff		e800000000		CALL 0x13c604							[1:5]R_CALL:runtime.gcWriteBarrier2	
+  tree.go:35		0x13c604		498903			MOVQ AX, 0(R11)							
+  tree.go:35		0x13c607		4d896308		MOVQ R12, 0x8(R11)						
+  tree.go:35		0x13c60b		48894268		MOVQ AX, 0x68(DX)						
+  tree.go:494		0x13c60f		488b9424c8000000	MOVQ 0xc8(SP), DX						
+  tree.go:35		0x13c617		488bb42488000000	MOVQ 0x88(SP), SI						
+  tree.go:35		0x13c61f		4c8b8c2498000000	MOVQ 0x98(SP), R9						
+  tree.go:35		0x13c627		4c8ba424f8000000	MOVQ 0xf8(SP), R12						
+  tree.go:484		0x13c62f		4c8bac2490000000	MOVQ 0x90(SP), R13						
+  tree.go:35		0x13c637		4c8bbc24c0000000	MOVQ 0xc0(SP), R15						
+  tree.go:35		0x13c63f		4989c0			MOVQ AX, R8							
+  tree.go:35		0x13c642		4889df			MOVQ BX, DI							
+  tree.go:35		0x13c645		488b842480000000	MOVQ 0x80(SP), AX						
+  tree.go:443		0x13c64d		0fb69c2400010000	MOVZX 0x100(SP), BX						
+  tree.go:35		0x13c655		49897c2470		MOVQ DI, 0x70(R12)						
+  tree.go:35		0x13c65a		488d4fff		LEAQ -0x1(DI), CX						
+  tree.go:35		0x13c65e		48c1e105		SHLQ $0x5, CX							
+  tree.go:35		0x13c662		4989740808		MOVQ SI, 0x8(R8)(CX*1)						
+  tree.go:35		0x13c667		4989440818		MOVQ AX, 0x18(R8)(CX*1)						
+  tree.go:35		0x13c66c		833d0000000000		CMPL 0(IP), $0x0						[2:6]R_PCREL:runtime.writeBarrier+-1	
+  tree.go:35		0x13c673		741d			JE 0x13c692							
+  tree.go:35		0x13c675		498b3408		MOVQ 0(R8)(CX*1), SI						
+  tree.go:35		0x13c679		498b7c0810		MOVQ 0x10(R8)(CX*1), DI						
+  tree.go:35		0x13c67e		e800000000		CALL 0x13c683							[1:5]R_CALL:runtime.gcWriteBarrier4	
+  tree.go:35		0x13c683		4d893b			MOVQ R15, 0(R11)						
+  tree.go:35		0x13c686		49897308		MOVQ SI, 0x8(R11)						
+  tree.go:35		0x13c68a		4d894b10		MOVQ R9, 0x10(R11)						
+  tree.go:35		0x13c68e		49897b18		MOVQ DI, 0x18(R11)						
+  tree.go:35		0x13c692		4d893c08		MOVQ R15, 0(R8)(CX*1)						
+  tree.go:35		0x13c696		4d894c0810		MOVQ R9, 0x10(R8)(CX*1)						
+  tree.go:37		0x13c69b		49ff0424		INCQ 0(R12)							
+  tree.go:484		0x13c69f		4c39e8			CMPQ AX, R13							
+  tree.go:484		0x13c6a2		7457			JE 0x13c6fb							
+  tree.go:494		0x13c6a4		48837a3800		CMPQ 0x38(DX), $0x0						
+  tree.go:494		0x13c6a9		7431			JE 0x13c6dc							
+  tree.go:494		0x13c6ab		0f1f00			NOPL 0(AX)							
+  tree.go:484		0x13c6ae		4c39e8			CMPQ AX, R13							
+  tree.go:495		0x13c6b1		0f87ae000000		JA 0x13c765							
+  tree.go:494		0x13c6b7		488b5230		MOVQ 0x30(DX), DX						
+  tree.go:495		0x13c6bb		4929c5			SUBQ AX, R13							
+  tree.go:495		0x13c6be		4c89e9			MOVQ R13, CX							
+  tree.go:495		0x13c6c1		49f7dd			NEGQ R13							
+  tree.go:495		0x13c6c4		49c1fd3f		SARQ $0x3f, R13							
+  tree.go:495		0x13c6c8		4c21e8			ANDQ R13, AX							
+  tree.go:495		0x13c6cb		4901c1			ADDQ AX, R9							
+  tree.go:496		0x13c6ce		488b12			MOVQ 0(DX), DX							
+  tree.go:539		0x13c6d1		4d89e5			MOVQ R12, R13							
+  tree.go:445		0x13c6d4		4989d4			MOVQ DX, R12							
+  tree.go:497		0x13c6d7		e966f4ffff		JMP 0x13bb42							
+  tree.go:499		0x13c6dc		488d5001		LEAQ 0x1(AX), DX						
+  tree.go:499		0x13c6e0		4939d5			CMPQ R13, DX							
+  tree.go:499		0x13c6e3		410f94c0		SETE R8								
+  tree.go:500		0x13c6e7		31c0			XORL AX, AX							
+  tree.go:500		0x13c6e9		31db			XORL BX, BX							
+  tree.go:500		0x13c6eb		31c9			XORL CX, CX							
+  tree.go:500		0x13c6ed		4889df			MOVQ BX, DI							
+  tree.go:500		0x13c6f0		31f6			XORL SI, SI							
+  tree.go:500		0x13c6f2		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:500		0x13c6f9		5d			POPQ BP								
+  tree.go:500		0x13c6fa		c3			RET								
+  tree.go:485		0x13c6fb		488b4210		MOVQ 0x10(DX), AX						
+  tree.go:486		0x13c6ff		488b4a48		MOVQ 0x48(DX), CX						
+  tree.go:488		0x13c703		4885c0			TESTQ AX, AX							
+  tree.go:488		0x13c706		7542			JNE 0x13c74a							
+  tree.go:488		0x13c708		4885c9			TESTQ CX, CX							
+  tree.go:488		0x13c70b		753d			JNE 0x13c74a							
+  tree.go:488		0x13c70d		48837a3801		CMPQ 0x38(DX), $0x1						
+  tree.go:488		0x13c712		7536			JNE 0x13c74a							
+  tree.go:488		0x13c714		4c8b4a30		MOVQ 0x30(DX), R9						
+  tree.go:489		0x13c718		4d8b09			MOVQ 0(R9), R9							
+  tree.go:490		0x13c71b		4983790801		CMPQ 0x8(R9), $0x1						
+  tree.go:490		0x13c720		7523			JNE 0x13c745							
+  tree.go:490		0x13c722		4d8b11			MOVQ 0(R9), R10							
+  tree.go:490		0x13c725		41803a2f		CMPB 0(R10), $0x2f						
+  tree.go:490		0x13c729		751a			JNE 0x13c745							
+  tree.go:490		0x13c72b		4983791000		CMPQ 0x10(R9), $0x0						
+  tree.go:490		0x13c730		7408			JE 0x13c73a							
+  tree.go:490		0x13c732		41b901000000		MOVL $0x1, R9							
+  tree.go:490		0x13c738		eb13			JMP 0x13c74d							
+  tree.go:490		0x13c73a		4983794800		CMPQ 0x48(R9), $0x0						
+  tree.go:490		0x13c73f		410f95c1		SETNE R9							
+  tree.go:490		0x13c743		eb08			JMP 0x13c74d							
+  tree.go:490		0x13c745		4531c9			XORL R9, R9							
+  tree.go:490		0x13c748		eb03			JMP 0x13c74d							
+  tree.go:490		0x13c74a		4531c9			XORL R9, R9							
+  tree.go:485		0x13c74d		488b5a18		MOVQ 0x18(DX), BX						
+  tree.go:487		0x13c751		488b7a50		MOVQ 0x50(DX), DI						
+  tree.go:487		0x13c755		488b7258		MOVQ 0x58(DX), SI						
+  tree.go:492		0x13c759		4589c8			MOVL R9, R8							
+  tree.go:492		0x13c75c		4881c4d0000000		ADDQ $0xd0, SP							
+  tree.go:492		0x13c763		5d			POPQ BP								
+  tree.go:492		0x13c764		c3			RET								
+  tree.go:495		0x13c765		e800000000		CALL 0x13c76a							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:33		0x13c76a		0f1f4000		NOPL 0(AX)							
+  tree.go:33		0x13c76e		e800000000		CALL 0x13c773							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:482		0x13c773		e800000000		CALL 0x13c778							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:482		0x13c778		e800000000		CALL 0x13c77d							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:469		0x13c77d		e800000000		CALL 0x13c782							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:455		0x13c782		e800000000		CALL 0x13c787							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:454		0x13c787		e800000000		CALL 0x13c78c							[1:5]R_CALL:runtime.panicBounds	
+  tree.go:590		0x13c78c		49ffc0			INCQ R8								
+  tree.go:590		0x13c78f		4939d0			CMPQ R8, DX							
+  tree.go:590		0x13c792		7d32			JGE 0x13c7c6							
+  tree.go:591		0x13c794		460fb62c03		MOVZX 0(BX)(R8*1), R13						
+  tree.go:603		0x13c799		458d7dbf		LEAL -0x41(R13), R15						
+  tree.go:591		0x13c79d		470fb60c20		MOVZX 0(R8)(R12*1), R9						
+  tree.go:603		0x13c7a2		4180ff19		CMPL R15, $0x19							
+  tree.go:603		0x13c7a6		7704			JA 0x13c7ac							
+  tree.go:604		0x13c7a8		4183c520		ADDL $0x20, R13							
+  tree.go:606		0x13c7ac		458d79bf		LEAL -0x41(R9), R15						
+  tree.go:606		0x13c7b0		4180ff19		CMPL R15, $0x19							
+  tree.go:606		0x13c7b4		7704			JA 0x13c7ba							
+  tree.go:607		0x13c7b6		4183c120		ADDL $0x20, R9							
+  tree.go:609		0x13c7ba		4538cd			CMPL R13, R9							
+  tree.go:591		0x13c7bd		74cd			JE 0x13c78c							
+  tree.go:591		0x13c7bf		31c0			XORL AX, AX							
+  tree.go:448		0x13c7c1		e9d2f3ffff		JMP 0x13bb98							
+  tree.go:448		0x13c7c6		b801000000		MOVL $0x1, AX							
+  tree.go:448		0x13c7cb		0f1f00			NOPL 0(AX)							
+  tree.go:448		0x13c7ce		e9c5f3ffff		JMP 0x13bb98							
+  tree.go:442		0x13c7d3		4889442408		MOVQ AX, 0x8(SP)						
+  tree.go:442		0x13c7d8		48895c2410		MOVQ BX, 0x10(SP)						
+  tree.go:442		0x13c7dd		48894c2418		MOVQ CX, 0x18(SP)						
+  tree.go:442		0x13c7e2		48897c2420		MOVQ DI, 0x20(SP)						
+  tree.go:442		0x13c7e7		4088742428		MOVB SI, 0x28(SP)						
+  tree.go:442		0x13c7ec		6690			NOPW								
+  tree.go:442		0x13c7ee		e800000000		CALL 0x13c7f3							[1:5]R_CALL:runtime.morestack_noctxt	
+  tree.go:442		0x13c7f3		488b442408		MOVQ 0x8(SP), AX						
+  tree.go:442		0x13c7f8		488b5c2410		MOVQ 0x10(SP), BX						
+  tree.go:442		0x13c7fd		488b4c2418		MOVQ 0x18(SP), CX						
+  tree.go:442		0x13c802		488b7c2420		MOVQ 0x20(SP), DI						
+  tree.go:442		0x13c807		0fb6742428		MOVZX 0x28(SP), SI						
+  tree.go:442		0x13c80c		6690			NOPW								
+  tree.go:442		0x13c80e		e9fbf2ffff		JMP github.com/FlavioCFOliveira/MuxMaster.(*node).getValue(SB)	

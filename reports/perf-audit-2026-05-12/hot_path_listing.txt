@@ -1,0 +1,300 @@
+Total: 23.77s
+ROUTINE ======================== github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP in /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+     540ms     17.57s (flat, cum) 73.92% of Total
+     170ms      170ms    840:func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+         .       50ms    841:	cfg := m.config()
+     260ms      260ms    842:	if cfg.hasPanicHandler {
+         .          .    843:		m.dispatchWithRecover(w, r, cfg)
+         .          .    844:		return
+         .          .    845:	}
+      20ms      110ms    846:	if ph := m.preHandlerPtr.Load(); ph != nil {
+         .          .    847:		(*ph).ServeHTTP(w, r)
+         .          .    848:		return
+         .          .    849:	}
+      10ms     16.90s    850:	m.dispatch(w, r, cfg)
+      80ms       80ms    851:}
+         .          .    852:
+         .          .    853:// dispatchWithRecover is the slow-path variant used only when PanicHandler is
+         .          .    854:// configured. Kept in a separate function so the common path avoids defer setup.
+         .          .    855:func (m *Mux) dispatchWithRecover(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
+         .          .    856:	defer m.recoverPanic(cfg, w, r)
+ROUTINE ======================== github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch in /data/dev/github.com/FlavioCFOliveira/MuxMaster/mux.go
+     1.52s     16.89s (flat, cum) 71.06% of Total
+     110ms      110ms    865:func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
+         .          .    866:	// Determine the effective URL path.
+     170ms      170ms    867:	urlPath := r.URL.Path
+      50ms       50ms    868:	if cfg.useRawPath && r.URL.RawPath != "" {
+         .          .    869:		urlPath = r.URL.RawPath
+         .          .    870:	}
+         .          .    871:
+         .          .    872:	// Load the trees pointer atomically — no lock needed after registration.
+     110ms      110ms    873:	trees := m.treesPtr.Load()
+         .          .    874:	var root *node
+         .          .    875:	if trees != nil {
+     120ms      460ms    876:		if idx := methodIdx(r.Method); idx >= 0 {
+      10ms       10ms    877:			root = trees[idx]
+         .          .    878:		}
+         .          .    879:	}
+         .          .    880:
+     110ms      110ms    881:	if root != nil {
+         .          .    882:		// paramsBuf is a fixed-size struct — no slice header, no append, no heap escape.
+         .          .    883:		// Zero allocs for static routes; 1 alloc (reqBundle) for param routes.
+         .          .    884:		// When the tree has no wildcard routes, pass nil to skip zeroing 264 B of stack.
+     190ms      190ms    885:		var ps paramsBuf
+         .          .    886:		var psBuf *paramsBuf
+         .          .    887:		if root.maxParams > 0 {
+         .          .    888:			psBuf = &ps
+         .          .    889:		}
+     150ms      6.85s    890:		handler, fast, pattern, tsr := root.getValue(urlPath, psBuf, cfg.caseInsensitive)
+         .          .    891:
+      80ms       80ms    892:		if handler != nil || fast != nil {
+      70ms       70ms    893:			if ps.count > 0 {
+      10ms       10ms    894:				if fast != nil {
+         .          .    895:					// FastHandler path: allocate exact-sized Params (count * 32B)
+         .          .    896:					// and copy from ps.buf. This keeps ps on the stack — ps.buf is
+         .          .    897:					// only read via copy() (a builtin), never passed to a function pointer.
+      30ms      1.49s    898:					fps := make(Params, ps.count)
+         .          .    899:					if len(ps.overflow) == 0 {
+      40ms      380ms    900:						copy(fps, ps.buf[:ps.count])
+         .          .    901:					} else {
+         .          .    902:						copy(fps, ps.buf[:maxParams])
+         .          .    903:						copy(fps[maxParams:], ps.overflow)
+         .          .    904:					}
+         .          .    905:					if cfg.unescapePathValues && cfg.useRawPath {
+         .          .    906:						for i := range fps {
+         .          .    907:							if v, err := url.PathUnescape(fps[i].Value); err == nil {
+         .          .    908:								fps[i].Value = v
+         .          .    909:							}
+         .          .    910:						}
+         .          .    911:					}
+      50ms       50ms    912:					fast(w, r, fps)
+         .          .    913:				} else {
+         .       40ms    914:					pslice := ps.params()
+      30ms       30ms    915:					if cfg.unescapePathValues && cfg.useRawPath {
+         .          .    916:						for i := range pslice {
+         .          .    917:							if v, err := url.PathUnescape(pslice[i].Value); err == nil {
+         .          .    918:								pslice[i].Value = v
+         .          .    919:							}
+         .          .    920:						}
+         .          .    921:					}
+      70ms      5.87s    922:					dispatchWithParams(w, r, handler, pattern, pslice)
+         .          .    923:				}
+         .          .    924:			} else {
+         .          .    925:				// static route — 0 allocs
+         .          .    926:				if fast != nil {
+         .          .    927:					fast(w, r, nil)
+         .          .    928:				} else {
+      60ms      750ms    929:					handler.ServeHTTP(w, r)
+         .          .    930:				}
+         .          .    931:			}
+      60ms       60ms    932:			return
+         .          .    933:		}
+         .          .    934:
+         .          .    935:		if r.Method != http.MethodConnect && urlPath != "/" {
+         .          .    936:			code := m.resolveRedirectCode(cfg, r.Method)
+         .          .    937:
+ROUTINE ======================== github.com/FlavioCFOliveira/MuxMaster.(*node).getValue in /data/dev/github.com/FlavioCFOliveira/MuxMaster/tree.go
+     4.08s      6.70s (flat, cum) 28.19% of Total
+      70ms       70ms    442:func (n *node) getValue(path string, params *paramsBuf, ci bool) (handler http.Handler, fast FastHandler, pattern string, tsr bool) {
+     230ms      230ms    443:walk:
+         .          .    444:	for {
+     290ms      290ms    445:		prefix := n.path
+         .          .    446:
+     280ms      280ms    447:		if len(path) > len(prefix) {
+     230ms      1.99s    448:			if !prefixMatch(path[:len(prefix)], prefix, ci) {
+         .          .    449:				return
+         .          .    450:			}
+     620ms      620ms    451:			path = path[len(prefix):]
+         .          .    452:
+         .          .    453:			// Always try static children first so that /users/list beats /users/:id.
+     130ms      130ms    454:			c := path[0]
+     290ms      290ms    455:			children := n.children[:len(n.indices)]
+     100ms      100ms    456:			for j := range len(n.indices) {
+     280ms      470ms    457:				if foldEq(c, n.indices[j], ci) {
+         .          .    458:					n = children[j]
+     240ms      240ms    459:					continue walk
+         .          .    460:				}
+         .          .    461:			}
+         .          .    462:
+      50ms       50ms    463:			if !n.wildChild {
+         .          .    464:				tsr = path == "/" && (n.handler != nil || n.fast != nil)
+         .          .    465:				return
+         .          .    466:			}
+         .          .    467:
+         .          .    468:			// No static child matched — fall through to wildchild (always last).
+     110ms      110ms    469:			n = n.children[len(n.children)-1]
+         .          .    470:
+      10ms       10ms    471:			switch n.nType {
+     230ms      230ms    472:			case param:
+         .          .    473:				// Inline scan for '/' — avoids strings.IndexByte call for short params.
+         .          .    474:				end := len(path)
+      40ms       40ms    475:				for i := 0; i < len(path); i++ {
+      40ms       40ms    476:					if path[i] == '/' {
+         .          .    477:						end = i
+         .          .    478:						break
+         .          .    479:					}
+         .          .    480:				}
+      10ms       10ms    481:				if params != nil {
+     140ms      380ms    482:					params.add(n.path[1:], path[:end])
+         .          .    483:				}
+      40ms       40ms    484:				if end == len(path) {
+         .          .    485:					handler = n.handler
+      10ms       10ms    486:					fast = n.fast
+      20ms       20ms    487:					pattern = n.pattern
+      50ms       50ms    488:					if handler == nil && fast == nil && len(n.children) == 1 {
+         .          .    489:						n = n.children[0]
+         .          .    490:						tsr = n.path == "/" && (n.handler != nil || n.fast != nil)
+         .          .    491:					}
+      60ms       60ms    492:					return
+         .          .    493:				}
+         .          .    494:				if len(n.children) > 0 {
+         .          .    495:					path = path[end:]
+      10ms       10ms    496:					n = n.children[0]
+         .          .    497:					continue walk
+         .          .    498:				}
+         .          .    499:				tsr = len(path) == end+1
+         .          .    500:				return
+         .          .    501:
+         .          .    502:			case regexParam:
+         .          .    503:				end := len(path)
+         .          .    504:				for i := 0; i < len(path); i++ {
+         .          .    505:					if path[i] == '/' {
+         .          .    506:						end = i
+         .          .    507:						break
+         .          .    508:					}
+         .          .    509:				}
+         .          .    510:				seg := path[:end]
+         .          .    511:				if !n.regexp.MatchString(seg) {
+         .          .    512:					return
+         .          .    513:				}
+         .          .    514:				// Param name is between '{' and ':' in n.path, e.g. "{name:expr}".
+         .          .    515:				// regexpNameEnd is pre-computed at registration — no strings.Index here.
+         .          .    516:				name := n.path[1:n.regexpNameEnd]
+         .          .    517:				if params != nil {
+         .          .    518:					params.add(name, seg)
+         .          .    519:				}
+         .          .    520:				if end == len(path) {
+         .          .    521:					handler = n.handler
+         .          .    522:					fast = n.fast
+         .          .    523:					pattern = n.pattern
+         .          .    524:					if handler == nil && fast == nil && len(n.children) == 1 {
+         .          .    525:						n = n.children[0]
+         .          .    526:						tsr = n.path == "/" && (n.handler != nil || n.fast != nil)
+         .          .    527:					}
+         .          .    528:					return
+         .          .    529:				}
+         .          .    530:				if len(n.children) > 0 {
+         .          .    531:					path = path[end:]
+         .          .    532:					n = n.children[0]
+         .          .    533:					continue walk
+         .          .    534:				}
+         .          .    535:				tsr = len(path) == end+1
+         .          .    536:				return
+         .          .    537:
+         .          .    538:			case wildcard:
+     280ms      280ms    539:				if params != nil {
+         .          .    540:					params.add(n.path[2:], path)
+         .          .    541:				}
+         .          .    542:				handler = n.handler
+         .          .    543:				fast = n.fast
+         .          .    544:				pattern = n.pattern
+         .          .    545:				return
+         .          .    546:
+         .          .    547:			default:
+         .          .    548:				panic("muxmaster: invalid node type")
+         .          .    549:			}
+         .          .    550:		}
+         .          .    551:
+      20ms      450ms    552:		if prefixMatch(path, prefix, ci) && len(path) == len(prefix) {
+      70ms       70ms    553:			handler = n.handler
+         .          .    554:			fast = n.fast
+      20ms       20ms    555:			pattern = n.pattern
+      20ms       20ms    556:			if handler != nil || fast != nil {
+      90ms       90ms    557:				return
+         .          .    558:			}
+         .          .    559:			for j := range len(n.indices) {
+         .          .    560:				if n.indices[j] == '/' {
+         .          .    561:					n = n.children[j]
+         .          .    562:					tsr = (n.path == "/" && (n.handler != nil || n.fast != nil)) ||
+ROUTINE ======================== github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Fast in /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+     580ms      2.96s (flat, cum) 12.45% of Total
+      20ms       20ms    246:func dispatchParams1Fast(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
+         .      1.95s    247:	b := &reqBundle1{}
+     290ms      360ms    248:	b.ctx.Context = r.Context()
+      10ms       10ms    249:	b.ctx.pattern = pattern
+      10ms       10ms    250:	b.ctx.small[0] = p
+      10ms       10ms    251:	b.ctx.params = Params(b.ctx.small[:1])
+     210ms      530ms    252:	b.req = *r
+         .       10ms    253:	setReqCtxUnsafe(&b.req, &b.ctx)
+         .       30ms    254:	h.ServeHTTP(w, &b.req)
+      30ms       30ms    255:}
+         .          .    256:
+         .          .    257:// dispatchParams1Safe is the fallback for routes with exactly 1 param when the
+         .          .    258:// unsafe ctx field shortcut is unavailable (hasReqCtxField == false).
+         .          .    259:func dispatchParams1Safe(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
+         .          .    260:	rc := &requestCtx1{Context: r.Context(), pattern: pattern}
+ROUTINE ======================== github.com/FlavioCFOliveira/MuxMaster.dispatchWithParams in /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+     640ms      5.80s (flat, cum) 24.40% of Total
+      60ms       70ms    298:func dispatchWithParams(w http.ResponseWriter, r *http.Request, handler http.Handler, pattern string, pslice []Param) {
+         .          .    299:	switch len(pslice) {
+         .          .    300:	case 1:
+      30ms      2.99s    301:		doDispatch1(w, r, handler, pattern, pslice[0])
+         .          .    302:	case 2:
+         .          .    303:		doDispatch2(w, r, handler, pattern, pslice[0], pslice[1])
+         .          .    304:	default:
+         .          .    305:		// 3+ params: use reqBundle (480 B, size class 480 B).
+         .          .    306:		n := len(pslice)
+      10ms       10ms    307:		if hasReqCtxField {
+      30ms      1.81s    308:			bundle := &reqBundle{}
+     240ms      310ms    309:			bundle.ctx.Context = r.Context()
+         .          .    310:			bundle.ctx.pattern = pattern
+         .          .    311:			if n <= 3 {
+      20ms       20ms    312:				for i := range n {
+      80ms       90ms    313:					bundle.ctx.small[i] = pslice[i]
+         .          .    314:				}
+         .       30ms    315:				bundle.ctx.params = Params(bundle.ctx.small[:n])
+         .          .    316:			} else {
+         .          .    317:				overflow := make(Params, n)
+         .          .    318:				copy(overflow, pslice)
+         .          .    319:				bundle.ctx.params = overflow
+         .          .    320:			}
+     120ms      370ms    321:			bundle.req = *r
+         .       20ms    322:			setReqCtxUnsafe(&bundle.req, &bundle.ctx)
+      20ms       50ms    323:			handler.ServeHTTP(w, &bundle.req)
+         .          .    324:		} else {
+         .          .    325:			rc := &requestCtx{Context: r.Context(), pattern: pattern}
+         .          .    326:			if n <= 3 {
+         .          .    327:				for i := range n {
+         .          .    328:					rc.small[i] = pslice[i]
+         .          .    329:				}
+         .          .    330:				rc.params = Params(rc.small[:n])
+         .          .    331:			} else {
+         .          .    332:				overflow := make(Params, n)
+         .          .    333:				copy(overflow, pslice)
+         .          .    334:				rc.params = overflow
+         .          .    335:			}
+         .          .    336:			handler.ServeHTTP(w, r.WithContext(rc))
+         .          .    337:		}
+         .          .    338:	}
+      30ms       30ms    339:}
+         .          .    340:
+         .          .    341:// --------------------------------------------------------------------------
+         .          .    342:// Public accessors — use type switches ordered by frequency (1-param is
+         .          .    343:// most common in REST APIs, then 3-param for deeper paths).
+         .          .    344:// --------------------------------------------------------------------------
+ROUTINE ======================== net/http.HandlerFunc.ServeHTTP in /usr/local/go/src/net/http/server.go
+     680ms      750ms (flat, cum)  3.16% of Total
+     280ms      290ms   2285:func (f HandlerFunc) ServeHTTP(w ResponseWriter, r *Request) {
+      10ms       70ms   2286:	f(w, r)
+     390ms      390ms   2287:}
+         .          .   2288:
+         .          .   2289:// Helper handlers
+         .          .   2290:
+         .          .   2291:// Error replies to the request with the specified error message and HTTP code.
+         .          .   2292:// It does not otherwise end the request; the caller should ensure no further
+ROUTINE ======================== sync/atomic.(*Pointer[go.shape.interface { ServeHTTP(net/http.ResponseWriter, *net/http.Request) }]).Load in /usr/local/go/src/sync/atomic/type.go
+      90ms       90ms (flat, cum)  0.38% of Total
+      90ms       90ms     58:func (x *Pointer[T]) Load() *T { return (*T)(LoadPointer(&x.v)) }
+         .          .     59:
+         .          .     60:// Store atomically stores val into x.
+         .          .     61:func (x *Pointer[T]) Store(val *T) { StorePointer(&x.v, unsafe.Pointer(val)) }

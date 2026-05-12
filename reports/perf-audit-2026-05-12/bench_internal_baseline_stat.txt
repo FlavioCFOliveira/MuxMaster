@@ -1,0 +1,56 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                          │ reports/perf-audit-2026-05-12/bench_internal_baseline.txt │
+                          │                          sec/op                           │
+StaticRoute-16                                                          25.57n ±   2%
+ParamRoute1-16                                                          121.0n ±   1%
+ParamRoute2-16                                                          142.2n ±   1%
+ParamRoute3-16                                                          147.6n ±   1%
+WildcardRoute-16                                                        123.4n ±   3%
+NotFound-16                                                             334.9n ± 150%
+ParallelStaticRoute-16                                                  4.047n ±   3%
+ParallelParamRoute-16                                                   113.2n ±   2%
+FastStaticRoute-16                                                      26.83n ±   1%
+FastParamRoute1-16                                                      52.55n ±   1%
+FastParamRoute2-16                                                      95.03n ±  25%
+FastParamRoute3-16                                                      77.99n ±  63%
+FastParallelParamRoute-16                                               15.95n ±   1%
+geomean                                                                 62.12n
+
+                          │ reports/perf-audit-2026-05-12/bench_internal_baseline.txt │
+                          │                           B/op                            │
+StaticRoute-16                                                          0.000 ±  0%
+ParamRoute1-16                                                          416.0 ±  0%
+ParamRoute2-16                                                          448.0 ±  0%
+ParamRoute3-16                                                          480.0 ±  0%
+WildcardRoute-16                                                        416.0 ±  0%
+NotFound-16                                                             117.0 ± 13%
+ParallelStaticRoute-16                                                  0.000 ±  0%
+ParallelParamRoute-16                                                   416.0 ±  0%
+FastStaticRoute-16                                                      0.000 ±  0%
+FastParamRoute1-16                                                      32.00 ±  0%
+FastParamRoute2-16                                                      64.00 ±  0%
+FastParamRoute3-16                                                      96.00 ±  0%
+FastParallelParamRoute-16                                               32.00 ±  0%
+geomean                                                                             ¹
+¹ summaries must be >0 to compute geomean
+
+                          │ reports/perf-audit-2026-05-12/bench_internal_baseline.txt │
+                          │                         allocs/op                         │
+StaticRoute-16                                                           0.000 ± 0%
+ParamRoute1-16                                                           1.000 ± 0%
+ParamRoute2-16                                                           1.000 ± 0%
+ParamRoute3-16                                                           1.000 ± 0%
+WildcardRoute-16                                                         1.000 ± 0%
+NotFound-16                                                              3.000 ± 0%
+ParallelStaticRoute-16                                                   0.000 ± 0%
+ParallelParamRoute-16                                                    1.000 ± 0%
+FastStaticRoute-16                                                       0.000 ± 0%
+FastParamRoute1-16                                                       1.000 ± 0%
+FastParamRoute2-16                                                       1.000 ± 0%
+FastParamRoute3-16                                                       1.000 ± 0%
+FastParallelParamRoute-16                                                1.000 ± 0%
+geomean                                                                             ¹
+¹ summaries must be >0 to compute geomean

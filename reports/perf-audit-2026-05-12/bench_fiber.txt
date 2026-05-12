@@ -1,0 +1,46 @@
+goos: linux
+goarch: amd64
+pkg: competitor/fiber_bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkStaticRoute-16            	 6405966	       187.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	 6392066	       189.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	 6365281	       188.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	 6407140	       187.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	 6383649	       187.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute1-16            	 5606319	       211.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute1-16            	 5653004	       212.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute1-16            	 5664561	       212.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute1-16            	 5629062	       212.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute1-16            	 5502567	       212.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute2-16            	 4194942	       284.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute2-16            	 4209381	       285.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute2-16            	 4176255	       285.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute2-16            	 4174240	       286.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute2-16            	 4178092	       287.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute3-16            	 4463383	       270.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute3-16            	 4421097	       269.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute3-16            	 4471611	       267.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute3-16            	 4450376	       267.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute3-16            	 4470847	       269.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkWildcardRoute-16          	 5643292	       211.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkWildcardRoute-16          	 5634525	       211.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkWildcardRoute-16          	 5637098	       213.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkWildcardRoute-16          	 5569477	       214.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkWildcardRoute-16          	 5662905	       212.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFound-16               	 2527093	       470.9 ns/op	       8 B/op	       1 allocs/op
+BenchmarkNotFound-16               	 2544187	       471.1 ns/op	       8 B/op	       1 allocs/op
+BenchmarkNotFound-16               	 2538936	       472.0 ns/op	       8 B/op	       1 allocs/op
+BenchmarkNotFound-16               	 2524465	       471.1 ns/op	       8 B/op	       1 allocs/op
+BenchmarkNotFound-16               	 2534526	       475.5 ns/op	       8 B/op	       1 allocs/op
+BenchmarkParallelStaticRoute-16    	49077134	        25.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	46984605	        25.65 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	45782230	        25.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	46356607	        25.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	45292128	        25.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParamRoute-16     	40470380	        28.67 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParamRoute-16     	41994368	        29.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParamRoute-16     	41257039	        28.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParamRoute-16     	41275574	        28.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParamRoute-16     	41302164	        29.12 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	competitor/fiber_bench	56.577s

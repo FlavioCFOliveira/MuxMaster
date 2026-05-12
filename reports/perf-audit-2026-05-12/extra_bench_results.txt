@@ -1,0 +1,61 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkNotFoundClean-16                      	 3874452	       300.8 ns/op	     117 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                      	 4294068	       297.5 ns/op	     110 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                      	 4306539	       295.3 ns/op	     110 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                      	 4004133	       317.9 ns/op	     115 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                      	 3983029	       324.0 ns/op	     115 B/op	       3 allocs/op
+BenchmarkNotFoundCustomHandler-16              	52373030	        22.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16              	56098400	        22.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16              	57632557	        21.85 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16              	57792678	        22.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16              	56896078	        22.04 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16    	 3576918	       343.4 ns/op	     123 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16    	 3557623	       347.5 ns/op	     123 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16    	 3591823	       343.8 ns/op	     122 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16    	 3593061	       350.7 ns/op	     122 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16    	 3806799	       319.0 ns/op	     118 B/op	       3 allocs/op
+BenchmarkMethodNotAllowed-16                   	 2548902	       449.1 ns/op	     140 B/op	       6 allocs/op
+BenchmarkMethodNotAllowed-16                   	 2685058	       446.3 ns/op	     138 B/op	       6 allocs/op
+BenchmarkMethodNotAllowed-16                   	 2751320	       446.9 ns/op	     136 B/op	       6 allocs/op
+BenchmarkMethodNotAllowed-16                   	 2616993	       440.0 ns/op	     139 B/op	       6 allocs/op
+BenchmarkMethodNotAllowed-16                   	 2646048	       444.1 ns/op	     138 B/op	       6 allocs/op
+BenchmarkOPTIONSAuto-16                        	 8121609	       160.7 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                        	 7361664	       161.0 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                        	 7475337	       161.9 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                        	 7474761	       239.3 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                        	 1817504	       566.7 ns/op	      40 B/op	       3 allocs/op
+BenchmarkGroupDispatch-16                      	 1000000	      1316 ns/op	     416 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                      	  902623	      1215 ns/op	     416 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                      	 1000000	      1252 ns/op	     416 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                      	  870280	      1343 ns/op	     416 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                      	 1000000	      1292 ns/op	     416 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                	 1000000	      1243 ns/op	     416 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                	 1000000	      1136 ns/op	     416 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                	 1000000	      1396 ns/op	     416 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                	  913900	      1368 ns/op	     416 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                	 6838486	       185.2 ns/op	     416 B/op	       1 allocs/op
+BenchmarkRedirectTSL-16                        	  732001	      1554 ns/op	    1305 B/op	      15 allocs/op
+BenchmarkRedirectTSL-16                        	  775327	      1597 ns/op	    1305 B/op	      15 allocs/op
+BenchmarkRedirectTSL-16                        	  745688	      1638 ns/op	    1305 B/op	      15 allocs/op
+BenchmarkRedirectTSL-16                        	  722257	      1578 ns/op	    1305 B/op	      15 allocs/op
+BenchmarkRedirectTSL-16                        	  685942	      1595 ns/op	    1305 B/op	      15 allocs/op
+BenchmarkPathParamLookup-16                    	 5542406	       196.3 ns/op	     416 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                    	 6541083	       172.7 ns/op	     416 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                    	 7236258	       154.8 ns/op	     416 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                    	 7286701	       138.6 ns/op	     416 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                    	 9013594	       132.9 ns/op	     416 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                      	26559358	        47.16 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                      	24439819	        46.09 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                      	25295971	        46.66 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                      	23289776	        48.32 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                      	23536423	        52.55 ns/op	      32 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                  	 7714352	       152.0 ns/op	     448 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                  	 7851206	       148.4 ns/op	     448 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                  	 7689938	       175.2 ns/op	     448 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                  	 6344401	       180.3 ns/op	     448 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                  	 6871148	       182.8 ns/op	     448 B/op	       1 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	78.731s

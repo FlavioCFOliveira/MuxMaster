@@ -11,26 +11,49 @@ import (
 // paramsBuf is a fixed-size params accumulator used in the getValue hot path.
 // Using a fixed-size struct instead of a []Param slice prevents the backing
 // array from escaping to the heap — the compiler can see the size is bounded.
-// maxParams covers ≥99% of real-world APIs.
-const maxParams = 8
+//
+// maxParams is the number of params held inline on the stack. Routes with more
+// than maxParams parameters spill into the overflow slice (one heap alloc), but
+// those routes already pay a heap alloc for the reqBundle, so the extra cost is
+// negligible. maxParams=3 covers ≥99% of real-world REST API routes while
+// keeping the stack frame 160 B smaller than the previous maxParams=8.
+const maxParams = 3
 
 type paramsBuf struct {
-	count int
-	buf   [maxParams]Param
+	count    int
+	buf      [maxParams]Param
+	overflow []Param // populated only for routes with > maxParams params
 }
 
-// add appends a param to the buffer, silently dropping overflow (> maxParams).
+// add appends a param to the buffer. The first maxParams params are stored
+// inline on the stack; additional params spill to a heap-allocated overflow
+// slice (one alloc per request, only for deep routes).
 func (pb *paramsBuf) add(key, value string) {
 	if pb.count < maxParams {
 		pb.buf[pb.count] = Param{Key: key, Value: value}
-		pb.count++
+	} else {
+		pb.overflow = append(pb.overflow, Param{Key: key, Value: value})
 	}
+	pb.count++
 }
 
-// params returns a Params slice backed by the buffer's inline array.
-// The returned slice must not be used after the paramsBuf goes out of scope.
+// params returns the captured params as a Params slice. For routes with
+// ≤ maxParams params the slice is backed by the inline stack array. For
+// deeper routes the inline and overflow portions are concatenated into the
+// overflow slice (one extra alloc, acceptable for the rare >3-param case).
+//
+// The returned slice must not be used after the paramsBuf goes out of scope
+// (for the inline case — the overflow case is heap-allocated and is fine).
 func (pb *paramsBuf) params() Params {
-	return Params(pb.buf[:pb.count])
+	if len(pb.overflow) == 0 {
+		return Params(pb.buf[:pb.count])
+	}
+	// Combine inline and overflow into a single contiguous slice. Prepend the
+	// inline params so the caller sees them in insertion order.
+	all := make(Params, pb.count)
+	copy(all, pb.buf[:maxParams])
+	copy(all[maxParams:], pb.overflow)
+	return all
 }
 
 type nodeType uint8
@@ -84,6 +107,40 @@ func calcPathMaxParams(n *node) uint8 {
 	return mine + childMax
 }
 
+// cloneTree returns a deep copy of the radix subtree rooted at n. The clone
+// shares immutable string and Handler/FastHandler values with the original
+// (those are never mutated in place by addRoute), but allocates fresh node
+// structs and children slices so that mutations on the clone are invisible
+// to readers still holding the previous tree pointer. Used by Handle and
+// HandleFast to make registration two-phase: addRoute mutates the clone;
+// only on success does treesPtr.Store publish it. A panic mid-addRoute
+// discards the clone and the live tree remains intact (MM-2026-0033).
+func cloneTree(n *node) *node {
+	if n == nil {
+		return nil
+	}
+	c := &node{
+		path:          n.path,
+		handler:       n.handler,
+		indices:       n.indices,
+		fast:          n.fast,
+		pattern:       n.pattern,
+		priority:      n.priority,
+		nType:         n.nType,
+		wildChild:     n.wildChild,
+		regexpNameEnd: n.regexpNameEnd,
+		maxParams:     n.maxParams,
+		regexp:        n.regexp,
+	}
+	if len(n.children) > 0 {
+		c.children = make([]*node, len(n.children))
+		for i, ch := range n.children {
+			c.children[i] = cloneTree(ch)
+		}
+	}
+	return c
+}
+
 // addRoute registers an http.Handler for the given path.
 func (n *node) addRoute(path string, handler http.Handler) {
 	n.addRouteInternal(path, handler, nil)
@@ -94,9 +151,26 @@ func (n *node) addRouteFast(path string, fast FastHandler) {
 	n.addRouteInternal(path, nil, fast)
 }
 
+// maxOptionalSegments caps the number of optional segments in a single
+// pattern. Each optional segment doubles the number of expanded routes, so a
+// pattern with N optional segments creates 2^N routes. The cap of 8 keeps
+// expansion bounded at 256 calls — enough for realistic templates while
+// blocking the DoS vector documented as MM-2026-0050 / PRF-2026-0007 where
+// an attacker controlling pattern registration could submit
+// /a{/:1}{/:2}…{/:20} (~2^20 expansions, multi-second registration).
+const maxOptionalSegments = 8
+
 // addRouteInternal registers either an http.Handler or a FastHandler (exactly
 // one must be non-nil) for the given path, expanding optional segments first.
 func (n *node) addRouteInternal(path string, handler http.Handler, fast FastHandler) {
+	// Bound optional-segment expansion before recursing — each {/:name}
+	// doubles the number of registrations, so cap the count to keep the
+	// total expansion at 2^maxOptionalSegments.
+	if c := countOptionalSegments(path); c > maxOptionalSegments {
+		panic("muxmaster: pattern '" + path + "' has " + strconv.Itoa(c) +
+			" optional segments; the maximum is " + strconv.Itoa(maxOptionalSegments) +
+			" to prevent exponential addRoute time complexity (DoS).")
+	}
 	// Expand optional segments before doing anything else.
 	if expanded, ok := expandOptional(path); ok {
 		n.addRouteInternal(expanded[0], handler, fast)
@@ -143,7 +217,12 @@ walk:
 				regexp:    n.regexp,
 			}
 			n.children = []*node{child}
-			n.indices = string(n.path[i])
+			// Wrap the raw byte in a single-element []byte to avoid the
+			// rune-coercion path of string(byte) which would re-encode any
+			// non-ASCII byte (>= 0x80) as a 2-byte UTF-8 sequence and
+			// desynchronise len(n.indices) from len(n.children) — see
+			// PRF-2026-0009 for the multi-byte panic this fix prevents.
+			n.indices = string([]byte{n.path[i]})
 			n.path = path[:i]
 			n.handler = nil
 			n.fast = nil
@@ -173,10 +252,10 @@ walk:
 				if n.wildChild {
 					seg := strings.SplitN(path, "/", 2)[0]
 					pfx := fullPath[:strings.Index(fullPath, seg)] + n.children[len(n.children)-1].path
-					panic("'" + seg + "' in path '" + fullPath +
+					panic("muxmaster: '" + seg + "' in path '" + fullPath +
 						"' conflicts with existing wildcard '" + pfx + "'")
 				}
-				n.indices += string(c)
+				n.indices += string([]byte{c}) // raw byte, not rune (PRF-2026-0009)
 				child := &node{}
 				n.children = append(n.children, child)
 				n.incrementChildPrio(len(n.indices) - 1)
@@ -194,7 +273,7 @@ walk:
 
 				seg := strings.SplitN(path, "/", 2)[0]
 				pfx := fullPath[:strings.Index(fullPath, seg)] + n.path
-				panic("'" + seg + "' in path '" + fullPath +
+				panic("muxmaster: '" + seg + "' in path '" + fullPath +
 					"' conflicts with existing wildcard '" + pfx + "'")
 			}
 
@@ -203,7 +282,7 @@ walk:
 		}
 
 		if n.handler != nil || n.fast != nil {
-			panic("a handler is already registered for path '" + fullPath + "'")
+			panic("muxmaster: a handler is already registered for path '" + fullPath + "'")
 		}
 		n.handler = handler
 		n.fast = fast
@@ -239,10 +318,10 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler, fast Fas
 			break
 		}
 		if !valid {
-			panic("only one wildcard per path segment is allowed in '" + fullPath + "'")
+			panic("muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'")
 		}
 		if len(wc) < 2 {
-			panic("wildcards must be named in path '" + fullPath + "'")
+			panic("muxmaster: wildcards must be named in path '" + fullPath + "'")
 		}
 
 		if wc[0] == ':' {
@@ -287,7 +366,15 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler, fast Fas
 				n.path = path[:i]
 				path = path[i:]
 			}
-			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(1 + colonIdx)}
+			nameEnd := 1 + colonIdx
+			// regexpNameEnd is uint8 (0..255). The name slice ends at this
+			// index, exclusive — so the maximum supported name length is
+			// 254 bytes (uint8(256) would wrap to 0). PRF-2026-0003 fixed
+			// the off-by-one in the panic message.
+			if nameEnd > 255 {
+				panic("muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'")
+			}
+			child := &node{nType: regexParam, path: wc, regexp: re, regexpNameEnd: uint8(nameEnd)}
 			// Append: preserve existing static children so they remain reachable via n.indices.
 			n.children = append(n.children, child)
 			n.wildChild = true
@@ -309,10 +396,10 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler, fast Fas
 
 		// Catch-all '*'
 		if i+len(wc) != len(path) {
-			panic("catch-all routes are only allowed at the end of the path in '" + fullPath + "'")
+			panic("muxmaster: catch-all routes are only allowed at the end of the path in '" + fullPath + "'")
 		}
 		if len(n.path) > 0 && n.path[len(n.path)-1] == '/' {
-			panic("catch-all conflicts with existing handler for the path root in '" + fullPath + "'")
+			panic("muxmaster: catch-all conflicts with existing handler for the path root in '" + fullPath + "'")
 		}
 
 		i--
@@ -364,11 +451,14 @@ walk:
 			path = path[len(prefix):]
 
 			// Always try static children first so that /users/list beats /users/:id.
+			// Opt O3: avoid the slice header construction `children := n.children[:len(n.indices)]`
+			// that the previous code wrote on every walk iteration. The loop already bounds j by
+			// len(n.indices); n.children has at least that many elements (registration invariant),
+			// so n.children[j] is in-bounds without the intermediate slice.
 			c := path[0]
-			children := n.children[:len(n.indices)]
 			for j := range len(n.indices) {
 				if foldEq(c, n.indices[j], ci) {
-					n = children[j]
+					n = n.children[j]
 					continue walk
 				}
 			}
@@ -527,6 +617,62 @@ func (n *node) hasHandler(path string) bool {
 	return h != nil || f != nil
 }
 
+// getValueStatic is the inline-eligible fast path used when the tree root has
+// maxParams == 0 — i.e. when no node under this root captures path parameters
+// (no param, regex, or wildcard children anywhere). With wildchild ruled out,
+// the lookup degenerates to plain prefix walking + leaf match, with no params
+// buffer, no switch, no type discrimination.
+//
+// Returns the matched handler/fast/pattern, and the TSR (trailing-slash-redirect)
+// hint when applicable. The semantics mirror getValue exactly for static trees.
+//
+//go:nosplit
+func (n *node) getValueStatic(path string, ci bool) (handler http.Handler, fast FastHandler, pattern string, tsr bool) {
+walk:
+	for {
+		prefix := n.path
+		if len(path) > len(prefix) {
+			if !prefixMatch(path[:len(prefix)], prefix, ci) {
+				return
+			}
+			path = path[len(prefix):]
+			c := path[0]
+			for j := range len(n.indices) {
+				if foldEq(c, n.indices[j], ci) {
+					n = n.children[j]
+					continue walk
+				}
+			}
+			tsr = path == "/" && (n.handler != nil || n.fast != nil)
+			return
+		}
+		if prefixMatch(path, prefix, ci) && len(path) == len(prefix) {
+			handler = n.handler
+			fast = n.fast
+			pattern = n.pattern
+			if handler != nil || fast != nil {
+				return
+			}
+			for j := range len(n.indices) {
+				if n.indices[j] == '/' {
+					n = n.children[j]
+					tsr = n.path == "/" && (n.handler != nil || n.fast != nil)
+					return
+				}
+			}
+			tsr = path == "/" ||
+				(len(n.indices) == 1 && n.indices[0] == '/' && (n.children[0].handler != nil || n.children[0].fast != nil))
+			return
+		}
+		tsr = (path == "/" ||
+			(len(prefix) == len(path)+1 &&
+				prefix[len(path)] == '/' &&
+				prefixMatch(path, prefix[:len(prefix)-1], ci) &&
+				(n.handler != nil || n.fast != nil)))
+		return
+	}
+}
+
 // walk visits every leaf node (nodes with a registered handler or fast handler)
 // in depth-first order.
 func (n *node) walk(fn func(pattern string, handler http.Handler, fast FastHandler)) {
@@ -578,31 +724,70 @@ func findWildcard(path string) (token string, start int, valid bool) {
 			return path[i:], i, valid
 
 		case '{':
-			// Scan for the matching '}', rejecting nested '{'.
-			depth := 1
-			valid = true
-			for j, ch := range []byte(path[i+1:]) {
-				switch ch {
-				case '{':
-					valid = false
-					depth++
-				case '}':
-					depth--
-					if depth == 0 {
-						return path[i : i+1+j+1], i, valid
-					}
+			// FPE-2026-0001: locate the closing '}' that ends the {name:expr}
+			// param token. The regex body may legitimately contain unbalanced
+			// '}' characters (literal `}`, char classes `[}]`, escaped `\}`,
+			// or quantifiers like `a{2,3}`), so a naive depth scan rejects
+			// valid Go regexes. Treat the path-segment delimiter ('/' or end
+			// of path) as the hard upper bound, and pick the LAST '}' inside
+			// that segment as the closing brace. The shortest valid token
+			// is `{a:x}` (5 bytes), so any '}' before that is too early.
+			end := len(path)
+			for k := i + 1; k < end; k++ {
+				if path[k] == '/' {
+					end = k
+					break
 				}
 			}
-			// No closing '}' found.
-			return "", -1, false
+			closeIdx := -1
+			for k := end - 1; k > i; k-- {
+				if path[k] == '}' {
+					closeIdx = k
+					break
+				}
+			}
+			if closeIdx < 0 {
+				// No closing '}' in this segment.
+				return "", -1, false
+			}
+			return path[i : closeIdx+1], i, true
 		}
 	}
 	return "", -1, false
 }
 
+// countOptionalSegments returns how many {/:name[:expr]} optional segments
+// appear in path. Used to bound the 2^N expansion performed by recursive
+// expandOptional calls.
+func countOptionalSegments(path string) int {
+	count := 0
+	for i := 0; i < len(path); {
+		j := strings.Index(path[i:], "{/:")
+		if j < 0 {
+			break
+		}
+		i += j
+		closing := strings.Index(path[i:], "}")
+		if closing < 0 {
+			// Unclosed { — addRouteInternal/expandOptional will panic with a
+			// dedicated message; do not double-count here.
+			break
+		}
+		count++
+		i += closing + 1
+	}
+	return count
+}
+
 // expandOptional detects a {/:name} or {/:name:expr} optional segment and returns
 // the two expanded paths (without and with the segment). Returns (nil, false) when
 // no optional segment is found.
+//
+// PRF-2026-0001: consecutive optional segments (e.g. /a{/:p1}{/:p2}) cannot
+// be expanded into a coherent radix tree — both `:p1` and `:p2` would land
+// at the same depth as wildcard children, triggering the "only one wildcard
+// per path segment" invariant. Detect this at expansion time and panic with
+// a clear message that points the operator at the supported pattern.
 func expandOptional(path string) ([]string, bool) {
 	i := strings.Index(path, "{/:")
 	if i < 0 {
@@ -613,6 +798,14 @@ func expandOptional(path string) ([]string, bool) {
 		panic("muxmaster: unclosed { in path '" + path + "'")
 	}
 	j += i
+
+	// Reject consecutive optional segments: `}{/:`, possibly with no
+	// literal between them. The expansion would produce sibling wildcards.
+	if j+1 < len(path) && strings.HasPrefix(path[j+1:], "{/:") {
+		panic("muxmaster: consecutive optional segments not supported in path '" + path +
+			"' — separate optional segments with a literal segment, e.g. " +
+			"/users{/:id}/posts{/:post}")
+	}
 
 	inner := path[i+1 : j] // "/:name" or "/:name:expr"
 

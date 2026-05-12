@@ -112,6 +112,8 @@ type muxConfig struct {
 	handleMethodNotAllowed bool
 	handleOPTIONS          bool
 	hasPanicHandler        bool
+	poolFastParams         bool
+	poolRequestBundle      bool
 	redirectCode           int
 
 	// Snapshotted public handler fields (CSA-2026-0052). Reads from these
@@ -218,6 +220,50 @@ type Mux struct {
 	// terminated mid-response, which can confuse clients and HTTP/2
 	// stream multiplexing. See SECURITY.md "Layered panic recovery".
 	PanicHandler func(http.ResponseWriter, *http.Request, any)
+
+	// PoolFastParams, when true, recycles the Params slice handed to
+	// FastHandler routes via a sync.Pool tier (1/2/3). It eliminates the
+	// per-request allocation but enforces a strict lifetime contract:
+	// handlers MUST NOT retain the Params slice (or any backing element)
+	// past their return. Goroutines that capture ps and outlive the handler
+	// see zeroed values at best, or another request's values at worst —
+	// effectively a use-after-free.
+	//
+	// Default is FALSE for backward compatibility with handlers that rely
+	// on the goroutine-safe lifetime previously documented (verified by
+	// TestFastHandlerGoroutineSafe). Operators who audit their FastHandler
+	// implementations and confirm they do not retain ps may opt in for the
+	// allocation/variance reduction.
+	PoolFastParams bool
+
+	// PoolRequestBundle, when true, recycles the per-request reqBundle (the
+	// fused requestCtx + http.Request copy) handed to http.Handler routes
+	// with path parameters via a tiered sync.Pool. It eliminates the
+	// 368/400/480-byte allocation on every param-route request and is the
+	// single largest performance lever for stdlib-style handlers — but it
+	// enforces a strict lifetime contract:
+	//
+	//   Handlers MUST NOT retain the *http.Request (the one passed to
+	//   ServeHTTP) past their return. Goroutines that capture r and outlive
+	//   the handler observe a recycled request bound to an unrelated route —
+	//   effectively a use-after-free against the bundle storage.
+	//
+	// This contract is stricter than the Go stdlib's documented invariant
+	// (net/http itself recycles request structs internally, but only via the
+	// per-connection serve loop, which guarantees the handler has returned
+	// before recycling). With PoolRequestBundle the recycling happens at
+	// MuxMaster's dispatch boundary, which is finer-grained.
+	//
+	// Default is FALSE for full stdlib semantics. Operators who audit their
+	// handlers and confirm they do not retain r past return may opt in to
+	// drive ParamRoute1 from ~106 ns / 384 B / 1 alloc down to roughly
+	// 40-50 ns / 0 B / 0 allocs on the hot path.
+	//
+	// SECURITY (Opt O13): the bundle is fully zeroed before returning to
+	// the pool, so secrets accidentally stored in request fields by a
+	// handler cannot leak across requests. The zeroing cost (~10 ns) is
+	// already included in the projected savings.
+	PoolRequestBundle bool
 
 	middleware     []func(http.Handler) http.Handler
 	pre            []func(http.Handler) http.Handler
@@ -715,6 +761,15 @@ func (m *Mux) lazyNotFound(cfg *muxConfig) http.Handler {
 	return h
 }
 
+// Opt M1: pre-built response constants used by the default lazyMethodNotAllowed
+// handler so that 405 responses skip http.Error's per-call Header().Set +
+// fmt.Fprintln overhead.
+var (
+	method405Body              = []byte(http.StatusText(http.StatusMethodNotAllowed) + "\n")
+	method405ContentTypeVal    = []string{"text/plain; charset=utf-8"}
+	method405XContentOptionVal = []string{"nosniff"}
+)
+
 // lazyMethodNotAllowed returns the middleware-wrapped 405 handler for the
 // given Allow header value, building and caching it on first use per allow key.
 // Reads cfg.methodNotAllowed (frozen snapshot) — see CSA-2026-0052.
@@ -726,14 +781,31 @@ func (m *Mux) lazyMethodNotAllowed(cfg *muxConfig, allow string) http.Handler {
 	m.mu.RLock()
 	mw := m.middleware
 	m.mu.RUnlock()
-	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Allow", allow)
-		if methodNotAllowed != nil {
+
+	// Opt M1: pre-allocate the per-cache-entry Allow value slice once so the
+	// handler does direct map assignment (zero allocs per request).
+	allowVal := []string{allow}
+
+	var inner http.HandlerFunc
+	if methodNotAllowed != nil {
+		inner = func(w http.ResponseWriter, r *http.Request) {
+			w.Header()["Allow"] = allowVal
 			methodNotAllowed.ServeHTTP(w, r)
-		} else {
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		}
-	}), mw)
+	} else {
+		// Default branch: emit the plain-text 405 response with the same byte
+		// sequence as net/http's http.Error would, but without rebuilding
+		// header slices or fmt-formatting the body.
+		inner = func(w http.ResponseWriter, r *http.Request) {
+			h := w.Header()
+			h["Allow"] = allowVal
+			h["Content-Type"] = method405ContentTypeVal
+			h["X-Content-Type-Options"] = method405XContentOptionVal
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			_, _ = w.Write(method405Body)
+		}
+	}
+	h := wrapMiddleware(inner, mw)
 	m.methodNotAllowedCache.Store(allow, h)
 	return h
 }
@@ -791,6 +863,8 @@ func (m *Mux) frozenConfigSlow() *muxConfig {
 		handleMethodNotAllowed: m.HandleMethodNotAllowed,
 		handleOPTIONS:          m.HandleOPTIONS,
 		hasPanicHandler:        m.PanicHandler != nil,
+		poolFastParams:         m.PoolFastParams,
+		poolRequestBundle:      m.PoolRequestBundle,
 		redirectCode:           m.RedirectCode,
 		notFound:               m.NotFound,
 		methodNotAllowed:       m.MethodNotAllowed,
@@ -881,21 +955,36 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 	if root != nil {
 		// paramsBuf is a fixed-size struct — no slice header, no append, no heap escape.
 		// Zero allocs for static routes; 1 alloc (reqBundle) for param routes.
-		// When the tree has no wildcard routes, pass nil to skip zeroing 264 B of stack.
 		var ps paramsBuf
-		var psBuf *paramsBuf
-		if root.maxParams > 0 {
-			psBuf = &ps
+		var (
+			handler http.Handler
+			fast    FastHandler
+			pattern string
+			tsr     bool
+		)
+		if root.maxParams == 0 {
+			// Opt O1: when the entire subtree is static (no param/regex/wildcard),
+			// dispatch through the dedicated getValueStatic that omits the param
+			// switch, the params buffer dereferences, and the wildchild branches.
+			// Also skips zeroing the 128B `ps` stack slot (never written).
+			handler, fast, pattern, tsr = root.getValueStatic(urlPath, cfg.caseInsensitive)
+		} else {
+			handler, fast, pattern, tsr = root.getValue(urlPath, &ps, cfg.caseInsensitive)
 		}
-		handler, fast, pattern, tsr := root.getValue(urlPath, psBuf, cfg.caseInsensitive)
 
 		if handler != nil || fast != nil {
 			if ps.count > 0 {
 				if fast != nil {
-					// FastHandler path: allocate exact-sized Params (count * 32B)
-					// and copy from ps.buf. This keeps ps on the stack — ps.buf is
-					// only read via copy() (a builtin), never passed to a function pointer.
-					fps := make(Params, ps.count)
+					// Opt O9 (opt-in via Mux.PoolFastParams): pull a tier-matched
+					// Params slice from sync.Pool. Default (PoolFastParams=false)
+					// allocates fresh each call to preserve the original
+					// goroutine-safe lifetime documented in handler.go.
+					var fps Params
+					if cfg.poolFastParams {
+						fps = getFastParams(ps.count)
+					} else {
+						fps = make(Params, ps.count)
+					}
 					if len(ps.overflow) == 0 {
 						copy(fps, ps.buf[:ps.count])
 					} else {
@@ -910,7 +999,50 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 						}
 					}
 					fast(w, r, fps)
+					if cfg.poolFastParams {
+						putFastParams(fps)
+					}
 				} else {
+					// Inline 1-param dispatch (Opt O5): bypass the dispatchWithParams
+					// wrapper + switch for the most common REST case (single :id).
+					// Saves one non-inlineable function call and one switch.
+					//
+					// Opt O13: when poolRequestBundle is enabled and the unsafe
+					// ctx field shortcut is available, dispatch via the pooled
+					// path which recycles the reqBundle1 across requests and
+					// eliminates the per-request allocation.
+					if ps.count == 1 {
+						p0 := ps.buf[0]
+						if cfg.unescapePathValues && cfg.useRawPath {
+							if v, err := url.PathUnescape(p0.Value); err == nil {
+								p0.Value = v
+							}
+						}
+						if cfg.poolRequestBundle && hasReqCtxField {
+							dispatchParams1Pooled(w, r, handler, pattern, p0)
+						} else {
+							dispatchParams1(w, r, handler, pattern, p0)
+						}
+						return
+					}
+					if ps.count == 2 {
+						p0 := ps.buf[0]
+						p1 := ps.buf[1]
+						if cfg.unescapePathValues && cfg.useRawPath {
+							if v, err := url.PathUnescape(p0.Value); err == nil {
+								p0.Value = v
+							}
+							if v, err := url.PathUnescape(p1.Value); err == nil {
+								p1.Value = v
+							}
+						}
+						if cfg.poolRequestBundle && hasReqCtxField {
+							dispatchParams2Pooled(w, r, handler, pattern, p0, p1)
+						} else {
+							dispatchParams2(w, r, handler, pattern, p0, p1)
+						}
+						return
+					}
 					pslice := ps.params()
 					if cfg.unescapePathValues && cfg.useRawPath {
 						for i := range pslice {
@@ -919,7 +1051,12 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 							}
 						}
 					}
-					dispatchWithParams(w, r, handler, pattern, pslice)
+					// Opt O13: 3+-param pooled path mirrors the 1/2 path.
+					if cfg.poolRequestBundle && hasReqCtxField {
+						dispatchParamsNPooled(w, r, handler, pattern, pslice)
+					} else {
+						dispatchWithParams(w, r, handler, pattern, pslice)
+					}
 				}
 			} else {
 				// static route — 0 allocs
@@ -942,29 +1079,19 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 				} else {
 					newPath = urlPath + "/"
 				}
-				// HPS-2026-0005: build a path-only Location so that requests in
-				// absolute-form (RFC 7230 §5.3.2, e.g. "GET http://evil.com/x HTTP/1.1")
-				// cannot inject attacker-controlled scheme+host into the redirect.
-				target := (&url.URL{Path: newPath, RawQuery: r.URL.RawQuery}).String()
-				m.mu.RLock()
-				mw := m.middleware
-				m.mu.RUnlock()
-				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					http.Redirect(w, r, target, code)
-				}), mw).ServeHTTP(w, r)
+				// HPS-2026-0005: path-only Location — requests in absolute-form
+				// (RFC 7230 §5.3.2) cannot inject scheme+host into the redirect
+				// because we never serialise r.URL.Scheme/r.URL.Host.
+				// Opt R1: manual concatenation avoids the url.URL{}.String() pair
+				// of allocations (url.URL struct + serialised string).
+				m.serveRedirect(w, r, buildRedirectTarget(newPath, r.URL.RawQuery), code)
 				return
 			}
 
 			if cfg.redirectFixedPath {
 				if fixed, ok := m.cleanedPath(root, urlPath); ok {
 					// HPS-2026-0005: same-origin path-only Location.
-					target := (&url.URL{Path: fixed, RawQuery: r.URL.RawQuery}).String()
-					m.mu.RLock()
-					mw := m.middleware
-					m.mu.RUnlock()
-					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						http.Redirect(w, r, target, code)
-					}), mw).ServeHTTP(w, r)
+					m.serveRedirect(w, r, buildRedirectTarget(fixed, r.URL.RawQuery), code)
 					return
 				}
 			}
@@ -986,7 +1113,13 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 		if h2 != nil || f2 != nil {
 			if ps2.count > 0 {
 				if f2 != nil {
-					fps2 := make(Params, ps2.count)
+					// Opt O9 (opt-in via Mux.PoolFastParams).
+					var fps2 Params
+					if cfg.poolFastParams {
+						fps2 = getFastParams(ps2.count)
+					} else {
+						fps2 = make(Params, ps2.count)
+					}
 					if len(ps2.overflow) == 0 {
 						copy(fps2, ps2.buf[:ps2.count])
 					} else {
@@ -1001,6 +1134,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 						}
 					}
 					f2(w, r, fps2)
+					if cfg.poolFastParams {
+						putFastParams(fps2)
+					}
 				} else {
 					pslice2 := ps2.params()
 					if cfg.unescapePathValues && cfg.useRawPath {
@@ -1036,6 +1172,43 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 	}
 
 	m.lazyNotFound(cfg).ServeHTTP(w, r)
+}
+
+// buildRedirectTarget produces the path-only Location header value for an
+// internal redirect. It avoids the &url.URL{...}.String() pair of allocations
+// in the hot redirect path: instead of constructing a temporary url.URL struct
+// (104B) and asking it to serialise itself (another string allocation), we
+// concatenate the path with `?` + raw query when one is present.
+//
+// SECURITY (HPS-2026-0005): the path is always taken from the request path
+// (already validated by net/http) and never carries a scheme or host. The
+// raw query is appended verbatim, matching url.URL{Path, RawQuery}.String()
+// behaviour — net/http does not validate the query for control characters
+// either, so a downstream client may receive arbitrary query bytes (same
+// posture as before the refactor).
+func buildRedirectTarget(newPath, rawQuery string) string {
+	if rawQuery == "" {
+		return newPath
+	}
+	return newPath + "?" + rawQuery
+}
+
+// serveRedirect emits a redirect response. Opt R1: when no Use()-registered
+// middleware wraps the redirect (the common case), we skip wrapMiddleware
+// entirely — http.Redirect is invoked directly, avoiding the closure escape
+// + middleware-chain rebuild that the previous code paid on every request.
+// With middleware present, the previous behaviour is preserved.
+func (m *Mux) serveRedirect(w http.ResponseWriter, r *http.Request, target string, code int) {
+	m.mu.RLock()
+	mw := m.middleware
+	m.mu.RUnlock()
+	if len(mw) == 0 {
+		http.Redirect(w, r, target, code)
+		return
+	}
+	wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target, code)
+	}), mw).ServeHTTP(w, r)
 }
 
 func (m *Mux) recoverPanic(cfg *muxConfig, w http.ResponseWriter, r *http.Request) {

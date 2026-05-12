@@ -1,0 +1,41 @@
+goos: linux
+goarch: amd64
+pkg: competitor/fiber_bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                       │ /tmp/muxperf/final/competitor_fiber.txt │
+                       │                 sec/op                  │
+StaticRoute-16                                       189.5n ± 1%
+ParamRoute1-16                                       213.1n ± 1%
+ParamRoute2-16                                       288.9n ± 0%
+ParamRoute3-16                                       270.9n ± 1%
+WildcardRoute-16                                     213.6n ± 1%
+NotFound-16                                          478.6n ± 1%
+ParallelStaticRoute-16                               26.64n ± 2%
+ParallelParamRoute-16                                29.48n ± 2%
+geomean                                              149.8n
+
+                       │ /tmp/muxperf/final/competitor_fiber.txt │
+                       │                  B/op                   │
+StaticRoute-16                                      0.000 ± 0%
+ParamRoute1-16                                      0.000 ± 0%
+ParamRoute2-16                                      0.000 ± 0%
+ParamRoute3-16                                      0.000 ± 0%
+WildcardRoute-16                                    0.000 ± 0%
+NotFound-16                                         8.000 ± 0%
+ParallelStaticRoute-16                              0.000 ± 0%
+ParallelParamRoute-16                               0.000 ± 0%
+geomean                                                        ¹
+¹ summaries must be >0 to compute geomean
+
+                       │ /tmp/muxperf/final/competitor_fiber.txt │
+                       │                allocs/op                │
+StaticRoute-16                                      0.000 ± 0%
+ParamRoute1-16                                      0.000 ± 0%
+ParamRoute2-16                                      0.000 ± 0%
+ParamRoute3-16                                      0.000 ± 0%
+WildcardRoute-16                                    0.000 ± 0%
+NotFound-16                                         1.000 ± 0%
+ParallelStaticRoute-16                              0.000 ± 0%
+ParallelParamRoute-16                               0.000 ± 0%
+geomean                                                        ¹
+¹ summaries must be >0 to compute geomean

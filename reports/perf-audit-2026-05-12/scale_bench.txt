@@ -1,0 +1,36 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkScaleStatic10-16       	25691277	        22.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic10-16       	26422668	        23.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic10-16       	26283865	        22.77 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic100-16      	22495155	        25.32 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic100-16      	23369290	        26.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic100-16      	21976273	        25.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic1000-16     	20450473	        30.01 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic1000-16     	18917379	        30.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic1000-16     	18920920	        30.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic10000-16    	17823757	        34.70 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic10000-16    	17154126	        34.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkScaleStatic10000-16    	16662409	        34.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDepthRoute-16          	42794653	        14.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDepthRoute-16          	43589154	        13.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkDepthRoute-16          	41042320	        14.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainDepth_1-16        	38218268	        17.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainDepth_1-16        	36594513	        16.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainDepth_1-16        	38046303	        15.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainDepth_5-16        	20352525	        30.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainDepth_5-16        	20868866	        29.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainDepth_5-16        	21149636	        28.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainDepth_20-16       	 5996323	        94.85 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainDepth_20-16       	 6160071	        95.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChainDepth_20-16       	 6345457	        97.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPreNoOp-16             	28762642	        19.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPreNoOp-16             	31279396	        19.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPreNoOp-16             	32093151	        19.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkUseFastNoOp-16         	39683008	        13.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkUseFastNoOp-16         	46682580	        12.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkUseFastNoOp-16         	45567577	        12.86 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	65.851s
