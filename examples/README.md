@@ -23,7 +23,6 @@ To try one: `cd examples/<name> && go run .`
 | [`server-sent-events`](server-sent-events/) | SSE streaming endpoint — pool-safe because handler stays alive for the whole stream | ✅ | ⭐⭐ |
 | [`upload-file`](upload-file/) | Multipart file upload showing the **body-drain-before-spawn** pattern that makes goroutines pool-safe | ✅ | ⭐⭐⭐ |
 | [`reverse-proxy`](reverse-proxy/) | `httputil.ReverseProxy` mounted on MuxMaster with round-robin + per-route gating; safe under Pool because the proxy returns before `ServeHTTP` exits | ✅ | ⭐⭐ |
-| [`websocket`](websocket/) | gorilla/websocket chat hub; **intentionally avoids Pool** to teach when retention crosses the safe boundary | ❌ (deliberate) | ⭐ |
 | [`graceful-shutdown`](graceful-shutdown/) | `http.Server.Shutdown` integration with SIGINT/SIGTERM | ✅ | ⭐ |
 | [`authn`](authn/) | Multiple auth strategies: `BasicAuth`, API key, JWT chain | ✅ | ⭐ |
 | [`jwt`](jwt/) | JWT issuance + verification middleware | ✅ | ⭐ |
@@ -32,7 +31,7 @@ To try one: `cd examples/<name> && go run .`
 | [`server-side-render`](server-side-render/) | `html/template` rendering with per-page parsed templates | ✅ | ⭐ |
 | [`static-site`](static-site/) | Static-file serving via `ServeFiles` with compression + CORS | ✅ | ⭐ |
 
-**Pool-safe column:** ✅ means the example is compatible with `Mux.PoolRequestBundle = true` (and many of these examples enable it). ❌ marks examples where Pool would introduce a use-after-free risk (currently only `websocket`, because of `Hijack()`'s ownership transfer).
+**Pool-safe column:** ✅ means the example is compatible with `Mux.PoolRequestBundle = true` (and many of these examples enable it). Pool is incompatible with patterns that transfer ownership of the request past `ServeHTTP` return — most notably `Hijack()`-based upgrades (WebSocket, HTTP/2 server push). See [`docs/max-performance.md`](../docs/max-performance.md) "Lifetime contract" for the full audit checklist.
 
 **Performance focus column:**
 - ⭐⭐⭐ — explicitly demonstrates pool opt-ins, lifetime contract, or measurement methodology
@@ -61,7 +60,7 @@ Read [`max-performance/`](max-performance/) first. It enables every opt-in, mixe
 
 ### "I upgrade to a long-lived protocol (WebSocket, gRPC over HTTP/2)"
 
-[`websocket/`](websocket/) — DO NOT enable Pool. After Hijack(), the underlying TCP connection lives independently of `*http.Request`, and any reference held by the upgrade library or your own code becomes a use-after-free against the recycled bundle. The example uses the default `Handle` path (~108 ns / 1 alloc) — irrelevant cost in front of the microsecond-scale WebSocket handshake.
+**Do NOT enable `PoolRequestBundle`.** After `Hijack()`, the underlying TCP connection lives independently of `*http.Request`, and any reference held by the upgrade library or your own code becomes a use-after-free against the recycled bundle. Use the default `Handle` path (~108 ns / 1 alloc) — irrelevant cost in front of the microsecond-scale upgrade handshake.
 
 ### "I have a versioned API with shared middleware"
 
