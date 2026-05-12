@@ -990,29 +990,19 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 				} else {
 					newPath = urlPath + "/"
 				}
-				// HPS-2026-0005: build a path-only Location so that requests in
-				// absolute-form (RFC 7230 §5.3.2, e.g. "GET http://evil.com/x HTTP/1.1")
-				// cannot inject attacker-controlled scheme+host into the redirect.
-				target := (&url.URL{Path: newPath, RawQuery: r.URL.RawQuery}).String()
-				m.mu.RLock()
-				mw := m.middleware
-				m.mu.RUnlock()
-				wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					http.Redirect(w, r, target, code)
-				}), mw).ServeHTTP(w, r)
+				// HPS-2026-0005: path-only Location — requests in absolute-form
+				// (RFC 7230 §5.3.2) cannot inject scheme+host into the redirect
+				// because we never serialise r.URL.Scheme/r.URL.Host.
+				// Opt R1: manual concatenation avoids the url.URL{}.String() pair
+				// of allocations (url.URL struct + serialised string).
+				m.serveRedirect(w, r, buildRedirectTarget(newPath, r.URL.RawQuery), code)
 				return
 			}
 
 			if cfg.redirectFixedPath {
 				if fixed, ok := m.cleanedPath(root, urlPath); ok {
 					// HPS-2026-0005: same-origin path-only Location.
-					target := (&url.URL{Path: fixed, RawQuery: r.URL.RawQuery}).String()
-					m.mu.RLock()
-					mw := m.middleware
-					m.mu.RUnlock()
-					wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						http.Redirect(w, r, target, code)
-					}), mw).ServeHTTP(w, r)
+					m.serveRedirect(w, r, buildRedirectTarget(fixed, r.URL.RawQuery), code)
 					return
 				}
 			}
@@ -1084,6 +1074,43 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 	}
 
 	m.lazyNotFound(cfg).ServeHTTP(w, r)
+}
+
+// buildRedirectTarget produces the path-only Location header value for an
+// internal redirect. It avoids the &url.URL{...}.String() pair of allocations
+// in the hot redirect path: instead of constructing a temporary url.URL struct
+// (104B) and asking it to serialise itself (another string allocation), we
+// concatenate the path with `?` + raw query when one is present.
+//
+// SECURITY (HPS-2026-0005): the path is always taken from the request path
+// (already validated by net/http) and never carries a scheme or host. The
+// raw query is appended verbatim, matching url.URL{Path, RawQuery}.String()
+// behaviour — net/http does not validate the query for control characters
+// either, so a downstream client may receive arbitrary query bytes (same
+// posture as before the refactor).
+func buildRedirectTarget(newPath, rawQuery string) string {
+	if rawQuery == "" {
+		return newPath
+	}
+	return newPath + "?" + rawQuery
+}
+
+// serveRedirect emits a redirect response. Opt R1: when no Use()-registered
+// middleware wraps the redirect (the common case), we skip wrapMiddleware
+// entirely — http.Redirect is invoked directly, avoiding the closure escape
+// + middleware-chain rebuild that the previous code paid on every request.
+// With middleware present, the previous behaviour is preserved.
+func (m *Mux) serveRedirect(w http.ResponseWriter, r *http.Request, target string, code int) {
+	m.mu.RLock()
+	mw := m.middleware
+	m.mu.RUnlock()
+	if len(mw) == 0 {
+		http.Redirect(w, r, target, code)
+		return
+	}
+	wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target, code)
+	}), mw).ServeHTTP(w, r)
 }
 
 func (m *Mux) recoverPanic(cfg *muxConfig, w http.ResponseWriter, r *http.Request) {
