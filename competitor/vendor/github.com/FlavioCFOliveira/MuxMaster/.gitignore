@@ -30,3 +30,19 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Development tooling — not part of the published module
+.claude/
+competitor/
+
+# Example binaries (produced by go build inside examples/)
+examples/rest-api/rest-api
+examples/static-site/static-site
+examples/authn/authn
+examples/jwt/jwt
+examples/cache/cache
+examples/templates/templates-example
+examples/oauth2/oauth2
+examples/server-side-render/server-side-render
+examples/graceful-shutdown/graceful-shutdown
+reports/concurrency-security-auditor/evidence/2026-05-07/race_harness.txt

@@ -4,6 +4,9 @@ github.com/FlavioCFOliveira/MuxMaster
 # github.com/go-chi/chi/v5 v5.2.5
 ## explicit; go 1.22
 github.com/go-chi/chi/v5
+# github.com/gorilla/mux v1.8.1
+## explicit; go 1.20
+github.com/gorilla/mux
 # github.com/julienschmidt/httprouter v1.3.0
 ## explicit; go 1.7
 github.com/julienschmidt/httprouter
