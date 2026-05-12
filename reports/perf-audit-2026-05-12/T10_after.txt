@@ -1,0 +1,46 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkNotFoundClean-16            	 4954788	       234.4 ns/op	     102 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16            	 5627290	       225.1 ns/op	      95 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16            	 5345169	       225.3 ns/op	      98 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16            	 5202908	       230.1 ns/op	      99 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16            	 5300407	       231.4 ns/op	      98 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16            	 5243014	       236.3 ns/op	      99 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16            	 5369577	       226.6 ns/op	      97 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16            	 5350032	       232.9 ns/op	      98 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16            	 5292412	       227.7 ns/op	      98 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16            	 5292378	       232.8 ns/op	      98 B/op	       3 allocs/op
+BenchmarkNotFoundCustomHandler-16    	69053616	        17.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16    	70246716	        17.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16    	69436777	        17.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16    	62633810	        17.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16    	69643366	        17.10 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16    	70030262	        17.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16    	65214888	        16.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16    	66420974	        16.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16    	70416290	        16.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16    	68701026	        16.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMethodNotAllowed-16         	 8038071	       147.3 ns/op	      90 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16         	 9467780	       141.8 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16         	 9573530	       144.3 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16         	 9644893	       142.4 ns/op	      79 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16         	 9345422	       141.2 ns/op	      81 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16         	 9645466	       140.8 ns/op	      79 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16         	 9682129	       141.2 ns/op	      79 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16         	 9536997	       142.1 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16         	 9629557	       141.4 ns/op	      79 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16         	 9677133	       142.6 ns/op	      79 B/op	       2 allocs/op
+BenchmarkOPTIONSAuto-16              	 8451033	       141.3 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16              	 8406842	       140.5 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16              	 8509202	       140.5 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16              	 8494159	       140.8 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16              	 8463838	       141.5 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16              	 8467480	       142.2 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16              	 8540000	       140.1 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16              	 8557222	       140.7 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16              	 8496234	       140.0 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16              	 8438134	       141.7 ns/op	      40 B/op	       3 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	54.555s

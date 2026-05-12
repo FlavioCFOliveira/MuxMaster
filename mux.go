@@ -715,6 +715,15 @@ func (m *Mux) lazyNotFound(cfg *muxConfig) http.Handler {
 	return h
 }
 
+// Opt M1: pre-built response constants used by the default lazyMethodNotAllowed
+// handler so that 405 responses skip http.Error's per-call Header().Set +
+// fmt.Fprintln overhead.
+var (
+	method405Body              = []byte(http.StatusText(http.StatusMethodNotAllowed) + "\n")
+	method405ContentTypeVal    = []string{"text/plain; charset=utf-8"}
+	method405XContentOptionVal = []string{"nosniff"}
+)
+
 // lazyMethodNotAllowed returns the middleware-wrapped 405 handler for the
 // given Allow header value, building and caching it on first use per allow key.
 // Reads cfg.methodNotAllowed (frozen snapshot) — see CSA-2026-0052.
@@ -726,14 +735,31 @@ func (m *Mux) lazyMethodNotAllowed(cfg *muxConfig, allow string) http.Handler {
 	m.mu.RLock()
 	mw := m.middleware
 	m.mu.RUnlock()
-	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Allow", allow)
-		if methodNotAllowed != nil {
+
+	// Opt M1: pre-allocate the per-cache-entry Allow value slice once so the
+	// handler does direct map assignment (zero allocs per request).
+	allowVal := []string{allow}
+
+	var inner http.HandlerFunc
+	if methodNotAllowed != nil {
+		inner = func(w http.ResponseWriter, r *http.Request) {
+			w.Header()["Allow"] = allowVal
 			methodNotAllowed.ServeHTTP(w, r)
-		} else {
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		}
-	}), mw)
+	} else {
+		// Default branch: emit the plain-text 405 response with the same byte
+		// sequence as net/http's http.Error would, but without rebuilding
+		// header slices or fmt-formatting the body.
+		inner = func(w http.ResponseWriter, r *http.Request) {
+			h := w.Header()
+			h["Allow"] = allowVal
+			h["Content-Type"] = method405ContentTypeVal
+			h["X-Content-Type-Options"] = method405XContentOptionVal
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			_, _ = w.Write(method405Body)
+		}
+	}
+	h := wrapMiddleware(inner, mw)
 	m.methodNotAllowedCache.Store(allow, h)
 	return h
 }
