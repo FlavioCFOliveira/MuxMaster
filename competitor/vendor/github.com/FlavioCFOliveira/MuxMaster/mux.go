@@ -113,6 +113,7 @@ type muxConfig struct {
 	handleOPTIONS          bool
 	hasPanicHandler        bool
 	poolFastParams         bool
+	poolRequestBundle      bool
 	redirectCode           int
 
 	// Snapshotted public handler fields (CSA-2026-0052). Reads from these
@@ -234,6 +235,35 @@ type Mux struct {
 	// implementations and confirm they do not retain ps may opt in for the
 	// allocation/variance reduction.
 	PoolFastParams bool
+
+	// PoolRequestBundle, when true, recycles the per-request reqBundle (the
+	// fused requestCtx + http.Request copy) handed to http.Handler routes
+	// with path parameters via a tiered sync.Pool. It eliminates the
+	// 368/400/480-byte allocation on every param-route request and is the
+	// single largest performance lever for stdlib-style handlers — but it
+	// enforces a strict lifetime contract:
+	//
+	//   Handlers MUST NOT retain the *http.Request (the one passed to
+	//   ServeHTTP) past their return. Goroutines that capture r and outlive
+	//   the handler observe a recycled request bound to an unrelated route —
+	//   effectively a use-after-free against the bundle storage.
+	//
+	// This contract is stricter than the Go stdlib's documented invariant
+	// (net/http itself recycles request structs internally, but only via the
+	// per-connection serve loop, which guarantees the handler has returned
+	// before recycling). With PoolRequestBundle the recycling happens at
+	// MuxMaster's dispatch boundary, which is finer-grained.
+	//
+	// Default is FALSE for full stdlib semantics. Operators who audit their
+	// handlers and confirm they do not retain r past return may opt in to
+	// drive ParamRoute1 from ~106 ns / 384 B / 1 alloc down to roughly
+	// 40-50 ns / 0 B / 0 allocs on the hot path.
+	//
+	// SECURITY (Opt O13): the bundle is fully zeroed before returning to
+	// the pool, so secrets accidentally stored in request fields by a
+	// handler cannot leak across requests. The zeroing cost (~10 ns) is
+	// already included in the projected savings.
+	PoolRequestBundle bool
 
 	middleware     []func(http.Handler) http.Handler
 	pre            []func(http.Handler) http.Handler
@@ -834,6 +864,7 @@ func (m *Mux) frozenConfigSlow() *muxConfig {
 		handleOPTIONS:          m.HandleOPTIONS,
 		hasPanicHandler:        m.PanicHandler != nil,
 		poolFastParams:         m.PoolFastParams,
+		poolRequestBundle:      m.PoolRequestBundle,
 		redirectCode:           m.RedirectCode,
 		notFound:               m.NotFound,
 		methodNotAllowed:       m.MethodNotAllowed,
@@ -975,6 +1006,11 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 					// Inline 1-param dispatch (Opt O5): bypass the dispatchWithParams
 					// wrapper + switch for the most common REST case (single :id).
 					// Saves one non-inlineable function call and one switch.
+					//
+					// Opt O13: when poolRequestBundle is enabled and the unsafe
+					// ctx field shortcut is available, dispatch via the pooled
+					// path which recycles the reqBundle1 across requests and
+					// eliminates the per-request allocation.
 					if ps.count == 1 {
 						p0 := ps.buf[0]
 						if cfg.unescapePathValues && cfg.useRawPath {
@@ -982,7 +1018,29 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 								p0.Value = v
 							}
 						}
-						doDispatch1(w, r, handler, pattern, p0)
+						if cfg.poolRequestBundle && hasReqCtxField {
+							dispatchParams1Pooled(w, r, handler, pattern, p0)
+						} else {
+							dispatchParams1(w, r, handler, pattern, p0)
+						}
+						return
+					}
+					if ps.count == 2 {
+						p0 := ps.buf[0]
+						p1 := ps.buf[1]
+						if cfg.unescapePathValues && cfg.useRawPath {
+							if v, err := url.PathUnescape(p0.Value); err == nil {
+								p0.Value = v
+							}
+							if v, err := url.PathUnescape(p1.Value); err == nil {
+								p1.Value = v
+							}
+						}
+						if cfg.poolRequestBundle && hasReqCtxField {
+							dispatchParams2Pooled(w, r, handler, pattern, p0, p1)
+						} else {
+							dispatchParams2(w, r, handler, pattern, p0, p1)
+						}
 						return
 					}
 					pslice := ps.params()
@@ -993,7 +1051,12 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 							}
 						}
 					}
-					dispatchWithParams(w, r, handler, pattern, pslice)
+					// Opt O13: 3+-param pooled path mirrors the 1/2 path.
+					if cfg.poolRequestBundle && hasReqCtxField {
+						dispatchParamsNPooled(w, r, handler, pattern, pslice)
+					} else {
+						dispatchWithParams(w, r, handler, pattern, pslice)
+					}
 				}
 			} else {
 				// static route — 0 allocs

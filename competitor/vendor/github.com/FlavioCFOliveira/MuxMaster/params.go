@@ -102,21 +102,25 @@ var errParamNotFound = errors.New("muxmaster: parameter not found")
 // Each tier is sized to the actual param count so that the GC allocation
 // size class matches the minimum required memory:
 //
-//   requestCtx1 + http.Request = 88 + 304 = 392 B → size class 416 B
-//   requestCtx2 + http.Request = 120 + 304 = 424 B → size class 448 B
+//   requestCtx1 + http.Request = 64 + 304 = 368 B → size class 384 B (Opt O12)
+//   requestCtx2 + http.Request = 96 + 304 = 400 B → size class 416 B (Opt O12)
 //   requestCtx  + http.Request = 152 + 304 = 456 B → size class 480 B
 //
-// Using the right tier for 1- and 2-param routes saves 64 B and 32 B per
-// allocation respectively, reducing both malloc cost and GC scan pressure.
+// Opt O12: requestCtx1 and requestCtx2 no longer carry a `params Params`
+// field — the slice header is derived on access from `small[:N]`. This
+// saves 24 bytes per allocation on the 1- and 2-param tiers, dropping
+// them into smaller GC size classes (384/416 vs the previous 416/448).
+// The slice header is stack-allocated each access (no heap traffic).
+// The 3+-param tier retains `params` because it must support overflow.
 //
 // All three types implement context.Context identically — they intercept
 // the route-params context key and forward everything else to the parent.
 // --------------------------------------------------------------------------
 
 // requestCtx1 IS the context for routes with exactly 1 parameter.
+// Opt O12: no `params Params` field — derived from `small[:1]` on access.
 type requestCtx1 struct {
 	context.Context
-	params  Params
 	pattern string
 	small   [1]Param
 }
@@ -130,7 +134,7 @@ func (c *requestCtx1) Value(key any) any {
 }
 
 // reqBundle1 fuses requestCtx1 and a cloned http.Request in a single heap
-// allocation (392 B, size class 416 B) for routes with exactly 1 parameter.
+// allocation (368 B, size class 384 B) for routes with exactly 1 parameter.
 //
 // The fused allocation is safe because:
 //   - bundle is freshly allocated — no goroutine has a reference yet
@@ -143,9 +147,9 @@ type reqBundle1 struct {
 }
 
 // requestCtx2 IS the context for routes with exactly 2 parameters.
+// Opt O12: no `params Params` field — derived from `small[:2]` on access.
 type requestCtx2 struct {
 	context.Context
-	params  Params
 	pattern string
 	small   [2]Param
 }
@@ -159,7 +163,7 @@ func (c *requestCtx2) Value(key any) any {
 }
 
 // reqBundle2 fuses requestCtx2 and a cloned http.Request in a single heap
-// allocation (424 B, size class 448 B) for routes with exactly 2 parameters.
+// allocation (400 B, size class 416 B) for routes with exactly 2 parameters.
 type reqBundle2 struct {
 	ctx requestCtx2
 	req http.Request
@@ -238,6 +242,29 @@ func getReqCtxUnsafe(req *http.Request) context.Context {
 	return *(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset))
 }
 
+// Opt O13: reqBundle pools recycle the fused requestCtx + http.Request copy
+// handed to http.Handler routes with path parameters. They are used only
+// when Mux.PoolRequestBundle is true (opt-in — see mux.go for the strict
+// lifetime contract that handlers must observe).
+//
+// Each pool corresponds to a tier (1/2/3+ params) so that get/put never
+// shuffles bundles between size classes. The 3+-param pool's bundle
+// contains a heap-allocated overflow Params slice for routes with more
+// than 3 params; that slice is dropped (set to nil) before Put and
+// re-allocated on the next Get when needed — this keeps the pool's
+// bundle size constant and avoids retaining the overflow slice across
+// requests.
+//
+// SAFETY: handlers MUST NOT retain *http.Request past return. The
+// zeroing on Put prevents the *next* request from observing stale state
+// in fields the handler may have written, but it does NOT make stale
+// references safe in goroutines that survive the handler.
+var (
+	reqBundle1Pool = sync.Pool{New: func() any { return new(reqBundle1) }}
+	reqBundle2Pool = sync.Pool{New: func() any { return new(reqBundle2) }}
+	reqBundlePool  = sync.Pool{New: func() any { return new(reqBundle) }}
+)
+
 // Opt O9: fastParamsPool recycles the Params slices handed to FastHandler
 // routes. Three tiers match the common-case sizes exactly (1/2/3 params),
 // avoiding heap allocation on every fast-route dispatch.
@@ -300,68 +327,128 @@ func putFastParams(ps Params) {
 	}
 }
 
-// doDispatch1 and doDispatch2 are function pointers selected once at init based
-// on whether the unsafe ctx field shortcut is available. This avoids a branch +
-// load of hasReqCtxField on every param-route request.
-var (
-	doDispatch1 func(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param)
-	doDispatch2 func(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param)
-)
-
-func init() {
+// dispatchParams1 allocates a tier-1 bundle and dispatches to h with one param.
+//
+// Opt O10: the function-pointer indirection that previously routed Fast/Safe
+// has been eliminated — a direct call replaces the indirect CALL through a
+// register, restoring branch prediction and inlining-budget reasoning at every
+// call site. The internal `if hasReqCtxField` is a load from a process-lifetime
+// constant — perfectly predicted after the first request and dead-code-removed
+// on systems where reflect confirms the field exists at init time.
+//
+//go:nosplit
+func dispatchParams1(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
 	if hasReqCtxField {
-		doDispatch1 = dispatchParams1Fast
-		doDispatch2 = dispatchParams2Fast
-	} else {
-		doDispatch1 = dispatchParams1Safe
-		doDispatch2 = dispatchParams2Safe
+		// Fast path: fused requestCtx1 + http.Request in a single 384 B alloc
+		// (Opt O12 — was 416 B before slimming requestCtx1).
+		b := &reqBundle1{}
+		b.ctx.Context = getReqCtxUnsafe(r) // skip r.Context() method call
+		b.ctx.pattern = pattern
+		b.ctx.small[0] = p
+		b.req = *r
+		setReqCtxUnsafe(&b.req, &b.ctx)
+		h.ServeHTTP(w, &b.req)
+		return
 	}
-}
-
-// dispatchParams1Fast allocates a reqBundle1 (size class 416 B) and calls h.
-// Used when the unsafe ctx field shortcut is available (hasReqCtxField == true).
-func dispatchParams1Fast(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
-	b := &reqBundle1{}
-	b.ctx.Context = getReqCtxUnsafe(r) // Opt O5a: skip r.Context() method call
-	b.ctx.pattern = pattern
-	b.ctx.small[0] = p
-	b.ctx.params = Params(b.ctx.small[:1])
-	b.req = *r
-	setReqCtxUnsafe(&b.req, &b.ctx)
-	h.ServeHTTP(w, &b.req)
-}
-
-// dispatchParams1Safe is the fallback for routes with exactly 1 param when the
-// unsafe ctx field shortcut is unavailable (hasReqCtxField == false).
-func dispatchParams1Safe(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
+	// Safe fallback for hypothetical future Go versions that rename `ctx`.
 	rc := &requestCtx1{Context: r.Context(), pattern: pattern}
 	rc.small[0] = p
-	rc.params = Params(rc.small[:1])
 	h.ServeHTTP(w, r.WithContext(rc))
 }
 
-// dispatchParams2Fast allocates a reqBundle2 (size class 448 B) and calls h.
-// Used when the unsafe ctx field shortcut is available (hasReqCtxField == true).
-func dispatchParams2Fast(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param) {
-	b := &reqBundle2{}
-	b.ctx.Context = getReqCtxUnsafe(r) // Opt O5a: skip r.Context() method call
-	b.ctx.pattern = pattern
-	b.ctx.small[0] = p0
-	b.ctx.small[1] = p1
-	b.ctx.params = Params(b.ctx.small[:2])
-	b.req = *r
-	setReqCtxUnsafe(&b.req, &b.ctx)
-	h.ServeHTTP(w, &b.req)
-}
-
-// dispatchParams2Safe is the fallback for routes with exactly 2 params when the
-// unsafe ctx field shortcut is unavailable (hasReqCtxField == false).
-func dispatchParams2Safe(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param) {
+// dispatchParams2 allocates a tier-2 bundle and dispatches to h with two params.
+// See dispatchParams1 for the rationale of the merged Fast/Safe branch.
+//
+//go:nosplit
+func dispatchParams2(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param) {
+	if hasReqCtxField {
+		// Fused 400 B alloc — size class 416 B (Opt O12, was 448 B).
+		b := &reqBundle2{}
+		b.ctx.Context = getReqCtxUnsafe(r)
+		b.ctx.pattern = pattern
+		b.ctx.small[0] = p0
+		b.ctx.small[1] = p1
+		b.req = *r
+		setReqCtxUnsafe(&b.req, &b.ctx)
+		h.ServeHTTP(w, &b.req)
+		return
+	}
 	rc := &requestCtx2{Context: r.Context(), pattern: pattern}
 	rc.small[0] = p0
 	rc.small[1] = p1
-	rc.params = Params(rc.small[:2])
 	h.ServeHTTP(w, r.WithContext(rc))
+}
+
+// dispatchParams1Pooled is the Opt O13 opt-in variant of dispatchParams1.
+// It draws the reqBundle1 from sync.Pool and returns it after the handler
+// completes, eliminating the per-request 384 B allocation. The strict
+// lifetime contract is documented on Mux.PoolRequestBundle.
+//
+// hasReqCtxField is guaranteed true here (the pool path requires the unsafe
+// shortcut for the zeroing to be cheap). Operators on platforms where the
+// shortcut is unavailable fall back to dispatchParams1's Safe branch via
+// the non-pooled path in dispatch().
+//
+//go:nosplit
+func dispatchParams1Pooled(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
+	b := reqBundle1Pool.Get().(*reqBundle1)
+	b.ctx.Context = getReqCtxUnsafe(r)
+	b.ctx.pattern = pattern
+	b.ctx.small[0] = p
+	b.req = *r
+	setReqCtxUnsafe(&b.req, &b.ctx)
+	h.ServeHTTP(w, &b.req)
+	// Zero before Put to prevent secret/reference leak into the next request.
+	// `*b = reqBundle1{}` is the single fastest way to clear: it emits a
+	// 368-byte aligned MOVUPS sequence (~5 ns) and clears the embedded
+	// http.Request fields, including Body and headers.
+	*b = reqBundle1{}
+	reqBundle1Pool.Put(b)
+}
+
+// dispatchParams2Pooled is the Opt O13 opt-in variant of dispatchParams2.
+//
+//go:nosplit
+func dispatchParams2Pooled(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param) {
+	b := reqBundle2Pool.Get().(*reqBundle2)
+	b.ctx.Context = getReqCtxUnsafe(r)
+	b.ctx.pattern = pattern
+	b.ctx.small[0] = p0
+	b.ctx.small[1] = p1
+	b.req = *r
+	setReqCtxUnsafe(&b.req, &b.ctx)
+	h.ServeHTTP(w, &b.req)
+	*b = reqBundle2{}
+	reqBundle2Pool.Put(b)
+}
+
+// dispatchParamsNPooled is the Opt O13 opt-in variant of the 3+-param path
+// inside dispatchWithParams. It mirrors the in-place logic from that
+// function's `default:` branch but uses a pooled reqBundle.
+//
+//go:nosplit
+func dispatchParamsNPooled(w http.ResponseWriter, r *http.Request, handler http.Handler, pattern string, pslice []Param) {
+	bundle := reqBundlePool.Get().(*reqBundle)
+	bundle.ctx.Context = getReqCtxUnsafe(r)
+	bundle.ctx.pattern = pattern
+	n := len(pslice)
+	if n <= 3 {
+		for i := range n {
+			bundle.ctx.small[i] = pslice[i]
+		}
+		bundle.ctx.params = Params(bundle.ctx.small[:n])
+	} else {
+		// Overflow: allocate a fresh Params slice. The pooled bundle holds
+		// only `params` (slice header) — the backing array is GC-managed.
+		overflow := make(Params, n)
+		copy(overflow, pslice)
+		bundle.ctx.params = overflow
+	}
+	bundle.req = *r
+	setReqCtxUnsafe(&bundle.req, &bundle.ctx)
+	handler.ServeHTTP(w, &bundle.req)
+	*bundle = reqBundle{}
+	reqBundlePool.Put(bundle)
 }
 
 // dispatchWithParams dispatches to handler after params have been extracted.
@@ -369,15 +456,17 @@ func dispatchParams2Safe(w http.ResponseWriter, r *http.Request, h http.Handler,
 // the caller if UnescapePathValues is set. The caller is responsible for
 // unescape so that this function stays independent of *Mux.
 //
-// Case 1 and 2 are delegated to doDispatch1/doDispatch2 (function pointers
-// selected once at init), which allocate the smallest fitting reqBundle tier.
+// Case 1 and 2 are delegated to dispatchParams1/dispatchParams2 (Opt O10:
+// previously routed through `var doDispatch1/2 func(...)` pointers; the direct
+// call eliminates the indirect CALL through a register and lets the compiler
+// reason about each call site's inlining budget).
 // Case 3+ uses reqBundle (480 B, size class 480 B) directly.
 func dispatchWithParams(w http.ResponseWriter, r *http.Request, handler http.Handler, pattern string, pslice []Param) {
 	switch len(pslice) {
 	case 1:
-		doDispatch1(w, r, handler, pattern, pslice[0])
+		dispatchParams1(w, r, handler, pattern, pslice[0])
 	case 2:
-		doDispatch2(w, r, handler, pattern, pslice[0], pslice[1])
+		dispatchParams2(w, r, handler, pattern, pslice[0], pslice[1])
 	default:
 		// 3+ params: use reqBundle (480 B, size class 480 B).
 		n := len(pslice)
@@ -434,21 +523,22 @@ func dispatchWithParams(w http.ResponseWriter, r *http.Request, handler http.Han
 func routeCtxParams(ctx context.Context) Params {
 	switch rc := ctx.(type) {
 	case *requestCtx1:
-		return rc.params
+		// Opt O12: slice header derived from inline array — no field load.
+		return Params(rc.small[:1])
 	case *requestCtx:
 		return rc.params
 	case *requestCtx2:
-		return rc.params
+		return Params(rc.small[:2])
 	}
 	// Slow path: context has been wrapped by middleware; traverse the chain.
 	if v := ctx.Value(contextKey{}); v != nil {
 		switch rc := v.(type) {
 		case *requestCtx1:
-			return rc.params
+			return Params(rc.small[:1])
 		case *requestCtx:
 			return rc.params
 		case *requestCtx2:
-			return rc.params
+			return Params(rc.small[:2])
 		}
 	}
 	return nil

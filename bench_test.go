@@ -261,3 +261,77 @@ func BenchmarkFastParallelParamRoute(b *testing.B) {
 		}
 	})
 }
+
+// newPooledBenchMux is newBenchMux with PoolRequestBundle enabled (Opt O13).
+func newPooledBenchMux() *muxmaster.Mux {
+	m := newBenchMux()
+	m.PoolRequestBundle = true
+	return m
+}
+
+// BenchmarkPooledParamRoute1 measures Opt O13 (PoolRequestBundle) with 1 param.
+func BenchmarkPooledParamRoute1(b *testing.B) {
+	m := newPooledBenchMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/users/42")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkPooledParamRoute2 measures Opt O13 with 2 params.
+func BenchmarkPooledParamRoute2(b *testing.B) {
+	m := newPooledBenchMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/users/42/posts/7")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkPooledParamRoute3 measures Opt O13 with 3 params.
+func BenchmarkPooledParamRoute3(b *testing.B) {
+	m := newPooledBenchMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/orgs/acme/repos/api/issues/123")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkPooledWildcardRoute measures Opt O13 with a catch-all param.
+func BenchmarkPooledWildcardRoute(b *testing.B) {
+	m := newPooledBenchMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/static/css/main.min.css")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkPooledParallelParamRoute measures Opt O13 concurrently.
+func BenchmarkPooledParallelParamRoute(b *testing.B) {
+	m := newPooledBenchMux()
+	r := benchReq(http.MethodGet, "/users/42")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		w := httptest.NewRecorder()
+		for pb.Next() {
+			m.ServeHTTP(w, r)
+		}
+	})
+}

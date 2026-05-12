@@ -15,46 +15,45 @@ import (
 //
 // Current size classes on amd64 (Go 1.26+, 8-byte pointer):
 //
-//	reqBundle1  392 B → GC size class 416 B   (1-param routes)
-//	reqBundle2  424 B → GC size class 448 B   (2-param routes)
+//	reqBundle1  368 B → GC size class 384 B   (1-param routes — Opt O12)
+//	reqBundle2  400 B → GC size class 416 B   (2-param routes — Opt O12)
 //	reqBundle   456 B → GC size class 480 B   (3+-param routes)
 //
-// Why 384 B is not achievable for reqBundle1:
-//   - http.Request is 304 B (fixed by the stdlib).
-//   - requestCtx1 needs: context.Context iface (16 B) + Params slice header
-//     (24 B) + pattern string (16 B) + [1]Param (32 B) = 88 B.
-//   - Removing pattern from requestCtx1 yields 72 B → bundle 376 B → class
-//     384 B, but then RoutePattern() cannot be served from the bundle, which
-//     would be a behavioral regression.  There is no internal padding to
-//     reorganise; every byte is load-bearing.
+// Opt O12 (May 2026): requestCtx1 and requestCtx2 dropped their `params Params`
+// field. The slice header is derived from `small[:N]` on access in
+// routeCtxParams (stack-allocated header, no heap traffic). This shaved 24 B
+// off each struct and pulled reqBundle1/2 into the next smaller GC size class.
 //
-// Therefore 416 B is the minimum size class compatible with the current API.
+// requestCtx remains at 152 B because the 3+-param tier must support
+// overflow params (>3) via a heap-allocated Params slice.
 func TestBundleLayoutSizes(t *testing.T) {
 	t.Run("requestCtx1", func(t *testing.T) {
-		const want = 88
+		// ctx 16 + pattern 16 + [1]Param 32 = 64 B (Opt O12).
+		const want = 64
 		if got := unsafe.Sizeof(requestCtx1{}); got != want {
 			t.Errorf("requestCtx1 size = %d B, want %d B — struct layout changed", got, want)
 		}
 	})
 
 	t.Run("reqBundle1", func(t *testing.T) {
-		// 88 (requestCtx1) + 304 (http.Request) = 392 B → GC class 416 B.
-		const want = 392
+		// 64 (requestCtx1) + 304 (http.Request) = 368 B → GC class 384 B (Opt O12).
+		const want = 368
 		if got := unsafe.Sizeof(reqBundle1{}); got != want {
 			t.Errorf("reqBundle1 size = %d B, want %d B — GC size class may have changed", got, want)
 		}
 	})
 
 	t.Run("requestCtx2", func(t *testing.T) {
-		const want = 120
+		// ctx 16 + pattern 16 + [2]Param 64 = 96 B (Opt O12).
+		const want = 96
 		if got := unsafe.Sizeof(requestCtx2{}); got != want {
 			t.Errorf("requestCtx2 size = %d B, want %d B", got, want)
 		}
 	})
 
 	t.Run("reqBundle2", func(t *testing.T) {
-		// 120 (requestCtx2) + 304 (http.Request) = 424 B → GC class 448 B.
-		const want = 424
+		// 96 (requestCtx2) + 304 (http.Request) = 400 B → GC class 416 B (Opt O12).
+		const want = 400
 		if got := unsafe.Sizeof(reqBundle2{}); got != want {
 			t.Errorf("reqBundle2 size = %d B, want %d B — GC size class may have changed", got, want)
 		}
@@ -91,14 +90,14 @@ func TestBundleFieldOffsets(t *testing.T) {
 	})
 
 	t.Run("reqBundle1_req_after_ctx", func(t *testing.T) {
-		wantOff := unsafe.Sizeof(requestCtx1{}) // 88
+		wantOff := unsafe.Sizeof(requestCtx1{}) // 64 (Opt O12)
 		if got := unsafe.Offsetof(reqBundle1{}.req); got != wantOff {
 			t.Errorf("reqBundle1.req offset = %d, want %d (sizeof requestCtx1)", got, wantOff)
 		}
 	})
 
 	t.Run("reqBundle2_req_after_ctx", func(t *testing.T) {
-		wantOff := unsafe.Sizeof(requestCtx2{}) // 120
+		wantOff := unsafe.Sizeof(requestCtx2{}) // 96 (Opt O12)
 		if got := unsafe.Offsetof(reqBundle2{}.req); got != wantOff {
 			t.Errorf("reqBundle2.req offset = %d, want %d (sizeof requestCtx2)", got, wantOff)
 		}
