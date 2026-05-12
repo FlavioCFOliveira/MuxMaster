@@ -1,0 +1,50 @@
+./group.go:21:23: append(g.middleware, middleware...) escapes to heap in (*Group).Use:
+./group.go:21:23: append escapes to heap
+./group.go:27:27: append(g.fastMiddleware, mw...) escapes to heap in (*Group).UseFast:
+./group.go:27:27: append escapes to heap
+./mux.go:260:12: context.backgroundCtx{} escapes to heap in (*Mux).warnRawPathDecodeIfEnabled.func1:
+./mux.go:260:12: context.backgroundCtx{} escapes to heap
+./tree.go:136:20: make([]*node, len(n.children)) escapes to heap in cloneTree:
+./tree.go:122:7: &node{...} escapes to heap in cloneTree:
+./tree.go:122:7: &node{...} escapes to heap
+./tree.go:136:20: make([]*node, len(n.children)) escapes to heap
+./tree.go:739:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap in expandOptional:
+./tree.go:739:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap in expandOptional:
+./tree.go:747:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap in expandOptional:
+./tree.go:747:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap in expandOptional:
+./tree.go:775:17: []string{...} escapes to heap in expandOptional:
+./tree.go:754:22: path[:i] + path[j + 1:] escapes to heap in expandOptional:
+./tree.go:774:41: path[:i] + "/" + paramToken + path[j + 1:] escapes to heap in expandOptional:
+./tree.go:739:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap
+./tree.go:739:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap
+./tree.go:747:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap
+./tree.go:747:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap
+./tree.go:754:22: path[:i] + path[j + 1:] escapes to heap
+./tree.go:774:41: path[:i] + "/" + paramToken + path[j + 1:] escapes to heap
+./tree.go:775:17: []string{...} escapes to heap
+./tree.go:321:85: "muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:321:85: "muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:324:68: "muxmaster: wildcards must be named in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:324:68: "muxmaster: wildcards must be named in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:335:23: append(n.children, child) escapes to heap in (*node).insertChild:
+./tree.go:343:25: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:357:83: "muxmaster: regex param must have the form {name:expr} in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:357:83: "muxmaster: regex param must have the form {name:expr} in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:362:68: "muxmaster: invalid regexp in path '" + fullPath + "': " + err.Error() escapes to heap in (*node).insertChild:
+./tree.go:362:68: "muxmaster: invalid regexp in path '" + fullPath + "': " + err.Error() escapes to heap in (*node).insertChild:
+./tree.go:375:83: "muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:375:83: "muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:379:23: append(n.children, child) escapes to heap in (*node).insertChild:
+./tree.go:387:25: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:399:96: "muxmaster: catch-all routes are only allowed at the end of the path ... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:399:96: "muxmaster: catch-all routes are only allowed at the end of the path ... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:402:99: "muxmaster: catch-all conflicts with existing handler for the path ro... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:402:99: "muxmaster: catch-all conflicts with existing handler for the path ro... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:407:76: "muxmaster: catch-all requires a '/' prefix in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:407:76: "muxmaster: catch-all requires a '/' prefix in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:413:23: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:426:23: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:332:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:360:44: "^(?:" + expr + ")$" escapes to heap in (*node).insertChild:
+./tree.go:377:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:418:11: &node{...} escapes to heap in (*node).insertChild:

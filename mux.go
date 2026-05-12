@@ -911,6 +911,19 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 					}
 					fast(w, r, fps)
 				} else {
+					// Inline 1-param dispatch (Opt O5): bypass the dispatchWithParams
+					// wrapper + switch for the most common REST case (single :id).
+					// Saves one non-inlineable function call and one switch.
+					if ps.count == 1 {
+						p0 := ps.buf[0]
+						if cfg.unescapePathValues && cfg.useRawPath {
+							if v, err := url.PathUnescape(p0.Value); err == nil {
+								p0.Value = v
+							}
+						}
+						doDispatch1(w, r, handler, pattern, p0)
+						return
+					}
 					pslice := ps.params()
 					if cfg.unescapePathValues && cfg.useRawPath {
 						for i := range pslice {

@@ -1,0 +1,127 @@
+TEXT github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Fast(SB) /data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go
+  params.go:246		0x137d72		493b6610		CMPQ SP, 0x10(R14)							[3:3]R_USEIFACE:type:context.backgroundCtx [3:3]R_USEIFACE:type:*github.com/FlavioCFOliveira/MuxMaster.requestCtx1 [3:3]R_USEIFACEMETHOD:type:net/http.Handler+96	
+  params.go:246		0x137d76		0f86f2010000		JBE 0x137f6e								
+  params.go:246		0x137d7c		55			PUSHQ BP								
+  params.go:246		0x137d7d		4889e5			MOVQ SP, BP								
+  params.go:246		0x137d80		4883ec38		SUBQ $0x38, SP								
+  request.go:353	0x137d84		48894c2478		MOVQ CX, 0x78(SP)							
+  request.go:353	0x137d89		4889442468		MOVQ AX, 0x68(SP)							
+  request.go:353	0x137d8e		4889b42488000000	MOVQ SI, 0x88(SP)							
+  request.go:353	0x137d96		4889bc2480000000	MOVQ DI, 0x80(SP)							
+  request.go:353	0x137d9e		4c898c2498000000	MOVQ R9, 0x98(SP)							
+  request.go:353	0x137da6		4c89842490000000	MOVQ R8, 0x90(SP)							
+  request.go:353	0x137dae		48895c2470		MOVQ BX, 0x70(SP)							
+  params.go:247		0x137db3		488d0500000000		LEAQ 0(IP), AX								[3:7]R_PCREL:type:github.com/FlavioCFOliveira/MuxMaster.reqBundle1	
+  params.go:247		0x137dba		e800000000		CALL 0x137dbf								[1:5]R_CALL:runtime.newobject<1>					
+  request.go:353	0x137dbf		488b4c2478		MOVQ 0x78(SP), CX							
+  request.go:353	0x137dc4		488b91f8000000		MOVQ 0xf8(CX), DX							
+  request.go:353	0x137dcb		4885d2			TESTQ DX, DX								
+  request.go:353	0x137dce		7409			JE 0x137dd9								
+  request.go:353	0x137dd0		488bb100010000		MOVQ 0x100(CX), SI							
+  params.go:248		0x137dd7		eb0e			JMP 0x137de7								
+  params.go:248		0x137dd9		488d1500000000		LEAQ 0(IP), DX								[3:7]R_PCREL:go:itab.context.backgroundCtx,context.Context	
+  params.go:248		0x137de0		488d3500000000		LEAQ 0(IP), SI								[3:7]R_PCREL:runtime.zerobase					
+  params.go:248		0x137de7		488910			MOVQ DX, 0(AX)								
+  params.go:248		0x137dea		833d0000000000		CMPL 0(IP), $0x0							[2:6]R_PCREL:runtime.writeBarrier+-1	
+  params.go:248		0x137df1		90			NOPL									
+  params.go:248		0x137df2		7514			JNE 0x137e08								
+  params.go:249		0x137df4		488b942490000000	MOVQ 0x90(SP), DX							
+  params.go:250		0x137dfc		4c8b442448		MOVQ 0x48(SP), R8							
+  params.go:250		0x137e01		4c8b4c2458		MOVQ 0x58(SP), R9							
+  params.go:248		0x137e06		eb26			JMP 0x137e2e								
+  params.go:248		0x137e08		e800000000		CALL 0x137e0d								[1:5]R_CALL:runtime.gcWriteBarrier4	
+  params.go:248		0x137e0d		498933			MOVQ SI, 0(R11)								
+  params.go:249		0x137e10		488b942490000000	MOVQ 0x90(SP), DX							
+  params.go:249		0x137e18		49895308		MOVQ DX, 0x8(R11)							
+  params.go:250		0x137e1c		4c8b442448		MOVQ 0x48(SP), R8							
+  params.go:250		0x137e21		4d894310		MOVQ R8, 0x10(R11)							
+  params.go:250		0x137e25		4c8b4c2458		MOVQ 0x58(SP), R9							
+  params.go:250		0x137e2a		4d894b18		MOVQ R9, 0x18(R11)							
+  params.go:248		0x137e2e		48897008		MOVQ SI, 0x8(AX)							
+  params.go:249		0x137e32		488bb42498000000	MOVQ 0x98(SP), SI							
+  params.go:249		0x137e3a		48897030		MOVQ SI, 0x30(AX)							
+  params.go:249		0x137e3e		48895028		MOVQ DX, 0x28(AX)							
+  params.go:250		0x137e42		488b542450		MOVQ 0x50(SP), DX							
+  params.go:250		0x137e47		48895040		MOVQ DX, 0x40(AX)							
+  params.go:250		0x137e4b		488b542460		MOVQ 0x60(SP), DX							
+  params.go:250		0x137e50		48895050		MOVQ DX, 0x50(AX)							
+  params.go:250		0x137e54		4c894038		MOVQ R8, 0x38(AX)							
+  params.go:250		0x137e58		4c894848		MOVQ R9, 0x48(AX)							
+  params.go:251		0x137e5c		48c7401801000000	MOVQ $0x1, 0x18(AX)							
+  params.go:251		0x137e64		48c7402001000000	MOVQ $0x1, 0x20(AX)							
+  params.go:251		0x137e6c		488d5038		LEAQ 0x38(AX), DX							
+  params.go:254		0x137e70		488d7858		LEAQ 0x58(AX), DI							
+  params.go:251		0x137e74		833d0000000000		CMPL 0(IP), $0x0							[2:6]R_PCREL:runtime.writeBarrier+-1	
+  params.go:251		0x137e7b		743a			JE 0x137eb7								
+  params.go:247		0x137e7d		4889442420		MOVQ AX, 0x20(SP)							
+  params.go:251		0x137e82		4889542430		MOVQ DX, 0x30(SP)							
+  params.go:254		0x137e87		48897c2428		MOVQ DI, 0x28(SP)							
+  params.go:251		0x137e8c		e800000000		CALL 0x137e91								[1:5]R_CALL:runtime.gcWriteBarrier1	
+  params.go:251		0x137e91		498913			MOVQ DX, 0(R11)								
+  params.go:252		0x137e94		488d0500000000		LEAQ 0(IP), AX								[3:7]R_PCREL:type:net/http.Request	
+  params.go:252		0x137e9b		4889fb			MOVQ DI, BX								
+  params.go:252		0x137e9e		e800000000		CALL 0x137ea3								[1:5]R_CALL:runtime.wbMove	
+  params.go:251		0x137ea3		488b442420		MOVQ 0x20(SP), AX							
+  params.go:252		0x137ea8		488b4c2478		MOVQ 0x78(SP), CX							
+  params.go:251		0x137ead		488b542430		MOVQ 0x30(SP), DX							
+  params.go:252		0x137eb2		488b7c2428		MOVQ 0x28(SP), DI							
+  params.go:251		0x137eb7		48895010		MOVQ DX, 0x10(AX)							
+  params.go:252		0x137ebb		4889fa			MOVQ DI, DX								
+  params.go:252		0x137ebe		be04000000		MOVL $0x4, SI								
+  params.go:252		0x137ec3		440f1031		MOVUPS 0(CX), X14							
+  params.go:252		0x137ec7		440f1137		MOVUPS X14, 0(DI)							
+  params.go:252		0x137ecb		440f107110		MOVUPS 0x10(CX), X14							
+  params.go:252		0x137ed0		440f117710		MOVUPS X14, 0x10(DI)							
+  params.go:252		0x137ed5		440f107120		MOVUPS 0x20(CX), X14							
+  params.go:252		0x137eda		440f117720		MOVUPS X14, 0x20(DI)							
+  params.go:252		0x137edf		440f107130		MOVUPS 0x30(CX), X14							
+  params.go:252		0x137ee4		440f117730		MOVUPS X14, 0x30(DI)							
+  params.go:252		0x137ee9		4883c140		ADDQ $0x40, CX								
+  params.go:252		0x137eed		4883c740		ADDQ $0x40, DI								
+  params.go:252		0x137ef1		90			NOPL									
+  params.go:252		0x137ef2		ffce			DECL SI									
+  params.go:252		0x137ef4		75cd			JNE 0x137ec3								
+  params.go:252		0x137ef6		440f1031		MOVUPS 0(CX), X14							
+  params.go:252		0x137efa		440f1137		MOVUPS X14, 0(DI)							
+  params.go:252		0x137efe		440f107110		MOVUPS 0x10(CX), X14							
+  params.go:252		0x137f03		440f117710		MOVUPS X14, 0x10(DI)							
+  params.go:252		0x137f08		440f107120		MOVUPS 0x20(CX), X14							
+  params.go:252		0x137f0d		440f117720		MOVUPS X14, 0x20(DI)							
+  params.go:223		0x137f12		488b3500000000		MOVQ 0(IP), SI								[3:7]R_PCREL:github.com/FlavioCFOliveira/MuxMaster.reqCtxFieldOffset	
+  params.go:253		0x137f19		90			NOPL									
+  params.go:223		0x137f1a		4c8d0500000000		LEAQ 0(IP), R8								[3:7]R_PCREL:go:itab.*github.com/FlavioCFOliveira/MuxMaster.requestCtx1,context.Context	
+  params.go:223		0x137f21		4c89443058		MOVQ R8, 0x58(AX)(SI*1)							
+  params.go:223		0x137f26		833d0000000000		CMPL 0(IP), $0x0							[2:6]R_PCREL:runtime.writeBarrier+-1	
+  params.go:223		0x137f2d		7411			JE 0x137f40								
+  params.go:223		0x137f2f		4c8b443060		MOVQ 0x60(AX)(SI*1), R8							
+  params.go:223		0x137f34		e800000000		CALL 0x137f39								[1:5]R_CALL:runtime.gcWriteBarrier2	
+  params.go:223		0x137f39		498903			MOVQ AX, 0(R11)								
+  params.go:223		0x137f3c		4d894308		MOVQ R8, 0x8(R11)							
+  params.go:223		0x137f40		4889443060		MOVQ AX, 0x60(AX)(SI*1)							
+  params.go:254		0x137f45		488bb42480000000	MOVQ 0x80(SP), SI							
+  params.go:254		0x137f4d		488b7618		MOVQ 0x18(SI), SI							
+  params.go:254		0x137f51		488b842488000000	MOVQ 0x88(SP), AX							
+  params.go:254		0x137f59		488b5c2468		MOVQ 0x68(SP), BX							
+  params.go:254		0x137f5e		488b4c2470		MOVQ 0x70(SP), CX							
+  params.go:254		0x137f63		4889d7			MOVQ DX, DI								
+  params.go:254		0x137f66		ffd6			CALL SI									[0:0]R_CALLIND		
+  params.go:255		0x137f68		4883c438		ADDQ $0x38, SP								
+  params.go:255		0x137f6c		5d			POPQ BP									
+  params.go:255		0x137f6d		c3			RET									
+  params.go:246		0x137f6e		4889442428		MOVQ AX, 0x28(SP)							
+  params.go:246		0x137f73		48895c2430		MOVQ BX, 0x30(SP)							
+  params.go:246		0x137f78		48894c2438		MOVQ CX, 0x38(SP)							
+  params.go:246		0x137f7d		48897c2440		MOVQ DI, 0x40(SP)							
+  params.go:246		0x137f82		4889742448		MOVQ SI, 0x48(SP)							
+  params.go:246		0x137f87		4c89442450		MOVQ R8, 0x50(SP)							
+  params.go:246		0x137f8c		4c894c2458		MOVQ R9, 0x58(SP)							
+  params.go:246		0x137f91		90			NOPL									
+  params.go:246		0x137f92		e800000000		CALL 0x137f97								[1:5]R_CALL:runtime.morestack_noctxt	
+  params.go:246		0x137f97		488b442428		MOVQ 0x28(SP), AX							
+  params.go:246		0x137f9c		488b5c2430		MOVQ 0x30(SP), BX							
+  params.go:246		0x137fa1		488b4c2438		MOVQ 0x38(SP), CX							
+  params.go:246		0x137fa6		488b7c2440		MOVQ 0x40(SP), DI							
+  params.go:246		0x137fab		488b742448		MOVQ 0x48(SP), SI							
+  params.go:246		0x137fb0		4c8b442450		MOVQ 0x50(SP), R8							
+  params.go:246		0x137fb5		4c8b4c2458		MOVQ 0x58(SP), R9							
+  params.go:246		0x137fba		e9b3fdffff		JMP github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Fast(SB)	

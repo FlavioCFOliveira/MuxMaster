@@ -1,0 +1,26 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkFastParamRoute2 	30053031	        81.27 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2 	28329234	        81.11 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2 	29130230	        80.57 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2 	29252109	        80.86 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2 	28775552	        80.44 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2 	28330332	        80.35 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2 	29279626	        80.05 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2 	29391418	        80.17 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2 	29396046	        80.46 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2 	29118777	        79.86 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	25027780	        94.00 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	24267763	        94.32 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	24821132	        95.78 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	23125182	        99.84 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	23291216	        99.97 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	24424588	        99.34 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	23825695	       101.2 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	22975006	        99.64 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	23995326	        99.27 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3 	24188859	        99.21 ns/op	      96 B/op	       1 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	48.888s
