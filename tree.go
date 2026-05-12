@@ -617,6 +617,62 @@ func (n *node) hasHandler(path string) bool {
 	return h != nil || f != nil
 }
 
+// getValueStatic is the inline-eligible fast path used when the tree root has
+// maxParams == 0 — i.e. when no node under this root captures path parameters
+// (no param, regex, or wildcard children anywhere). With wildchild ruled out,
+// the lookup degenerates to plain prefix walking + leaf match, with no params
+// buffer, no switch, no type discrimination.
+//
+// Returns the matched handler/fast/pattern, and the TSR (trailing-slash-redirect)
+// hint when applicable. The semantics mirror getValue exactly for static trees.
+//
+//go:nosplit
+func (n *node) getValueStatic(path string, ci bool) (handler http.Handler, fast FastHandler, pattern string, tsr bool) {
+walk:
+	for {
+		prefix := n.path
+		if len(path) > len(prefix) {
+			if !prefixMatch(path[:len(prefix)], prefix, ci) {
+				return
+			}
+			path = path[len(prefix):]
+			c := path[0]
+			for j := range len(n.indices) {
+				if foldEq(c, n.indices[j], ci) {
+					n = n.children[j]
+					continue walk
+				}
+			}
+			tsr = path == "/" && (n.handler != nil || n.fast != nil)
+			return
+		}
+		if prefixMatch(path, prefix, ci) && len(path) == len(prefix) {
+			handler = n.handler
+			fast = n.fast
+			pattern = n.pattern
+			if handler != nil || fast != nil {
+				return
+			}
+			for j := range len(n.indices) {
+				if n.indices[j] == '/' {
+					n = n.children[j]
+					tsr = n.path == "/" && (n.handler != nil || n.fast != nil)
+					return
+				}
+			}
+			tsr = path == "/" ||
+				(len(n.indices) == 1 && n.indices[0] == '/' && (n.children[0].handler != nil || n.children[0].fast != nil))
+			return
+		}
+		tsr = (path == "/" ||
+			(len(prefix) == len(path)+1 &&
+				prefix[len(path)] == '/' &&
+				prefixMatch(path, prefix[:len(prefix)-1], ci) &&
+				(n.handler != nil || n.fast != nil)))
+		return
+	}
+}
+
 // walk visits every leaf node (nodes with a registered handler or fast handler)
 // in depth-first order.
 func (n *node) walk(fn func(pattern string, handler http.Handler, fast FastHandler)) {

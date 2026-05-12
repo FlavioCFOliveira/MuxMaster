@@ -881,13 +881,22 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 	if root != nil {
 		// paramsBuf is a fixed-size struct — no slice header, no append, no heap escape.
 		// Zero allocs for static routes; 1 alloc (reqBundle) for param routes.
-		// When the tree has no wildcard routes, pass nil to skip zeroing 264 B of stack.
 		var ps paramsBuf
-		var psBuf *paramsBuf
-		if root.maxParams > 0 {
-			psBuf = &ps
+		var (
+			handler http.Handler
+			fast    FastHandler
+			pattern string
+			tsr     bool
+		)
+		if root.maxParams == 0 {
+			// Opt O1: when the entire subtree is static (no param/regex/wildcard),
+			// dispatch through the dedicated getValueStatic that omits the param
+			// switch, the params buffer dereferences, and the wildchild branches.
+			// Also skips zeroing the 128B `ps` stack slot (never written).
+			handler, fast, pattern, tsr = root.getValueStatic(urlPath, cfg.caseInsensitive)
+		} else {
+			handler, fast, pattern, tsr = root.getValue(urlPath, &ps, cfg.caseInsensitive)
 		}
-		handler, fast, pattern, tsr := root.getValue(urlPath, psBuf, cfg.caseInsensitive)
 
 		if handler != nil || fast != nil {
 			if ps.count > 0 {

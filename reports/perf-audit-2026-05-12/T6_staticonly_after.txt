@@ -1,0 +1,26 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkStaticOnlyTree-16         	48775326	        24.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTree-16         	48073453	        24.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTree-16         	49302561	        24.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTree-16         	48369026	        24.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTree-16         	49063784	        24.23 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTree-16         	49577553	        24.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTree-16         	49622946	        24.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTree-16         	47655177	        24.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTree-16         	49258182	        24.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTree-16         	49612056	        24.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	67702728	        17.77 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	67295161	        17.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	68358894	        17.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	68600989	        17.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	68477410	        17.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	67183064	        17.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	64405555	        17.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	68130661	        17.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	68633876	        17.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticOnlyTreeShort-16    	66559744	        17.84 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	24.377s
