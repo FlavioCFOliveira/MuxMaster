@@ -451,11 +451,14 @@ walk:
 			path = path[len(prefix):]
 
 			// Always try static children first so that /users/list beats /users/:id.
+			// Opt O3: avoid the slice header construction `children := n.children[:len(n.indices)]`
+			// that the previous code wrote on every walk iteration. The loop already bounds j by
+			// len(n.indices); n.children has at least that many elements (registration invariant),
+			// so n.children[j] is in-bounds without the intermediate slice.
 			c := path[0]
-			children := n.children[:len(n.indices)]
 			for j := range len(n.indices) {
 				if foldEq(c, n.indices[j], ci) {
-					n = children[j]
+					n = n.children[j]
 					continue walk
 				}
 			}
