@@ -223,6 +223,20 @@ func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
 	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
 }
 
+// getReqCtxUnsafe reads req.ctx directly via the pre-computed field offset.
+// Opt O5a: r.Context() is a method call that does a nil check + falls back to
+// context.Background(). Inside MuxMaster's dispatch the request was just
+// received from net/http (server.go always sets req.ctx before ServeHTTP) or
+// httptest.NewRequest (which also sets it). The field is therefore guaranteed
+// non-nil and we can skip the method call.
+//
+// MUST only be called when hasReqCtxField is true (validated by init()).
+//
+//go:nosplit
+func getReqCtxUnsafe(req *http.Request) context.Context {
+	return *(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset))
+}
+
 // doDispatch1 and doDispatch2 are function pointers selected once at init based
 // on whether the unsafe ctx field shortcut is available. This avoids a branch +
 // load of hasReqCtxField on every param-route request.
@@ -245,7 +259,7 @@ func init() {
 // Used when the unsafe ctx field shortcut is available (hasReqCtxField == true).
 func dispatchParams1Fast(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p Param) {
 	b := &reqBundle1{}
-	b.ctx.Context = r.Context()
+	b.ctx.Context = getReqCtxUnsafe(r) // Opt O5a: skip r.Context() method call
 	b.ctx.pattern = pattern
 	b.ctx.small[0] = p
 	b.ctx.params = Params(b.ctx.small[:1])
@@ -267,7 +281,7 @@ func dispatchParams1Safe(w http.ResponseWriter, r *http.Request, h http.Handler,
 // Used when the unsafe ctx field shortcut is available (hasReqCtxField == true).
 func dispatchParams2Fast(w http.ResponseWriter, r *http.Request, h http.Handler, pattern string, p0, p1 Param) {
 	b := &reqBundle2{}
-	b.ctx.Context = r.Context()
+	b.ctx.Context = getReqCtxUnsafe(r) // Opt O5a: skip r.Context() method call
 	b.ctx.pattern = pattern
 	b.ctx.small[0] = p0
 	b.ctx.small[1] = p1
@@ -306,7 +320,7 @@ func dispatchWithParams(w http.ResponseWriter, r *http.Request, handler http.Han
 		n := len(pslice)
 		if hasReqCtxField {
 			bundle := &reqBundle{}
-			bundle.ctx.Context = r.Context()
+			bundle.ctx.Context = getReqCtxUnsafe(r) // Opt O5a
 			bundle.ctx.pattern = pattern
 			if n <= 3 {
 				for i := range n {
