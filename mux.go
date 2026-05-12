@@ -112,6 +112,7 @@ type muxConfig struct {
 	handleMethodNotAllowed bool
 	handleOPTIONS          bool
 	hasPanicHandler        bool
+	poolFastParams         bool
 	redirectCode           int
 
 	// Snapshotted public handler fields (CSA-2026-0052). Reads from these
@@ -218,6 +219,21 @@ type Mux struct {
 	// terminated mid-response, which can confuse clients and HTTP/2
 	// stream multiplexing. See SECURITY.md "Layered panic recovery".
 	PanicHandler func(http.ResponseWriter, *http.Request, any)
+
+	// PoolFastParams, when true, recycles the Params slice handed to
+	// FastHandler routes via a sync.Pool tier (1/2/3). It eliminates the
+	// per-request allocation but enforces a strict lifetime contract:
+	// handlers MUST NOT retain the Params slice (or any backing element)
+	// past their return. Goroutines that capture ps and outlive the handler
+	// see zeroed values at best, or another request's values at worst —
+	// effectively a use-after-free.
+	//
+	// Default is FALSE for backward compatibility with handlers that rely
+	// on the goroutine-safe lifetime previously documented (verified by
+	// TestFastHandlerGoroutineSafe). Operators who audit their FastHandler
+	// implementations and confirm they do not retain ps may opt in for the
+	// allocation/variance reduction.
+	PoolFastParams bool
 
 	middleware     []func(http.Handler) http.Handler
 	pre            []func(http.Handler) http.Handler
@@ -817,6 +833,7 @@ func (m *Mux) frozenConfigSlow() *muxConfig {
 		handleMethodNotAllowed: m.HandleMethodNotAllowed,
 		handleOPTIONS:          m.HandleOPTIONS,
 		hasPanicHandler:        m.PanicHandler != nil,
+		poolFastParams:         m.PoolFastParams,
 		redirectCode:           m.RedirectCode,
 		notFound:               m.NotFound,
 		methodNotAllowed:       m.MethodNotAllowed,
@@ -927,10 +944,16 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 		if handler != nil || fast != nil {
 			if ps.count > 0 {
 				if fast != nil {
-					// FastHandler path: allocate exact-sized Params (count * 32B)
-					// and copy from ps.buf. This keeps ps on the stack — ps.buf is
-					// only read via copy() (a builtin), never passed to a function pointer.
-					fps := make(Params, ps.count)
+					// Opt O9 (opt-in via Mux.PoolFastParams): pull a tier-matched
+					// Params slice from sync.Pool. Default (PoolFastParams=false)
+					// allocates fresh each call to preserve the original
+					// goroutine-safe lifetime documented in handler.go.
+					var fps Params
+					if cfg.poolFastParams {
+						fps = getFastParams(ps.count)
+					} else {
+						fps = make(Params, ps.count)
+					}
 					if len(ps.overflow) == 0 {
 						copy(fps, ps.buf[:ps.count])
 					} else {
@@ -945,6 +968,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 						}
 					}
 					fast(w, r, fps)
+					if cfg.poolFastParams {
+						putFastParams(fps)
+					}
 				} else {
 					// Inline 1-param dispatch (Opt O5): bypass the dispatchWithParams
 					// wrapper + switch for the most common REST case (single :id).
@@ -1024,7 +1050,13 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 		if h2 != nil || f2 != nil {
 			if ps2.count > 0 {
 				if f2 != nil {
-					fps2 := make(Params, ps2.count)
+					// Opt O9 (opt-in via Mux.PoolFastParams).
+					var fps2 Params
+					if cfg.poolFastParams {
+						fps2 = getFastParams(ps2.count)
+					} else {
+						fps2 = make(Params, ps2.count)
+					}
 					if len(ps2.overflow) == 0 {
 						copy(fps2, ps2.buf[:ps2.count])
 					} else {
@@ -1039,6 +1071,9 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 						}
 					}
 					f2(w, r, fps2)
+					if cfg.poolFastParams {
+						putFastParams(fps2)
+					}
 				} else {
 					pslice2 := ps2.params()
 					if cfg.unescapePathValues && cfg.useRawPath {

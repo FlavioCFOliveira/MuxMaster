@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"sync"
 	"unsafe"
 )
 
@@ -235,6 +236,68 @@ func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
 //go:nosplit
 func getReqCtxUnsafe(req *http.Request) context.Context {
 	return *(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset))
+}
+
+// Opt O9: fastParamsPool recycles the Params slices handed to FastHandler
+// routes. Three tiers match the common-case sizes exactly (1/2/3 params),
+// avoiding heap allocation on every fast-route dispatch.
+//
+// SAFETY CONTRACT: FastHandler implementations MUST NOT retain the Params
+// slice (or any backing element) after the handler returns. The
+// dispatcher zeroes the slice and returns it to the pool the instant
+// ServeHTTP completes; a goroutine still holding a reference would race
+// with the next request reusing the same backing array. The contract is
+// stated in handler.go on the FastHandler type and reiterated in
+// SECURITY.md "FastHandler params lifetime". If a handler needs to retain
+// params, it MUST copy them first.
+// The pool stores pointer-to-array (not pointer-to-slice) so that the slice
+// header itself does not need to escape on Put. `(*[N]Param)(slice[:N:N])`
+// recovers the array pointer on Put without any allocation.
+var (
+	fastParams1Pool = sync.Pool{New: func() any { return new([1]Param) }}
+	fastParams2Pool = sync.Pool{New: func() any { return new([2]Param) }}
+	fastParams3Pool = sync.Pool{New: func() any { return new([3]Param) }}
+)
+
+// getFastParams returns a Params slice of exactly `n` elements, drawn from
+// the tier-matched pool when n ∈ {1,2,3}. Routes with more than 3 params
+// fall back to a fresh allocation — they are rare and already pay extra
+// for the overflow slice anyway.
+func getFastParams(n int) Params {
+	switch n {
+	case 1:
+		a := fastParams1Pool.Get().(*[1]Param)
+		return a[:1:1]
+	case 2:
+		a := fastParams2Pool.Get().(*[2]Param)
+		return a[:2:2]
+	case 3:
+		a := fastParams3Pool.Get().(*[3]Param)
+		return a[:3:3]
+	default:
+		return make(Params, n)
+	}
+}
+
+// putFastParams clears the Params slice and returns it to the tier-matched
+// pool. Slices outside the {1,2,3} tier are dropped to the GC. The slice
+// is converted back to *[N]Param via slice-to-array-pointer conversion
+// (Go 1.17+) so no heap traffic happens on the Put.
+//
+//go:nosplit
+func putFastParams(ps Params) {
+	// Zero the entries so the next caller never observes stale strings.
+	for i := range ps {
+		ps[i] = Param{}
+	}
+	switch len(ps) {
+	case 1:
+		fastParams1Pool.Put((*[1]Param)(ps))
+	case 2:
+		fastParams2Pool.Put((*[2]Param)(ps))
+	case 3:
+		fastParams3Pool.Put((*[3]Param)(ps))
+	}
 }
 
 // doDispatch1 and doDispatch2 are function pointers selected once at init based

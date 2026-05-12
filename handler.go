@@ -33,14 +33,25 @@ func Error(code int, err error) HTTPError {
 // parameters as a direct argument, bypassing the context allocation overhead
 // of http.Handler routes.
 //
-// Params is valid only for the lifetime of the handler call. If a goroutine
-// is spawned that outlives the handler, copy the Params slice before the
-// handler returns:
+// LIFETIME — default mode (Mux.PoolFastParams == false): the dispatcher
+// allocates a fresh Params slice per request. The slice (and its backing
+// array) remain valid even after the handler returns — goroutines spawned
+// from the handler may safely capture and use ps.
+//
+// LIFETIME — pooled mode (Mux.PoolFastParams == true, Opt O9): the Params
+// slice is drawn from a sync.Pool tier (1/2/3 params) and is RETURNED to
+// the pool the instant the handler returns. Handlers in pooled mode MUST
+// NOT retain ps (or any backing element) past return. Goroutines that
+// capture ps would observe zeroed values at best, or values from an
+// unrelated request at worst (indistinguishable from a use-after-free).
+//
+// If a handler in pooled mode must retain params past return, copy them
+// first:
 //
 //	func myHandler(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
 //	    ps2 := make(muxmaster.Params, len(ps))
 //	    copy(ps2, ps)
-//	    go func() { use(ps2) }()
+//	    go func() { use(ps2) }() // safe — ps2 owns the data
 //	}
 //
 // FastHandler routes do not support stdlib middleware
