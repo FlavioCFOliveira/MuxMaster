@@ -130,6 +130,34 @@ Measured 2026-05-12. Raw data: `reports/rpi5-benchmarks-2026-05-12.md`.
 
 All allocation invariants (0 allocs static, 1 alloc default param, 0 allocs pooled) are identical on ARM64. The ~2–3× ns/op ratio vs the Ryzen 9 5900HX is consistent with the raw clock-speed ratio (2.4 GHz vs ~4.6 GHz).
 
+---
+
+### Apple M4 — 10 cores (4P+6E) @ 3.7 GHz, 32 GB RAM, Go 1.26.2, macOS arm64
+
+Measured 2026-05-12. Raw data: `reports/apple-m4-benchmarks-2026-05-12.md`.
+
+#### Serial (single goroutine)
+
+| Route type   | `Handle` (default) | `Handle` + Pool¹ | `HandleFast` | httprouter | bunrouter² |
+|--------------|--------------------|------------------|--------------|------------|------------|
+| Static       | **14 ns, 0 allocs** | 14 ns, 0 allocs | 14 ns, 0 allocs | 14.7 ns, 0 allocs | 18.6 ns, 0 allocs |
+| 1 parameter  | 57 ns, 1 alloc     | **28 ns, 0 allocs** | 28 ns, 1 alloc | 33.0 ns, 1 alloc | 21.9 ns, 0 allocs |
+| 2 parameters | 64 ns, 1 alloc     | **36 ns, 0 allocs** | 37 ns, 1 alloc | 39.6 ns, 1 alloc | 40.7 ns, 0 allocs |
+| 3 parameters | 70 ns, 1 alloc     | **39 ns, 0 allocs** | 46 ns, 1 alloc | 45.1 ns, 1 alloc | 29.3 ns, 0 allocs |
+| Catch-all    | 58 ns, 1 alloc     | **29 ns, 0 allocs** | 28 ns, 1 alloc | 27.3 ns, 1 alloc | 11.5 ns, 0 allocs |
+
+#### Parallel (GOMAXPROCS=10)
+
+| Route type   | `Handle` (default) | `Handle` + Pool¹ | httprouter       | bunrouter²       |
+|--------------|--------------------|------------------|------------------|------------------|
+| Static       | **1.86 ns, 0 allocs** | 1.86 ns, 0 allocs | 2.35 ns, 0 allocs | 2.12 ns, 0 allocs |
+| 1 parameter  | 112 ns, 1 alloc    | **10.2 ns, 0 allocs** | 18.9 ns, 1 alloc | 3.97 ns, 0 allocs |
+
+MuxMaster is the **fastest on parallel static routes** (1.86 ns vs httprouter 2.35 ns, bunrouter 2.12 ns) — the lock-free `atomic.Pointer` read path scales with zero contention. With `PoolRequestBundle = true` the parallel 1-param path drops to **10.2 ns** (vs httprouter 18.9 ns, bunrouter 3.97 ns native-API). MuxMaster default is slower on serial param routes because it allocates a full `reqBundle` (384 B) that fuses `*http.Request` + context; this is the safety cost for 100% `net/http` compatibility.
+
+¹ `Mux.PoolRequestBundle = true` — pooled numbers from `bench_test.go` (internal suite, simpler route set). Competitor benchmarks test default mode only.  
+² bunrouter uses its native `bunrouter.HandlerFunc` API (not `http.Handler`), which stores params without `context.WithValue`. Direct `net/http` handlers require the HTTPHandlerFunc adapter, which adds ~3 allocs and brings it to ~180 ns/op. This is a non-comparable API.
+
 ### Why one allocation on parameterised `Handle` routes (default)
 
 The single allocation on parameterised routes is a **tiered `reqBundle`** (384 / 416 / 480 B for 1 / 2 / 3 parameters) that fuses the `requestCtx` and the copy of `*http.Request` into one GC-class-aligned object. This is a deliberate trade-off:

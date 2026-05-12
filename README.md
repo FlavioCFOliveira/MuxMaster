@@ -392,14 +392,16 @@ api.HandleFast("POST", "/users", createUserFast)
 
 ### Performance and trade-offs
 
+Apple M4, Go 1.26.2:
+
 | Type | ns/op | B/op | allocs/op |
 |---|---|---|---|
-| Static `http.Handler` | 25 ns | 0 B | 0 |
-| Static `FastHandler` | ~25 ns | 0 B | 0 |
-| 1-param `http.Handler` (default) | 105 ns | 384 B | 1 |
-| 1-param `FastHandler` (default) | ~50 ns | 32 B | 1 |
-| 1-param `http.Handler` + `PoolRequestBundle` | **45 ns** | **0 B** | **0** |
-| 1-param `FastHandler` + `PoolFastParams` | **44 ns** | **0 B** | **0** |
+| Static `http.Handler` | 14 ns | 0 B | 0 |
+| Static `FastHandler` | ~14 ns | 0 B | 0 |
+| 1-param `http.Handler` (default) | 57 ns | 384 B | 1 |
+| 1-param `FastHandler` (default) | ~28 ns | 32 B | 1 |
+| 1-param `http.Handler` + `PoolRequestBundle` | **28 ns** | **0 B** | **0** |
+| 1-param `FastHandler` + `PoolFastParams` | **28 ns** | **0 B** | **0** |
 
 Trade-offs:
 - **Incompatible with stdlib middleware** — use `FastMiddleware` only
@@ -418,8 +420,8 @@ mux := muxmaster.New()
 mux.PoolRequestBundle = true   // 0-alloc Handle path  (Opt O13)
 mux.PoolFastParams    = true   // 0-alloc HandleFast path (Opt O9)
 
-mux.GET("/users/:id", getUser)          // 45 ns / 0 B / 0 allocs
-mux.GETFast("/health", healthFast)      // 44 ns / 0 B / 0 allocs
+mux.GET("/users/:id", getUser)          // 28 ns / 0 B / 0 allocs  (Apple M4)
+mux.GETFast("/health", healthFast)      // 28 ns / 0 B / 0 allocs  (Apple M4)
 ```
 
 These switches require a stricter handler lifetime contract: **handlers MUST NOT retain `*http.Request` (or the `Params` slice on `FastHandler`) past return**. A goroutine that captures `r` would observe a recycled bundle belonging to a future request — effectively a use-after-free against the pool storage.
@@ -942,7 +944,21 @@ err := mux.WalkFast(func(method, pattern string, handler muxmaster.FastHandler) 
 
 ## Benchmarks
 
-Benchmarks run on AMD Ryzen 9 5900HX, Go 1.26.2. All measurements use the same route set (`/api/v1/...`).
+Medians from `go test -bench=. -benchmem -count=5 -benchtime=3s`. Two hardware platforms; full raw data under `reports/`.
+
+### Apple M4 — 10 cores, 32 GB, Go 1.26.2, macOS arm64 (2026-05-12)
+
+| Route type          | MuxMaster (default)     | MuxMaster + `PoolRequestBundle`¹ | httprouter              | chi v5                  |
+|---------------------|-------------------------|----------------------------------|-------------------------|-------------------------|
+| Static              | **14 ns, 0 allocs**     | **14 ns, 0 allocs**              | 14.7 ns, 0 allocs       | 114 ns, 2 allocs        |
+| 1 parameter         | 57 ns, 1 alloc          | **28 ns, 0 allocs**              | 33.0 ns, 1 alloc        | 196 ns, 4 allocs        |
+| 2 parameters        | 64 ns, 1 alloc          | **36 ns, 0 allocs**              | 39.6 ns, 1 alloc        | 226 ns, 4 allocs        |
+| 3 parameters        | 70 ns, 1 alloc          | **39 ns, 0 allocs**              | 45.1 ns, 1 alloc        | 225 ns, 4 allocs        |
+| Catch-all           | 58 ns, 1 alloc          | **29 ns, 0 allocs**              | 27.3 ns, 1 alloc        | 175 ns, 4 allocs        |
+| Parallel static     | **1.86 ns, 0 allocs**   | **1.86 ns, 0 allocs**            | 2.35 ns, 0 allocs       | 120 ns, 2 allocs        |
+| Parallel 1 param    | 112 ns, 1 alloc         | **10.2 ns, 0 allocs**            | 18.9 ns, 1 alloc        | 188 ns, 4 allocs        |
+
+### AMD Ryzen 9 5900HX — 16 cores, Go 1.26.2, Linux 6.8 (2026-05-08)
 
 | Route type          | MuxMaster (default)     | MuxMaster + `PoolRequestBundle`¹ | httprouter              | chi v5                  |
 |---------------------|-------------------------|----------------------------------|-------------------------|-------------------------|
@@ -954,7 +970,7 @@ Benchmarks run on AMD Ryzen 9 5900HX, Go 1.26.2. All measurements use the same r
 | Parallel static     | **3.6 ns, 0 allocs**    | **3.6 ns, 0 allocs**             | 4.92 ns, 0 allocs       | 128.2 ns, 2 allocs      |
 | Parallel 1 param    | 100 ns, 1 alloc         | **6.3 ns, 0 allocs**             | 22.2 ns, 1 alloc        | 223.9 ns, 4 allocs      |
 
-¹ `Mux.PoolRequestBundle = true` is an opt-in that recycles the per-request bundle via `sync.Pool`. With it enabled, MuxMaster is the **fastest stdlib-compatible HTTP router in the Go ecosystem** — 20 % faster than `httprouter` on 1-param routes **with zero allocations**. Handlers must not retain `*http.Request` past return; see the [Maximum Performance Guide](docs/max-performance.md) for the audit checklist and worked recipes.
+¹ `Mux.PoolRequestBundle = true` recycles the per-request bundle via `sync.Pool` — **zero allocations on param routes**. Handlers must not retain `*http.Request` past return; see the [Maximum Performance Guide](docs/max-performance.md).
 
 Reproduce with:
 
