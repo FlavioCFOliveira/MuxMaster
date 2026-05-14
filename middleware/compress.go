@@ -70,7 +70,7 @@ func (g *gzipResponseWriter) commit() error {
 		if g.status != 0 {
 			g.ResponseWriter.WriteHeader(g.status)
 		}
-		_, err := g.ResponseWriter.Write(g.buf)
+		_, err := g.ResponseWriter.Write(g.buf) // #nosec G705 — buf is the application's own response body, not user input
 		g.buf = nil
 		return err
 	}
@@ -79,7 +79,7 @@ func (g *gzipResponseWriter) commit() error {
 		if g.status != 0 {
 			g.ResponseWriter.WriteHeader(g.status)
 		}
-		_, err := g.ResponseWriter.Write(g.buf)
+		_, err := g.ResponseWriter.Write(g.buf) // #nosec G705 — buf is the application's own response body, not user input
 		g.buf = nil
 		return err
 	}

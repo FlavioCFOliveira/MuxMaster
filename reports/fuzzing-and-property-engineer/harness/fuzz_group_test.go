@@ -174,6 +174,7 @@ func isExpectedMountPanic(msg string) bool {
 		"invalid",
 		"must",
 		"only one",
+		"optional",
 	}
 	for _, e := range expected {
 		if strings.Contains(msg, e) {

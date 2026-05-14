@@ -1203,11 +1203,11 @@ func (m *Mux) serveRedirect(w http.ResponseWriter, r *http.Request, target strin
 	mw := m.middleware
 	m.mu.RUnlock()
 	if len(mw) == 0 {
-		http.Redirect(w, r, target, code)
+		http.Redirect(w, r, target, code) // #nosec G710 — target is path-only (HPS-2026-0005)
 		return
 	}
 	wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, target, code)
+		http.Redirect(w, r, target, code) // #nosec G710 — target is path-only (HPS-2026-0005)
 	}), mw).ServeHTTP(w, r)
 }
 
