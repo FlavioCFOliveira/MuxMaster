@@ -1,0 +1,39 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+
+  settings:
+    revive:
+      rules:
+        - name: exported
+          arguments:
+            - "disableStutteringCheck"
+
+  exclusions:
+    paths:
+      - reports
+      - competitor
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - errcheck
+          - revive
+      - path: "(params|mux)\\.go"
+        linters:
+          - govet
+        text: "unsafeptr"
+      - path: "params\\.go"
+        linters:
+          - revive
+        text: "context-as-argument"

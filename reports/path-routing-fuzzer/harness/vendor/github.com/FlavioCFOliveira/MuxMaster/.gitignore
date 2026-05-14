@@ -1,0 +1,48 @@
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# env file
+.env
+
+# Editor/IDE
+# .idea/
+# .vscode/
+
+# Development tooling — not part of the published module
+.claude/
+competitor/
+
+# Example binaries (produced by go build inside examples/)
+examples/rest-api/rest-api
+examples/static-site/static-site
+examples/authn/authn
+examples/jwt/jwt
+examples/cache/cache
+examples/templates/templates-example
+examples/oauth2/oauth2
+examples/server-side-render/server-side-render
+examples/graceful-shutdown/graceful-shutdown
+reports/concurrency-security-auditor/evidence/2026-05-07/race_harness.txt
