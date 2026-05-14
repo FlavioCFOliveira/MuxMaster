@@ -108,7 +108,7 @@ jobs:
   notify:
     name: Notify on failure
     needs: fuzz
-    if: failure() && github.event_name == 'schedule'
+    if: always() && needs.fuzz.result == 'failure' && github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
       issues: write

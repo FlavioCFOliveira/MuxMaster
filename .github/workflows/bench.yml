@@ -69,6 +69,7 @@ jobs:
             echo "worst=$worst" >> "$GITHUB_OUTPUT"
             if awk -v w="$worst" 'BEGIN { exit !(w+0 > 10) }'; then
               echo "::error::Benchmark regression of $worst% exceeds 10% gate."
+              exit 1
             fi
           fi
 

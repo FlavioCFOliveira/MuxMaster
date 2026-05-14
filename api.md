@@ -50,13 +50,21 @@ See the SECURITY.md "Pre vs Use security boundary" section for the full matrix.
 
 On AMD Ryzen 9 5900HX (Go 1.26.2):
 
-  - Static route: ~27 ns / 0 alloc
-  - 1-param route: ~128 ns / 1 alloc / 416 B
-  - HandleFast 1-p: ~54 ns / 1 alloc / 32 B (parity with httprouter)
+  - Static route: ~25 ns / 0 alloc
+  - 1-param Handle (default): ~105 ns / 1 alloc / 384 B
+  - 1-param HandleFast (default): ~50 ns / 1 alloc / 32 B
+  - 1-param Handle + Mux.PoolRequestBundle = true: ~45 ns / 0 alloc / 0 B
+  - 1-param HandleFast + Mux.PoolFastParams = true: ~44 ns / 0 alloc / 0 B
 
 HandleFast routes bypass the requestCtx allocation by passing Params directly as
 the third handler argument; they trade off stdlib middleware compatibility for
 raw throughput.
+
+Mux.PoolRequestBundle and Mux.PoolFastParams are opt-in switches that recycle
+the per-request objects via sync.Pool, dropping the entire hot path to zero
+allocations. They require a stricter handler lifetime contract: handlers must
+not retain *http.Request (or the Params slice for FastHandler) past return.
+See docs/max-performance.md for the audit checklist and worked recipes.
 
 # Compatibility
 
@@ -119,14 +127,24 @@ type FastHandler func(http.ResponseWriter, *http.Request, Params)
     parameters as a direct argument, bypassing the context allocation overhead
     of http.Handler routes.
 
-    Params is valid only for the lifetime of the handler call. If a goroutine is
-    spawned that outlives the handler, copy the Params slice before the handler
-    returns:
+    LIFETIME — default mode (Mux.PoolFastParams == false): the dispatcher
+    allocates a fresh Params slice per request. The slice (and its backing
+    array) remain valid even after the handler returns — goroutines spawned from
+    the handler may safely capture and use ps.
+
+    LIFETIME — pooled mode (Mux.PoolFastParams == true, Opt O9): the Params
+    slice is drawn from a sync.Pool tier (1/2/3 params) and is RETURNED to
+    the pool the instant the handler returns. Handlers in pooled mode MUST NOT
+    retain ps (or any backing element) past return. Goroutines that capture ps
+    would observe zeroed values at best, or values from an unrelated request at
+    worst (indistinguishable from a use-after-free).
+
+    If a handler in pooled mode must retain params past return, copy them first:
 
         func myHandler(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
             ps2 := make(muxmaster.Params, len(ps))
             copy(ps2, ps)
-            go func() { use(ps2) }()
+            go func() { use(ps2) }() // safe — ps2 owns the data
         }
 
     FastHandler routes do not support stdlib middleware (func(http.Handler)
@@ -350,6 +368,50 @@ type Mux struct {
 	// terminated mid-response, which can confuse clients and HTTP/2
 	// stream multiplexing. See SECURITY.md "Layered panic recovery".
 	PanicHandler func(http.ResponseWriter, *http.Request, any)
+
+	// PoolFastParams, when true, recycles the Params slice handed to
+	// FastHandler routes via a sync.Pool tier (1/2/3). It eliminates the
+	// per-request allocation but enforces a strict lifetime contract:
+	// handlers MUST NOT retain the Params slice (or any backing element)
+	// past their return. Goroutines that capture ps and outlive the handler
+	// see zeroed values at best, or another request's values at worst —
+	// effectively a use-after-free.
+	//
+	// Default is FALSE for backward compatibility with handlers that rely
+	// on the goroutine-safe lifetime previously documented (verified by
+	// TestFastHandlerGoroutineSafe). Operators who audit their FastHandler
+	// implementations and confirm they do not retain ps may opt in for the
+	// allocation/variance reduction.
+	PoolFastParams bool
+
+	// PoolRequestBundle, when true, recycles the per-request reqBundle (the
+	// fused requestCtx + http.Request copy) handed to http.Handler routes
+	// with path parameters via a tiered sync.Pool. It eliminates the
+	// 368/400/480-byte allocation on every param-route request and is the
+	// single largest performance lever for stdlib-style handlers — but it
+	// enforces a strict lifetime contract:
+	//
+	//   Handlers MUST NOT retain the *http.Request (the one passed to
+	//   ServeHTTP) past their return. Goroutines that capture r and outlive
+	//   the handler observe a recycled request bound to an unrelated route —
+	//   effectively a use-after-free against the bundle storage.
+	//
+	// This contract is stricter than the Go stdlib's documented invariant
+	// (net/http itself recycles request structs internally, but only via the
+	// per-connection serve loop, which guarantees the handler has returned
+	// before recycling). With PoolRequestBundle the recycling happens at
+	// MuxMaster's dispatch boundary, which is finer-grained.
+	//
+	// Default is FALSE for full stdlib semantics. Operators who audit their
+	// handlers and confirm they do not retain r past return may opt in to
+	// drive ParamRoute1 from ~106 ns / 384 B / 1 alloc down to roughly
+	// 40-50 ns / 0 B / 0 allocs on the hot path.
+	//
+	// SECURITY (Opt O13): the bundle is fully zeroed before returning to
+	// the pool, so secrets accidentally stored in request fields by a
+	// handler cannot leak across requests. The zeroing cost (~10 ns) is
+	// already included in the projected savings.
+	PoolRequestBundle bool
 
 	// Has unexported fields.
 }
@@ -761,6 +823,13 @@ func JWTAuth(opts JWTOptions) func(http.Handler) http.Handler
 
 func Logger(out io.Writer) func(http.Handler) http.Handler
     Logger logs each request after it completes. Panics if out is nil.
+
+    Opt L1: the original implementation used fmt.Fprintf(out, "%s %s %s %d %s\n"
+    + 5 args) which boxes each argument as interface{} (5 allocs) and allocated
+    a fresh *statusRecorder per request (1 alloc that escaped to heap). The new
+    implementation pools the statusRecorder and assembles the log line into a
+    pooled []byte buffer via direct strconv.Append*. Output bytes are identical:
+    the format is "<RFC3339> <method> <path> <status> <duration>\n".
 
 func NoCache() func(http.Handler) http.Handler
     NoCache sets response headers to prevent caching at every layer: browsers
