@@ -25,7 +25,7 @@ jobs:
     outputs:
       tag: ${{ steps.t.outputs.tag }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
         with:
           fetch-depth: 0
 
@@ -54,7 +54,7 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
         with:
           ref: ${{ needs.validate.outputs.tag }}
 
@@ -81,7 +81,7 @@ jobs:
     outputs:
       notes: ${{ steps.x.outputs.notes }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
         with:
           ref: ${{ needs.validate.outputs.tag }}
 
@@ -112,7 +112,7 @@ jobs:
     needs: [validate, sbom, changelog]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
         with:
           ref: ${{ needs.validate.outputs.tag }}
 
