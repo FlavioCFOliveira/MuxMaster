@@ -42,7 +42,7 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: go.mod
 
@@ -58,7 +58,7 @@ jobs:
         with:
           ref: ${{ needs.validate.outputs.tag }}
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: go.mod
 

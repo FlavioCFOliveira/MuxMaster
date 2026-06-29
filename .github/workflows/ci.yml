@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version: ${{ matrix.go }}
 
@@ -76,12 +76,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: go.mod
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9.2.0
+        uses: golangci/golangci-lint-action@v9.2.1
         with:
           version: v2.11.4
 
@@ -91,7 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: go.mod
 
@@ -115,7 +115,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: go.mod
 
@@ -132,7 +132,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: go.mod
 
@@ -193,7 +193,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: go.mod
 
@@ -220,7 +220,7 @@ jobs:
         with:
           fetch-depth: 0   # full history so we can resolve tags
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: go.mod
 
@@ -266,7 +266,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version-file: go.mod
 
