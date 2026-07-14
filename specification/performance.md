@@ -42,10 +42,12 @@ The following benchmarks must pass on a representative development machine. The 
 ### 3.1 Zero Allocs Goal
 
 10. The 0 allocs/op target for route lookup requires:
-    - No allocation during tree traversal.
-    - No allocation when the route has no parameters (`Params` from the pool is released without copying).
-    - When the route has parameters, exactly one allocation is made: the `make(Params, n)` copy placed in the context. This one allocation is unavoidable because the copy must outlive the pool slice.
-11. Allocation of the `*http.Request` by `r.WithContext` is counted by the benchmarks. This allocation is unavoidable in standard `net/http` and is not a MuxMaster failure.
+    - No allocation during tree traversal. Captured parameters are held in a stack-allocated buffer (see [params.md](params.md) section 5) that does not escape to the heap by itself.
+    - No allocation for a static route (no path parameters), whether registered via `Handle` or `HandleFast`.
+    - For a `Handle` route with path parameters and the default configuration (`PoolRequestBundle == false`), exactly one allocation is made: the tiered request bundle that fuses the parameter-carrying context with a copy of `*http.Request` (see section 8, Tiered Request Bundle). This single allocation replaces what would otherwise be two separate allocations (a context wrapper plus a copy of `*http.Request` from `r.WithContext`).
+    - For a `HandleFast` route with path parameters and the default configuration (`PoolFastParams == false`), exactly one allocation is made: the `Params` slice passed as the handler's third argument. There is no context or request-copy allocation at all, because `FastHandler` dispatch never wraps the request context (see section 6, FastHandler Dispatch).
+    - Enabling `PoolRequestBundle` or `PoolFastParams` (configuration.md sections 4.6 and 4.5) eliminates the one remaining allocation described above for the route types and parameter counts they cover, achieving 0 allocs/op on parameterized routes at the cost of the lifetime contracts documented for those flags.
+11. Without pooling, one allocation per parameterized request is the practical floor for both `Handle` and `HandleFast` routes, because a value that must outlive the request-scoped stack frame — and remain valid if a handler passes it to a goroutine — has to live on the heap. This is a deliberate MuxMaster design trade-off, not an unavoidable `net/http` cost; `PoolRequestBundle` and `PoolFastParams` exist specifically to remove it, in exchange for the stricter handler lifetime contracts in configuration.md sections 4.5 and 4.6.
 
 ### 3.2 Middleware Overhead
 
@@ -91,3 +93,48 @@ The primary performance competitors are `httprouter` and `bunrouter`. Reference 
 | net/http (Go 1.22+) | ~706 222 | 96 | — | — | go-http-routing-benchmark |
 
 24. The comparison benchmarks in `bench_test.go` must include direct comparisons against at least `httprouter` and `bunrouter` in a separate benchmark file or build tag that imports those packages. These comparison benchmarks are not part of the zero-dependency build and must be excluded from `go build` and `go test ./...` by default. They are enabled only when explicitly requested.
+
+---
+
+## 6. FastHandler Dispatch
+
+25. `HandleFast(method, pattern string, h FastHandler)` registers a `FastHandler` — a handler with the signature `func(http.ResponseWriter, *http.Request, Params)` — for the given method and pattern on `*Mux`. `(*Group).HandleFast` is the group-scoped equivalent; the full pattern is `group.prefix + pattern`.
+26. Dedicated convenience registration methods exist for `FastHandler` on `*Mux`: `GETFast`, `HEADFast`, `POSTFast`, `PUTFast`, `PATCHFast`, `DELETEFast`, `OPTIONSFast`, `CONNECTFast`, `TRACEFast`. Each delegates to `HandleFast`.
+27. `FastHandler` routes receive path parameters as the third argument (`Params`) instead of through the request context. This avoids the context-wrapping allocation that `Handle` routes pay on parameterized routes (see section 8, Tiered Request Bundle).
+28. For a static `FastHandler` route (no path parameters), the `Params` argument passed to the handler is `nil`.
+29. `PathParam` and `ParamsFromContext` never observe parameters captured by a `FastHandler` route, because those parameters are never placed in the request context. `FastHandler` code must read the third argument directly.
+30. The original `*http.Request` passed to `ServeHTTP` is never mutated by `FastHandler` dispatch: its context, URL, and all other fields are left exactly as received. `Handle` and `HandleFast` routes may coexist on the same `*Mux` or `*Group` without interfering with each other.
+31. The lifetime of the `Params` slice passed to a `FastHandler` depends on `Mux.PoolFastParams` (see configuration.md section 4.5):
+    - When `false` (the default), the dispatcher allocates a fresh `Params` slice per request. The slice remains valid after the handler returns; a goroutine spawned from the handler may safely retain and read it.
+    - When `true`, the `Params` slice for 1-, 2-, or 3-parameter routes is drawn from a `sync.Pool` tier and is cleared and returned to the pool the instant the handler returns. A handler in this mode MUST NOT retain the slice, or any element of it, past return.
+32. `Mux.PanicHandler`, when set, recovers panics raised inside a `FastHandler` exactly as it does for `Handle` routes.
+33. Stdlib middleware registered via `Use` does NOT wrap `FastHandler` routes. `FastMiddleware`, registered via `UseFast`, is the dedicated `FastHandler` middleware mechanism, applied at registration time with the same zero-per-request-overhead model as stdlib middleware (see middleware.md sections 6 and 7 for composition rules and the full route-type coverage matrix).
+34. Registering a route via `HandleFast` on a `*Mux` or `*Group` that already has one or more middleware registered via `Use` (or `Group.Use`) causes a panic at that `HandleFast` call. This guard only checks middleware registered earlier via `Use`; see middleware.md section 7, requirement 43, for the exact evaluation-order caveat this implies.
+
+---
+
+## 7. Lock-Free Dispatch
+
+35. The route trees for all HTTP methods are held in a single `atomic.Pointer` value, read via `Load()` on every request without acquiring a lock. The request-time read path used by `ServeHTTP` is fully lock-free and non-blocking regardless of how many requests are being served concurrently.
+36. Route registration (`Handle`, `HandleFast`) is serialized by an internal mutex and uses a copy-on-write strategy: the affected method's tree is deep-cloned, the clone is mutated by the registration call, and the updated set of trees is published with a single atomic store. Requests in flight during a registration continue to observe the previous, unmodified tree snapshot until the new one is published; they never observe a partially mutated tree.
+37. If a registration call panics partway through mutating the cloned tree (for example, on a duplicate route or an invalid wildcard), the clone is discarded and the previously published tree snapshot is left completely intact.
+38. This mechanism exists to keep the request-time read path lock-free and to make registration-time panics safe; it does not change the policy stated in out-of-scope.md section 3.1: registering or removing routes after the server has begun serving requests remains unsupported and is not a use case the router is designed, tested, or documented for.
+
+---
+
+## 8. Tiered Request Bundle
+
+39. When a `Handle` (stdlib `http.Handler`) route matches a request with one or more path parameters, the router allocates exactly one object that fuses the parameter-carrying request context together with a copy of the `*http.Request`, instead of allocating the context and the request copy as two separate objects. This single-allocation design is the tiered request bundle.
+40. The bundle is tiered by parameter count so that each allocation fits the smallest Go runtime GC size class that can hold it:
+
+    | Parameter count | Bundle | Logical size | GC size class |
+    |---|---|---|---|
+    | 1 | `reqBundle1` | 368 B | 384 B |
+    | 2 | `reqBundle2` | 400 B | 416 B |
+    | 3 or more | `reqBundle` | 456 B | 480 B |
+
+41. Routes with more than 3 parameters store the first 3 inline in the bundle and allocate one additional, separate `Params` slice for the remaining parameters. This is an extra allocation limited to the rare case of routes with more than 3 path parameters.
+42. The tiered request bundle is used only for `Handle` routes that have at least one path parameter. Static `Handle` routes and all `FastHandler` routes never allocate it.
+43. By default (`Mux.PoolRequestBundle == false`), each matching request allocates a fresh bundle. Its lifetime is managed by the garbage collector like any other heap object: the handler, and any goroutine it spawns, may retain the `*http.Request` after the handler returns.
+44. When `Mux.PoolRequestBundle == true`, the bundle is drawn from a `sync.Pool` tier matching the parameter count and is zeroed and returned to the pool the instant the handler's `ServeHTTP` call returns. See configuration.md section 4.6 for the full lifetime contract this places on handlers.
+45. If the private context field of `http.Request` cannot be located via reflection during package initialization — a forward-compatibility guard against a future Go version that renames or removes it — the router falls back to building the context wrapper and calling `r.WithContext`, which allocates the context and the request copy as two separate objects. This fallback applies uniformly whether `PoolRequestBundle` is enabled or not, and is transparent to handler code; it does not change any documented behavior, only the allocation count.

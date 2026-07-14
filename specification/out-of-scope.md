@@ -62,7 +62,7 @@ MuxMaster will not provide authentication or authorization engines. The `BasicAu
 
 ### 3.1 Hot Reload of Routes
 
-MuxMaster will not support registering or removing routes after the server has begun serving requests. Allowing runtime route mutation would require either a global write lock on every request (unacceptable performance cost) or a lock-free tree structure (significant complexity). The current design registers all routes at startup and then serves them read-only. This is the correct model for the vast majority of Go HTTP servers.
+MuxMaster will not support registering or removing routes after the server has begun serving requests as a documented, tested capability, even though the internal route tree is implemented as a lock-free, copy-on-write structure — an `atomic.Pointer` published with a single atomic store after each registration (see [performance.md](performance.md) section 7, Lock-Free Dispatch). That structure exists to keep the request-time read path lock-free and to make registration-time panics safe (a failed registration never corrupts the tree that concurrent requests are reading), not to offer hot reload as a supported feature. MuxMaster does not test, document, or guarantee behavior for routes added or removed while traffic is being served; relying on this today means relying on unspecified behavior that may change without notice. Applications that need hot reload should build a new `*Mux` and switch an `atomic.Pointer[http.Handler]` (or equivalent) at the `http.Server` level.
 
 ### 3.2 Graceful Shutdown
 

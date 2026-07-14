@@ -34,7 +34,9 @@ The following terms are used consistently throughout all specification files. Wh
 | **Route** | A registered combination of an HTTP method, a path pattern, and a handler. |
 | **Pattern** | The path string used when registering a route (e.g., `/users/:id`). Patterns may contain static segments, named parameters, and a catch-all parameter. |
 | **Handler** | A value that implements `http.Handler` or a function with the signature `func(http.ResponseWriter, *http.Request)`. |
+| **FastHandler** | A handler with the signature `func(http.ResponseWriter, *http.Request, Params)`, registered via `HandleFast` (or a `...Fast` convenience method). It receives path parameters directly as its third argument instead of through the request context. |
 | **Middleware** | A function with the signature `func(http.Handler) http.Handler`. It wraps a handler to add behavior before or after it executes. |
+| **FastMiddleware** | A function with the signature `func(FastHandler) FastHandler`, registered via `UseFast`. It wraps `FastHandler` routes only; it has no effect on routes registered via `Handle`. |
 | **Segment** | A slash-delimited component of a URL path. In `/users/123/posts`, the segments are `users`, `123`, and `posts`. |
 | **Named parameter** | A path segment prefixed with `:` in a pattern (e.g., `:id`). It captures one non-slash segment. |
 | **Catch-all parameter** | A path segment prefixed with `*` in a pattern (e.g., `*filepath`). It captures the rest of the path including slashes. It must appear at the end of the pattern. |
@@ -47,7 +49,9 @@ The following terms are used consistently throughout all specification files. Wh
 | **TSR** | Trailing Slash Redirect. A redirect issued when a route exists at the alternate trailing-slash path. |
 | **Fixed path** | A path produced by `path.Clean` that differs from the original but has a registered handler. Used by the `RedirectFixedPath` feature. |
 | **Allow header** | The `Allow` HTTP response header listing the HTTP methods registered for a given path. Used in 405 and OPTIONS responses. |
-| **Pool** | The `sync.Pool` used to recycle `Params` slices and avoid per-request allocation during route lookup. |
+| **Pool** | A `sync.Pool` used internally to recycle a fixed-size allocation — a parameter slice for `FastHandler` routes, or a request bundle for `Handle` routes — across requests, avoiding a fresh heap allocation each time. Pooling is opt-in per mechanism; see `PoolFastParams` and `PoolRequestBundle` in [configuration.md](configuration.md). |
+| **Request bundle** | The single heap allocation that fuses a request-scoped context wrapper with a copy of `*http.Request`, used for `Handle` routes with path parameters. Tiered by parameter count (1, 2, or 3 or more). See [performance.md](performance.md). |
+| **Configuration snapshot** | The one-time, immutable copy of `Mux` configuration fields captured on the first `ServeHTTP` call. Reset by `(*Mux).Rebuild()`. See [configuration.md](configuration.md). |
 
 ---
 

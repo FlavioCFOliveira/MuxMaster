@@ -2,7 +2,7 @@
 
 ## Scope
 
-This file specifies the `Param` type, the `Params` type and its methods, the `PathParam` and `ParamsFromContext` access functions, the `RoutePattern` function, and the internal `sync.Pool` used to recycle parameter slices.
+This file specifies the `Param` type, the `Params` type and its methods, the `PathParam` and `ParamsFromContext` access functions, the `RoutePattern` function, and the internal parameter-storage and pooling mechanisms that affect parameter lifetime.
 
 This file does not cover how parameters are extracted from the URL path during tree traversal (see [routing.md](routing.md)), or how parameters are stored in the request context (that is an implementation detail referenced here only where it affects observable behavior).
 
@@ -27,7 +27,7 @@ type Param struct {
 
 4. `Params` is a named slice type: `type Params []Param`.
 5. Parameters appear in `Params` in the order they appear in the pattern, from left to right.
-6. At most `maxParams` (16) parameters are stored per request. A pattern with more than 16 wildcard tokens causes a panic at registration time.
+6. There is no fixed upper limit on the number of parameters a pattern may declare, and registering a pattern with many parameters never causes a panic. Internally, the first 3 parameters captured for a request are held in a fixed-size stack buffer; a route with more than 3 parameters spills the remainder into one additional heap-allocated slice for that request. This affects allocation count only (see [performance.md](performance.md) section 8) and never truncates or drops a captured parameter.
 
 ### 2.1 Get
 
@@ -77,7 +77,7 @@ type Param struct {
 
 23. `ParamsFromContext(ctx context.Context) Params` returns the `Params` stored in `ctx` by the router.
 24. If no parameters are present (e.g., the route is static), `ParamsFromContext` returns a nil `Params` slice. Calling `Get` on a nil `Params` slice returns `""` without panicking.
-25. The returned `Params` slice is a copy owned by the context. It is safe to retain across goroutines.
+25. The returned `Params` slice is owned by the request context. When `Mux.PoolRequestBundle` is `false` (the default), it is safe to retain across goroutines. When `Mux.PoolRequestBundle` is `true`, it is NOT safe to retain past the handler's return — see [configuration.md](configuration.md) section 4.6 for the full lifetime contract.
 
 ---
 
@@ -91,14 +91,16 @@ type Param struct {
 
 ---
 
-## 5. Pool Behavior (Internal)
+## 5. Parameter Storage and Pooling (Internal)
 
 This section describes internal behavior. It is specified here because it affects the observable contract around parameter lifetime.
 
-31. The router uses a `sync.Pool` to recycle `Params` slices and avoid per-request heap allocation.
-32. The pool pre-allocates slices with a capacity of `maxParams` (16).
-33. When the router finds a matching handler:
-    - If the route has no parameters, the pool slice is returned to the pool immediately after the handler lookup. No `Params` value is placed in the context.
-    - If the route has parameters, the router copies the parameters into a new slice (`make(Params, n)` + `copy`), places the copy in the request context, and returns the pool slice to the pool. The copy is what `ParamsFromContext` and `PathParam` access.
-34. The copy ensures that the `Params` slice in the request context is not shared with or overwritten by concurrent requests using the pool.
-35. The pool slice must never be retained beyond the route lookup phase. Handler code always receives the safe copy via the context.
+31. During route lookup, captured parameters are accumulated in a fixed-size, stack-allocated buffer (holding up to 3 parameters inline) that does not itself escape to the heap. A route with more than 3 parameters spills the extra parameters into one heap-allocated slice, created fresh for that request.
+32. For `Handle` routes, once lookup completes, the router places the captured parameters where `ParamsFromContext` and `PathParam` can find them:
+    - Static pattern (no parameters): no `Params` value is placed in the context; `ParamsFromContext` returns `nil`.
+    - 1, 2, or 3 parameters: the parameter values are stored inline in the same single allocation as the request-scoped context wrapper (see [performance.md](performance.md) section 8, Tiered Request Bundle). No separate `Params` slice is allocated for these cases.
+    - More than 3 parameters: the first 3 are stored inline as above; the remainder are held in a second, separately allocated `Params` slice.
+33. For `FastHandler` routes, the captured parameters are copied into a `Params` slice passed directly as the handler's third argument, never through the request context (see [performance.md](performance.md) section 6).
+34. Whether the underlying storage is drawn from a `sync.Pool` and recycled after the handler returns is controlled independently for each route type: `Mux.PoolRequestBundle` for `Handle` routes and `Mux.PoolFastParams` for `FastHandler` routes (see [configuration.md](configuration.md) sections 4.6 and 4.5). Both default to `false`.
+35. When the relevant pooling flag is `false` (the default for both), the `Params` slice — and, for `Handle` routes, the request context and `*http.Request` that carry it — remain valid indefinitely after the handler returns and are safe to retain across goroutines.
+36. When the relevant pooling flag is `true`, the underlying storage is returned to a `sync.Pool` the instant the handler returns. Handlers MUST NOT retain the `Params` slice — nor, for pooled `Handle` routes, the `*http.Request` — past their return. See [configuration.md](configuration.md) sections 4.5 and 4.6 for the full lifetime contract.
