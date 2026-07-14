@@ -21,6 +21,9 @@ This is the same signature used by `net/http`, chi, gorilla/mux, and most other 
   - [Recoverer](#recoverer)
   - [CORS](#cors)
   - [BasicAuth](#basicauth)
+  - [JWTAuth](#jwtauth)
+  - [OAuth2Introspect](#oauth2introspect)
+  - [APIKey](#apikey)
   - [Compress](#compress)
   - [ThrottleBacklog](#throttlebacklog)
   - [Timeout](#timeout)
@@ -277,6 +280,206 @@ mux.Use(middleware.BasicAuth("My API", credentials))
 **Parameters:**
 - `realm string` — shown to the user in the browser's credential prompt
 - `credentials map[string]string` — map of username → password
+
+---
+
+### JWTAuth
+
+Validates JSON Web Tokens (JWT) from the `Authorization: Bearer <token>` header. The token signature is always verified before claims are parsed to prevent payload manipulation. On success, the validated claims are injected into the request context and available via `GetJWTClaims`.
+
+```go
+import (
+    "crypto/ecdsa"
+    "crypto/elliptic"
+    "crypto/rand"
+    "github.com/FlavioCFOliveira/MuxMaster/middleware"
+)
+
+// Example with ECDSA (P-256) signing
+privKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+pubKey := &privKey.PublicKey
+
+mux.Pre(middleware.JWTAuth(middleware.JWTOptions{
+    PublicKey:     pubKey,
+    Algorithms:    []string{"ES256"},
+    RequireExpiry: true,  // RFC 8725 §4.4: reject tokens without "exp"
+    Issuers:       []string{"https://auth.example.com"},
+    Audiences:     []string{"api"},
+}))
+
+// In a handler, extract the claims:
+func myHandler(w http.ResponseWriter, r *http.Request) {
+    claims, ok := middleware.GetJWTClaims(r.Context())
+    if !ok {
+        http.Error(w, "claims not found", http.StatusInternalServerError)
+        return
+    }
+    fmt.Fprintf(w, "User: %s\n", claims.Subject)
+}
+```
+
+**`JWTOptions` fields:**
+
+| Field              | Type       | Description |
+|---|---|---|
+| `Secret`           | `[]byte`   | HMAC signing key; required for HS256, HS384, HS512 |
+| `PublicKey`        | `crypto.PublicKey` | RSA or ECDSA public key; required for RS*/ES* algorithms |
+| `Algorithms`       | `[]string` | Accepted signing algorithms (required, non-empty). Supported: HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512 |
+| `Issuers`          | `[]string` | If non-empty, restricts accepted "iss" claim values |
+| `Audiences`        | `[]string` | If non-empty, requires at least one "aud" entry to match |
+| `ClockSkew`        | `time.Duration` | Permitted clock drift for "exp" and "nbf" checks; default: 0 |
+| `RequireExpiry`    | `bool`     | When true, rejects tokens without an "exp" claim; default: **false** (unsafe — production MUST set to true) |
+
+**Claims returned by `GetJWTClaims`:**
+
+```go
+type JWTClaims struct {
+    Subject    string    // "sub" claim
+    Issuer     string    // "iss" claim
+    Audience   []string  // "aud" claim (may be single or array in JWT)
+    ExpiresAt  time.Time // "exp" claim, or zero if absent
+    IssuedAt   time.Time // "iat" claim, or zero if absent
+    NotBefore  time.Time // "nbf" claim, or zero if absent
+    RawPayload []byte    // Raw decoded JSON payload for extracting custom claims
+}
+```
+
+**Security Considerations:**
+
+- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. The `Use()` family does not wrap fast routes and will panic if both are present. See [Pre vs. Use security boundary](../SECURITY.md#thread-safety-contract-mm-2026-0017--csa-2026-0052) in SECURITY.md.
+
+- **Algorithm mixing (timing oracle — TSC-2026-0003):** Mixing algorithm families (e.g., HS256 alongside RS256) in `Algorithms` leaks the verification path via response latency: HMAC verification is ~1 µs, RSA ~300 µs. An attacker submitting tokens with different `alg` values can infer which path the server runs. Configure each endpoint with a single algorithm family (e.g., only `ES256`, not a mix). JWTAuth emits a `slog.Warn` at construction time when this misconfiguration is detected.
+
+- **Require expiry (RFC 8725 §4.4 — TM-2026-001):** The default `RequireExpiry: false` is unsafe in production. A stolen token without an `"exp"` claim remains valid indefinitely. Production deployments **must** set `RequireExpiry: true`. JWTAuth emits a `slog.Warn` at construction time when this default is in effect.
+
+- **Critical extensions rejected:** Tokens with a `"crit"` field in the header (RFC 7515 §4.1.11) are rejected, as MuxMaster does not support custom critical extensions.
+
+- **Negative timestamps rejected (TM-2026-002):** Any negative value in `"exp"`, `"nbf"`, or `"iat"` claims is rejected as malformed per RFC 7519 §2.
+
+---
+
+### OAuth2Introspect
+
+Validates Bearer tokens via RFC 7662 token introspection against a remote authorization server. Active tokens are cached (keyed by SHA-256 hash of the token) to avoid per-request network calls. Concurrent requests for the same token are coalesced via singleflight to prevent cache-stampede attacks against the introspection endpoint.
+
+```go
+import (
+    "github.com/FlavioCFOliveira/MuxMaster/middleware"
+)
+
+mux.Pre(middleware.OAuth2Introspect(middleware.OAuth2Options{
+    Endpoint:     "https://auth.example.com/oauth2/introspect",
+    ClientID:     "my-service",
+    ClientSecret: "secret",
+    CacheTTL:     60 * time.Second,
+    MaxCacheSize: 10000,
+}))
+
+// In a handler, extract the introspection response:
+func myHandler(w http.ResponseWriter, r *http.Request) {
+    resp, ok := middleware.GetOAuth2Claims(r.Context())
+    if !ok {
+        http.Error(w, "introspection response not found", http.StatusInternalServerError)
+        return
+    }
+    fmt.Fprintf(w, "Subject: %s\nScope: %s\n", resp.Subject, resp.Scope)
+}
+```
+
+**`OAuth2Options` fields:**
+
+| Field                   | Type              | Description |
+|---|---|---|
+| `Endpoint`              | `string`          | RFC 7662 introspection URL (required); must be HTTPS unless `AllowInsecureEndpoint: true` |
+| `ClientID`              | `string`          | Username for HTTP Basic authentication (optional) |
+| `ClientSecret`          | `string`          | Password for HTTP Basic authentication (optional) |
+| `AllowInsecureEndpoint` | `bool`            | Allow non-HTTPS endpoint; default: **false**. Set to true ONLY for testing on localhost. A slog warning is emitted at construction time when true |
+| `CacheTTL`              | `time.Duration`   | How long active tokens are cached; default: 60 seconds. Set to a negative value (e.g., -1) to disable caching entirely — every request hits the endpoint. Effective TTL is `min(CacheTTL, token.exp - now)` |
+| `MaxCacheSize`          | `int`             | Maximum number of cached tokens; default: 10000. When full, expired tokens are evicted first; if none are expired, the entry with the soonest expiry is evicted |
+| `HTTPClient`            | `*http.Client`    | HTTP client for introspection requests; default: 10-second timeout. Override to use a custom certificate or proxy |
+| `ExtractFn`             | `func(*http.Request) string` | Custom token extraction function; default: `Authorization: Bearer <token>` |
+
+**Introspection response (`IntrospectResponse`) fields:**
+
+```go
+type IntrospectResponse struct {
+    Active    bool      // RFC 7662: whether the token is active
+    Subject   string    // "sub" claim
+    Scope     string    // Space-separated scopes
+    ClientID  string    // "client_id" claim
+    Username  string    // "username" claim
+    TokenType string    // "token_type" claim
+    ExpiresAt time.Time // "exp" claim, or zero if absent
+    IssuedAt  time.Time // "iat" claim, or zero if absent
+    NotBefore time.Time // "nbf" claim, or zero if absent
+    Issuer    string    // "iss" claim
+    Audience  []string  // "aud" claim (may be single or array)
+}
+```
+
+**Security Considerations:**
+
+- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#thread-safety-contract-mm-2026-0017--csa-2026-0052) in SECURITY.md.
+
+- **HTTPS endpoint required (RFC 7662 §4 — MSR-2026-0067):** Bearer tokens transmitted over plaintext are exposed to passive observers and man-in-the-middle attackers. The `Endpoint` must use the `https://` scheme. MuxMaster panics at construction time unless `AllowInsecureEndpoint: true` is explicitly set (testing/localhost only). Production deployments must use HTTPS.
+
+- **Endpoint URL validation (TM-2026-004):** The `Endpoint` URL is validated to ensure it has a non-empty host and contains no embedded userinfo (which could exfiltrate credentials). Misconfigured endpoints are detected at construction time.
+
+- **Credential logging mitigation (TM-2026-005):** Construction-time logs emit only the host and scheme of the endpoint, never the full URL, to prevent credentials embedded in query strings from being recorded.
+
+- **Cache poisoning (MSR-2026-0063):** Because tokens are cached, a revoked token remains valid until the TTL expires. High-security endpoints should disable caching by setting `CacheTTL` to a negative value (e.g., `-1`). The singleflight mechanism still coalesces concurrent calls for the same token, preventing IDP load spikes.
+
+- **Singleflight defense (DOS-OAUTH2-001):** Concurrent requests for the same token share a single upstream introspection call. If the leader's request context is cancelled, the call detaches to a 30-second background timeout so followers receive the legitimate result instead of being poisoned with a 401.
+
+---
+
+### APIKey
+
+Authenticates requests by matching an extracted API key against a pre-validated set. All keys are hashed at construction time; per-request overhead is one SHA-256 hash plus a lookup.
+
+```go
+import (
+    "github.com/FlavioCFOliveira/MuxMaster/middleware"
+)
+
+keys := map[string]string{
+    "sk_live_abc123": "service-a",
+    "sk_live_def456": "service-b",
+}
+
+mux.Pre(middleware.APIKey(middleware.APIKeyOptions{
+    Keys:   keys,
+    Header: "X-API-Key",  // default header name
+}))
+
+// In a handler, extract the identity:
+func myHandler(w http.ResponseWriter, r *http.Request) {
+    identity, ok := middleware.GetAPIKeyIdentity(r.Context())
+    if !ok {
+        http.Error(w, "identity not found", http.StatusInternalServerError)
+        return
+    }
+    fmt.Fprintf(w, "Request from: %s\n", identity)
+}
+```
+
+**`APIKeyOptions` fields:**
+
+| Field      | Type                        | Description |
+|---|---|---|
+| `Keys`     | `map[string]string`         | Map of raw API key → identity string; must be non-empty (panics otherwise) |
+| `Header`   | `string`                    | Request header to read; default: "X-API-Key" |
+| `ExtractFn` | `func(*http.Request) string` | Custom key extraction function; overrides `Header` if set |
+
+**Security Considerations:**
+
+- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#thread-safety-contract-mm-2026-0017--csa-2026-0052) in SECURITY.md.
+
+- **WWW-Authenticate header (RFC 7235 §3.1 — MM-2026-0052):** MuxMaster sets the `WWW-Authenticate: ApiKey realm="api"` header on 401 responses to comply with the HTTP specification.
+
+- **Timing oracle mitigation (TSC-2026-0008):** To avoid leaking whether the API key was found via response latency, the hit path (valid key) performs an equivalent header operation (set + delete) as the miss paths, equalising the cost of both branches. This prevents attackers from distinguishing valid keys from invalid ones by measuring response time.
+
+- **Pre-hashing:** All keys are SHA-256 hashed at construction time. Per-request overhead is one SHA-256 hash of the submitted key plus a constant-time map lookup.
 
 ---
 
