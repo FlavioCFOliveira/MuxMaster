@@ -7,6 +7,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- **Performance: `ThrottlePerIP` and `ThrottlePerIPCapped`** — sharded the internal rate-limit table from a single global `sync.Mutex` to 64-way per-shard mutexes (selected by `hash/maphash`), with an atomic global entry counter keeping the `maxTableSize` cap exact. Eliminates anti-scaling at high core counts. Measured at 16 logical CPUs: **4.68× faster** (2114 ns → 451 ns/op), scales correctly above 4 cores instead of anti-scaling. Closes CH-01 / rmp #244.
+
+- **Performance: `ThrottleBacklog`** — replaced the per-request channel lock with a lock-free CAS-based fast path. Channel is now used only for the backlog-wait slow path. At 16 cores: **−13% ns/op** (76.15 ns → 66.23 ns); at 1 core: **−42% ns/op** (39.12 ns → 22.76 ns). Exact global limit maintained; multi-core cost reflects the cache-coherence floor of atomic counter contention. Closes CH-02 / rmp #244.
+
+- **Performance: `RequestID`** — batched `crypto/rand` reads via a `sync.Pool` of 4 KiB buffers, rewriting the allocation strategy to fuse the context node, hex-digit buffer, and response-header backing array into a single allocation. Allocations reduced from 7 to 2 per request (−71.4%). Measured performance improvement at different core counts: **~4.7× at cpu=1**, **~2.8× at cpu=4**, **~1.95× at cpu=16**. Closes CH-05 / rmp #245.
+
+- **Performance: `OAuth2Introspect` cache eviction** — changed eviction from O(n) full-table scan to O(log n) min-heap-based soonest-expiry selection when the cache is at capacity. Benchmark at cache saturation: **76× faster at cpu=1** (247.7 µs → 3.27 µs), **168× at cpu=4** (257.2 µs → 1.53 µs), **120× at cpu=16** (257.4 µs → 2.15 µs). Closes CH-09 / rmp #246.
+
+- **Performance: `mux.go` redirect path** — snapshot the middleware chain into `redirectMWPtr` (an atomic pointer refreshed by `Use()`) and read it lock-free in `serveRedirect`, eliminating the unconditional `m.mu.RLock()` call on every redirect request. No measurable ns/op change on synthetic benchmarks (RWMutex was already cheap for reader-only access), but removes a reader-count atomic operation from the hot path. Closes CH-06 / rmp #247.
+
+- **Documentation: `RequestID` middleware reference** — rewritten to clarify context-based retrieval via `middleware.GetRequestID()`, explain inbound header validation (MM-2026-0011: ASCII alphanumeric plus `-`, `_`, `.`; max 128 characters), and document the 2-allocation budget. Updated `docs/middleware.md` with correct function call form and validation rules. Added high-concurrency scaling subsection to `docs/max-performance.md` with measured data at 1/4/16 cores, explaining the allocation-driven GC and runtime lock pressure mechanism.
+
 ## [1.1.0] - 2026-05-12
 
 Minor release focused on **maximum performance**. Three deep-audit

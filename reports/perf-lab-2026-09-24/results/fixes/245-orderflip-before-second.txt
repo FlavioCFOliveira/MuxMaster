@@ -1,0 +1,24 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRequestIDParallel       	 1000000	      1077 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel       	 1000000	      1082 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel       	 1000000	      1077 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel       	 1000000	      1071 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel       	 1000000	      1071 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel       	 1000000	      1067 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4     	 4163382	       291.0 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4     	 4100113	       288.4 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4     	 4118696	       291.3 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4     	 4120974	       292.1 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4     	 4092300	       291.8 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4     	 4103049	       293.6 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16    	 4919517	       251.5 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16    	 4743045	       257.0 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16    	 4584514	       259.8 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16    	 4638519	       262.4 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16    	 4446480	       263.2 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16    	 4547150	       273.3 ns/op	     464 B/op	       7 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness	24.372s

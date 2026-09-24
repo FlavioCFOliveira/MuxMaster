@@ -150,3 +150,34 @@ The CPU profile (`profiles/cpu.pb.gz`) shows `time.runtimeNow` + `runtime.nanoti
 - `reports/perf-lab-2026-09-24/loadgen/go.mod`, `main.go`, `server.go`, `client.go`, `driver.sh`
 - `reports/perf-lab-2026-09-24/profiles/` (mutex.pb.gz, block.pb.gz, cpu.pb.gz, mem.pb.gz, trace.out, loadgen-server-{cpu,mutex,block,goroutine}-{1000,5000,10000}.pb.gz)
 - `reports/perf-lab-2026-09-24/results/` (scaling-cpu{1,2,4,8,16}.txt, scaling-benchstat.txt, profiled-run.txt, loadgen-{1000,5000,10000}.txt)
+
+---
+
+## Resolution (2026-09-24)
+
+All findings with proposed fixes were addressed in a four-task implementation sprint (rmp #244–#247). The outcomes are:
+
+| Finding | Task | Change | Before | After | Decision |
+|---|---|---|---|---|---|
+| **CH-01** | #244 | ThrottlePerIP table sharding (64-way striped locks) | 2114 ns @ cpu16 | 451 ns @ cpu16 | Accepted — delivers 4.68× speedup at high cores, eliminates anti-scaling |
+| **CH-02** | #244 | ThrottleBacklog lock-free fast path (atomic CAS) | 76.15 ns @ cpu16 | 66.23 ns @ cpu16 | Accepted — −13% at high cores, −42% at single core; exact global limit kept, multi-core cost is cache-coherence floor |
+| **CH-05** | #245 | RequestID batched crypto/rand + allocation rewrite | 1092 ns @ cpu1, 291.4 ns @ cpu4, 253.1 ns @ cpu16 | 231.5 ns @ cpu1, 102.0 ns @ cpu4, 131.6 ns @ cpu16 | Accepted — improves ~4.7×/~2.8×/~1.95× at cpu 1/4/16; allocations 7→2; CPU profile shows net/http.WithContext now dominates (unavoidable for stdlib middleware per spec) |
+| **CH-06** | #247 | Mux redirect snapshots middleware (lock-free read) | 89.06 ns @ cpu16 (with m.mu.RLock) | 88.73 ns @ cpu16 (lock-free) | Accepted — no measurable latency change (RWMutex was already cheap reader-only), but removes atomic reader-count operation from hot path |
+| **CH-09** | #246 | OAuth2Introspect eviction O(n)→O(log n) via min-heap | 247.7 µs @ cpu1, 257.2 µs @ cpu4, 257.4 µs @ cpu16 (saturation) | 3.27 µs @ cpu1, 1.53 µs @ cpu4, 2.15 µs @ cpu16 (saturation) | Accepted — **76× speedup at cpu=1, 168× at cpu=4, 120× at cpu=16** |
+| **CH-03/CH-04** | — | Documentation: high-concurrency pooling benefits | — | — | Documentation only (no code change needed; `PoolRequestBundle` and `PoolFastParams` already existed). Added scaling guidance to `docs/max-performance.md` with measured data at cpu=1/4/16 cores |
+| **CH-10** | — | Cache-line sharing (preHandlerPtr / lazyNotFoundPtr) | — | — | Accepted as informational (no fix): documented usage contract (no Use/Pre after serving starts) already prevents concurrent access |
+| **CH-07/CH-08** | — | No action | — | — | CH-07: OAuth2 cache read-hit path scales well (58% efficiency @ cpu16), no contention detected; CH-08: singleflight coalesce is working-by-design (DOS-OAUTH2-001) |
+
+### Key decisions
+
+1. **ThrottleBacklog keeps an exact global limit and accepts the cache-coherence floor.** The atomic CAS fast path improved single-core performance significantly (−42%), while the multi-core floor (66.23 ns @ cpu16 vs 59.5 ns @ cpu4) reflects the cost of serializing on a shared atomic counter when all 16 cores simultaneously try to reserve a slot. This is not a defect — it is the unavoidable floor of a global-limit design. No further optimization is practical without changing the API (e.g., to per-shard or probabilistic limits).
+
+2. **RequestID accepted at ~1.95× improvement at cpu=16** (short of the literal 2× AC by a small, reproducible margin). Every allocation removable within `request_id.go`'s scope has been removed (down to 2: the fused context+buffer allocation, and r.WithContext's `*http.Request` copy). CPU profiling shows `net/http.WithContext` itself (stdlib, out of scope) is now the single-largest cost (37% cumulative), with its GC write-barrier overhead close behind (18%). No further removal is possible without violating the lifetime contract or changing observable behaviour.
+
+3. **Mux redirect cost lives in `net/http.Redirect`** (4 allocs/op), not in MuxMaster's dispatch. The lock-free middleware snapshot removes MuxMaster's own contribution but leaves the stdlib redirect overhead untouched. Follow-up rmp #248 in backlog if this becomes a user-visible concern.
+
+### Security review finding
+
+- **MSR-2026-0072 (middleware-security-reviewer, rmp #245):** An unreachable `math/rand/v2` fallback in `middleware/request_id.go` was removed during code review. Since Go 1.24 (the module declares Go 1.26), `crypto/rand.Read` never returns an error — it crashes the program irrecoverably if entropy fails. The fallback was dead code; removed along with associated logging, imports, and the `requestIDReadFallbackWarnOnce` variable. IDs are now generated exclusively from `crypto/rand`, per specification §4.16. A regression test (`TestSec_NextRandomID_CryptoRandDefaultFailureModeCrashesProcess_NotFallback`) was added to verify the fatal-error behaviour as a subprocess, ensuring future Go releases do not change this contract without detection.
+
+---

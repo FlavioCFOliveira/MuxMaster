@@ -528,17 +528,26 @@ The timeout applies to the handler execution time, not to the total connection l
 
 ### RequestID
 
-Attaches a unique request ID to every request. Reads `X-Request-Id` from the incoming headers; generates a random UUID if absent. Writes the ID back in the response as `X-Request-Id`.
+Attaches a unique request ID to every request, generating a 16-byte random value encoded as a 32-character lowercase hexadecimal identifier, or validating an inbound one. The ID is stored in the request context and written to the response header.
 
 ```go
-mux.Use(middleware.RequestID)
+mux.Use(middleware.RequestID())
 ```
 
-To read the request ID in a handler:
+**Header behavior:**
+
+- **Inbound:** If the incoming request has an `X-Request-ID` header, it is validated (MM-2026-0011): ASCII alphanumeric plus `-`, `_`, `.`; length 1–128 characters. Invalid or empty values are replaced with a freshly generated ID.
+- **Outbound:** The request ID is written to the `X-Request-ID` response header.
+
+**Reading the request ID in a handler:**
 
 ```go
-id := r.Header.Get("X-Request-Id")
+id := middleware.GetRequestID(r.Context())
 ```
+
+**Performance:**
+
+- **Allocation budget:** Exactly 2 allocations per request — one fused allocation for the context node + hex-encoded ID buffer + response header backing array, and one for `r.WithContext()`'s copy of `*http.Request`.
 
 ---
 

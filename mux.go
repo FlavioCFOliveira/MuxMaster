@@ -277,6 +277,13 @@ type Mux struct {
 	// first use. Invalidated by Use() to pick up new middleware.
 	lazyNotFoundPtr atomic.Pointer[http.Handler]
 
+	// redirectMWPtr is a lock-free snapshot of m.middleware, refreshed by
+	// Use() (CH-06). serveRedirect reads it directly instead of taking
+	// m.mu.RLock() on every redirect — the last unconditional RWMutex
+	// operation remaining in the request-dispatch path. A nil pointer (the
+	// initial state, before any Use() call) means "no middleware".
+	redirectMWPtr atomic.Pointer[[]func(http.Handler) http.Handler]
+
 	// methodNotAllowedCache caches wrapped 405 handlers keyed by Allow value.
 	// The Allow string is determined per-path so we key by it. Invalidated by Use().
 	methodNotAllowedCache sync.Map
@@ -342,6 +349,10 @@ func (m *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 		m.optionsCache.Delete(k)
 		return true
 	})
+	// Refresh the lock-free redirect-middleware snapshot (CH-06) so
+	// serveRedirect observes the new chain without ever taking m.mu.
+	snap := append([]func(http.Handler) http.Handler(nil), m.middleware...)
+	m.redirectMWPtr.Store(&snap)
 }
 
 // Pre registers middleware that runs before dispatch (e.g. before routing).
@@ -1198,10 +1209,16 @@ func buildRedirectTarget(newPath, rawQuery string) string {
 // entirely — http.Redirect is invoked directly, avoiding the closure escape
 // + middleware-chain rebuild that the previous code paid on every request.
 // With middleware present, the previous behaviour is preserved.
+//
+// Opt R2 (CH-06): reads the lock-free redirectMWPtr snapshot (refreshed by
+// Use()) instead of m.mu.RLock() — the last unconditional RWMutex operation
+// on the request-dispatch path, mirroring the lazyNotFound/lazyMethodNotAllowed
+// / lazyOPTIONS pattern already used elsewhere in this file.
 func (m *Mux) serveRedirect(w http.ResponseWriter, r *http.Request, target string, code int) {
-	m.mu.RLock()
-	mw := m.middleware
-	m.mu.RUnlock()
+	var mw []func(http.Handler) http.Handler
+	if p := m.redirectMWPtr.Load(); p != nil {
+		mw = *p
+	}
 	if len(mw) == 0 {
 		http.Redirect(w, r, target, code) // #nosec G710 — target is path-only (HPS-2026-0005)
 		return
