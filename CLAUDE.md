@@ -4,6 +4,8 @@
 
 **Name:** muxmaster
 
+> This is the `rmp` roadmap name. Every `rmp` command targets it with `-r muxmaster`.
+
 ## What this project is
 A high-performance HTTP router / HTTP muxer for Go, implemented **in pure Go** (zero external dependencies). It uses a radix tree (Patricia trie) for O(k) lookup where k is the path length.
 
@@ -53,6 +55,126 @@ A high-performance HTTP router / HTTP muxer for Go, implemented **in pure Go** (
 - Deprecate before removing: mark with `// Deprecated:` in GoDoc before deletion
 - Maintain compatibility with the minimum Go version declared in `go.mod`
 - Follow the Go API compatibility guidelines
+
+---
+
+# Working agreement
+
+These rules govern **every** interaction with this project. They take precedence over any default behaviour.
+
+## 1. Core rules
+
+1. **You are NOT authorised to take decisions on your own.** Whenever the instructions are insufficient, unclear, unspecific or not concrete, or whenever contradictions or ambiguities exist, you **MUST ALWAYS ASK** the user how to proceed.
+   - When asking, always offer multiple options (a, b, c, …) and state which one you recommend.
+   - When several questions need clarification, ask them **one at a time** (sequentially), never all at once.
+   - **The boundary between acting and asking:** obvious, low-risk corrections (for example, a pre-existing bug with an unambiguous fix) proceed immediately; any decision that changes the scope, the expected behaviour, the architecture or the requirements demands that you ask the user first.
+2. **Documentation in English.** All project documentation (including this `CLAUDE.md`) must be written in the most correct English possible, free of spelling, grammatical or syntactic errors. Use clear, simple, unambiguous technical language, written for human readers.
+3. **Documentation faithful to the code.** Documentation must be accurate and must always reflect the real state of the code.
+4. **Workflow.** Work always follows this order: **Specify → Implement → Test → Document.**
+
+## 2. Self-contained development policy
+
+- Every development cycle must be **self-contained**: each cycle produces a complete, usable result. You must **NEVER** deliver only part of a task.
+- When new, unforeseen needs arise during a task, they must be resolved within the same development cycle, as quickly as possible (by creating new tasks and executing them straight afterwards).
+- All code must be **full-fledged** (complete and ready to use). Tests with `skip` must **NOT** be created.
+- Whenever you find a pre-existing bug, fix it on the spot and then resume the work you were doing when you found it.
+
+## 3. Production-grade by default
+
+**EVERY** action you take — development, fixes, evaluations, analyses, audits, and anything else — must be treated with the rigour expected of **production** work.
+
+## 4. Planning and executing work
+
+- For any operation involving Tasks or Sprints you must use the `roadmap-manager` skill.
+- Use the `rmp` tool (the roadmap-management CLI available on the system) to plan and coordinate task execution.
+- Treat `rmp` as the **single source of truth** for the planning and execution of this project's tasks. No other mechanism may be used for this purpose.
+- Use the **Knowledge Graph** to understand the project, its components and the relationships between them, so that the scope and impact of each task can be identified more easily.
+
+### 4.1. Planning
+
+- Analyse the scope of the work proposed by the user and decide whether it warrants being split into several development phases. Each phase must correspond to a solid deliverable.
+- Every task must have a clear and objective definition of:
+  - objectives;
+  - functional requirements;
+  - technical requirements;
+  - acceptance criteria (the conditions that confirm the task is complete).
+- Phases map to **Sprints** in `rmp` and are used to group tasks.
+- When the work requires several phases, planning happens in two distinct steps:
+  1. define which phases (sprints) are needed and the scope/objective of each one;
+  2. only then, sprint by sprint, define the tasks of each sprint.
+
+  In both steps, use `rmp` as the single source of truth.
+- Use the **Knowledge Graph** to identify the tasks with the greatest gain or impact, the foundational tasks, and the ones that unblock other tasks or features, so that the execution order can be optimised.
+- **Prioritisation:** by default, always work from the highest-gain/highest-impact tasks down to the least essential ones. Foundational tasks and tasks that unblock others are always a priority.
+- When a task is too large to be executed in one go by an AI agent (such as Claude Code), subdivide it into parts, respecting the principles already defined (notably that of the self-contained task).
+
+### 4.2. Task execution
+
+Execution is the step that follows planning. Always use `rmp` and follow this sequence:
+
+1. Check whether there is an open, unfinished task to carry on with.
+2. Identify the next task.
+3. Understand the objective of the task about to start, based on its description and its functional and technical requirements.
+4. Determine the most appropriate subagent and delegate execution to it.
+5. Always validate the acceptance criteria before closing the task.
+6. Close the task with a short summary of what was done.
+7. After closing the task, and before moving on to the next one, make a `git commit` following best practice, explaining what was done.
+8. Update the Knowledge Graph.
+
+Execution notes:
+
+- Whenever possible, adapt the model and its effort level to the requirements of each individual operation within the task.
+- Task and sprint execution is **sequential**.
+- Evaluations and audits may run in parallel, but such parallel execution must **ALWAYS be authorised by the user**.
+
+## 5. Knowledge Graph
+
+The KG (Knowledge Graph) must be managed with the help of the `knowledge-authority` skill.
+
+- Use the "Graph" features of `rmp` (Groadmap) to create, maintain (update) and query a knowledge graph of the project.
+- This graph **MUST CONTAIN EVERYTHING** worth knowing about the project. Examples:
+  - which features exist, and where they are specified and implemented;
+  - which tests exist and what they test;
+  - which components exist, how they relate, and what the dependencies between them are;
+  - in which `git commit` each feature was specified, implemented and tested;
+  - the `rmp` tasks and their link to the components.
+- The graph **MUST ALWAYS BE UPDATED on every `git commit`**, recording the changes to the graph's objects. Every node and edge update must identify the corresponding commit and its date.
+- **This graph is the absolute truth about the project.** Keep it as up to date as possible, so that, before having to read files, you can query the graph and obtain what you need.
+- Create the nodes and edges that make the most sense for the project. Use the graph together with the tasks and sprints to coordinate the work.
+
+## 6. Never guess
+
+- Every interaction on this project must be based **EXCLUSIVELY** on verified knowledge. Never try to guess the intended answer.
+- When the available information is not sufficient, look for answers in official or authoritative sources: specifications, RFCs, papers, books, or reference authors in the field.
+- Use the **Knowledge Graph** as the primary source of information — both to query and to record the relationships you discover.
+
+## 7. Measure to decide
+
+Whenever you need to assess performance, completeness (whether something is complete) or correctness (whether something is right), **ALWAYS** gather evidence from the project to determine the needs. **ALWAYS** decide empirically.
+
+## 8. Regression prevention
+
+Whenever you identify a bug, create the regression tests needed to guarantee that the same bug cannot reappear as a consequence of future development.
+
+## 9. Your team (subagents)
+
+- You have at your disposal a team made up of every available subagent (global, user-level or project-level).
+- Use them collaboratively and complementarily, so that each task is completed with the greatest possible confidence, effectiveness and assertiveness.
+- Each subagent must contribute proactively with its own specialty.
+
+## 10. Decision framework
+
+To decide what is expected as the outcome of the project — whether in evaluations and audits or during code implementation — follow this order of priority: **correct → secure → fast.**
+
+1. **Is it correct?** Does the result meet the objective, the project specification, and the applicable authoritative sources (RFCs, standards, etc.)?
+2. **Is it secure?** Does the decision or task avoid introducing any characteristic or behaviour that compromises the safe use of the deliverable?
+3. **Is it fast?** Is it as fast as it can be without compromising correctness or security? What can be done to maximise the performance of the deliverable?
+
+If these criteria conflict, or if you struggle to follow them, ask the user immediately how to proceed, presenting the possible options.
+
+---
+
+# Project reference
 
 ## Go version
 **Go 1.26+** (`go.mod` declares `go 1.26`). Uses modern features:
@@ -216,7 +338,7 @@ The most well-known and widely adopted Go HTTP routers, in order of relevance as
 
 ## Available subagents
 
-Specialised agents are configured under `.claude/agents/`. Use them proactively — do not wait for the user to ask for them explicitly.
+Specialised agents are configured under `.claude/agents/`. Use them proactively — do not wait for the user to ask for them explicitly. Delegating the execution of a task to the most appropriate subagent is a mandatory step of the execution sequence (see "Working agreement" §4.2).
 
 ### Performance agents
 
@@ -294,7 +416,7 @@ STRIDE, attack trees, cross-ecosystem transposition (nginx / Rails / Express / S
 
 **Security flow (sprint):**
 1. `threat-modeler` → writes `/reports/overview/<date>-sprint.md`
-2. The 8 specialists run in parallel and write to `/reports/<agent>/`
+2. The 8 specialists run (in parallel only with prior user authorisation) and write to `/reports/<agent>/`
 3. `threat-modeler` consolidates into `/reports/overview/<date>-posture.md` + updates `findings.md`, `threat-model.md`, `hypotheses.md`
 
 **Escalation paths (security):**
@@ -304,7 +426,7 @@ STRIDE, attack trees, cross-ecosystem transposition (nginx / Rails / Express / S
 - Routing bypass → `path-routing-fuzzer`
 - Combination of findings → `threat-modeler-and-zero-day-researcher`
 
-All agents may run in parallel when the tasks are independent. The `threat-modeler` runs before (planning) and after (consolidation) the parallel batch.
+**Parallel execution:** evaluations and audits may run in parallel when the tasks are independent, but **parallel execution must always be authorised by the user first** (see "Working agreement" §4.2). Task and sprint execution is always sequential. The `threat-modeler` runs before (planning) and after (consolidation) any batch of specialist runs.
 
 ---
 
@@ -390,6 +512,8 @@ Interpretation notes (both platforms):
 ---
 
 ## Development principles — Maximum performance
+
+> Performance work is subordinate to the decision framework in "Working agreement" §10: **correct → secure → fast**. Never trade correctness or security for speed; when they conflict, ask the user.
 
 ### Mandatory multi-disciplinary approach
 Before implementing any solution, you must consider **every possible approach** — alternative data structures, algorithms from other languages (C, C++, Rust, Zig, Java, etc.), operating-system techniques, and hardware patterns — and implement the most efficient one in idiomatic Go. Do not limit yourself to what is common in Go; draw inspiration from the best of every language and translate it to Go.
