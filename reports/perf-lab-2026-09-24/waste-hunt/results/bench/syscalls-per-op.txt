@@ -1,0 +1,15 @@
+benchmark                                                  syscalls per op (N=2001 minus N=1)
+Clock/time.Now$                                            clock_gettime=2.16 read=0.00 write=0.00 sendfile=0.00
+Clock/time.Since$                                          clock_gettime=1.13 read=0.00 write=0.00 sendfile=0.00
+Logger/current$                                            clock_gettime=5.17 read=-0.00 write=0.00 sendfile=0.00
+Logger/alternative$                                        clock_gettime=4.18 read=-0.00 write=0.00 sendfile=0.00
+Logger/alt-single-clock-only$                              clock_gettime=4.16 read=0.00 write=0.00 sendfile=0.00
+ThrottlePerIP/sequential-one-client/current$               clock_gettime=2.21 read=0.00 write=0.00 sendfile=0.00
+ThrottlePerIP/sequential-one-client/alternative$           clock_gettime=0.07 read=-0.00 write=0.00 sendfile=0.00
+ThrottlePerIP/sequential-one-client/alt-timer-fastpath-only$ clock_gettime=0.09 read=0.00 write=0.00 sendfile=0.00
+FileServe/no-logger/large.bin$                             clock_gettime=71.20 read=134.07 write=2.01 sendfile=1.00
+FileServe/Logger-current/large.bin$                        clock_gettime=89.51 read=165.10 write=34.03 sendfile=0.00
+FileServe/Logger-with-ReaderFrom/large.bin$                clock_gettime=55.10 read=134.07 write=2.00 sendfile=1.00
+FileServe/no-logger/small.css$                             clock_gettime=41.96 read=6.03 write=2.03 sendfile=1.00
+FileServe/Logger-current/small.css$                        clock_gettime=46.35 read=6.07 write=2.07 sendfile=0.00
+FileServe/Logger-with-ReaderFrom/small.css$                clock_gettime=46.94 read=6.08 write=2.08 sendfile=1.00

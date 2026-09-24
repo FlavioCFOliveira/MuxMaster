@@ -1,0 +1,7 @@
+scenario=upload-file conns=32 duration=5.013s
+requests=9738 req/s=1942 p50=7.606907ms p90=24.211481ms p99=172.372737ms
+  POST /upload (64 KiB)                    expect=200 got 200×2436
+  POST /multi (64 KiB)                     expect=200 got 200×2436
+  POST /async (64 KiB)                     expect=202 got 202×2434
+  GET /                                    expect=200 got 200×2432
+STATUS-OK: every response matched its expected status

@@ -1,0 +1,55 @@
+### cpu
+owner share (nearest owning frame, leaf -> root):
+  net/http                  63.88%
+  runtime (no owner)        18.87%
+  MuxMaster/middleware      16.78%
+  MuxMaster/root             0.30%
+  example                    0.17%
+
+top MuxMaster owning functions (share of whole profile):
+    7.91%  middleware.Logger.func1.1
+    7.49%  middleware.Timeout.func1.1
+    0.61%  middleware.RequestID.func1.1
+    0.41%  middleware.sanitiseForLog
+    0.20%  middleware.nextRandomID
+    0.10%  muxmaster.(*Mux).dispatch
+    0.10%  muxmaster.(*Mux).ServeHTTP
+    0.06%  middleware.RecovererWithLogger.func1.1
+    0.04%  muxmaster.(*node).getValueStatic
+    0.04%  middleware.RecovererWithLogger.func1.1.1
+    0.03%  muxmaster.(*Mux).config
+    0.01%  muxmaster.prefixMatch
+    0.01%  middleware.validRequestID
+    0.01%  muxmaster.(*Mux).Pre.func1
+    0.01%  middleware.(*statusRecorder).Header
+    0.01%  middleware.(*requestIDCtx).Value
+    0.01%  middleware.(*requestIDCtx).Done
+
+### alloc_space
+owner share (nearest owning frame, leaf -> root):
+  net/http                  52.09%
+  MuxMaster/middleware      47.86%
+  example                    0.05%
+
+top MuxMaster owning functions (share of whole profile):
+   25.62%  middleware.Timeout.func1.1
+   20.23%  middleware.RequestID.func1.1
+    1.22%  middleware.Logger.func1.1
+    0.64%  middleware.sanitiseForLog
+    0.12%  middleware.nextRandomID
+    0.02%  middleware.init.func2
+
+### alloc_objects
+owner share (nearest owning frame, leaf -> root):
+  net/http                  55.70%
+  MuxMaster/middleware      44.24%
+  example                    0.06%
+
+top MuxMaster owning functions (share of whole profile):
+   23.82%  middleware.Timeout.func1.1
+    9.29%  middleware.RequestID.func1.1
+    6.55%  middleware.Logger.func1.1
+    4.55%  middleware.sanitiseForLog
+    0.01%  middleware.init.func2
+    0.01%  middleware.nextRandomID
+

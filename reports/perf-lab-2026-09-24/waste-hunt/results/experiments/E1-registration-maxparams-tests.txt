@@ -1,0 +1,3 @@
+ok  	github.com/FlavioCFOliveira/MuxMaster	0.189s
+ok  	github.com/FlavioCFOliveira/MuxMaster/middleware	2.707s
+tests: PASS (full suite on patched copy)

@@ -1,0 +1,230 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 5023312	       243.8 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1244551	       964.5 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 5119570	       241.0 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	11023504	       108.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 9169699	       132.9 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 9067580	       133.2 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8553	    135207 ns/op	    8411 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8389	    141422 ns/op	    8422 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6378	    184026 ns/op	    8427 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1890	    608026 ns/op	    8612 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    8998	    130912 ns/op	    8935 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7374	    148961 ns/op	   24626 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5608	    205134 ns/op	   41462 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1753	    697292 ns/op	   41306 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8487	    144077 ns/op	    8623 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    7836	    147989 ns/op	    8582 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6436	    185236 ns/op	    8611 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1924	    607739 ns/op	    8640 B/op	     102 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 4967863	       235.5 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1250017	       952.4 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 5126568	       234.6 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	11028405	       107.0 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 8987721	       132.4 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 8946873	       131.4 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8448	    135011 ns/op	    8448 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8242	    140206 ns/op	    8453 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6558	    183252 ns/op	    8406 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1884	    608578 ns/op	    8283 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    9162	    132049 ns/op	    8928 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7486	    150470 ns/op	   24668 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5596	    205618 ns/op	   41475 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1738	    668798 ns/op	   41414 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8342	    138932 ns/op	    8494 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    7966	    145969 ns/op	    8515 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6152	    186100 ns/op	    8574 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1878	    613842 ns/op	    8650 B/op	     102 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 4984584	       239.3 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1244408	       966.2 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 4941156	       240.6 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	11198806	       107.7 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 8906896	       133.2 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 8817705	       134.0 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8238	    135553 ns/op	    8428 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8616	    139955 ns/op	    8405 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6346	    183581 ns/op	    8533 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1915	    609294 ns/op	    8469 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    9086	    130746 ns/op	    8921 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7533	    150545 ns/op	   24648 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5683	    205799 ns/op	   41459 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1746	    655904 ns/op	   41384 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8380	    139706 ns/op	    8551 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    8230	    145085 ns/op	    8519 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6394	    185186 ns/op	    8539 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1878	    612273 ns/op	    8741 B/op	     102 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 5027611	       239.0 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1255790	       950.6 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 5112108	       235.2 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	11307460	       106.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 9133677	       132.2 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 9067279	       134.9 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8656	    135437 ns/op	    8414 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8652	    140078 ns/op	    8416 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6427	    183151 ns/op	    8362 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1894	    608296 ns/op	    8496 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    9087	    131605 ns/op	    8946 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7672	    150913 ns/op	   24650 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5756	    205909 ns/op	   41497 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1740	    659920 ns/op	   41370 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8683	    139602 ns/op	    8584 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    8204	    145695 ns/op	    8562 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6374	    185072 ns/op	    8576 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1875	    610568 ns/op	    8648 B/op	     102 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 5007540	       241.5 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1259156	       961.3 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 5105934	       239.5 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	11013529	       107.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 8866225	       133.0 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 9201184	       132.5 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8160	    134457 ns/op	    8405 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8421	    140639 ns/op	    8442 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6325	    183509 ns/op	    8444 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1903	    612137 ns/op	    8439 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    8911	    132103 ns/op	    8949 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7639	    151739 ns/op	   24653 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5457	    205303 ns/op	   41488 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1755	    653897 ns/op	   41334 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8598	    139188 ns/op	    8491 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    8347	    144947 ns/op	    8485 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6429	    183519 ns/op	    8472 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1917	    607555 ns/op	    8491 B/op	     102 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 5013837	       238.7 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1274950	       971.3 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 5065496	       236.2 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	11135982	       107.1 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 8992978	       131.8 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 9060652	       131.5 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8310	    135124 ns/op	    8418 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8349	    140549 ns/op	    8324 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6117	    182701 ns/op	    8429 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1929	    602411 ns/op	    8576 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    9099	    131744 ns/op	    8929 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7492	    150774 ns/op	   24644 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5648	    206443 ns/op	   41529 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1752	    660033 ns/op	   41387 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8395	    139808 ns/op	    8593 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    8208	    144933 ns/op	    8590 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6280	    186802 ns/op	    8511 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1890	    615582 ns/op	    8517 B/op	     102 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 5128776	       236.7 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1262942	       938.8 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 5082606	       232.2 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	11301744	       105.4 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 9376885	       130.1 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 9321187	       129.8 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8311	    135382 ns/op	    8382 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8517	    140898 ns/op	    8379 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6367	    182202 ns/op	    8421 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1915	    609328 ns/op	    8399 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    8642	    131038 ns/op	    8950 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7225	    150933 ns/op	   24702 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5610	    205973 ns/op	   41541 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1771	    662595 ns/op	   41291 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8804	    139520 ns/op	    8462 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    8059	    146448 ns/op	    8562 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6297	    186347 ns/op	    8547 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1892	    612663 ns/op	    8509 B/op	     102 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 4967352	       240.4 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1239736	       961.8 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 5028598	       240.5 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	10874460	       108.0 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 8716932	       134.3 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 8921005	       133.1 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8300	    135646 ns/op	    8398 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8575	    140976 ns/op	    8439 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6387	    182617 ns/op	    8462 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1922	    606059 ns/op	    8437 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    9032	    131500 ns/op	    8943 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7750	    150584 ns/op	   24657 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5670	    205861 ns/op	   41468 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1750	    657851 ns/op	   41379 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8532	    140337 ns/op	    8574 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    8367	    145030 ns/op	    8523 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6160	    185800 ns/op	    8621 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1902	    609243 ns/op	    8610 B/op	     102 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 4997122	       241.7 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1228893	       974.3 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 5125732	       240.0 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	11384972	       108.8 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 9015242	       133.5 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 8983059	       133.3 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8145	    136275 ns/op	    8413 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8137	    141304 ns/op	    8414 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6390	    185102 ns/op	    8518 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1899	    651572 ns/op	    8473 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    8620	    138811 ns/op	    8937 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7515	    150654 ns/op	   24667 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5664	    206910 ns/op	   41493 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1762	    656852 ns/op	   41370 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8743	    140027 ns/op	    8667 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    8060	    144971 ns/op	    8456 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6387	    186221 ns/op	    8566 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1964	    605861 ns/op	    8621 B/op	     102 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16       	 4944919	       241.5 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1251207	       963.7 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 5023054	       236.5 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	11240449	       106.8 ns/op	     384 B/op	       1 allocs/op
+BenchmarkCleanPathChanged/current-16       	 9131448	       131.8 ns/op	     464 B/op	       2 allocs/op
+BenchmarkCleanPathChanged/shallow-copy-16  	 9109221	       132.1 ns/op	     464 B/op	       2 allocs/op
+BenchmarkFileServe/no-logger/small.css-16  	    8335	    135826 ns/op	    8377 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/16k.js-16     	    8575	    141652 ns/op	    8393 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/128k.js-16    	    6494	    183252 ns/op	    8430 B/op	      98 allocs/op
+BenchmarkFileServe/no-logger/large.bin-16  	    1844	    612112 ns/op	    8593 B/op	      98 allocs/op
+BenchmarkFileServe/Logger-current/small.css-16         	    8878	    131849 ns/op	    8921 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/16k.js-16            	    7510	    151895 ns/op	   24666 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-current/128k.js-16           	    5546	    206511 ns/op	   41500 B/op	      97 allocs/op
+BenchmarkFileServe/Logger-current/large.bin-16         	    1764	    667602 ns/op	   41350 B/op	      96 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/small.css-16 	    8582	    139618 ns/op	    8523 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/16k.js-16    	    8046	    145380 ns/op	    8566 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/128k.js-16   	    6247	    185812 ns/op	    8549 B/op	     102 allocs/op
+BenchmarkFileServe/Logger-with-ReaderFrom/large.bin-16 	    1893	    618232 ns/op	    8552 B/op	     102 allocs/op
+PASS

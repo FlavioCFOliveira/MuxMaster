@@ -1,0 +1,78 @@
+--- a/mux.go	2026-09-24 20:09:32.366901650 +0100
++++ b/mux.go	2026-09-24 20:09:32.382901600 +0100
+@@ -678,7 +678,11 @@
+ 		if p == "" {
+ 			p = "/"
+ 		}
+-		r2 := r.Clone(r.Context())
++		// [waste-hunt E4] http.StripPrefix copy strategy: shallow *Request
++		// copy + fresh URL (the only field modified). r.Clone deep-copied the
++		// header map, Trailer, Form, ... and its URL copy was then discarded.
++		r2 := new(http.Request)
++		*r2 = *r
+ 		r2.URL = new(url.URL)
+ 		*r2.URL = *r.URL
+ 		r2.URL.Path = p
+@@ -739,7 +743,8 @@
+ 	}
+ 	fs := http.FileServer(root)
+ 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		r2 := r.Clone(r.Context())
++		r2 := new(http.Request) // [waste-hunt E4] see mountAt
++		*r2 = *r
+ 		r2.URL = new(url.URL)
+ 		*r2.URL = *r.URL
+ 		r2.URL.Path = PathParam(r, paramName)
+--- a/group.go	2026-09-24 20:09:32.367901647 +0100
++++ b/group.go	2026-09-24 20:09:32.382901600 +0100
+@@ -202,7 +202,8 @@
+ 	}
+ 	fs := http.FileServer(root)
+ 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		r2 := r.Clone(r.Context())
++		r2 := new(http.Request) // [waste-hunt E4] see mountAt
++		*r2 = *r
+ 		r2.URL = new(url.URL)
+ 		*r2.URL = *r.URL
+ 		r2.URL.Path = PathParam(r, paramName)
+--- a/middleware/clean_path.go	2026-09-24 20:40:29.776459152 +0100
++++ b/middleware/clean_path.go	2026-09-24 20:40:29.785459139 +0100
+@@ -21,7 +21,12 @@
+ 				return
+ 			}
+ 
+-			r2 := r.Clone(r.Context())
++			// [waste-hunt E4] shallow copy + fresh URL (the only field modified)
++			// instead of r.Clone's deep copy of the header map, Form, Trailer...
++			r2 := new(http.Request)
++			*r2 = *r
++			r2.URL = new(url.URL)
++			*r2.URL = *r.URL
+ 			r2.URL.Path = p
+ 
+ 			if rawP != "" {
+--- a/middleware/strip_slashes.go	2026-09-24 20:40:29.776459152 +0100
++++ b/middleware/strip_slashes.go	2026-09-24 20:40:29.785459139 +0100
+@@ -1,6 +1,9 @@
+ package middleware
+ 
+-import "net/http"
++import (
++	"net/http"
++	"net/url"
++)
+ 
+ // StripSlashes removes all trailing slashes from r.URL.Path before routing.
+ // Idempotent: "/a///" becomes "/a" (not "/a//").
+@@ -18,7 +21,10 @@
+ 				p = p[:len(p)-1]
+ 			}
+ 			if p != r.URL.Path {
+-				r2 := r.Clone(r.Context())
++				r2 := new(http.Request) // [waste-hunt E4] see clean_path.go
++				*r2 = *r
++				r2.URL = new(url.URL)
++				*r2.URL = *r.URL
+ 				r2.URL.Path = p
+ 				if r.URL.RawPath != "" {
+ 					rp := r.URL.RawPath

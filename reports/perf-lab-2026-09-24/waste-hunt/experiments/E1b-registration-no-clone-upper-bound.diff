@@ -1,0 +1,17 @@
+--- a/mux.go	2026-09-24 20:23:31.078820506 +0100
++++ b/mux.go	2026-09-24 20:23:31.087820487 +0100
+@@ -409,10 +409,10 @@
+ 	if old := m.treesPtr.Load(); old != nil {
+ 		trees = *old
+ 	}
+-	if trees[idx] != nil {
+-		trees[idx] = cloneTree(trees[idx])
+-	}
+-
++	// [waste-hunt E1b] UPPER-BOUND MEASUREMENT ONLY — NOT A PROPOSAL: the
++	// deep clone is skipped entirely, which breaks the MM-2026-0033 rollback
++	// guarantee (its tests are expected to fail). It bounds what any cheaper
++	// copy-on-write scheme (e.g. path copying) could save.
+ 	root := trees[idx]
+ 	if root == nil {
+ 		root = new(node)

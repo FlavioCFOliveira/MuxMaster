@@ -1,0 +1,49 @@
+File: versioning
+Build ID: 89e8ec8def7dce9284817c12c263294a93cf2ed6
+Type: alloc_space
+Time: 2026-09-24 19:53:04 WEST
+Duration: 10.01s, Total samples = 1842.89MB 
+Showing nodes accounting for 1819.02MB, 98.70% of 1842.89MB total
+Dropped 87 nodes (cum <= 9.21MB)
+Showing top 40 nodes out of 54
+      flat  flat%   sum%        cum   cum%
+  255.06MB 13.84% 13.84%   256.56MB 13.92%  net/textproto.readMIMEHeader
+  245.57MB 13.33% 27.17%   245.57MB 13.33%  net/http.Header.Clone (inline)
+  232.07MB 12.59% 39.76%  1010.29MB 54.82%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  173.05MB  9.39% 49.15%   173.05MB  9.39%  net/http.(*Request).WithContext
+  170.05MB  9.23% 58.38%   530.13MB 28.77%  net/http.readRequestLimit
+  169.03MB  9.17% 67.55%   770.72MB 41.82%  net/http.(*conn).readRequest
+      84MB  4.56% 72.11%       84MB  4.56%  reflect.unsafe_New
+   82.52MB  4.48% 76.58%   168.04MB  9.12%  main.v2GetUser
+   78.51MB  4.26% 80.84%    78.51MB  4.26%  net/url.parse
+   58.01MB  3.15% 83.99%   100.52MB  5.45%  main.v2ListUsers
+      43MB  2.33% 86.33%       43MB  2.33%  net.(*conn).Read
+   36.50MB  1.98% 88.31%    36.50MB  1.98%  context.withCancel (inline)
+   25.05MB  1.36% 89.67%    25.05MB  1.36%  bufio.NewWriterSize (inline)
+   24.55MB  1.33% 91.00%    24.55MB  1.33%  sync.(*Pool).pinSlow
+   22.50MB  1.22% 92.22%    52.01MB  2.82%  main.v1ListUsers
+   21.51MB  1.17% 93.39%    61.02MB  3.31%  main.v2AdminAudit
+   21.50MB  1.17% 94.55%    54.01MB  2.93%  main.v1GetUser
+   20.50MB  1.11% 95.67%    48.51MB  2.63%  main.v2Health
+      18MB  0.98% 96.64%    49.01MB  2.66%  main.v1AdminDashboard
+   17.50MB  0.95% 97.59%    17.50MB  0.95%  net/textproto.(*Reader).ReadLine (inline)
+    9.50MB  0.52% 98.11%     9.50MB  0.52%  net/http.(*connReader).startBackgroundRead
+       8MB  0.43% 98.54%    44.50MB  2.41%  context.WithCancel
+       2MB  0.11% 98.65%    21.50MB  1.17%  encoding/json/v2.makeStructArshaler.func2
+       1MB 0.054% 98.70%   599.66MB 32.54%  main.acceptHeaderVersionDispatch.func1
+         0     0% 98.70%   288.57MB 15.66%  encoding/json.(*Encoder).Encode
+         0     0% 98.70%    92.51MB  5.02%  encoding/json/v2.MarshalEncode
+         0     0% 98.70%    49.50MB  2.69%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 98.70%    88.51MB  4.80%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 98.70%    92.51MB  5.02%  encoding/json/v2.marshalEncode
+         0     0% 98.70%       32MB  1.74%  encoding/json/v2.marshalValueAny
+         0     0% 98.70%    56.50MB  3.07%  encoding/json/v2.newAddressableValue
+         0     0% 98.70%    25.01MB  1.36%  fmt.Fprintln
+         0     0% 98.70%   598.66MB 32.48%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 98.70%  1010.29MB 54.82%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 98.70%   598.66MB 32.48%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 98.70%   289.07MB 15.69%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Pooled
+         0     0% 98.70%   599.66MB 32.54%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 98.70%   110.03MB  5.97%  main.adminMiddleware.func1
+         0     0% 98.70%    24.51MB  1.33%  main.index
+         0     0% 98.70%    35.01MB  1.90%  main.v1Health

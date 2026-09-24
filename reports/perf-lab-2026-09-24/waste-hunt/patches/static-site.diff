@@ -1,0 +1,46 @@
+--- a/main.go	2026-09-24 19:38:30.389687527 +0100
++++ b/main.go	2026-09-24 19:38:30.389687527 +0100
+@@ -94,6 +94,23 @@
+ 	// radix tree sees them, preventing traversal attacks and double-hit caching.
+ 	r.Pre(mw.CleanPath())
+ 
++	// [waste-hunt start-up patch] HandleFast routes moved above Use(): the
++	// unmodified example panics at registration (FPE-2026-010 guard). Fast
++	// routes are never wrapped by Use(), so the served behaviour is unchanged.
++	// FastHandler: no context allocation, 0 allocs for this static route.
++	// Ideal for load-balancer probes called thousands of times per second.
++	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
++		w.Header().Set("Content-Type", "application/json")
++		_, _ = io.WriteString(w, `{"status":"ok"}`)
++	})
++
++	// HEAD /health for tools that only probe with HEAD.
++	r.HEADFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
++		w.Header().Set("Content-Type", "application/json")
++		w.WriteHeader(http.StatusOK)
++	})
++
++
+ 	// ── Global middleware ─────────────────────────────────────────────────────
+ 
+ 	// Trusted upstream CIDRs for RealIP — localhost + common private ranges.
+@@ -136,19 +153,6 @@
+ 
+ 	// ── Health check ─────────────────────────────────────────────────────────
+ 
+-	// FastHandler: no context allocation, 0 allocs for this static route.
+-	// Ideal for load-balancer probes called thousands of times per second.
+-	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
+-		w.Header().Set("Content-Type", "application/json")
+-		_, _ = io.WriteString(w, `{"status":"ok"}`)
+-	})
+-
+-	// HEAD /health for tools that only probe with HEAD.
+-	r.HEADFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
+-		w.Header().Set("Content-Type", "application/json")
+-		w.WriteHeader(http.StatusOK)
+-	})
+-
+ 	// ── Dynamic API endpoint (JSON, no-cache) ─────────────────────────────────
+ 
+ 	// With() returns a Group with extra middleware applied only to its routes.

@@ -1,0 +1,25 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                    │    base     │               patched               │
+                    │   sec/op    │   sec/op     vs base                │
+MethodNotAllowed-16   203.9n ± 0%   123.4n ± 2%  -39.48% (p=0.000 n=10)
+AutoOPTIONS-16        218.7n ± 1%   106.6n ± 1%  -51.25% (p=0.000 n=10)
+geomean               211.1n        114.7n       -45.68%
+
+                    │    base    │                patched                 │
+                    │    B/op    │   B/op     vs base                     │
+MethodNotAllowed-16   56.00 ± 0%   0.00 ± 0%  -100.00% (p=0.000 n=10)
+AutoOPTIONS-16        72.00 ± 0%   0.00 ± 0%  -100.00% (p=0.000 n=10)
+geomean               63.50                   ?                       ¹ ²
+¹ summaries must be >0 to compute geomean
+² ratios must be >0 to compute geomean
+
+                    │    base    │                 patched                 │
+                    │ allocs/op  │ allocs/op   vs base                     │
+MethodNotAllowed-16   3.000 ± 0%   0.000 ± 0%  -100.00% (p=0.000 n=10)
+AutoOPTIONS-16        4.000 ± 0%   0.000 ± 0%  -100.00% (p=0.000 n=10)
+geomean               3.464                    ?                       ¹ ²
+¹ summaries must be >0 to compute geomean
+² ratios must be >0 to compute geomean

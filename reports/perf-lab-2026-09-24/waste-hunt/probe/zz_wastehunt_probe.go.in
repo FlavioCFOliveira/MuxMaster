@@ -1,0 +1,34 @@
+// Code injected by reports/perf-lab-2026-09-24/waste-hunt/run.sh into a
+// TEMPORARY copy of an example's package main (never into examples/ itself).
+//
+// It starts a private net/http/pprof listener on $WH_PPROF_ADDR so that the
+// harness can pull CPU and allocation profiles from the running example
+// without modifying the example's own routes or handlers. The listener uses
+// its own http.ServeMux, so the example's MuxMaster router never sees the
+// profiling requests (no pollution of the profiled dispatch path).
+package main
+
+import (
+	"net"
+	"net/http"
+	"net/http/pprof"
+	"os"
+)
+
+func init() {
+	addr := os.Getenv("WH_PPROF_ADDR")
+	if addr == "" {
+		return
+	}
+	whMux := http.NewServeMux()
+	whMux.HandleFunc("/debug/pprof/", pprof.Index)
+	whMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	whMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	whMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	whMux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		panic("waste-hunt probe: " + err.Error())
+	}
+	go func() { _ = http.Serve(ln, whMux) }()
+}

@@ -1,0 +1,49 @@
+File: server-side-render
+Build ID: d9827cd5156412e6ee7ac09211b247c8c7787dbd
+Type: cpu
+Time: 2026-09-24 19:52:09 WEST
+Duration: 10s, Total samples = 71.99s (719.79%)
+Showing nodes accounting for 50.15s, 69.66% of 71.99s total
+Dropped 818 nodes (cum <= 0.36s)
+Showing top 40 nodes out of 187
+      flat  flat%   sum%        cum   cum%
+    14.48s 20.11% 20.11%     14.48s 20.11%  time.runtimeNow
+    13.52s 18.78% 38.89%     13.52s 18.78%  internal/runtime/syscall/linux.Syscall6
+    10.67s 14.82% 53.72%     10.67s 14.82%  runtime.nanotime (inline)
+     1.64s  2.28% 55.99%      1.64s  2.28%  runtime.usleep
+     1.30s  1.81% 57.80%      1.30s  1.81%  runtime.futex
+     0.90s  1.25% 59.05%      4.15s  5.76%  reflect.Value.call
+     0.89s  1.24% 60.29%      1.31s  1.82%  runtime.tryDeferToSpanScan
+     0.58s  0.81% 61.09%      1.24s  1.72%  runtime.scanObjectsSmall
+     0.54s  0.75% 61.84%      0.54s  0.75%  runtime.memmove
+     0.39s  0.54% 62.38%     11.56s 16.06%  text/template.(*state).walk
+     0.31s  0.43% 62.81%      0.57s  0.79%  time.Time.appendFormat
+     0.26s  0.36% 63.18%      0.60s  0.83%  runtime.pcvalue
+     0.26s  0.36% 63.54%      6.18s  8.58%  text/template.(*state).evalCall
+     0.25s  0.35% 63.88%      2.75s  3.82%  runtime.mallocgc
+     0.23s  0.32% 64.20%      0.55s  0.76%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.23s  0.32% 64.52%      0.90s  1.25%  runtime.mapaccess2_faststr
+     0.22s  0.31% 64.83%      1.19s  1.65%  runtime.mallocgcSmallScanSlowPath
+     0.22s  0.31% 65.13%      7.61s 10.57%  text/template.(*state).evalPipeline
+     0.21s  0.29% 65.43%      3.65s  5.07%  internal/poll.runtime_pollSetDeadline
+     0.21s  0.29% 65.72%      1.86s  2.58%  runtime.runqgrab
+     0.21s  0.29% 66.01%      7.37s 10.24%  text/template.(*state).evalCommand
+     0.20s  0.28% 66.29%      0.66s  0.92%  runtime.mallocgcSmallScanNoHeaderSC3
+     0.20s  0.28% 66.56%      0.49s  0.68%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.19s  0.26% 66.83%      0.43s   0.6%  sync.(*Pool).Get
+     0.18s  0.25% 67.08%      0.82s  1.14%  runtime.lock2
+     0.16s  0.22% 67.30%      0.37s  0.51%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.15s  0.21% 67.51%      2.20s  3.06%  runtime.stealWork
+     0.13s  0.18% 67.69%      8.20s 11.39%  internal/poll.setDeadlineImpl
+     0.13s  0.18% 67.87%     57.74s 80.21%  net/http.(*conn).serve
+     0.13s  0.18% 68.05%      0.39s  0.54%  net/textproto.canonicalMIMEHeaderKey
+     0.13s  0.18% 68.23%     14.61s 20.29%  time.Now
+     0.12s  0.17% 68.40%     19.67s 27.32%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.12s  0.17% 68.57%     13.13s 18.24%  net/http.(*response).finishRequest
+     0.12s  0.17% 68.73%      0.43s   0.6%  reflect.(*structType).FieldByName
+     0.12s  0.17% 68.90%      0.88s  1.22%  text/template.(*state).evalField
+     0.11s  0.15% 69.05%      0.57s  0.79%  gcWriteBarrier
+     0.11s  0.15% 69.20%     20.65s 28.68%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.11s  0.15% 69.36%      0.42s  0.58%  runtime.(*timer).modify
+     0.11s  0.15% 69.51%      0.95s  1.32%  runtime.casgstatus
+     0.11s  0.15% 69.66%      0.63s  0.88%  runtime.mallocgcSmallScanNoHeaderSC7

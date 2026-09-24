@@ -1,0 +1,49 @@
+File: jwt
+Build ID: 93299d6c1fa786cd14730e9e77d44b2bbb143955
+Type: alloc_objects
+Time: 2026-09-24 19:50:47 WEST
+Duration: 10.01s, Total samples = 23000216 
+Showing nodes accounting for 22664913, 98.54% of 23000216 total
+Dropped 82 nodes (cum <= 115001)
+Showing top 40 nodes out of 69
+      flat  flat%   sum%        cum   cum%
+   2937763 12.77% 12.77%    3298217 14.34%  net/textproto.readMIMEHeader
+   2654246 11.54% 24.31%    2654246 11.54%  reflect.unsafe_New
+   1447947  6.30% 30.61%    1447947  6.30%  net/http.Header.Clone (inline)
+   1366835  5.94% 36.55%    2880169 12.52%  github.com/FlavioCFOliveira/MuxMaster/middleware.parseAndValidateJWT
+   1212462  5.27% 41.82%    1212462  5.27%  encoding/base64.(*Encoding).DecodeString
+   1007210  4.38% 46.20%    6952723 30.23%  net/http.(*conn).readRequest
+    912621  3.97% 50.17%   14478271 62.95%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    801423  3.48% 53.65%     801423  3.48%  net/http.(*Request).WithContext
+    726406  3.16% 56.81%    3416959 14.86%  main.main.func6
+    682197  2.97% 59.78%     780502  3.39%  net/textproto.MIMEHeader.Set (inline)
+    602978  2.62% 62.40%     602978  2.62%  net.(*conn).Read
+    563653  2.45% 64.85%     563653  2.45%  context.withCancel (inline)
+    557065  2.42% 67.27%     557065  2.42%  net/http.(*connReader).startBackgroundRead
+    557064  2.42% 69.69%    1120717  4.87%  context.WithCancel
+    526086  2.29% 71.98%    4772604 20.75%  net/http.readRequestLimit
+    502456  2.18% 74.17%     502456  2.18%  net/textproto.(*Reader).ReadLine (inline)
+    488978  2.13% 76.29%     488978  2.13%  bytes.Clone (inline)
+    458773  1.99% 78.29%     458773  1.99%  context.WithValue
+    458759  1.99% 80.28%     458759  1.99%  net/textproto.canonicalMIMEHeaderKey
+    447855  1.95% 82.23%     447855  1.95%  encoding/base64.(*Encoding).EncodeToString
+    444249  1.93% 84.16%     444249  1.93%  net/url.parse
+    425991  1.85% 86.01%     589833  2.56%  strconv.quoteWith (inline)
+    393221  1.71% 87.72%     393221  1.71%  main.usernameFromClaims
+    378693  1.65% 89.37%    1905090  8.28%  main.main.func7
+    376844  1.64% 91.01%     376844  1.64%  crypto/internal/fips140/sha256.(*Digest).Sum
+    283523  1.23% 92.24%    1554513  6.76%  main.signToken
+    262148  1.14% 93.38%     262148  1.14%  time.Duration.String
+    232123  1.01% 94.39%     449237  1.95%  crypto/internal/fips140/hmac.New[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }]
+    217114  0.94% 95.33%     217114  0.94%  crypto/internal/fips140/sha256.New (inline)
+    196613  0.85% 96.19%     196613  0.85%  time.Time.Format
+    163843  0.71% 96.90%     691086  3.00%  net/http.Error
+    163842  0.71% 97.61%     163842  0.71%  strconv.appendQuotedWith
+    156581  0.68% 98.29%    2292687  9.97%  main.main.func5
+     57351  0.25% 98.54%     288242  1.25%  io.WriteString
+         0     0% 98.54%     449237  1.95%  crypto/hmac.New
+         0     0% 98.54%     376844  1.64%  crypto/internal/fips140/hmac.(*HMAC).Sum
+         0     0% 98.54%     217114  0.94%  crypto/internal/fips140hash.UnwrapNew[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }].func1
+         0     0% 98.54%     217114  0.94%  crypto/sha256.New
+         0     0% 98.54%    3192661 13.88%  encoding/json.Marshal (inline)
+         0     0% 98.54%    3192661 13.88%  encoding/json/v2.Marshal

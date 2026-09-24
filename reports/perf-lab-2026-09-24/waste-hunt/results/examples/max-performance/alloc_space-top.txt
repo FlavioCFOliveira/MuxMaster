@@ -1,0 +1,49 @@
+File: max-performance
+Build ID: 80541f5b6e341bc03814fb3fdbbdae6838456c2e
+Type: alloc_space
+Time: 2026-09-24 19:53:52 WEST
+Duration: 10.01s, Total samples = 1929.41MB 
+Showing nodes accounting for 1858.52MB, 96.33% of 1929.41MB total
+Dropped 106 nodes (cum <= 9.65MB)
+Showing top 40 nodes out of 79
+      flat  flat%   sum%        cum   cum%
+  259.07MB 13.43% 13.43%   259.07MB 13.43%  net/textproto.readMIMEHeader
+  238.57MB 12.36% 25.79%   238.57MB 12.36%  net/http.Header.Clone (inline)
+  211.06MB 10.94% 36.73%  1073.77MB 55.65%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  176.05MB  9.12% 45.86%   547.65MB 28.38%  net/http.readRequestLimit
+  170.05MB  8.81% 54.67%   170.05MB  8.81%  net/http.(*Request).WithContext
+  147.03MB  7.62% 62.29%   777.24MB 40.28%  net/http.(*conn).readRequest
+   88.41MB  4.58% 66.87%    88.41MB  4.58%  encoding/json/v2.makeStringArshaler.func2
+   79.01MB  4.10% 70.97%    79.01MB  4.10%  net/url.parse
+   63.64MB  3.30% 74.27%    63.64MB  3.30%  sync.(*Pool).pinSlow
+      46MB  2.38% 76.65%       46MB  2.38%  context.withCancel (inline)
+      46MB  2.38% 79.03%       46MB  2.38%  net.(*conn).Read
+      38MB  1.97% 81.00%       38MB  1.97%  reflect.unsafe_New
+   35.52MB  1.84% 82.84%    69.03MB  3.58%  main.configHandler
+   26.55MB  1.38% 84.22%    26.55MB  1.38%  bufio.NewWriterSize (inline)
+   21.51MB  1.11% 85.34%    23.01MB  1.19%  io.ReadAll
+   21.51MB  1.11% 86.45%   102.03MB  5.29%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+      20MB  1.04% 87.49%       20MB  1.04%  net/textproto.(*Reader).ReadLine (inline)
+   18.50MB  0.96% 88.45%    39.01MB  2.02%  main.getRepoIssue
+      18MB  0.93% 89.38%    52.01MB  2.70%  main.getUser
+      16MB  0.83% 90.21%       18MB  0.93%  strconv.quoteWith (inline)
+   14.50MB  0.75% 90.96%    14.50MB  0.75%  encoding/json/jsontext.NewDecoder (inline)
+      14MB  0.73% 91.69%    39.51MB  2.05%  main.getUserOrder
+      13MB  0.67% 92.36%    42.01MB  2.18%  main.getUserProfile
+      12MB  0.62% 92.98%    42.01MB  2.18%  net/http.(*Request).Clone
+   11.50MB   0.6% 93.58%    11.50MB   0.6%  sync.(*poolChain).pushHead
+   11.01MB  0.57% 94.15%    11.01MB  0.57%  github.com/FlavioCFOliveira/MuxMaster.init.func3
+   10.50MB  0.54% 94.69%    10.50MB  0.54%  net/http.(*connReader).startBackgroundRead
+    7.50MB  0.39% 95.08%    53.50MB  2.77%  context.WithCancel
+       6MB  0.31% 95.39%    80.52MB  4.17%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).mountAt.func1
+       4MB  0.21% 95.60%    46.52MB  2.41%  main.postEvent
+       3MB  0.16% 95.76%    22.01MB  1.14%  main.listStaticFile
+    2.50MB  0.13% 95.89%   143.43MB  7.43%  main.createUser
+    2.50MB  0.13% 96.01%  1876.18MB 97.24%  net/http.(*conn).serve
+       2MB   0.1% 96.12%    16.50MB  0.86%  encoding/json.NewDecoder
+       2MB   0.1% 96.22%    51.02MB  2.64%  main.fastTimer.func1.1
+       1MB 0.052% 96.27%    24.01MB  1.24%  net/http.Error
+    0.50MB 0.026% 96.30%    19.01MB  0.99%  io.WriteString
+    0.50MB 0.026% 96.33%    31.01MB  1.61%  main.metricsFast
+         0     0% 96.33%   102.42MB  5.31%  encoding/json.(*Decoder).Decode
+         0     0% 96.33%   142.54MB  7.39%  encoding/json.(*Encoder).Encode

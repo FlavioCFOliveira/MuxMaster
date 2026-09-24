@@ -1,0 +1,26 @@
+{
+ "name": "oauth2",
+ "requests": [
+  {
+   "name": "GET /api/me (good token, cache hit)",
+   "method": "GET",
+   "path": "/api/me",
+   "expect": 200,
+   "weight": 19,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Authorization": "Bearer good-token"
+   }
+  },
+  {
+   "name": "GET /api/me (no token -> 401)",
+   "method": "GET",
+   "path": "/api/me",
+   "expect": 401,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9"
+   }
+  }
+ ]
+}

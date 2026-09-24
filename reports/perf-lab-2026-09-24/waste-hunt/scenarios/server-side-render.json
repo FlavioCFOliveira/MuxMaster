@@ -1,0 +1,67 @@
+{
+ "name": "server-side-render",
+ "requests": [
+  {
+   "name": "GET /",
+   "method": "GET",
+   "path": "/",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /about",
+   "method": "GET",
+   "path": "/about",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /guestbook",
+   "method": "GET",
+   "path": "/guestbook?ok=1",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "POST /guestbook (validation error re-render)",
+   "method": "POST",
+   "path": "/guestbook",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "Accept-Encoding": "gzip, deflate, br",
+    "Content-Type": "application/x-www-form-urlencoded"
+   },
+   "body": "name=&message="
+  },
+  {
+   "name": "GET /static/*filepath (embed)",
+   "method": "GET",
+   "path": "/static/style.css",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /nope (themed 404)",
+   "method": "GET",
+   "path": "/nope",
+   "expect": 404,
+   "weight": 1,
+   "headers": {
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  }
+ ]
+}

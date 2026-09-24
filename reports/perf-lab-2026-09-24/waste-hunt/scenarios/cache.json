@@ -1,0 +1,50 @@
+{
+ "name": "cache",
+ "requests": [
+  {
+   "name": "GET /health (fast)",
+   "method": "GET",
+   "path": "/health",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /articles (cache HIT)",
+   "method": "GET",
+   "path": "/articles",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /articles/:id",
+   "method": "GET",
+   "path": "/articles/1",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /articles/:id (If-None-Match -> 304)",
+   "method": "GET",
+   "path": "/articles/1",
+   "expect": 304,
+   "weight": 1,
+   "headers": {
+    "If-None-Match": "W/\"1:Intro to MuxMaster:false\""
+   }
+  },
+  {
+   "name": "GET /nope (404)",
+   "method": "GET",
+   "path": "/nope",
+   "expect": 404,
+   "weight": 1
+  },
+  {
+   "name": "GET /articles/ (RedirectTrailingSlash + Use chain)",
+   "method": "GET",
+   "path": "/articles/",
+   "expect": 301,
+   "weight": 1
+  }
+ ]
+}

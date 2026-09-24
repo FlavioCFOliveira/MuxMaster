@@ -1,0 +1,79 @@
+File: reverse-proxy
+Build ID: abfed2559a9f102901351053e0e2eac26d73a4cf
+Type: cpu
+Time: 2026-09-24 19:51:37 WEST
+Duration: 10s, Total samples = 68.45s (684.46%)
+Showing nodes accounting for 35.74s, 52.21% of 68.45s total
+Dropped 844 nodes (cum <= 0.34s)
+Showing top 70 nodes out of 287
+      flat  flat%   sum%        cum   cum%
+     0.06s 0.088% 0.088%     22.63s 33.06%  net/http.(*conn).serve
+    20.63s 30.14% 30.23%     20.63s 30.14%  internal/runtime/syscall/linux.Syscall6
+     0.07s   0.1% 30.33%     19.20s 28.05%  syscall.RawSyscall6
+     0.07s   0.1% 30.43%     17.89s 26.14%  syscall.Syscall
+     0.04s 0.058% 30.49%     14.06s 20.54%  runtime.systemstack
+         0     0% 30.49%     12.34s 18.03%  net/http.(*Transport).startDialConnForLocked.func1
+     0.02s 0.029% 30.52%     12.32s 18.00%  net/http.(*Transport).dialConnFor
+     0.03s 0.044% 30.56%     11.75s 17.17%  net/http.(*Transport).dialConn
+         0     0% 30.56%     10.89s 15.91%  internal/poll.ignoringEINTRIO (inline)
+     0.02s 0.029% 30.59%     10.85s 15.85%  net/http.(*Transport).dial
+     0.01s 0.015% 30.61%     10.83s 15.82%  net.(*Dialer).DialContext
+     0.15s  0.22% 30.83%     10.52s 15.37%  runtime.schedule
+     0.04s 0.058% 30.88%     10.20s 14.90%  runtime.mcall
+     0.14s   0.2% 31.09%      9.23s 13.48%  runtime.findRunnable
+     0.01s 0.015% 31.10%      9.21s 13.46%  net.(*sysDialer).dialParallel
+     0.02s 0.029% 31.13%      9.20s 13.44%  net.(*sysDialer).dialSerial
+     0.01s 0.015% 31.15%      9.09s 13.28%  net/http.serverHandler.ServeHTTP
+     0.01s 0.015% 31.16%      9.08s 13.27%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.08s  0.12% 31.28%      9.07s 13.25%  net/http.HandlerFunc.ServeHTTP
+     0.04s 0.058% 31.34%      9.06s 13.24%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+     0.03s 0.044% 31.38%         9s 13.15%  bufio.(*Writer).Flush
+         0     0% 31.38%      8.83s 12.90%  net.(*sysDialer).dialSingle
+         0     0% 31.38%      8.80s 12.86%  net.(*sysDialer).dialTCP
+         0     0% 31.38%      8.80s 12.86%  net.(*sysDialer).doDialTCP (inline)
+     0.02s 0.029% 31.41%      8.80s 12.86%  net.(*sysDialer).doDialTCPProto
+     0.07s   0.1% 31.51%      8.57s 12.52%  net.(*conn).Write
+         0     0% 31.51%      8.50s 12.42%  net.(*netFD).Write
+     0.02s 0.029% 31.54%      8.49s 12.40%  internal/poll.(*FD).Write
+         0     0% 31.54%      8.43s 12.32%  syscall.Write (inline)
+     0.01s 0.015% 31.56%      8.43s 12.32%  syscall.write
+     0.02s 0.029% 31.59%      8.40s 12.27%  runtime.park_m
+     8.26s 12.07% 43.65%      8.26s 12.07%  runtime.nanotime (inline)
+     0.01s 0.015% 43.67%      8.23s 12.02%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+     0.02s 0.029% 43.70%      8.19s 11.96%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+     0.05s 0.073% 43.77%      8.16s 11.92%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.17s  0.25% 44.02%      8.05s 11.76%  runtime.mallocgc
+         0     0% 44.02%      7.98s 11.66%  net.internetSocket
+     0.01s 0.015% 44.03%      7.95s 11.61%  net.socket
+         0     0% 44.03%      7.88s 11.51%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+     0.09s  0.13% 44.16%      7.68s 11.22%  net/http/httputil.(*ReverseProxy).ServeHTTP
+     0.12s  0.18% 44.34%      7.20s 10.52%  net/http.(*persistConn).readLoop
+         0     0% 44.34%      7.13s 10.42%  net.(*netFD).dial
+     0.05s 0.073% 44.41%      6.86s 10.02%  net.(*netFD).connect
+     0.05s 0.073% 44.49%      6.75s  9.86%  net/http.(*persistConn).writeLoop
+     0.04s 0.058% 44.54%      6.68s  9.76%  net/http.(*response).finishRequest
+     0.01s 0.015% 44.56%      5.86s  8.56%  runtime.gcBgMarkWorker
+     0.03s 0.044% 44.60%      5.62s  8.21%  runtime.gcAssistAlloc
+     0.01s 0.015% 44.62%      5.20s  7.60%  syscall.Connect
+     0.01s 0.015% 44.63%      5.19s  7.58%  syscall.connect
+         0     0% 44.63%      5.09s  7.44%  runtime.gcBgMarkWorker.func2
+     0.07s   0.1% 44.73%      5.09s  7.44%  runtime.gcDrain
+         0     0% 44.73%      5.04s  7.36%  runtime.gcDrainMarkWorkerDedicated (inline)
+         0     0% 44.73%      4.82s  7.04%  runtime.gcAssistAlloc.func2
+     0.02s 0.029% 44.76%      4.82s  7.04%  runtime.gcAssistAlloc1
+     0.02s 0.029% 44.79%      4.39s  6.41%  net/http.checkConnErrorWriter.Write
+     0.02s 0.029% 44.82%      4.33s  6.33%  time.Now
+     4.31s  6.30% 51.12%      4.31s  6.30%  time.runtimeNow
+     0.01s 0.015% 51.13%      3.84s  5.61%  main.newRoundRobin.func1
+     0.05s 0.073% 51.21%      3.76s  5.49%  net/http.(*Request).write
+     0.02s 0.029% 51.23%      3.72s  5.43%  net.(*conn).Read
+     0.06s 0.088% 51.32%      3.62s  5.29%  net/http.(*conn).readRequest
+     0.06s 0.088% 51.41%      3.57s  5.22%  runtime.gcDrainN
+         0     0% 51.41%      3.51s  5.13%  net/http.persistConnWriter.Write
+     0.09s  0.13% 51.54%      3.45s  5.04%  runtime.newobject
+     0.14s   0.2% 51.75%      3.34s  4.88%  runtime.markroot
+         0     0% 51.75%      3.28s  4.79%  net/http.(*Transport).RoundTrip
+     0.05s 0.073% 51.82%      3.28s  4.79%  net/http.(*Transport).roundTrip
+     0.05s 0.073% 51.89%      3.11s  4.54%  runtime.(*timers).check
+     0.20s  0.29% 52.18%         3s  4.38%  runtime.mallocgcSmallScanSlowPath
+     0.02s 0.029% 52.21%      2.82s  4.12%  net.(*netFD).Read

@@ -1,0 +1,79 @@
+File: jwt
+Build ID: 93299d6c1fa786cd14730e9e77d44b2bbb143955
+Type: cpu
+Time: 2026-09-24 19:50:37 WEST
+Duration: 10s, Total samples = 67.92s (679.18%)
+Showing nodes accounting for 42.25s, 62.21% of 67.92s total
+Dropped 788 nodes (cum <= 0.34s)
+Showing top 70 nodes out of 172
+      flat  flat%   sum%        cum   cum%
+     0.13s  0.19%  0.19%     52.83s 77.78%  net/http.(*conn).serve
+     0.14s  0.21%   0.4%     15.70s 23.12%  time.Now
+    15.56s 22.91% 23.31%     15.56s 22.91%  time.runtimeNow
+     0.04s 0.059% 23.37%     14.32s 21.08%  net/http.serverHandler.ServeHTTP
+     0.06s 0.088% 23.45%     14.29s 21.04%  net/http.(*response).finishRequest
+     0.03s 0.044% 23.50%     14.28s 21.02%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.04s 0.059% 23.56%     14.25s 20.98%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.07s   0.1% 23.66%     13.96s 20.55%  net/http.HandlerFunc.ServeHTTP
+     0.02s 0.029% 23.69%     13.95s 20.54%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+     0.09s  0.13% 23.82%     13.25s 19.51%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+    12.39s 18.24% 42.06%     12.39s 18.24%  internal/runtime/syscall/linux.Syscall6
+         0     0% 42.06%     12.29s 18.09%  internal/poll.ignoringEINTRIO (inline)
+     0.07s   0.1% 42.17%     12.21s 17.98%  syscall.Syscall
+     0.03s 0.044% 42.21%     12.01s 17.68%  bufio.(*Writer).Flush
+     0.10s  0.15% 42.36%     11.58s 17.05%  syscall.RawSyscall6
+    11.02s 16.22% 58.58%     11.02s 16.22%  runtime.nanotime (inline)
+     0.16s  0.24% 58.82%     10.85s 15.97%  net/http.(*conn).readRequest
+     0.06s 0.088% 58.91%      9.66s 14.22%  runtime.schedule
+     0.02s 0.029% 58.94%      9.48s 13.96%  runtime.mcall
+     0.03s 0.044% 58.98%      9.40s 13.84%  internal/poll.(*FD).Write
+         0     0% 58.98%      9.24s 13.60%  syscall.Write (inline)
+     0.02s 0.029% 59.01%      9.24s 13.60%  syscall.write
+     0.08s  0.12% 59.13%      9.03s 13.30%  runtime.findRunnable
+     0.01s 0.015% 59.14%      8.89s 13.09%  net/http.checkConnErrorWriter.Write
+     0.04s 0.059% 59.20%      8.87s 13.06%  net.(*conn).Write
+     0.01s 0.015% 59.22%      8.83s 13.00%  net.(*netFD).Write
+     0.13s  0.19% 59.41%      8.64s 12.72%  internal/poll.setDeadlineImpl
+     0.02s 0.029% 59.44%      8.50s 12.51%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+     0.01s 0.015% 59.45%      8.43s 12.41%  github.com/FlavioCFOliveira/MuxMaster/middleware.JWTAuth.func2.1
+     0.03s 0.044% 59.50%      8.29s 12.21%  runtime.park_m
+     0.10s  0.15% 59.64%      7.09s 10.44%  net.(*conn).SetReadDeadline
+         0     0% 59.64%      6.99s 10.29%  internal/poll.(*FD).SetReadDeadline (inline)
+         0     0% 59.64%      6.99s 10.29%  net.(*netFD).SetReadDeadline (inline)
+     0.05s 0.074% 59.72%      5.33s  7.85%  runtime.systemstack
+     0.01s 0.015% 59.73%      4.47s  6.58%  time.Until
+     0.06s 0.088% 59.82%      4.21s  6.20%  net.(*conn).Read
+     0.06s 0.088% 59.91%      3.97s  5.85%  github.com/FlavioCFOliveira/MuxMaster/middleware.parseAndValidateJWT
+     0.20s  0.29% 60.20%      3.97s  5.85%  internal/poll.runtime_pollSetDeadline
+     0.01s 0.015% 60.22%      3.52s  5.18%  time.runtimeNano
+     0.05s 0.074% 60.29%      3.48s  5.12%  net.(*netFD).Read
+     0.06s 0.088% 60.38%      3.41s  5.02%  internal/poll.(*FD).Read
+     0.06s 0.088% 60.47%      3.32s  4.89%  net/http.readRequestLimit
+     0.01s 0.015% 60.48%      3.21s  4.73%  net/http.(*conn).readRequest.func1
+     0.01s 0.015% 60.50%      3.08s  4.53%  net/http.(*chunkWriter).Write
+     0.10s  0.15% 60.64%      3.07s  4.52%  net/http.(*chunkWriter).writeHeader
+     0.01s 0.015% 60.66%      3.02s  4.45%  syscall.Read (inline)
+     0.03s 0.044% 60.70%      3.01s  4.43%  syscall.read
+     0.03s 0.044% 60.75%      2.95s  4.34%  bufio.(*Reader).Peek
+     0.20s  0.29% 61.04%      2.93s  4.31%  runtime.mallocgc
+     0.01s 0.015% 61.06%      2.92s  4.30%  bufio.(*Reader).fill
+     0.03s 0.044% 61.10%      2.91s  4.28%  net/http.(*connReader).Read
+     0.03s 0.044% 61.15%      2.91s  4.28%  runtime.(*timers).check
+     0.02s 0.029% 61.17%      2.87s  4.23%  net/http.(*conn).setState
+         0     0% 61.17%      2.82s  4.15%  runtime.gcBgMarkWorker
+         0     0% 61.17%      2.38s  3.50%  runtime.gcBgMarkWorker.func2
+     0.04s 0.059% 61.23%      2.38s  3.50%  runtime.gcDrain
+         0     0% 61.23%      2.38s  3.50%  runtime.gcDrainMarkWorkerDedicated (inline)
+     0.02s 0.029% 61.26%      2.34s  3.45%  github.com/FlavioCFOliveira/MuxMaster.JSON
+     0.20s  0.29% 61.56%      2.20s  3.24%  runtime.stealWork
+         0     0% 61.56%      2.15s  3.17%  encoding/json.Unmarshal (inline)
+     0.04s 0.059% 61.62%      2.15s  3.17%  encoding/json/v2.Unmarshal
+     0.05s 0.074% 61.69%      2.13s  3.14%  net/http.(*connReader).abortPendingRead
+     0.04s 0.059% 61.75%      1.90s  2.80%  encoding/json/v2.unmarshalDecode
+     0.01s 0.015% 61.76%      1.86s  2.74%  encoding/json.Marshal (inline)
+     0.01s 0.015% 61.78%      1.85s  2.72%  encoding/json/v2.Marshal
+     0.02s 0.029% 61.81%      1.82s  2.68%  runtime.runqsteal
+     0.20s  0.29% 62.10%      1.80s  2.65%  runtime.runqgrab
+     0.05s 0.074% 62.18%      1.69s  2.49%  net/http.(*connReader).backgroundRead
+     0.02s 0.029% 62.21%      1.67s  2.46%  net.(*conn).SetWriteDeadline
+         0     0% 62.21%      1.65s  2.43%  internal/poll.(*FD).SetWriteDeadline (inline)

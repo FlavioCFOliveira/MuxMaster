@@ -1,0 +1,90 @@
+{
+ "name": "max-performance",
+ "requests": [
+  {
+   "name": "GET /v1/users/:id",
+   "method": "GET",
+   "path": "/v1/users/42",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /v1/users/:id/orders/:orderID",
+   "method": "GET",
+   "path": "/v1/users/42/orders/7",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /v1/orgs/:org/repos/:repo/issues/:num",
+   "method": "GET",
+   "path": "/v1/orgs/acme/repos/api/issues/123",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /v1/static/*filepath",
+   "method": "GET",
+   "path": "/v1/static/css/app.css",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /v1/profiles/{id:[0-9]+}",
+   "method": "GET",
+   "path": "/v1/profiles/42",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "POST /v1/users",
+   "method": "POST",
+   "path": "/v1/users",
+   "expect": 201,
+   "weight": 1,
+   "headers": {
+    "Content-Type": "application/json"
+   },
+   "body": "{\"Name\":\"ada\"}"
+  },
+  {
+   "name": "POST /v1/events",
+   "method": "POST",
+   "path": "/v1/events",
+   "expect": 202,
+   "weight": 1,
+   "headers": {
+    "Content-Type": "application/json"
+   },
+   "body": "{\"e\":1}"
+  },
+  {
+   "name": "GET /v1/health (fast)",
+   "method": "GET",
+   "path": "/v1/health",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /v1/metrics/:metric (fast)",
+   "method": "GET",
+   "path": "/v1/metrics/cpu",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /config",
+   "method": "GET",
+   "path": "/config",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /debug/pprof/cmdline (Mount; 404 = example defect, prefix stripped)",
+   "method": "GET",
+   "path": "/debug/pprof/cmdline",
+   "expect": 404,
+   "weight": 1
+  }
+ ]
+}
