@@ -423,6 +423,35 @@ attacks should rate-limit aggressively and monitor for prefix-scan probes.
   MM-2026-0020 — was removed by commit `5f804fa` without a like-for-like
   replacement; see `reports/overview/findings.md` O-14.
 
+- **TSC-2026-0014 (Throttle near-limit vs below-limit, ≤99 ns; accepted
+  bound: ≤200 ns).** `middleware.ThrottleBacklog`'s fast-path acquisition
+  (`throttleSem.tryAcquire` — a single atomic Load + CompareAndSwap, per
+  `middleware/throttle.go`'s CH-02 doc comment) does not depend on how
+  close the current in-use count is to the configured limit; fill levels
+  0/16 through 15/16 (parked-goroutine occupied slots, no request ever
+  saturates the throttle) are statistically indistinguishable within this
+  bound. `TestTiming_Throttle_BoundaryOracle`
+  (`reports/timing-and-sidechannel-analyst/harness/throttle_timing_test.go`)
+  — restored 2026-09-25 (rmp #274 / O-14) — originally measured each fill
+  level in a separate sequential 100k-sample block; sequential blocks let
+  uncontrolled host-load drift between blocks masquerade as a fill-level
+  effect (standalone the drift-free difference was ~45 ns, but inside the
+  full `-tags timing` suite the same sequential comparison read
+  1100-2100 ns, MEDIUM per `classifyOracle` — a measurement-methodology
+  artefact, not a code regression). Fixed 2026-09-25 (rmp #274 / part 5c)
+  by giving every fill level its own independent `ThrottleBacklog`
+  instance, holding all 5 open simultaneously, and sampling them in
+  round-robin interleaved order (one sample per arm per round) — the same
+  alternating pattern `TestTiming_BasicAuth_ValidVsInvalid` uses for its
+  two arms, generalised to 5. The bound (`tsc20260014BoundNs`) is derived
+  as 2× the worst of 6 independent `-count=1` runs of the interleaved
+  harness on a shared/virtualised sandbox (98.35, 17.48, 30.70, 53.63,
+  87.34, 84.62 ns — worst observed: 98.35 ns), rounded up, then confirmed
+  passing on 3 further independent standalone runs (worst: 66.02 ns) and
+  once inside the full `TestTiming_` suite (worst: 10.60 ns — confirming
+  the interleaved design also removes the in-suite drift). Same derivation
+  method as TSC-2026-0001/0002/0004/0013 (rmp #270 / O-9, rmp #274 / O-14).
+
 - **TSC-2026-0005 (Route existence, ~960 ns) — MM-2026-0026 magnitude
   update.** Registered vs unregistered paths take measurably different
   time inside the radix tree. Already documented as the
