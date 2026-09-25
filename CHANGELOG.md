@@ -31,6 +31,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **Documentation: `RequestID` middleware reference** — rewritten to clarify context-based retrieval via `middleware.GetRequestID()`, explain inbound header validation (MM-2026-0011: ASCII alphanumeric plus `-`, `_`, `.`; max 128 characters), and document the 2-allocation budget. Updated `docs/middleware.md` with correct function call form and validation rules. Added high-concurrency scaling subsection to `docs/max-performance.md` with measured data at 1/4/16 cores, explaining the allocation-driven GC and runtime lock pressure mechanism.
 
+### Fixed
+
+- **Documentation corrected: custom HTTP methods are not supported** (rmp #262, sprint 19): `README.md`, `docs/routing.md`, and specification have been corrected to reflect the verified behavior — MuxMaster recognizes a fixed, closed set of eleven method tokens (the ten standard HTTP methods: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY, plus the internal `"*"` token used by `Mount`), and registering any other method string (e.g., `PURGE`, `PROPFIND`) via `Handle`, `HandleFunc`, `HandleE`, `HandleFast`, or `Match` panics with `"muxmaster: unsupported HTTP method '<method>'"`. No `RegisterMethod` function exists. The router provides no mechanism to extend the method set at runtime. Custom-method requests can be served by attaching a `Mount` at a prefix and dispatching on `r.Method` within the mounted handler. Previously, documentation incorrectly claimed support for custom methods. Regression tests added in `method_set_test.go` pin all related specification rules and panic messages.
+
 ### Performance (Sprint 18 — Waste-Hunt Campaign)
 
 Measured on AMD Ryzen 9 5900HX under load with real example workloads (`reports/perf-lab-2026-09-24/waste-hunt/`).

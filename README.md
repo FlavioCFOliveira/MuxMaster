@@ -24,7 +24,7 @@ The hot path allocates **zero bytes** for static routes and makes a **single tie
 - **Radix tree routing** — O(k) lookup, independent of the total number of registered routes
 - **Path parameters** — named (`:id`), regex-constrained (`{id:[0-9]+}`), and catch-all (`*filepath`)
 - **Typed parameter helpers** — parse path parameters directly to `int`, `int64`, `float64`, `bool`
-- **All HTTP methods** — GET, HEAD, POST, PUT, PATCH, DELETE, CONNECT, TRACE, QUERY (RFC 10008), and custom methods
+- **All standard HTTP methods** — GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY (RFC 10008)
 - **Middleware scopes** — apply middleware globally, to a group, or to a single route
 - **Groups and sub-groups** — organize routes with shared path prefixes and middleware stacks
 - **Error-returning handlers** — `HandlerFuncE` enables centralized error handling without boilerplate

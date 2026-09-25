@@ -180,21 +180,70 @@ mux.Match([]string{"POST", "PUT"}, "/upload", uploadHandler)
 
 ## Low-Level Registration
 
-`Handle` and `HandleFunc` accept an explicit method string, which allows custom HTTP methods beyond the nine standard ones:
+`Handle`, `HandleFunc`, and `HandleE` accept an explicit method string and are used for all ten standard methods and the `QUERY` method (RFC 10008). When called on `*Group`, these methods delegate to the parent `*Mux`'s same methods with identical behaviour.
 
-```go
-mux.Handle("PURGE", "/cache/*key", purgeCache)
-mux.HandleFunc("REPORT", "/dav/*path", davReport)
+### Supported Methods
+
+The following eleven tokens are recognized by the router:
+
+```
+GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY
 ```
 
-`HandleE` is the error-returning equivalent:
+These can be registered via the HTTP method helpers (e.g., `mux.GET`, `mux.QUERY`) or via `Handle` with an explicit method string:
 
 ```go
-mux.HandleE("PURGE", "/cache/:key", func(w http.ResponseWriter, r *http.Request) error {
-    key := muxmaster.PathParam(r, "key")
-    return cache.Invalidate(key)
+mux.Handle("GET", "/users", listUsers)
+mux.Handle("POST", "/users", createUsers)
+mux.Handle("QUERY", "/search", searchHandler)
+```
+
+All three pairs of methods are equivalent:
+- `mux.GET(path, h)` ↔ `mux.Handle("GET", path, h)`
+- `mux.QUERYE(path, h)` ↔ `mux.HandleE("QUERY", path, h)`
+- `mux.POSTFast(path, h)` ↔ `mux.HandleFast("POST", path, h)`
+
+### Custom or Extension Methods
+
+MuxMaster does not support registering handlers for custom or extension HTTP methods such as `PURGE` (used by caching proxies) or `PROPFIND` (WebDAV). Attempting to register one panics:
+
+```go
+mux.Handle("PURGE", "/cache/*key", handler)  // panics: "unsupported HTTP method 'PURGE'"
+```
+
+This is by design. The router uses a fixed array of method indices (not a map) to provide O(1) method dispatch on the request-time hot path. Supporting an open-ended set of methods would reintroduce a hash map or equivalent dynamic structure, compromising the zero-allocation performance design. See [out-of-scope.md](../specification/out-of-scope.md) section 2.7 for the architectural rationale.
+
+### Handling Custom Methods
+
+To serve requests with custom methods, use `Mount` to attach a handler that switches on the request method. Mount registers on the internal `"*"` tree, which is consulted only after the request method's own tree (see [specification/routing.md](../specification/routing.md) §4.1 rule 47). Consequently:
+
+- A request matching an explicit route in its method's tree takes precedence over a Mount prefix.
+- A request with an unrecognized method (e.g., PURGE) bypasses its method's tree entirely and falls through to the `"*"` tree, where Mount matches.
+- The mounted handler receives `r.URL.Path` with the Mount prefix stripped (e.g., a request to `/cache/data` matched by `Mount("/cache", h)` sees `/data`).
+
+```go
+mux.GET("/cache/pinned", func(w http.ResponseWriter, r *http.Request) {
+    // GET /cache/pinned → this handler (explicit GET route takes precedence)
+    fmt.Fprintf(w, "Cached data: %s\n", r.URL.Path)
 })
+
+mux.Mount("/cache", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    // r.URL.Path has the "/cache" prefix stripped:
+    // GET /cache/other → /other (no explicit route, Mount handles)
+    // PURGE /cache/data → /data (unrecognized method, Mount handles)
+    switch r.Method {
+    case "PURGE":
+        fmt.Fprintf(w, "Purging %s\n", r.URL.Path)
+    case "GET":
+        fmt.Fprintf(w, "Getting %s\n", r.URL.Path)
+    default:
+        w.Header().Set("Allow", "GET, PURGE")
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+    }
+}))
 ```
+
+This is the supported way to serve custom-method requests with MuxMaster. Alternatively, `Handle("*", pattern, handler)` is the low-level mechanism that Mount is built on (per [specification/routing.md](../specification/routing.md) §2.1 rule 31), but Mount is the recommended, documented API.
 
 ---
 
