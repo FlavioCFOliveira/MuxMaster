@@ -327,6 +327,39 @@ mux.Use(middleware.ThrottlePerIP(50, ts, nil))   // then
 A `slog.Warn` is emitted at construction time when `ThrottlePerIP` is
 called with a nil keyFn.
 
+### Startup-time route registration cost (DOS-2026-0051)
+
+Registering routes with `Handle`, `GET`, `POST`, and related methods incurs
+a one-time cost at application startup. The router's radix tree uses
+copy-on-write semantics to guarantee rollback safety (see MM-2026-0033), and
+this cost scales linearly with the route count on typical hardware.
+
+**Measured on AMD Ryzen 9 5900HX, Go 1.27, 2026-09-25:**
+
+| Route count | Wall time | Per-route cost |
+|---|---|---|
+| 1 000 | ~0.4–0.8 ms | ~0.4–0.8 µs |
+| 10 000 | ~6.6–9.9 ms | ~0.7–1.0 µs |
+| 100 000 | ~104 ms | ~1.0 µs |
+
+Complexity is linear (slope ~1.15–1.25 at small N, flat ~1 µs/route asymptotically),
+not quadratic. The minor super-linear behaviour at N < 10 000 is a warm-up and GC
+artefact; beyond 10 000 routes, per-route cost is flat.
+
+**Threat assessment:** Registration is performed only at application startup
+from the router's own code; it is not reachable from HTTP requests
+(see `specification/out-of-scope.md` §3.1 — dynamic route registration after serving
+begins is unsupported). A one-second startup delay would require roughly 1 000 000 routes.
+
+**Residual risk:** Applications that construct their route table from untrusted
+configuration (e.g. a remote endpoint, a database, or user-supplied YAML) should
+bound the maximum route count. An attacker controlling the configuration could
+inflate the route count to increase startup time, trading startup latency for a
+slowdown that does not reach production serving.
+
+See `reports/dos-resilience-tester/2026-09-25-DOS-2026-0051-registration-cost.md`
+for the full measurement harness, CPU profile, and complexity analysis.
+
 ### Accepted Timing Oracles (TSC-2026-0001..0007)
 
 The timing-and-side-channel analyst sprint catalogued seven sub-microsecond
@@ -386,6 +419,62 @@ attacks should rate-limit aggressively and monitor for prefix-scan probes.
   401 vs 200 response paths differ in execution length by design. The
   timing difference reveals nothing beyond what the HTTP status code
   already exposes.
+
+### Composition of timing oracles (CDX-2026-005)
+
+Three independent timing oracles documented above can combine to enable
+user-correlation attacks in multi-tenant deployments or to facilitate
+reconnaissance of IdP infrastructure:
+
+1. **JWT algorithm-path timing (TSC-2026-0003):** Configuring both HMAC
+   (HS256, ~1 µs) and RSA/ECDSA (RS256/ES256, ~300 µs) algorithms reveals
+   which algorithm family the server accepted the token with — a ~25 µs
+   observable gap on average.
+
+2. **OAuth2 introspection cache timing (TSC-2026-0007):** The local token
+   cache hits or misses depending on whether a token was previously seen
+   by **any** client. Cache hit (~2 ms) vs miss (~145 µs) produces a **143 µs**
+   timing difference that leaks whether a token was recently active on the service.
+
+3. **Route existence timing (TSC-2026-0005):** Dispatch to a registered
+   route (~960 ns) versus an unregistered path (also ~960 ns + tree lookup
+   for the not-found case) produces a measurable timing difference intrinsic
+   to radix-tree lookup.
+
+**Composite vector:** An attacker can submit multiple tokens and measure
+response latencies to infer: (a) which algorithm family is configured,
+(b) which tokens have been recently used by other clients, and
+(c) which API paths are registered. Combined, this enables correlation
+of tokens across different clients if they are retried by multiple users,
+or reconnaissance of the internal endpoint topology.
+
+**Recommended deployment posture:**
+
+- **Option 1 (strict):** Configure a single algorithm family per endpoint
+  (HS256 or RS256, not both). This closes the TSC-2026-0003 oracle entirely.
+
+- **Option 2 (layered):** If mixed algorithms are required, apply uniform
+  response-time padding at the edge (reverse proxy, WAF, or a `Pre`-registered
+  middleware that adds fixed or random delays). This compresses the observable
+  latency deltas below the statistical threshold reachable in a few hundred
+  requests.
+
+- **Option 3 (rate-limit):** Use `middleware.ThrottlePerIP` to rate-limit
+  token validation attempts to tens of requests per minute per client.
+  This makes collecting sufficient samples for statistical analysis infeasible
+  in practice.
+
+- **Option 4 (combination):** Deploy a reverse proxy or WAF with DDoS
+  scrubbing and request rate limiting, plus strict algorithm configuration
+  at the IdP level (do not mix families).
+
+The OAuth2 cache-hit/miss oracle (TSC-2026-0007) is inherent to token
+caching and is already mitigated in the code: set `OAuth2Options.CacheTTL = -1`
+to disable caching if this exposure is unacceptable. The route-existence
+oracle (TSC-2026-0005) is intrinsic to any radix-tree router; all major
+HTTP routers (httprouter, chi, bunrouter) exhibit similar timing. See
+"Route-Existence Timing Oracle (MM-2026-0026)" earlier in this file and
+`reports/overview/2026-05-07-posture.md` (CDX-5) for the full analysis.
 
 ### JWT Mixed-Family Algorithms (TSC-2026-0003)
 

@@ -1,0 +1,40 @@
+=== RUN   TestDOS20260051_RegistrationCostScaling
+=== RUN   TestDOS20260051_RegistrationCostScaling/static-prefix
+    registration_cost_test.go:140: static-prefix N=500 median=240.118µs runs=[361.084µs 256.181µs 240.118µs 204.847µs 185.99µs] avg-mallocs=5038
+    registration_cost_test.go:140: static-prefix N=1000 median=376.449µs runs=[576.058µs 357.941µs 376.449µs 360.036µs 453.276µs] avg-mallocs=10288
+    registration_cost_test.go:140: static-prefix N=2000 median=910.253µs runs=[1.333427ms 1.112446ms 910.253µs 786.283µs 786.353µs] avg-mallocs=22788
+    registration_cost_test.go:140: static-prefix N=5000 median=2.92038ms runs=[3.27406ms 2.958723ms 2.92038ms 2.636192ms 2.763933ms] avg-mallocs=60290
+    registration_cost_test.go:140: static-prefix N=10000 median=6.610002ms runs=[6.610002ms 6.462914ms 6.758766ms 6.550427ms 6.799623ms] avg-mallocs=122789
+    registration_cost_test.go:152:   static-prefix N 500->1000: N-ratio=2.00x time-ratio=1.57x (O(N) predicts 2.00x, O(N^2) predicts 4.00x)
+    registration_cost_test.go:152:   static-prefix N 1000->2000: N-ratio=2.00x time-ratio=2.42x (O(N) predicts 2.00x, O(N^2) predicts 4.00x)
+    registration_cost_test.go:152:   static-prefix N 2000->5000: N-ratio=2.50x time-ratio=3.21x (O(N) predicts 2.50x, O(N^2) predicts 6.25x)
+    registration_cost_test.go:152:   static-prefix N 5000->10000: N-ratio=2.00x time-ratio=2.26x (O(N) predicts 2.00x, O(N^2) predicts 4.00x)
+    registration_cost_test.go:175: static-prefix: log-log slope = 1.146  (O(N)=1.0, O(N log N)~=1.05-1.15 over this range, O(N^2)=2.0)
+=== RUN   TestDOS20260051_RegistrationCostScaling/param
+    registration_cost_test.go:140: param N=500 median=253.318µs runs=[253.318µs 247.66µs 214.136µs 272.524µs 384.132µs] avg-mallocs=6275
+    registration_cost_test.go:140: param N=1000 median=469.339µs runs=[623.551µs 420.38µs 519.416µs 436.444µs 469.339µs] avg-mallocs=12775
+    registration_cost_test.go:140: param N=2000 median=1.072705ms runs=[1.459143ms 901.522µs 1.078643ms 922.964µs 1.072705ms] avg-mallocs=27775
+    registration_cost_test.go:140: param N=5000 median=3.860456ms runs=[3.872609ms 3.860456ms 3.957466ms 3.465707ms 3.813452ms] avg-mallocs=72779
+    registration_cost_test.go:140: param N=10000 median=9.587442ms runs=[9.587442ms 8.682708ms 9.878615ms 8.686199ms 9.622853ms] avg-mallocs=147779
+    registration_cost_test.go:152:   param N 500->1000: N-ratio=2.00x time-ratio=1.85x (O(N) predicts 2.00x, O(N^2) predicts 4.00x)
+    registration_cost_test.go:152:   param N 1000->2000: N-ratio=2.00x time-ratio=2.29x (O(N) predicts 2.00x, O(N^2) predicts 4.00x)
+    registration_cost_test.go:152:   param N 2000->5000: N-ratio=2.50x time-ratio=3.60x (O(N) predicts 2.50x, O(N^2) predicts 6.25x)
+    registration_cost_test.go:152:   param N 5000->10000: N-ratio=2.00x time-ratio=2.48x (O(N) predicts 2.00x, O(N^2) predicts 4.00x)
+    registration_cost_test.go:175: param: log-log slope = 1.237  (O(N)=1.0, O(N log N)~=1.05-1.15 over this range, O(N^2)=2.0)
+=== RUN   TestDOS20260051_RegistrationCostScaling/mixed
+    registration_cost_test.go:140: mixed N=500 median=246.193µs runs=[344.531µs 388.601µs 246.193µs 221.819µs 219.094µs] avg-mallocs=6359
+    registration_cost_test.go:140: mixed N=1000 median=586.954µs runs=[735.997µs 730.549µs 509.289µs 586.954µs 456.977µs] avg-mallocs=13829
+    registration_cost_test.go:140: mixed N=2000 median=1.018369ms runs=[1.401453ms 1.357522ms 1.018369ms 969.549µs 957.326µs] avg-mallocs=28769
+    registration_cost_test.go:140: mixed N=5000 median=3.852074ms runs=[4.056782ms 3.852074ms 3.685222ms 4.083741ms 3.732645ms] avg-mallocs=73589
+    registration_cost_test.go:140: mixed N=10000 median=9.68187ms runs=[9.536039ms 9.68187ms 10.023328ms 9.618313ms 9.95139ms] avg-mallocs=158289
+    registration_cost_test.go:152:   mixed N 500->1000: N-ratio=2.00x time-ratio=2.38x (O(N) predicts 2.00x, O(N^2) predicts 4.00x)
+    registration_cost_test.go:152:   mixed N 1000->2000: N-ratio=2.00x time-ratio=1.74x (O(N) predicts 2.00x, O(N^2) predicts 4.00x)
+    registration_cost_test.go:152:   mixed N 2000->5000: N-ratio=2.50x time-ratio=3.78x (O(N) predicts 2.50x, O(N^2) predicts 6.25x)
+    registration_cost_test.go:152:   mixed N 5000->10000: N-ratio=2.00x time-ratio=2.51x (O(N) predicts 2.00x, O(N^2) predicts 4.00x)
+    registration_cost_test.go:175: mixed: log-log slope = 1.217  (O(N)=1.0, O(N log N)~=1.05-1.15 over this range, O(N^2)=2.0)
+--- PASS: TestDOS20260051_RegistrationCostScaling (0.25s)
+    --- PASS: TestDOS20260051_RegistrationCostScaling/static-prefix (0.07s)
+    --- PASS: TestDOS20260051_RegistrationCostScaling/param (0.09s)
+    --- PASS: TestDOS20260051_RegistrationCostScaling/mixed (0.09s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/dos-harness	0.250s
