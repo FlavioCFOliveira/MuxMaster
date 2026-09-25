@@ -893,7 +893,7 @@ Raised by rmp #240 (findings reconciliation); states as of rmp #267 (2026-09-25,
 
 **Assigned:** threat-modeler-and-zero-day-researcher
 **Priority:** Medium
-**Status:** **OPEN** (planned: rmp #268) — the 4 known cases are now met (verified at `a510565`): #151 by rmp #264, #166 and #60 by rmp #266, #176 by rmp #265 through its documentation branch (the `-count=1000` all-GOOS branch was never exercised). The general test over all closed security tasks has not been run; the 4 tasks still have `completion_summary = null`.
+**Status:** **CONFIRMED** (rmp #268, `2026-09-26-closed-task-audit.md`): of 183 closed tasks with finding IDs, 79 met, 53 met by a later mechanism, 50 unmet, 1 unverifiable; every unmet task maps to rmp #280–#290. Earlier state: the 4 known cases are now met (verified at `a510565`): #151 by rmp #264, #166 and #60 by rmp #266, #176 by rmp #265 through its documentation branch (the `-count=1000` all-GOOS branch was never exercised). The general test over all closed security tasks has not been run; the 4 tasks still have `completion_summary = null`.
 
 **Finding(s):** — (process hypothesis).
 
@@ -903,4 +903,4 @@ Raised by rmp #240 (findings reconciliation); states as of rmp #267 (2026-09-25,
 |---|---|---|---|
 | H-RECON-01 | High | **REFUTED** (rmp #263) | CSA-2026-0056 |
 | H-RECON-02 | Medium | **CONFIRMED — fixed** (rmp #264) | TSC-2026-0009 |
-| H-RECON-03 | Medium | **OPEN** | — |
+| H-RECON-03 | Medium | **CONFIRMED** (rmp #268) | — |
