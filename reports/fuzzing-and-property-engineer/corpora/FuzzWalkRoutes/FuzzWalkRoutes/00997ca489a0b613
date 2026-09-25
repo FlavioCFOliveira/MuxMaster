@@ -1,0 +1,4 @@
+go test fuzz v1
+string("0")
+string("0")
+string("/\xee\xd6\xe5\xe3\"0")

@@ -366,6 +366,11 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler, fast Fas
 			break
 		}
 		if !valid {
+			if path[i] == '{' {
+				// findWildcard found a '{' with no closing '}' before the
+				// next '/' or end of path (FPE-O14-002).
+				panic("muxmaster: regex param '{' in path '" + fullPath + "' is missing its closing '}'")
+			}
 			panic("muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'")
 		}
 		if len(wc) < 2 {
@@ -1275,8 +1280,20 @@ func findWildcard(path string) (token string, start int, valid bool) {
 				}
 			}
 			if closeIdx < 0 {
-				// No closing '}' in this segment.
-				return "", -1, false
+				// No closing '}' in this segment: this IS a wildcard start
+				// ('{'), just a malformed one. Return the position (not -1)
+				// so the caller's `i < 0` "no wildcard at all" branch is not
+				// taken — that branch is only correct when the segment truly
+				// contains no wildcard marker. Returning i alongside
+				// valid=false routes this into insertChild's `if !valid`
+				// panic instead (FPE-O14-002 / rmp #274 O-14: an unclosed
+				// '{' previously fell through the i<0 path in addRoute's
+				// walk() loop straight into insertChild's final
+				// `n.path = path; n.handler = handler` — silently
+				// overwriting whatever route n already held, without any
+				// panic. Regression test: FuzzWalkRoutes and
+				// TestUnclosedRegexParamPanicsWithoutCorruptingTree).
+				return "", i, false
 			}
 			return path[i : closeIdx+1], i, true
 		}

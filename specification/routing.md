@@ -48,6 +48,8 @@ This file does not cover middleware application order (see [middleware.md](middl
 22. The captured value is stored in `Params` with the key equal to `name`.
 23. Example: the pattern `/users/{id:\d+}` matches `/users/42` and captures `id = 42`. It does not match `/users/abc`.
 
+    See section 11 for the panic raised when a `{` is never closed by a matching `}`; that is a distinct, registration-time malformation from an invalid regular expression (rule 21).
+
 ### 1.6 Optional Parameters
 
 24. An optional parameter declares that a segment is present or absent. It is written as `{/:name}` (optional named segment) or `{/:name:expr}` (optional regex segment).
@@ -201,6 +203,8 @@ The following conditions cause a call to the built-in `panic` function at route 
 70. A regex parameter contains an invalid Go regular expression.
 71. A wildcard conflicts with an already-registered wildcard at the same position. This includes a regex parameter registered at the same position as an existing plain named parameter, and a plain named parameter registered at the same position as an existing regex parameter: the tree holds exactly one wildcard child per node, so the second of the two always panics, regardless of which kind was registered first.
 
+See section 11 for the distinct panic raised when a regex parameter's opening `{` is never closed by a matching `}` at all.
+
 ---
 
 ## 6. Lookup Fallback
@@ -256,3 +260,13 @@ The following conditions cause a call to the built-in `panic` function at route 
     - The request falls through to the `NotFound` handler (section 4.1, rule 47, step 10; see [error-handling.md](error-handling.md) section 1), exactly as any other unmatched path does. This holds regardless of the `HandleOPTIONS` setting, and regardless of whether an explicit `OPTIONS` handler is registered elsewhere in the tree.
 
 93. Pre-routing middleware does run for this request when `DisableGeneralOptionsHandler` is `true`, because nothing intercepts the request before `Mux.ServeHTTP` in that configuration; see [middleware.md](middleware.md) rule 6.
+
+---
+
+## 11. Unclosed Regex Parameter Brace
+
+94. A pattern segment that begins with an opening brace `{` but contains no matching closing brace `}` before the next `/` character or the end of the pattern is malformed. Registering such a pattern with `Handle`, `HandleFunc`, `HandleE`, or `HandleFast` (directly on `*Mux`, or through the equivalent `*Group` methods) causes a panic at registration time with the message `muxmaster: regex param '{' in path '<pattern>' is missing its closing '}'`, where `<pattern>` is the exact pattern string that was passed in. Examples of patterns that trigger this panic: `/{` (bare, unclosed, at the root segment), `/a/{id` (named-looking but never closed), and `/x/{id:[0-9]+/y` (the segment `{id:[0-9]+` has no closing `}` before the `/` that starts the next segment; the search for a closing brace does not cross a segment boundary, so the fact that the pattern contains no `}` anywhere after that point is irrelevant — even a pattern like `/x/{id:[0-9]+/y}` would still panic, because the `}` appears in the following segment, not the one containing the unclosed `{`).
+
+95. This panic is distinct from rule 70 (an invalid Go regular expression inside a properly closed `{name:expr}` regex parameter). Rule 70 fires only once a complete `{...}` token has been parsed as a regex parameter; this rule fires when no closing `}` can be found at all within the segment, so no regex parameter is ever parsed and rule 70's check is never reached.
+
+96. Registering a pattern that triggers this panic does not modify the router's existing route tree. Any route registered before the panicking call remains fully intact and reachable by `Lookup` and `Walk`, with the same handler, exactly as before the panicking call; the malformed pattern itself is never added to the tree. This holds even when the malformed pattern would, absent this panic, have been inserted at or reused the very same tree node that an existing, unrelated route already occupies.
