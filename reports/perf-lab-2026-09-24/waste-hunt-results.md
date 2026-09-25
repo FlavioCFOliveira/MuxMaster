@@ -1,6 +1,6 @@
 # Waste Hunt — Final Gate Results
 
-**rmp tasks closed by this gate:** #248, #249 (waste-hunt), #250–#260 (defect fixes), #261 (round-2 follow-up below), sprint 18 ("Performance and Efficiency Laboratory")
+**rmp tasks closed by this gate:** #248 and #250–#260 (waste-hunt fixes and the defects they exposed; the round-2 follow-up below belongs to #250 and #259). The waste-hunt campaign itself is #249. Sprint 18 ("Performance and Efficiency Laboratory") remains open.
 **Date:** 2026-09-25
 **Agent:** go-perf-optimizer
 **Scope:** final pre-commit gate on the uncommitted sprint-18 tree (baseline `d980583`) — lint, build/vet/staticcheck/lint/race across the main module and every nested module with tests, examples build+vet, same-session `benchstat` vs baseline, and an examples re-profile against the new code. **Round 2** (§7-§9) addresses three coordinator-directed follow-ups after the round-1 gate: making the DIV-001 backtracking cost lazy, cutting header-slice-isolation allocs to one per request per middleware, and fixing the two pre-existing test defects the round-1 gate surfaced but did not fix.
