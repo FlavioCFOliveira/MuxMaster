@@ -389,3 +389,153 @@ func classifyOracle(diffNs float64) string {
 		return "INFORMATIONAL — below practical LAN exploitation threshold"
 	}
 }
+
+// TestTiming_ErrorOracleMatrix is the restored 15-pair error-oracle matrix
+// (MM-2026-0046), which commit 5f804fa removed without a like-for-like
+// replacement (see reports/overview/findings.md O-14). The 4 sibling tests
+// above (404vs405, 404vs401, 200vs401, Panic) each cover exactly one pair
+// out of the 6-scenario matrix {200, 401, 404, 405, 500, 503}; this test
+// restores full pairwise coverage (C(6,2) = 15 pairs) so that no
+// scenario-pair combination is left unmeasured.
+//
+// MM-2026-0046 in SECURITY.md ("Error Oracle") already documents differing
+// error responses (404/405/401/...) as intentional, accepted HTTP
+// semantics — this test is therefore informational (matching the sibling
+// tests' style): it logs distinguishability and effect size per pair via
+// classifyOracle, it does not assert a numeric bound. Each of the 6 arms
+// is preflight-verified with VerifyArmStatus AND has every sample's status
+// checked (rmp #264 / TSC-2026-0009 lesson: a harness that silently
+// measures the wrong code path produces invalid evidence).
+//
+// Restored 2026-09-25 (rmp #274 / O-14).
+func TestTiming_ErrorOracleMatrix(t *testing.T) {
+	const nMatrix = 100_000
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	old := debug.SetGCPercent(-1)
+	defer debug.SetGCPercent(old)
+	runtime.GC()
+	runtime.GC()
+
+	// Arms sharing the Group-scoped BasicAuth mux (see buildErrorOracleMux
+	// doc comment for why Group, not Mux.Use, is required for 404/405 to be
+	// genuinely unauthenticated).
+	mux1 := buildErrorOracleMux()
+	authOK := validAuthHeader()
+
+	// 500: a dedicated mux with a PanicHandler — panic recovery is a
+	// mux-level concern independent of BasicAuth/routing.
+	mux2 := func() *muxmaster.Mux {
+		r := muxmaster.New()
+		r.PanicHandler = func(w http.ResponseWriter, req *http.Request, rcv any) {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+		r.GET("/panicking", func(w http.ResponseWriter, req *http.Request) {
+			panic("error-oracle-matrix induced panic")
+		})
+		return r
+	}()
+
+	// 503: a dedicated mux where a single ThrottleBacklog(1, 0, ...) slot is
+	// held for the duration of the measurement by a goroutine blocked on
+	// <-hold, forcing every /probe request to fail acquisition immediately
+	// (backlog=0 means the queue send has no waiting receiver and rejects
+	// on the spot — no timeout wait needed, so this arm is deterministic
+	// and fast). See the historical throttle_compress_test.go for the same
+	// technique (removed by 5f804fa).
+	mux3 := muxmaster.New()
+	sem := middleware.ThrottleBacklog(1, 0, 50*time.Microsecond)
+	hold := make(chan struct{})
+	started := make(chan struct{})
+	blocker := sem(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-hold
+		w.WriteHeader(http.StatusOK)
+	}))
+	probe := sem(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	mux3.GET("/probe", probe.ServeHTTP)
+	go func() {
+		w := httptest.NewRecorder()
+		blocker.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/hold", nil))
+	}()
+	<-started // deterministic: the semaphore slot is provably held before we proceed
+	defer close(hold)
+
+	badAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte("user:wrongpass"))
+
+	type arm struct {
+		name   string
+		mux    *muxmaster.Mux
+		method string
+		path   string
+		auth   string
+		want   int
+	}
+	arms := []arm{
+		{"200", mux1, http.MethodGet, "/exists", authOK, http.StatusOK},
+		{"401", mux1, http.MethodGet, "/exists", badAuth, http.StatusUnauthorized},
+		{"404", mux1, http.MethodGet, "/no-such-route-xyz", "", http.StatusNotFound},
+		{"405", mux1, http.MethodDelete, "/exists", "", http.StatusMethodNotAllowed},
+		{"500", mux2, http.MethodGet, "/panicking", "", http.StatusInternalServerError},
+		{"503", mux3, http.MethodGet, "/probe", "", http.StatusServiceUnavailable},
+	}
+
+	// Warmup + preflight + measure, one arm at a time.
+	samples := make(map[string][]int64, len(arms))
+	for _, a := range arms {
+		for i := 0; i < 20_000; i++ {
+			req := httptest.NewRequest(a.method, a.path, nil)
+			if a.auth != "" {
+				req.Header.Set("Authorization", a.auth)
+			}
+			w := httptest.NewRecorder()
+			a.mux.ServeHTTP(w, req)
+		}
+		VerifyArmStatus(t, a.name, a.mux, func() *http.Request {
+			req := httptest.NewRequest(a.method, a.path, nil)
+			if a.auth != "" {
+				req.Header.Set("Authorization", a.auth)
+			}
+			return req
+		}, a.want)
+
+		s, statuses := measureError(a.mux, a.method, a.path, a.auth, nMatrix)
+		for i, code := range statuses {
+			if code != a.want {
+				t.Fatalf("arm %q: sample %d returned status %d, want %d — invalid evidence", a.name, i, code, a.want)
+			}
+		}
+		samples[a.name] = s
+	}
+
+	// Full C(6,2) = 15 pairwise comparison.
+	names := []string{"200", "401", "404", "405", "500", "503"}
+	t.Logf("Error-oracle matrix (MM-2026-0046): N=%d per arm, %d pairs", nMatrix, len(names)*(len(names)-1)/2)
+	for _, n := range names {
+		s := Summarise(samples[n])
+		t.Logf("  arm %s: mean=%.1fns p50=%.0fns p99=%.0fns", n, s.Mean, s.P50, s.P99)
+	}
+	worstP := 1.0
+	for i := 0; i < len(names); i++ {
+		for j := i + 1; j < len(names); j++ {
+			a, b := names[i], names[j]
+			result := RunTests(samples[a], samples[b])
+			if result.WelchP < worstP {
+				worstP = result.WelchP
+			}
+			if result.Leak {
+				t.Logf("  %s vs %s: distinguishable — diff=%.2fns (%s) Welch p=%.4g KS p=%.4g MWU p=%.4g",
+					a, b, result.MeanDiffNs, classifyOracle(result.MeanDiffNs), result.WelchP, result.KSP, result.MWUP)
+			} else {
+				t.Logf("  %s vs %s: NOT distinguishable at p<0.01", a, b)
+			}
+		}
+	}
+	t.Logf("Worst-case Welch p-value across all 15 pairs: %.4g", worstP)
+	t.Logf("Verdict: MM-2026-0046 accepted class — differential error responses are intentional " +
+		"HTTP semantics (see SECURITY.md \"Error Oracle\"); this matrix documents current magnitudes, " +
+		"it does not gate the build on any pair's significance.")
+}

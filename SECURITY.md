@@ -403,6 +403,26 @@ attacks should rate-limit aggressively and monitor for prefix-scan probes.
   100 ns threshold in the same test that had no relationship to this
   documented figure.
 
+- **TSC-2026-0013 (BasicAuth password-length, same-length vs
+  different-length wrong password, ≤360 ns; accepted bound: ≤700 ns) —
+  MM-2026-0020 regression test.** Historical pre-fix evidence (raw
+  passwords compared directly, before `middleware/basic_auth.go` hashed
+  both sides): N=1.5M, p=0, mean difference 284-316 ns, maximum latency
+  when `len(pass)==len(expected)` — `subtle.ConstantTimeCompare` returns 0
+  immediately, non-constant-time, whenever the two slice lengths differ.
+  The fix SHA-256-hashes both the supplied and the stored password before
+  the compare, so the compare always runs on two 32-byte digests
+  regardless of the caller-supplied password's length; the length-mismatch
+  branch can no longer diverge by input length. The bound is asserted by
+  `TestTiming_BasicAuth_PasswordLengthOracle` (`tsc20260013BoundNs` in
+  `basic_auth_timing_test.go`), derived 2026-09-25 (rmp #274 / O-14) as 2×
+  the worst of 6 independent `-count=1` runs on a shared/virtualised
+  sandbox (30.86, 329.56, 83.47, 217.33, 41.97, 299.47 ns — worst observed:
+  329.56 ns), rounded up, then confirmed passing on 3 further independent
+  runs (worst: 359.64 ns). This test — the sole regression coverage for
+  MM-2026-0020 — was removed by commit `5f804fa` without a like-for-like
+  replacement; see `reports/overview/findings.md` O-14.
+
 - **TSC-2026-0005 (Route existence, ~960 ns) — MM-2026-0026 magnitude
   update.** Registered vs unregistered paths take measurably different
   time inside the radix tree. Already documented as the

@@ -5,6 +5,8 @@
 // Hypotheses tested:
 //  1. valid-password vs invalid-password (constant-time MUST hold)
 //  2. existing-user vs non-existing-user (user-enumeration oracle MUST NOT exist)
+//  3. wrong-password-same-length vs wrong-password-different-length, both for an
+//     existing user (password-length oracle, MM-2026-0020, MUST NOT exist post-fix)
 //
 // Methodology: pinned OS thread, GC disabled, 1 M samples, p99 outlier trim,
 // Welch t-test + KS 2-sample + Mann-Whitney U.
@@ -54,6 +56,20 @@ const (
 	// this shared/virtualised sandbox — no systematic shift). Re-derived
 	// from the full 6-run worst case (349.39ns) x 2, rounded up.
 	tsc20260002BoundNs = 700.0 // BasicAuth user-exists vs not-exists
+	// tsc20260013BoundNs: MM-2026-0020 regression bound (password-length
+	// oracle). Derived 2026-09-25 (rmp #274 / O-14) as 2x the worst of 6
+	// independent -count=1 runs on this shared/virtualised sandbox: 30.86,
+	// 329.56, 83.47, 217.33, 41.97, 299.47 ns (worst observed: 329.56 ns),
+	// rounded up — same method as TSC-2026-0001/0002/0004 (rmp #270 / O-9).
+	// This class was the historical MM-2026-0020 vulnerability (pre-fix:
+	// N=1.5M, p=0, mean difference 284-316 ns, raw-password length compared
+	// directly). Post-fix (SHA-256 both sides before ConstantTimeCompare —
+	// middleware/basic_auth.go), residual differences at this magnitude are
+	// noise from the shared map lookup / GC / scheduler, not a
+	// length-dependent compare — the digests compared are always 32 bytes
+	// regardless of the caller-supplied password length. Documented in
+	// SECURITY.md alongside TSC-2026-0001/0002/0004.
+	tsc20260013BoundNs = 700.0 // BasicAuth password-length (same-length vs diff-length)
 )
 
 func buildBasicAuthHandler(realm string, creds map[string]string) http.Handler {
@@ -220,5 +236,107 @@ func TestTiming_BasicAuth_UserExistsVsNotExists(t *testing.T) {
 			"> %.0fns (SECURITY.md TSC-2026-0002 accepted bound) — this is larger than the "+
 			"documented architectural map-lookup oracle and may indicate a regression",
 			result.MeanDiffNs, tsc20260002BoundNs)
+	}
+}
+
+// TestTiming_BasicAuth_PasswordLengthOracle is the regression test for
+// MM-2026-0020 (password-length oracle via subtle.ConstantTimeCompare's
+// early exit on mismatched slice lengths — Go's stdlib documents that
+// ConstantTimeCompare returns 0 immediately, non-constant-time, whenever
+// len(x) != len(y)). The original vulnerability compared the raw supplied
+// password directly against the stored password; a wrong-length guess
+// short-circuited faster than a same-length guess (historical evidence
+// recorded in reports/overview/findings.md MM-2026-0020: N=1.5M, p=0, mean
+// difference 284-316 ns). The fix in middleware/basic_auth.go SHA-256-hashes
+// BOTH the supplied and the stored password before calling
+// ConstantTimeCompare, so the compare always runs on two 32-byte digests
+// regardless of the caller-supplied password's length — the length-mismatch
+// branch can structurally never diverge by input length again.
+//
+// This test measures wrong-password-same-length-as-stored vs
+// wrong-password-very-different-length, both against the SAME existing
+// user, and asserts the two are statistically indistinguishable within the
+// accepted bound documented in SECURITY.md as TSC-2026-0013. Restored
+// 2026-09-25 (rmp #274 / O-14) — removed without a like-for-like
+// replacement by commit 5f804fa (see reports/overview/findings.md O-14).
+func TestTiming_BasicAuth_PasswordLengthOracle(t *testing.T) {
+	const storedPassword = "correct-password-for-timing-test" // 33 chars
+	handler := buildBasicAuthHandler("test", map[string]string{
+		"alice": storedPassword,
+	})
+
+	sameLenPassword := "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" // 33 chars, wrong
+	diffLenPassword := "x"                                 // 1 char, wrong
+
+	var sameLenSamples, diffLenSamples []int64
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	old := debug.SetGCPercent(-1)
+	defer debug.SetGCPercent(old)
+	runtime.GC()
+	runtime.GC()
+
+	// Warmup
+	for i := 0; i < 50_000; i++ {
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, basicAuthReq("alice", sameLenPassword))
+		w2 := httptest.NewRecorder()
+		handler.ServeHTTP(w2, basicAuthReq("alice", diffLenPassword))
+	}
+
+	VerifyArmStatus(t, "same-length", handler, func() *http.Request {
+		return basicAuthReq("alice", sameLenPassword)
+	}, http.StatusUnauthorized)
+	VerifyArmStatus(t, "diff-length", handler, func() *http.Request {
+		return basicAuthReq("alice", diffLenPassword)
+	}, http.StatusUnauthorized)
+
+	sameLenSamples = make([]int64, nBasicAuth)
+	diffLenSamples = make([]int64, nBasicAuth)
+
+	for i := 0; i < nBasicAuth; i++ {
+		w := httptest.NewRecorder()
+		t0 := time.Now()
+		handler.ServeHTTP(w, basicAuthReq("alice", sameLenPassword))
+		sameLenSamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("same-length arm: sample %d returned status %d, want 401 — invalid evidence", i, w.Code)
+		}
+
+		w2 := httptest.NewRecorder()
+		t1 := time.Now()
+		handler.ServeHTTP(w2, basicAuthReq("alice", diffLenPassword))
+		diffLenSamples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("diff-length arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
+	}
+
+	result := RunTests(sameLenSamples, diffLenSamples)
+	ss := Summarise(sameLenSamples)
+	ds := Summarise(diffLenSamples)
+
+	t.Logf("BasicAuth password-length timing comparison (N=%d each)", nBasicAuth)
+	t.Logf("  Same-length (33):  mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", ss.Mean, ss.Std, ss.P50, ss.P99)
+	t.Logf("  Diff-length (1):   mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", ds.Mean, ds.Std, ds.P50, ds.P99)
+	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns",
+		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+
+	if result.Leak {
+		t.Logf("Statistically significant difference (Welch p=%.4g, KS p=%.4g, MWU p=%.4g, "+
+			"mean-diff=%.2fns) — asserting against the SECURITY.md TSC-2026-0013 accepted "+
+			"bound (%.0fns), not against significance alone; the SHA-256 hashing fix for "+
+			"MM-2026-0020 means any residual difference here is measurement noise, not a "+
+			"length-dependent compare",
+			result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs, tsc20260013BoundNs)
+	} else {
+		t.Logf("Password-length timing: NOT distinguishable at p<0.01 — MM-2026-0020 fix confirmed")
+	}
+	if result.MeanDiffNs > tsc20260013BoundNs {
+		t.Errorf("TIMING LEAK EXCEEDS ACCEPTED BOUND: same-length vs diff-length password mean-diff=%.2fns "+
+			"> %.0fns (SECURITY.md TSC-2026-0013 accepted bound) — this would indicate the "+
+			"MM-2026-0020 fix (hash-both-sides before ConstantTimeCompare) has regressed",
+			result.MeanDiffNs, tsc20260013BoundNs)
 	}
 }

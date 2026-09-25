@@ -1,0 +1,20 @@
+=== RUN   TestTiming_Throttle_BoundaryOracle
+    throttle_timing_test.go:139: Throttle near-limit timing oracle: limit=16 backlog=0 N=100000/fill
+    throttle_timing_test.go:142:   fill=0/16: mean=4983.5ns std=8352.2ns p50=4260ns p99=12292ns
+    throttle_timing_test.go:142:   fill=1/16: mean=4945.7ns std=6830.1ns p50=4260ns p99=12083ns
+    throttle_timing_test.go:142:   fill=8/16: mean=4961.7ns std=8725.3ns p50=4260ns p99=12013ns
+    throttle_timing_test.go:142:   fill=14/16: mean=4941.7ns std=8216.6ns p50=4191ns p99=12013ns
+    throttle_timing_test.go:142:   fill=15/16: mean=4949.5ns std=9214.3ns p50=4191ns p99=12012ns
+    throttle_timing_test.go:157:   fill=0 vs fill=1: Welch p=0.07967 KS p=6.164e-05 MWU p=0.06716 |mean diff|=11.36ns
+    throttle_timing_test.go:160:     DISTINGUISHABLE: diff=11.36ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:157:   fill=0 vs fill=8: Welch p=7.319e-06 KS p=3.412e-15 MWU p=1.85e-12 |mean diff|=29.04ns
+    throttle_timing_test.go:160:     DISTINGUISHABLE: diff=29.04ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:157:   fill=0 vs fill=14: Welch p=4.295e-11 KS p=3.526e-124 MWU p=0 |mean diff|=42.89ns
+    throttle_timing_test.go:160:     DISTINGUISHABLE: diff=42.89ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:157:   fill=0 vs fill=15: Welch p=2.214e-12 KS p=2.377e-64 MWU p=0 |mean diff|=45.35ns
+    throttle_timing_test.go:160:     DISTINGUISHABLE: diff=45.35ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:165: Worst-case Welch p-value across fill=0 vs {1,8,14,15}: 2.214e-12
+    throttle_timing_test.go:166: Verdict: throttleSem.tryAcquire is a single atomic Load+CAS independent of the current in-use count (middleware/throttle.go CH-02); any distinguishable difference above is expected to be scheduler/GC noise proportional to the number of additional live (parked) goroutines, not a property of remaining throttle budget.
+--- PASS: TestTiming_Throttle_BoundaryOracle (4.20s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	4.385s

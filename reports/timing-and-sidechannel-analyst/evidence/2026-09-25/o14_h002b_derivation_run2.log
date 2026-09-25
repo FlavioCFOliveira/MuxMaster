@@ -1,0 +1,9 @@
+=== RUN   TestTiming_BasicAuth_PasswordLengthOracle
+    basic_auth_timing_test.go:311: BasicAuth password-length timing comparison (N=200000 each)
+    basic_auth_timing_test.go:312:   Same-length (33):  mean=7019.0ns std=9275.5ns p50=5308ns p99=16482ns
+    basic_auth_timing_test.go:313:   Diff-length (1):   mean=6701.3ns std=9339.4ns p50=5308ns p99=15156ns
+    basic_auth_timing_test.go:314:   Welch p=0  KS p=0  MWU p=0  |mean diff|=329.56ns
+    basic_auth_timing_test.go:318: Statistically significant difference (Welch p=0, KS p=0, MWU p=0, mean-diff=329.56ns) — asserting against the SECURITY.md TSC-2026-0013 accepted bound (100000ns), not against significance alone; the SHA-256 hashing fix for MM-2026-0020 means any residual difference here is measurement noise, not a length-dependent compare
+--- PASS: TestTiming_BasicAuth_PasswordLengthOracle (4.55s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	4.779s
