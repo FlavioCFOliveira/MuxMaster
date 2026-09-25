@@ -35,6 +35,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **Documentation corrected: custom HTTP methods are not supported** (rmp #262, sprint 19): `README.md`, `docs/routing.md`, and specification have been corrected to reflect the verified behavior — MuxMaster recognizes a fixed, closed set of eleven method tokens (the ten standard HTTP methods: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY, plus the internal `"*"` token used by `Mount`), and registering any other method string (e.g., `PURGE`, `PROPFIND`) via `Handle`, `HandleFunc`, `HandleE`, `HandleFast`, or `Match` panics with `"muxmaster: unsupported HTTP method '<method>'"`. No `RegisterMethod` function exists. The router provides no mechanism to extend the method set at runtime. Custom-method requests can be served by attaching a `Mount` at a prefix and dispatching on `r.Method` within the mounted handler. Previously, documentation incorrectly claimed support for custom methods. Regression tests added in `method_set_test.go` pin all related specification rules and panic messages.
 
+- **Documentation corrected: Mount's internal catch-all parameter now named accurately** (rmp #241, sprint 20): `docs/routing.md` line 276 now correctly describes `Mount("/api", handler)` as internally registered via `Handle("*", "/api/*mux_mount", ...)` instead of the anonymous `"/*"` description; specification `groups.md` rule 28 has been updated accordingly.
+
 ### Performance (Sprint 18 — Waste-Hunt Campaign)
 
 Measured on AMD Ryzen 9 5900HX under load with real example workloads (`reports/perf-lab-2026-09-24/waste-hunt/`).

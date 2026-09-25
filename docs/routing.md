@@ -273,7 +273,7 @@ This design eliminates per-request middleware iteration. Combined with the radix
 - If a request arrives for `/users/` and only `/users` is registered, MuxMaster redirects to `/users`.
 - If a request arrives for `/users` and only `/users/` is registered, MuxMaster redirects to `/users/`.
 
-This also applies to catch-all routes and mounted handlers. For example, with `Mount("/api", handler)` (internally a catch-all `"/*"` at the `/api` prefix):
+This also applies to catch-all routes and mounted handlers. For example, with `Mount("/api", handler)` (internally registered as `Handle("*", "/api/*mux_mount", ...)`, with a wrapper that strips the prefix before calling `handler`):
 
 - A request to `/api` (bare prefix, no trailing slash) triggers a redirect to `/api/` when `RedirectTrailingSlash` is `true`.
 - A request to `/api/` and `/api/anything` both match the mounted handler directly.
