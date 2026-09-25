@@ -21,6 +21,63 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **Documentation: `RequestID` middleware reference** — rewritten to clarify context-based retrieval via `middleware.GetRequestID()`, explain inbound header validation (MM-2026-0011: ASCII alphanumeric plus `-`, `_`, `.`; max 128 characters), and document the 2-allocation budget. Updated `docs/middleware.md` with correct function call form and validation rules. Added high-concurrency scaling subsection to `docs/max-performance.md` with measured data at 1/4/16 cores, explaining the allocation-driven GC and runtime lock pressure mechanism.
 
+### Performance (Sprint 18 — Waste-Hunt Campaign)
+
+Measured on AMD Ryzen 9 5900HX under load with real example workloads (`reports/perf-lab-2026-09-24/waste-hunt/`).
+
+#### Root package and routing
+
+- **Registration cost reduced from O(tree size) to O(depth per route)** (rmp #253, WH-08): path copy-on-write replaces deep cloning. `RegisterRoutes`: N=100 **−93.96%** (884 µs → 53 µs), N=1000 **−99.29%** (90.6 ms → 0.65 ms), N=5000 **−99.84%** (2.86 s → 4.7 ms). Registration now scales linearly with path depth, not tree size. **Specification amendment:** `specification/performance.md` §36–37 updated to reflect O(depth) copying and rollback guarantee.
+
+- **`Mount`, `ServeFiles`, `Group.ServeFiles`, `CleanPath`, `StripSlashes` shallow request copy** (rmp #250, WH-04): replaced `r.Clone()` with struct-value copy + new `*url.URL` (matches `http.StripPrefix` strategy). Measured: `Mount` **−76.25%** (1024 ns → 243 ns), 9 → 3 allocs; `CleanPath` (dirty path) **−83.74%** (810 ns → 132 ns), 7 → 2 allocs. Shares header map and context with original request; header mutations are visible to outer middleware (by design, matches stdlib idiom).
+
+- **Redirect path caching + fused bundle** (rmp #248, #250, WH-10): cached middleware-wrapped redirect handler, carrying per-request target via fused `redirectBundle` allocation (models `reqBundle` pattern). Measured: `RedirectTSL` **−27.67%** (884 ns → 639 ns), `RedirectTSLWithMiddleware` **−24.52%** (1050 ns → 792 ns), 19 → 12 allocs (−36.84%). Parallel case: concurrent `Use()` calls now safe via generation-tagged cache invalidation (fixes ABA race).
+
+#### Middleware
+
+- **`ThrottlePerIP` fast-path tokenisation** (rmp #251, WH-01): non-blocking `select` before timer creation; entry recycling via `sync.Pool`. Measured: **−97.09%** (4051 ns → 118 ns), 5 → 0 allocs. Syscalls reduced: 2.2 → 0.07 `clock_gettime` per request (HPET host; counts are host-independent).
+
+- **`Logger` alloc-free formatting + single clock read** (rmp #251, WH-02, WH-07): `AppendQuoteToASCII` into pooled buffer; one end-of-request `time.Now()` for both timestamp and duration; `io.ReaderFrom` delegation to preserve `sendfile` fast path. Measured: **−24.03%** (7.5 µs → 5.7 µs), 5 → 0 allocs per request; `sendfile` syscalls preserved (3 per 1 MiB file with Logger, unchanged vs without).
+
+- **`Compress` pooled writer with fixed sniff array** (rmp #251, WH-03): `gzipResponseWriter` recycled via `sync.Pool`, carrying an embedded `[8192]byte` array. Measured: chunked 12 KiB **−44.88%** (14.6 µs → 8.1 µs), 16 → 3 allocs; small 600 B **−17.97%** (435 ns → 356 ns), 4 → 2 allocs.
+
+- **`JWTAuth` header memo + zero-copy HMAC input** (rmp #251, WH-06): single-entry cache of last-accepted JOSE header (stored after alg allow-list and RFC 7515 crit checks); `unsafe` string view (`unsafe.Slice(unsafe.StringData(...))`) for HMAC input, eliminating copy. Measured: **−14.03%** (5.16 µs → 4.44 µs), 10 → 7 allocs.
+
+- **`RealIP` right-to-left `X-Forwarded-For` scan** (rmp #251, WH-11): replaced `strings.Split`-based rightmost-untrusted hop walk with right-to-left byte scan. Measured: 3-hop **−21.66%** (257 ns → 201 ns), 2 → 1 allocs; 1-hop **−14.79%** (195 ns → 166 ns).
+
+- **`APIKey` fused context node** (rmp #251, WH-12): single allocation combining context wrapper and identity string (matches `RequestID` pattern). Measured: **−14.96%** (574 ns → 488 ns), 7 → 6 allocs. TSC-2026-0008 timing-equality constraint preserved unchanged.
+
+- **405 / OPTIONS `Allow` header table + prebuilt slices** (rmp #250, WH-09): method bitmask index into pre-computed `Allow` strings; direct map assignment for header. Measured (post-aliasing-fix): `MethodNotAllowed` **−9.74%** (153 ns → 138 ns), 2 → 3 allocs; `OPTIONSAuto` **−51.01%** (124 ns → 61 ns), 3 → 1 allocs. Allocations include per-request header-slice isolation (see "Fixed" below).
+
+- **Header-slice aliasing defect fix** (rmp #250, security review): WH-05 and WH-09 hoisted constant header **values** (`[]string`) instead of just strings, sharing slices across requests. Five affected code paths: `response.go` `JSON`/`XML`/`Text`, `mux.go` `lazyMethodNotAllowed`/`lazyOPTIONS`, `middleware/set_header.go`, `middleware/cors.go`, `middleware/no_cache.go`. Fixed by allocating header slices fresh per request. Post-fix alloc costs: `Text` **−41.39%** (98 ns → 58 ns, 2 → 1 allocs net), `JSONHelper` **−2.73%** (500 ns → 487 ns, 3 allocs unchanged but B/op restored to baseline).
+
+#### Routing behaviour
+
+- **Lookup fallback: static branch to param sibling** (rmp #259, DIV-001): when a static path segment exists alongside a param segment (e.g., `/users/list` and `/users/:id`), requests to a non-existent static segment (e.g., `/users/listx`) now match the param route instead of returning 404. Both static and param registration orders work correctly.
+
+- **Mount bare prefix and TSR** (specification.md §28): a request to a bare mount prefix (e.g., `/v2` without trailing slash) now triggers `RedirectTrailingSlash` (when enabled, the default) to `/v2/` before the mounted handler receives the request. Requests to `/v2/` and `/v2/anything` match the mount directly. Catch-all routes (used internally by `Mount`) now participate in trailing-slash redirect logic.
+
+
+### Fixed
+
+- **Compress middleware first-WriteHeader-wins now exempts 1xx informational responses** (rmp #254): corrected a pre-existing defect where a 1xx code (e.g., 103 Early Hints) followed by a final status (e.g., 403) caused the final status to be silently dropped; the client received an implicit **200 OK** with the full body. Added 1xx exemption matching `net/http`'s own behaviour.
+
+- **Logger middleware 1xx status handling** (rmp #254): corrected a pre-existing defect where 1xx informational codes in `WriteHeader` calls were recorded in the access log instead of the final status. Client-visible response was always correct; only the logged status was wrong, hiding security-relevant codes from log monitoring.
+
+- **Compress and Logger now expose optional HTTP interfaces** (rmp #254): both middlewares now implement `http.Flusher` (delegating to underlying writer) and `Unwrap() http.ResponseWriter` (for `http.ResponseController` and other interface-aware tools). `Logger` additionally implements `io.ReaderFrom` to preserve the `sendfile`/`splice` fast path for file serving.
+
+- **Static routes can now be registered after sibling param routes** (rmp #256): both registration orders — `mux.GET("/books/:id", ...)` then `mux.GET("/books/featured", ...)`, or vice versa — now succeed without panic. Both routes work correctly in either order. Catch-all vs static routes still conflict in both directions (as expected).
+
+- **Trailing-slash redirects now work for catch-all routes and Mount bare prefixes** (rmp #255): corrected a pre-existing oversight where the dispatch path discarded the trailing-slash-redirect bit for catch-all routes. A request to `/api` (bare `Mount("/api", handler)` without trailing slash) now triggers a TSR redirect to `/api/` when `RedirectTrailingSlash` is enabled.
+
+- **Redirect Location control bytes percent-encoded per RFC 9110** (rmp #260): control bytes (0x00–0x1F, 0x7F) in redirect target paths are now percent-encoded, conforming to RFC 9110 §5.5. Byte-identical differential testing against `net/http.Redirect` for 520+ cases.
+
+- **Examples fixed for correct pool and routing behaviour** (rmp #255): five examples (`authn`, `cache`, `jwt`, `static-site`, `rest-api`) that panicked at startup now register routes correctly; `max-performance` pprof Mount now reachable; `static-site` asset and doc paths now serve correctly; `reverse-proxy` no longer crashes under load with `PoolRequestBundle=true` — documentation updated to explain the unsafe pattern.
+
+- **Registration rollback guarantee strengthened** (rmp #253): tree copy-on-write with rollback now enforced by test `TestRegistrationRollback_PanicMidInsert_LiveTreeUntouched` — if a registration panics mid-mutation, the live tree is guaranteed untouched. MM-2026-0033 statement updated from "may be inconsistent" to "full rollback guaranteed."
+
+- **Documentation: specification corrected to match actual behaviour** (rmp #254): `specification/error-handling.md` clarified that `Use()`-registered middleware wraps `NotFound`, `MethodNotAllowed`, and auto-OPTIONS handlers (this was always the case in the code; the spec now matches reality). Cache invalidation on every `Use()` call (and `Rebuild()`). Applies to root `Mux` and all `Group` instances uniformly.
+
 ## [1.1.0] - 2026-05-12
 
 Minor release focused on **maximum performance**. Three deep-audit

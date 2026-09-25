@@ -185,6 +185,72 @@ func TestNoTrailingSlashRedirectWhenDisabled(t *testing.T) {
 	}
 }
 
+// TestTrailingSlashRedirectCatchAll is a regression test for a bug found
+// while investigating rmp #255 (static-site's /docs/v1 and /docs/v2 404).
+//
+// specification/routing.md §52 states TSR applies whenever "a handler exists
+// at the path with a trailing /" — it does not exempt catch-all routes. A
+// request for "/assets" (no trailing slash) against a registered
+// "/assets/*filepath" route has such a handler at "/assets/" (filepath="")
+// and must therefore redirect, exactly like it would for a static or named
+// route. Before the fix, getValue's TSR computation for a catch-all-only
+// child inspected the wrong tree node — the catch-all's static "/" wrapper
+// node, which never carries a handler, instead of its single child (the
+// actual wildcard leaf) — so this case fell through to 404 unconditionally.
+func TestTrailingSlashRedirectCatchAll(t *testing.T) {
+	m := muxmaster.New()
+	m.GET("/assets/*filepath", handler(200, "ok"))
+
+	rec := get(m, "/assets")
+	if rec.Code != http.StatusMovedPermanently {
+		t.Fatalf("expected 301, got %d", rec.Code)
+	}
+	if loc := rec.Header().Get("Location"); loc != "/assets/" {
+		t.Fatalf("Location: got %q, want /assets/", loc)
+	}
+
+	// Following the redirect must reach the catch-all with an empty capture.
+	rec2 := get(m, "/assets/")
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("expected 200 after following the redirect, got %d", rec2.Code)
+	}
+}
+
+// TestMountBarePrefixTSR is a regression test for the same bug as observed
+// through Mount, whose internal registration is itself a catch-all
+// (specification/groups.md §28: "a mount at /v2 handles /v2, /v2/, and
+// /v2/anything"). Before the fix, "/v2" (bare, no trailing slash and no
+// further segment) 404'd instead of redirecting to "/v2/", where the mount
+// forwards to h with URL.Path="/" (mountAt's `if p == "" { p = "/" }`
+// fallback — unreachable until this fix, since the tree lookup never
+// matched the bare prefix to begin with).
+func TestMountBarePrefixTSR(t *testing.T) {
+	sub := muxmaster.New()
+	sub.GET("/*filepath", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("root path=" + r.URL.Path))
+	})
+
+	m := muxmaster.New()
+	m.Mount("/v2", sub)
+
+	rec := get(m, "/v2")
+	if rec.Code != http.StatusMovedPermanently {
+		t.Fatalf("expected 301, got %d", rec.Code)
+	}
+	if loc := rec.Header().Get("Location"); loc != "/v2/" {
+		t.Fatalf("Location: got %q, want /v2/", loc)
+	}
+
+	rec2 := get(m, "/v2/")
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("expected 200 after following the redirect, got %d", rec2.Code)
+	}
+	if body := rec2.Body.String(); body != "root path=/" {
+		t.Fatalf("body: got %q, want %q", body, "root path=/")
+	}
+}
+
 // ── Method Not Allowed ────────────────────────────────────────────────────────
 
 func TestMethodNotAllowed(t *testing.T) {
@@ -1797,5 +1863,140 @@ func TestRegression_CSA_2026_0060_DeepWrap(t *testing.T) {
 	}
 	if pattern != "/a/:first/b/:second" {
 		t.Errorf("RoutePattern = %q, want %q", pattern, "/a/:first/b/:second")
+	}
+}
+
+// ── Static/param/catch-all sibling registration order (rmp #256) ───────────
+
+// namedHandler returns a handler that records its own name in X-Handler and
+// echoes every captured path parameter as an X-Param-<key> header, so a
+// table test can assert both which route matched and what it captured.
+func namedHandler(name string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Handler", name)
+		for _, p := range muxmaster.ParamsFromContext(r.Context()) {
+			w.Header().Set("X-Param-"+p.Key, p.Value)
+		}
+	}
+}
+
+// registerCatchesPanic runs fn and reports whether it panicked.
+func registerCatchesPanic(t *testing.T, fn func()) (panicked bool) {
+	t.Helper()
+	defer func() {
+		if recover() != nil {
+			panicked = true
+		}
+	}()
+	fn()
+	return false
+}
+
+func assertHandlerName(t *testing.T, m *muxmaster.Mux, path, want string) {
+	t.Helper()
+	rec := get(m, path)
+	if got := rec.Header().Get("X-Handler"); got != want {
+		t.Errorf("%s: handler = %q, want %q", path, got, want)
+	}
+}
+
+func assertParam(t *testing.T, m *muxmaster.Mux, path, key, want string) {
+	t.Helper()
+	rec := get(m, path)
+	if got := rec.Header().Get("X-Param-" + key); got != want {
+		t.Errorf("%s: param %s = %q, want %q", path, key, got, want)
+	}
+}
+
+// TestSiblingRegistrationOrderIndependent is the regression test for rmp
+// task #256 / MM-2026-0256: registering a static route as a sibling of an
+// already-registered named-parameter (or regex-parameter) route panicked
+// when the static route was registered SECOND ("/books/:id" then
+// "/books/featured"), while the reverse order succeeded.
+//
+// specification/routing.md §4.2 rule 48 ranks static routes above named
+// parameters (and catch-alls) in matching precedence, and §5's exhaustive
+// panic list has no entry for a static/named-parameter sibling pair — only
+// for two wildcards at the same position (rule 71) or a catch-all sharing a
+// root segment with an existing handler (rule 68). Both registration orders
+// must therefore produce the SAME outcome for static-vs-param and
+// static-vs-regex-param: success, with the static route taking priority on
+// an exact match and the wildcard route still reachable for everything
+// else.
+//
+// A catch-all sibling is the opposite case: rule 68 explicitly panics when
+// a catch-all is registered as a sibling of an existing route under the
+// same directory prefix. For order-independence this table also asserts
+// that BOTH orders panic there, so the static-sibling fix above cannot be
+// read as silently relaxing that separate, intentional conflict.
+func TestSiblingRegistrationOrderIndependent(t *testing.T) {
+	type reg struct {
+		name    string
+		pattern string
+	}
+	tests := []struct {
+		name       string
+		staticLike reg
+		wild       reg
+		wantPanic  bool
+		check      func(t *testing.T, m *muxmaster.Mux)
+	}{
+		{
+			name:       "static vs named param",
+			staticLike: reg{"static", "/books/featured"},
+			wild:       reg{"param", "/books/:id"},
+			check: func(t *testing.T, m *muxmaster.Mux) {
+				assertHandlerName(t, m, "/books/featured", "static")
+				assertHandlerName(t, m, "/books/42", "param")
+				assertParam(t, m, "/books/42", "id", "42")
+			},
+		},
+		{
+			name:       "static vs regex param",
+			staticLike: reg{"static", "/users/me"},
+			wild:       reg{"regex", "/users/{id:[0-9]+}"},
+			check: func(t *testing.T, m *muxmaster.Mux) {
+				assertHandlerName(t, m, "/users/me", "static")
+				assertHandlerName(t, m, "/users/42", "regex")
+				assertParam(t, m, "/users/42", "id", "42")
+			},
+		},
+		{
+			name:       "static vs catch-all",
+			staticLike: reg{"static", "/static/index.html"},
+			wild:       reg{"catchall", "/static/*filepath"},
+			wantPanic:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name+"/static-first", func(t *testing.T) {
+			m := muxmaster.New()
+			m.GET(tt.staticLike.pattern, namedHandler(tt.staticLike.name))
+			panicked := registerCatchesPanic(t, func() {
+				m.GET(tt.wild.pattern, namedHandler(tt.wild.name))
+			})
+			if panicked != tt.wantPanic {
+				t.Fatalf("static-first: panicked=%v, want %v", panicked, tt.wantPanic)
+			}
+			if !tt.wantPanic {
+				tt.check(t, m)
+			}
+		})
+
+		t.Run(tt.name+"/wild-first", func(t *testing.T) {
+			m := muxmaster.New()
+			m.GET(tt.wild.pattern, namedHandler(tt.wild.name))
+			panicked := registerCatchesPanic(t, func() {
+				m.GET(tt.staticLike.pattern, namedHandler(tt.staticLike.name))
+			})
+			if panicked != tt.wantPanic {
+				t.Fatalf("wild-first: panicked=%v, want %v", panicked, tt.wantPanic)
+			}
+			if !tt.wantPanic {
+				tt.check(t, m)
+			}
+		})
 	}
 }

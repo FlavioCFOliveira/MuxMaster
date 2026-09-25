@@ -1,0 +1,71 @@
+File: server-side-render
+Build ID: c3ca743befbdd8b2107e50642a3b5b1fc76fc06d
+Type: cpu
+Time: 2026-09-25 12:38:37 WEST
+Duration: 10s, Total samples = 72.48s (724.73%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 14.92s, 20.58% of 72.48s total
+Dropped 460 nodes (cum <= 0.36s)
+Showing top 60 nodes out of 175
+      flat  flat%   sum%        cum   cum%
+     3.88s  5.35%  5.35%      3.88s  5.35%  time.runtimeNow
+     3.13s  4.32%  9.67%      3.13s  4.32%  internal/runtime/syscall/linux.Syscall6
+     1.03s  1.42% 11.09%      4.07s  5.62%  reflect.Value.call
+     0.62s  0.86% 11.95%      0.62s  0.86%  runtime.memmove
+     0.35s  0.48% 12.43%      6.03s  8.32%  text/template.(*state).evalCall
+     0.33s  0.46% 12.89%     11.65s 16.07%  text/template.(*state).walk
+     0.28s  0.39% 13.27%      7.45s 10.28%  text/template.(*state).evalCommand
+     0.21s  0.29% 13.56%      0.42s  0.58%  runtime.mallocgcSmallScanNoHeaderSC3
+     0.21s  0.29% 13.85%      0.38s  0.52%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.19s  0.26% 14.11%      0.53s  0.73%  runtime.mapaccess2_faststr
+     0.19s  0.26% 14.38%      7.65s 10.55%  text/template.(*state).evalPipeline
+     0.18s  0.25% 14.62%      0.18s  0.25%  runtime.memclrNoHeapPointers
+     0.17s  0.23% 14.86%     22.55s 31.11%  net/http.HandlerFunc.ServeHTTP
+     0.16s  0.22% 15.08%      0.43s  0.59%  reflect.funcLayout
+     0.16s  0.22% 15.30%      1.53s  2.11%  runtime.mallocgc
+     0.15s  0.21% 15.51%      0.31s  0.43%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.14s  0.19% 15.70%      0.14s  0.19%  memeqbody
+     0.14s  0.19% 15.89%      0.31s  0.43%  time.Time.appendFormat
+     0.13s  0.18% 16.07%      2.30s  3.17%  net/http.(*chunkWriter).writeHeader
+     0.13s  0.18% 16.25%      0.49s  0.68%  runtime.mallocgcSmallScanSlowPath
+     0.12s  0.17% 16.42%      0.23s  0.32%  html/template.htmlReplacer
+     0.12s  0.17% 16.58%      0.19s  0.26%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.12s  0.17% 16.75%      0.13s  0.18%  runtime.ifaceeq
+     0.12s  0.17% 16.92%      0.27s  0.37%  sync.(*Pool).Get
+     0.12s  0.17% 17.08%      1.08s  1.49%  text/template.(*state).evalArg
+     0.12s  0.17% 17.25%      0.98s  1.35%  text/template.(*state).evalField
+     0.11s  0.15% 17.40%      0.13s  0.18%  internal/runtime/maps.(*Iter).Next
+     0.11s  0.15% 17.55%      0.46s  0.63%  reflect.(*structType).FieldByName
+     0.11s  0.15% 17.70%      0.18s  0.25%  runtime.tryDeferToSpanScan
+     0.10s  0.14% 17.84%      0.30s  0.41%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load
+     0.10s  0.14% 17.98%      0.56s  0.77%  reflect.(*rtype).FieldByName
+     0.10s  0.14% 18.12%      0.16s  0.22%  reflect.(*structType).Field
+     0.10s  0.14% 18.25%      0.28s  0.39%  reflect.Value.assignTo
+     0.10s  0.14% 18.39%      0.20s  0.28%  runtime.mallocgcSmallScanNoHeaderSC4
+     0.09s  0.12% 18.52%      0.47s  0.65%  net/http.Header.writeSubset
+     0.09s  0.12% 18.64%      4.22s  5.82%  text/template.safeCall
+     0.08s  0.11% 18.75%      0.22s   0.3%  fmt.(*pp).printArg
+     0.08s  0.11% 18.86%      0.23s  0.32%  runtime.pcvalue
+     0.08s  0.11% 18.97%      8.70s 12.00%  text/template.(*state).walkTemplate
+     0.07s 0.097% 19.07%      0.22s   0.3%  runtime.typedmemmove
+     0.07s 0.097% 19.16%     11.78s 16.25%  text/template.(*Template).execute
+     0.06s 0.083% 19.25%      2.27s  3.13%  bufio.(*Writer).Write
+     0.06s 0.083% 19.33%     22.61s 31.19%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.06s 0.083% 19.41%      0.79s  1.09%  os.(*File).Write
+     0.06s 0.083% 19.50%      0.12s  0.17%  reflect.packEfaceData
+     0.06s 0.083% 19.58%      0.14s  0.19%  runtime.bulkBarrierPreWrite
+     0.06s 0.083% 19.66%      0.14s  0.19%  sync.(*Pool).Put
+     0.06s 0.083% 19.74%      0.40s  0.55%  text/template.findFunction
+     0.06s 0.083% 19.83%      3.94s  5.44%  time.Now
+     0.05s 0.069% 19.90%     22.39s 30.89%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.05s 0.069% 19.96%     21.54s 29.72%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.05s 0.069% 20.03%     22.16s 30.57%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+     0.05s 0.069% 20.10%      0.12s  0.17%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+     0.05s 0.069% 20.17%      3.46s  4.77%  internal/poll.(*FD).Write
+     0.05s 0.069% 20.24%      0.12s  0.17%  runtime.gcmarknewobject
+     0.05s 0.069% 20.31%      0.12s  0.17%  runtime.nilinterhash
+     0.05s 0.069% 20.38%      0.26s  0.36%  runtime.wbBufFlush1
+     0.05s 0.069% 20.45%      1.03s  1.42%  text/template.(*state).evalFieldChain
+     0.05s 0.069% 20.52%      6.81s  9.40%  text/template.(*state).walkIfOrWith
+     0.05s 0.069% 20.58%      0.12s  0.17%  text/template.isMissing

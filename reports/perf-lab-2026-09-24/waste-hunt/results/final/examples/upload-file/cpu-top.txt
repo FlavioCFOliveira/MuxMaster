@@ -1,0 +1,49 @@
+File: upload-file
+Build ID: b577b88df8b62e651989ea469b17bd5506848be3
+Type: cpu
+Time: 2026-09-25 12:39:07 WEST
+Duration: 10s, Total samples = 75.55s (755.45%)
+Showing nodes accounting for 61.73s, 81.71% of 75.55s total
+Dropped 709 nodes (cum <= 0.38s)
+Showing top 40 nodes out of 157
+      flat  flat%   sum%        cum   cum%
+    31.67s 41.92% 41.92%     31.67s 41.92%  internal/runtime/syscall/linux.Syscall6
+     6.72s  8.89% 50.81%      6.72s  8.89%  runtime.memclrNoHeapPointers
+     4.79s  6.34% 57.15%      4.79s  6.34%  crypto/internal/fips140/sha256.blockSHANI
+     4.22s  5.59% 62.74%      4.22s  5.59%  internal/bytealg.LastIndexByte (inline)
+     3.57s  4.73% 67.47%      3.57s  4.73%  time.runtimeNow
+     3.41s  4.51% 71.98%      3.41s  4.51%  runtime.nanotime (inline)
+     3.31s  4.38% 76.36%      3.31s  4.38%  runtime.memmove
+     0.60s  0.79% 77.15%      0.60s  0.79%  runtime.futex
+     0.27s  0.36% 77.51%      0.48s  0.64%  runtime.(*unwinder).resolveInternal
+     0.25s  0.33% 77.84%      0.86s  1.14%  runtime.sweepone
+     0.15s   0.2% 78.04%      0.64s  0.85%  runtime.stealWork
+     0.14s  0.19% 78.23%      4.38s  5.80%  runtime.mallocgc
+     0.14s  0.19% 78.41%      0.48s  0.64%  runtime.pcvalue
+     0.13s  0.17% 78.58%      8.16s 10.80%  net/http.(*maxBytesReader).Read
+     0.12s  0.16% 78.74%     10.75s 14.23%  bytes.growSlice
+     0.12s  0.16% 78.90%     37.80s 50.03%  io.copyBuffer
+     0.11s  0.15% 79.05%      7.98s 10.56%  bufio.(*Reader).Read
+     0.11s  0.15% 79.19%     24.51s 32.44%  bytes.(*Buffer).ReadFrom
+     0.11s  0.15% 79.34%      1.21s  1.60%  runtime.(*mheap).allocSpan
+     0.11s  0.15% 79.48%      0.70s  0.93%  runtime.markroot
+     0.11s  0.15% 79.63%      4.14s  5.48%  runtime.systemstack
+     0.10s  0.13% 79.76%     10.37s 13.73%  bufio.(*Reader).fill
+     0.10s  0.13% 79.89%      1.10s  1.46%  internal/poll.runtime_pollSetDeadline
+     0.10s  0.13% 80.03%      0.43s  0.57%  runtime.(*mheap).initSpan
+     0.10s  0.13% 80.16%      3.48s  4.61%  runtime.findRunnable
+     0.09s  0.12% 80.28%      8.25s 10.92%  mime/multipart.(*stickyErrorReader).Read
+     0.09s  0.12% 80.40%     13.29s 17.59%  mime/multipart.partReader.Read
+     0.09s  0.12% 80.52%      0.55s  0.73%  runtime.mallocgcSmallScanNoHeader
+     0.08s  0.11% 80.62%     10.36s 13.71%  bufio.(*Reader).Peek
+     0.08s  0.11% 80.73%      9.51s 12.59%  internal/poll.(*FD).Read
+     0.08s  0.11% 80.83%     13.40s 17.74%  io.(*LimitedReader).Read
+     0.08s  0.11% 80.94%      9.59s 12.69%  net.(*netFD).Read
+     0.08s  0.11% 81.05%      2.71s  3.59%  runtime.growslice
+     0.08s  0.11% 81.15%      3.83s  5.07%  runtime.schedule
+     0.08s  0.11% 81.26%      0.61s  0.81%  runtime.tracebackPCs
+     0.07s 0.093% 81.35%      9.50s 12.57%  net/http.(*connReader).Read
+     0.07s 0.093% 81.44%      0.79s  1.05%  runtime.(*mcache).refill
+     0.07s 0.093% 81.54%      0.55s  0.73%  runtime.(*sweepLocked).sweep
+     0.07s 0.093% 81.63%     31.15s 41.23%  syscall.RawSyscall6
+     0.06s 0.079% 81.71%     10.81s 14.31%  bytes.(*Buffer).grow

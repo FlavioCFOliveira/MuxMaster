@@ -54,7 +54,7 @@ MuxMaster will not provide session management. Session state is application stat
 
 ### 2.6 Authentication and Authorization Logic
 
-MuxMaster will not provide authentication or authorization engines. The `BasicAuth` middleware in [middleware-stdlib.md](middleware-stdlib.md) is a narrow, low-level HTTP primitive. Full auth systems (OAuth, JWT, RBAC) are out of scope.
+MuxMaster will not provide full authentication or authorization engines: session management, RBAC, and policy evaluation remain out of scope. Three middleware in the `muxmaster/middleware` sub-package are narrow, low-level exceptions that validate a credential or a bearer token for a single request and stop there — they do not issue tokens, manage sessions, or make authorization decisions: `BasicAuth` (documented in [middleware-stdlib.md](middleware-stdlib.md)), `JWTAuth`, and `OAuth2Introspect` (both implemented in `middleware/jwt_auth.go` and `middleware/oauth2.go`, but not yet covered by a middleware-stdlib.md section).
 
 ---
 
@@ -95,8 +95,9 @@ MuxMaster will not implement automatic content negotiation (selecting a response
 The `muxmaster/middleware` sub-package provides general-purpose HTTP middleware. The following are explicitly out of scope for that sub-package:
 
 - Rate limiting backed by external stores (Redis, Memcached). The `ThrottleBacklog` middleware is in-process only.
-- OAuth2 or JWT middleware.
 - CSRF protection middleware (requires session state or signed tokens, which is application territory).
 - Prometheus middleware (would require importing the Prometheus client, violating zero-dependency).
 - OpenTelemetry middleware (same reason).
 - IP allowlist/denylist middleware.
+
+JWT Bearer-token validation and OAuth2 token introspection are no longer excluded from this sub-package — see section 2.6.

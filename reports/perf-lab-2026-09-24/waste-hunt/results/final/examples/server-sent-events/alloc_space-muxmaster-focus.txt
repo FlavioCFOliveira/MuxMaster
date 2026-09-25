@@ -1,0 +1,45 @@
+File: server-sent-events
+Build ID: d7643d2c55def99bf8e87728fc6853605b6bca17
+Type: alloc_space
+Time: 2026-09-25 12:38:32 WEST
+Duration: 10.01s, Total samples = 935.95MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 564.14MB, 60.27% of 935.95MB total
+Dropped 14 nodes (cum <= 4.68MB)
+      flat  flat%   sum%        cum   cum%
+  104.53MB 11.17% 11.17%   104.53MB 11.17%  net/http.Header.Clone (inline)
+   96.03MB 10.26% 21.43%   568.66MB 60.76%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+   94.55MB 10.10% 31.53%    99.05MB 10.58%  io.ReadAll
+      90MB  9.62% 41.15%    90.50MB  9.67%  main.(*hub).stream
+   84.02MB  8.98% 50.12%   309.60MB 33.08%  main.(*hub).publish
+   62.02MB  6.63% 56.75%    62.02MB  6.63%  net/http.(*Request).WithContext
+      22MB  2.35% 59.10%       22MB  2.35%  reflect.unsafe_New
+    6.50MB  0.69% 59.79%     6.50MB  0.69%  io.LimitReader (inline)
+    4.50MB  0.48% 60.27%     4.50MB  0.48%  net/http.(*connReader).startBackgroundRead
+         0     0% 60.27%   117.53MB 12.56%  encoding/json.(*Encoder).Encode
+         0     0% 60.27%       23MB  2.46%  encoding/json/v2.MarshalEncode
+         0     0% 60.27%     6.50MB  0.69%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 60.27%       21MB  2.24%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 60.27%       23MB  2.46%  encoding/json/v2.marshalEncode
+         0     0% 60.27%    11.50MB  1.23%  encoding/json/v2.newAddressableValue
+         0     0% 60.27%   410.11MB 43.82%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 60.27%   568.66MB 60.76%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 60.27%   410.11MB 43.82%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 60.27%    90.50MB  9.67%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Pooled
+         0     0% 60.27%   410.11MB 43.82%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 60.27%     4.50MB  0.48%  io.(*LimitedReader).Read
+         0     0% 60.27%       10MB  1.07%  io.WriteString
+         0     0% 60.27%       10MB  1.07%  main.indexHTML
+         0     0% 60.27%     4.50MB  0.48%  net/http.(*body).Read
+         0     0% 60.27%     4.50MB  0.48%  net/http.(*body).readLocked
+         0     0% 60.27%   568.66MB 60.76%  net/http.(*conn).serve
+         0     0% 60.27%    94.53MB 10.10%  net/http.(*response).Write
+         0     0% 60.27%   104.53MB 11.17%  net/http.(*response).WriteHeader
+         0     0% 60.27%       10MB  1.07%  net/http.(*response).WriteString
+         0     0% 60.27%   104.53MB 11.17%  net/http.(*response).write
+         0     0% 60.27%   568.66MB 60.76%  net/http.HandlerFunc.ServeHTTP
+         0     0% 60.27%   568.66MB 60.76%  net/http.serverHandler.ServeHTTP
+         0     0% 60.27%    13.50MB  1.44%  reflect.New
+         0     0% 60.27%     8.50MB  0.91%  reflect.Value.MapIndex
+         0     0% 60.27%     8.50MB  0.91%  reflect.copyVal

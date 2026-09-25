@@ -1,0 +1,49 @@
+File: versioning
+Build ID: b142ae72192d96c7028f9c60218c915ed6e68cff
+Type: alloc_objects
+Time: 2026-09-25 12:39:32 WEST
+Duration: 10.01s, Total samples = 20891126 
+Showing nodes accounting for 20603992, 98.63% of 20891126 total
+Dropped 66 nodes (cum <= 104455)
+Showing top 40 nodes out of 50
+      flat  flat%   sum%        cum   cum%
+   5952937 28.50% 28.50%    5952937 28.50%  reflect.unsafe_New
+   2974211 14.24% 42.73%    3039748 14.55%  net/textproto.readMIMEHeader
+   1950916  9.34% 52.07%    1950916  9.34%  net/http.Header.Clone (inline)
+   1345395  6.44% 58.51%    4064783 19.46%  main.v2GetUser
+   1267193  6.07% 64.58%    7347322 35.17%  net/http.(*conn).readRequest
+   1095282  5.24% 69.82%   12410128 59.40%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    626060  3.00% 72.82%     626060  3.00%  net/http.(*Request).WithContext
+    622639  2.98% 75.80%     622639  2.98%  context.withCancel (inline)
+    622602  2.98% 78.78%    1245241  5.96%  context.WithCancel
+    617147  2.95% 81.73%     617147  2.95%  net/textproto.(*Reader).ReadLine (inline)
+    604470  2.89% 84.62%     604470  2.89%  net/url.parse
+    589833  2.82% 87.45%     589833  2.82%  net/http.(*connReader).startBackgroundRead
+    532643  2.55% 90.00%    4804481 23.00%  net/http.readRequestLimit
+    524328  2.51% 92.51%     524328  2.51%  net.(*conn).Read
+    447887  2.14% 94.65%    2170682 10.39%  main.v2ListUsers
+    223935  1.07% 95.72%     899909  4.31%  main.v2AdminAudit
+    200269  0.96% 96.68%     784623  3.76%  main.v1ListUsers
+    172967  0.83% 97.51%     720001  3.45%  main.v1GetUser
+    111063  0.53% 98.04%     894549  4.28%  main.v2Health
+     87399  0.42% 98.46%     721776  3.45%  main.v1AdminDashboard
+     32768  0.16% 98.62%   10687897 51.16%  main.acceptHeaderVersionDispatch.func1
+      2048 0.0098% 98.63%    1648661  7.89%  encoding/json/v2.makeStructArshaler.func2
+         0     0% 98.63%    7667408 36.70%  encoding/json.(*Encoder).Encode
+         0     0% 98.63%    6048289 28.95%  encoding/json/v2.MarshalEncode
+         0     0% 98.63%    3210629 15.37%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 98.63%    5655070 27.07%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 98.63%     591880  2.83%  encoding/json/v2.makeSliceArshaler.func2
+         0     0% 98.63%    6048289 28.95%  encoding/json/v2.marshalEncode
+         0     0% 98.63%    1965424  9.41%  encoding/json/v2.marshalValueAny
+         0     0% 98.63%    3822989 18.30%  encoding/json/v2.newAddressableValue
+         0     0% 98.63%     210754  1.01%  fmt.Fprintln
+         0     0% 98.63%   10655129 51.00%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 98.63%   12410128 59.40%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 98.63%   10655129 51.00%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 98.63%    5694484 27.26%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Pooled
+         0     0% 98.63%   10687897 51.16%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 98.63%    1621685  7.76%  main.adminMiddleware.func1
+         0     0% 98.63%     239859  1.15%  main.index
+         0     0% 98.63%     149156  0.71%  main.v1Health
+         0     0% 98.63%   20366798 97.49%  net/http.(*conn).serve

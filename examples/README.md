@@ -22,7 +22,7 @@ To try one: `cd examples/<name> && go run .`
 | [`versioning`](versioning/) | Path-based (`/v1/`, `/v2/`) + header-based (`Accept: ...;v=N`) API versioning with nested groups + admin gate | ✅ | ⭐⭐⭐ |
 | [`server-sent-events`](server-sent-events/) | SSE streaming endpoint — pool-safe because handler stays alive for the whole stream | ✅ | ⭐⭐ |
 | [`upload-file`](upload-file/) | Multipart file upload showing the **body-drain-before-spawn** pattern that makes goroutines pool-safe | ✅ | ⭐⭐⭐ |
-| [`reverse-proxy`](reverse-proxy/) | `httputil.ReverseProxy` mounted on MuxMaster with round-robin + per-route gating; safe under Pool because the proxy returns before `ServeHTTP` exits | ✅ | ⭐⭐ |
+| [`reverse-proxy`](reverse-proxy/) | `httputil.ReverseProxy` mounted on MuxMaster with round-robin + per-route gating | ❌ | ⭐⭐ |
 | [`graceful-shutdown`](graceful-shutdown/) | `http.Server.Shutdown` integration with SIGINT/SIGTERM | ✅ | ⭐ |
 | [`authn`](authn/) | Multiple auth strategies: `BasicAuth`, API key, JWT chain | ✅ | ⭐ |
 | [`jwt`](jwt/) | JWT issuance + verification middleware | ✅ | ⭐ |
@@ -31,7 +31,7 @@ To try one: `cd examples/<name> && go run .`
 | [`server-side-render`](server-side-render/) | `html/template` rendering with per-page parsed templates | ✅ | ⭐ |
 | [`static-site`](static-site/) | Static-file serving via `ServeFiles` with compression + CORS | ✅ | ⭐ |
 
-**Pool-safe column:** ✅ means the example is compatible with `Mux.PoolRequestBundle = true` (and many of these examples enable it). Pool is incompatible with patterns that transfer ownership of the request past `ServeHTTP` return — most notably `Hijack()`-based upgrades (WebSocket, HTTP/2 server push). See [`docs/max-performance.md`](../docs/max-performance.md) "Lifetime contract" for the full audit checklist.
+**Pool-safe column:** ✅ means the example is compatible with `Mux.PoolRequestBundle = true` (and many of these examples enable it). ❌ means the example must NOT enable it. Pool is incompatible with any pattern that lets code read the request, its context, or (for `PoolFastParams`) the `Params` slice after `ServeHTTP` returns — most notably `Hijack()`-based upgrades (WebSocket, HTTP/2 server push), but also `net/http.Transport`-based reverse proxying: under concurrent load, `Transport` can start a background dial goroutine that reads the request context after the proxying handler has already returned (see [`reverse-proxy`](reverse-proxy/) below). See [`docs/max-performance.md`](../docs/max-performance.md) "Lifetime contract" for the full audit checklist.
 
 **Performance focus column:**
 - ⭐⭐⭐ — explicitly demonstrates pool opt-ins, lifetime contract, or measurement methodology
@@ -56,7 +56,7 @@ Read [`max-performance/`](max-performance/) first. It enables every opt-in, mixe
 
 ### "I run a reverse proxy"
 
-[`reverse-proxy/`](reverse-proxy/) — `httputil.ReverseProxy` returns to the caller before `ServeHTTP` exits, so it is naturally pool-safe. The Rewrite hook mutates the request URL inline (which is part of the recycled bundle — that mutation is local to this dispatch and discarded on Put).
+[`reverse-proxy/`](reverse-proxy/) — **do NOT enable `PoolRequestBundle` on a reverse-proxy handler.** `httputil.ReverseProxy`'s `RoundTrip` does return before `ServeHTTP` exits, but the `net/http.Transport` underneath it does not: under concurrent load, `Transport.startDialConnForLocked` can start a background dial goroutine that keeps calling `ctx.Value()` on the request's context after `RoundTrip` — and therefore `ServeHTTP` — has returned. With pooling on, that context belongs to a recycled, zeroed `reqBundle` by the time the goroutine reads it, producing a nil-pointer dereference and crashing the process under load. This example keeps pooling off on its gateway; see the crash evidence in `reports/perf-lab-2026-09-24/waste-hunt/results/defects/reverse-proxy-pool-crash.txt`. The fake backend server in the same example (`go run . backend <port>`) does not proxy and remains pool-safe.
 
 ### "I upgrade to a long-lived protocol (WebSocket, gRPC over HTTP/2)"
 

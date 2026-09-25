@@ -88,12 +88,12 @@ mux.Route("/api/v1", func(api *muxmaster.Group) {
 
 21. `(*Mux).Mount(prefix string, h http.Handler)` registers `h` to handle all requests whose path begins with `prefix`.
 22. `(*Group).Mount(prefix string, h http.Handler)` is equivalent to `(*Mux).Mount` with the group prefix prepended to `prefix`.
-23. Before delegating to `h`, the router strips `prefix` from `r.URL.Path` and sets `r.URL.Path` to the remaining path. If the remaining path is empty, `r.URL.Path` is set to `/`.
+23. Before delegating to `h`, the router builds a shallow request copy (see the Terminology section in [README.md](README.md)) — a new `*http.Request` sharing the original's header map and context, with a new `*url.URL` copied from the original — and sets the copy's `URL.Path` to the remaining path after stripping `prefix`. If the remaining path is empty, the copy's `URL.Path` is set to `/`. `h` receives the copy; the original request passed to `ServeHTTP` is never mutated.
 24. The original (unstripped) path is available via `r.URL.RawPath` or via the `RoutePattern` function if the mounted handler is a `*Mux`.
 25. Trailing slashes on `prefix` are normalized: a trailing `/` is removed from `prefix` before matching.
 26. `h` may be any `http.Handler`, including another `*Mux`, `http.ServeMux`, or a third-party router.
 27. Routes registered via `Mount` do not appear in `Routes()` or `Walk()` output because their internal structure is opaque. Only the mount point itself is recorded.
-28. The mount point registers a catch-all route internally: `Handle("*", prefix+"/*", ...)`. This means a mount at `/v2` handles `/v2`, `/v2/`, and `/v2/anything`.
+28. The mount point registers a catch-all route internally: `Handle("*", prefix+"/*", ...)`. This means a mount at `/v2` handles `/v2/` and `/v2/anything` directly. A request to the bare prefix `/v2` (no trailing slash) does not match this catch-all directly: when `RedirectTrailingSlash` is `true` (the default), the router issues a trailing-slash redirect from `/v2` to `/v2/` (see [routing.md](routing.md) section 4.4 and requirement 52), which then reaches the mounted handler. When `RedirectTrailingSlash` is `false`, a request to the bare prefix results in 404 unless a separate route is registered for it.
 29. Calling `Mount` with a nil handler causes a panic.
 30. Calling `Mount` with a prefix that does not begin with `/` causes a panic.
 

@@ -1,0 +1,85 @@
+### cpu
+owner share (nearest owning frame, leaf -> root):
+  net/http                  67.14%
+  runtime (no owner)        22.06%
+  MuxMaster/middleware       5.54%
+  example                    4.33%
+  MuxMaster/root             0.93%
+
+top MuxMaster owning functions (share of whole profile):
+    4.28%  middleware.Logger.func1.1
+    0.85%  middleware.RequestID.func1.1
+    0.27%  muxmaster.(*node).getValue
+    0.20%  middleware.nextRandomID
+    0.13%  muxmaster.(*Mux).dispatch
+    0.11%  muxmaster.prefixMatch
+    0.09%  muxmaster.dispatchParams1Pooled
+    0.06%  muxmaster.dispatchParams2Pooled
+    0.06%  middleware.formatLogDuration
+    0.05%  muxmaster.(*Mux).ServeHTTP
+    0.03%  middleware.RecovererWithLogger.func1.1.1
+    0.03%  muxmaster.routeCtxParams
+    0.03%  muxmaster.dispatchParamsNPooled
+    0.03%  middleware.RecovererWithLogger.func1.1
+    0.03%  muxmaster.(*Mux).config
+    0.02%  middleware.appendSanitisedForLog
+    0.02%  muxmaster.(*Mux).Pre.func1
+    0.02%  muxmaster.init.func4
+    0.02%  middleware.appendLogDuration
+    0.02%  middleware.fmtIntLogDuration
+    0.02%  middleware.(*statusRecorder).Write
+    0.02%  muxmaster.getFastParams
+    0.02%  muxmaster.(*node).getValueStatic
+    0.02%  muxmaster.init.func2
+    0.02%  muxmaster.init.func3
+
+### alloc_space
+owner share (nearest owning frame, leaf -> root):
+  net/http                  57.90%
+  MuxMaster/middleware      22.59%
+  example                   17.05%
+  MuxMaster/root             2.42%
+  runtime (no owner)         0.03%
+
+top MuxMaster owning functions (share of whole profile):
+   21.31%  middleware.RequestID.func1.1
+    0.80%  middleware.Logger.func1.1
+    0.59%  muxmaster.init.func4
+    0.39%  muxmaster.dispatchParams1Pooled
+    0.37%  muxmaster.init.func3
+    0.31%  middleware.nextRandomID
+    0.23%  muxmaster.getFastParams
+    0.23%  muxmaster.dispatchParamsNPooled
+    0.20%  muxmaster.(*node).getValue
+    0.20%  muxmaster.init.func2
+    0.17%  muxmaster.dispatchParams2Pooled
+    0.12%  middleware.init.func2
+    0.06%  muxmaster.init.func5
+    0.03%  middleware.newExhaustedRequestIDBuf
+    0.03%  middleware.init.func1
+
+### alloc_objects
+owner share (nearest owning frame, leaf -> root):
+  net/http                  60.13%
+  example                   29.27%
+  MuxMaster/middleware       9.96%
+  MuxMaster/root             0.64%
+  runtime (no owner)         0.00%
+
+top MuxMaster owning functions (share of whole profile):
+    9.33%  middleware.RequestID.func1.1
+    0.33%  middleware.Logger.func1.1
+    0.20%  muxmaster.init.func5
+    0.18%  middleware.init.func2
+    0.14%  muxmaster.init.func4
+    0.10%  muxmaster.init.func3
+    0.10%  middleware.init.func1
+    0.07%  muxmaster.(*node).getValue
+    0.06%  muxmaster.init.func2
+    0.04%  muxmaster.dispatchParams1Pooled
+    0.02%  middleware.nextRandomID
+    0.01%  muxmaster.getFastParams
+    0.01%  muxmaster.dispatchParamsNPooled
+    0.01%  muxmaster.dispatchParams2Pooled
+    0.00%  middleware.newExhaustedRequestIDBuf
+

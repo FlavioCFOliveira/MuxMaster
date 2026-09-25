@@ -1,0 +1,48 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkServeFiles-16         	 1222849	       983.3 ns/op	    1230 B/op	      11 allocs/op
+BenchmarkServeFiles-16         	 1225296	       989.5 ns/op	    1230 B/op	      11 allocs/op
+BenchmarkServeFiles-16         	 1226324	       990.0 ns/op	    1230 B/op	      11 allocs/op
+BenchmarkServeFiles-16         	 1223000	       985.6 ns/op	    1230 B/op	      11 allocs/op
+BenchmarkServeFiles-16         	 1231288	       987.4 ns/op	    1230 B/op	      11 allocs/op
+BenchmarkServeFiles-16         	 1225863	       997.6 ns/op	    1230 B/op	      11 allocs/op
+BenchmarkGroupServeFiles-16    	 1224243	       990.0 ns/op	    1230 B/op	      11 allocs/op
+BenchmarkGroupServeFiles-16    	 1217700	       998.3 ns/op	    1231 B/op	      11 allocs/op
+BenchmarkGroupServeFiles-16    	 1220289	       992.4 ns/op	    1230 B/op	      11 allocs/op
+BenchmarkGroupServeFiles-16    	 1220108	       991.5 ns/op	    1231 B/op	      11 allocs/op
+BenchmarkGroupServeFiles-16    	 1215877	       997.8 ns/op	    1231 B/op	      11 allocs/op
+BenchmarkGroupServeFiles-16    	 1227694	       993.2 ns/op	    1230 B/op	      11 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	26.416s
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMount/current-16         	 1000000	      1013 ns/op	    1928 B/op	       9 allocs/op
+BenchmarkMount/current-16         	 1000000	      1017 ns/op	    1928 B/op	       9 allocs/op
+BenchmarkMount/current-16         	 1000000	      1004 ns/op	    1928 B/op	       9 allocs/op
+BenchmarkMount/current-16         	 1000000	      1045 ns/op	    1928 B/op	       9 allocs/op
+BenchmarkMount/current-16         	 1000000	      1034 ns/op	    1928 B/op	       9 allocs/op
+BenchmarkMount/current-16         	 1000000	      1030 ns/op	    1928 B/op	       9 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1000000	      1001 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1245559	       959.0 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1288984	       949.7 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1265296	       960.0 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1254213	       953.9 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/no-redundant-url-16         	 1257477	       986.4 ns/op	    1784 B/op	       8 allocs/op
+BenchmarkMount/shallow-copy-16             	 4912864	       238.1 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/shallow-copy-16             	 4983674	       238.9 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/shallow-copy-16             	 5086947	       239.9 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/shallow-copy-16             	 4975461	       238.2 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/shallow-copy-16             	 4973847	       240.0 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/shallow-copy-16             	 5020797	       240.2 ns/op	     848 B/op	       3 allocs/op
+BenchmarkMount/dispatch-only-16            	10903770	       107.6 ns/op	     384 B/op	       1 allocs/op
+BenchmarkMount/dispatch-only-16            	10788710	       108.1 ns/op	     384 B/op	       1 allocs/op
+BenchmarkMount/dispatch-only-16            	11230291	       108.8 ns/op	     384 B/op	       1 allocs/op
+BenchmarkMount/dispatch-only-16            	10965523	       107.1 ns/op	     384 B/op	       1 allocs/op
+BenchmarkMount/dispatch-only-16            	10953164	       107.7 ns/op	     384 B/op	       1 allocs/op
+BenchmarkMount/dispatch-only-16            	10981987	       107.6 ns/op	     384 B/op	       1 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench	34.563s

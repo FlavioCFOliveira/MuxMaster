@@ -8,6 +8,29 @@ import (
 
 type apiKeyCtxKey struct{}
 
+// apiKeyCtx fuses the context node that carries the validated identity with
+// its storage into a SINGLE heap allocation (WH-12), replacing
+// context.WithValue(ctx, apiKeyCtxKey{}, id) — one *context.valueCtx node
+// plus a second, separate allocation Go performs when boxing a string into
+// an `any` (a string header does not fit in an interface's single data
+// word, so converting a string to `any` allocates). This is the same
+// technique RequestID already uses (requestIDCtx in request_id.go).
+//
+// Embedding context.Context anonymously promotes Deadline/Done/Err straight
+// through to the parent; only Value is overridden, to intercept
+// apiKeyCtxKey{} and fall through to the parent for every other key.
+type apiKeyCtx struct {
+	context.Context
+	id string
+}
+
+func (c *apiKeyCtx) Value(key any) any {
+	if _, ok := key.(apiKeyCtxKey); ok {
+		return c
+	}
+	return c.Context.Value(key)
+}
+
 // APIKeyOptions configures the APIKey middleware.
 type APIKeyOptions struct {
 	// Keys maps raw API key values to identity strings injected into the request context.
@@ -68,7 +91,7 @@ func APIKey(opts APIKeyOptions) func(http.Handler) http.Handler {
 			// cost. crypto/subtle is not applicable here — headers, not secrets.
 			w.Header().Set("WWW-Authenticate", `ApiKey realm="api"`)
 			w.Header().Del("WWW-Authenticate")
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), apiKeyCtxKey{}, id)))
+			next.ServeHTTP(w, r.WithContext(&apiKeyCtx{Context: r.Context(), id: id}))
 		})
 	}
 }
@@ -76,6 +99,9 @@ func APIKey(opts APIKeyOptions) func(http.Handler) http.Handler {
 // GetAPIKeyIdentity returns the identity string associated with the validated API key,
 // as injected by the APIKey middleware.
 func GetAPIKeyIdentity(ctx context.Context) (string, bool) {
-	id, ok := ctx.Value(apiKeyCtxKey{}).(string)
-	return id, ok
+	c, ok := ctx.Value(apiKeyCtxKey{}).(*apiKeyCtx)
+	if !ok {
+		return "", false
+	}
+	return c.id, true
 }

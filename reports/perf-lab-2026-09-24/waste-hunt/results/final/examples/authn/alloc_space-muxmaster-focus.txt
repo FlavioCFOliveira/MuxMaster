@@ -1,0 +1,58 @@
+File: authn
+Build ID: 26233eda2c1cd46b66b4783daaa869a6a58db938
+Type: alloc_space
+Time: 2026-09-25 12:36:31 WEST
+Duration: 10.01s, Total samples = 1776.62MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 940.29MB, 52.93% of 1776.62MB total
+Dropped 22 nodes (cum <= 8.88MB)
+      flat  flat%   sum%        cum   cum%
+  240.57MB 13.54% 13.54%   240.57MB 13.54%  net/http.Header.Clone (inline)
+  213.57MB 12.02% 25.56%   213.57MB 12.02%  net/http.(*Request).WithContext (partial-inline)
+  196.56MB 11.06% 36.63%   819.26MB 46.11%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+   69.03MB  3.89% 40.51%   352.61MB 19.85%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   31.51MB  1.77% 42.28%    37.01MB  2.08%  net/textproto.MIMEHeader.Set (inline)
+   28.01MB  1.58% 43.86%    72.02MB  4.05%  main.main.func5
+   24.01MB  1.35% 45.21%    69.02MB  3.88%  main.main.func9
+   24.01MB  1.35% 46.56%    76.02MB  4.28%  main.main.func6
+   21.50MB  1.21% 47.77%    21.50MB  1.21%  bytes.Clone (inline)
+   21.05MB  1.18% 48.96%    21.05MB  1.18%  sync.(*Pool).pinSlow
+   20.01MB  1.13% 50.08%    65.02MB  3.66%  main.main.func8
+   19.50MB  1.10% 51.18%    19.50MB  1.10%  reflect.unsafe_New
+      13MB  0.73% 51.91%       13MB  0.73%  net/textproto.canonicalMIMEHeaderKey
+       8MB  0.45% 52.36%   254.07MB 14.30%  github.com/FlavioCFOliveira/MuxMaster/middleware.APIKey.func2.1
+    4.50MB  0.25% 52.62%        6MB  0.34%  net/http.parseBasicAuth
+    3.50MB   0.2% 52.81%   186.05MB 10.47%  github.com/FlavioCFOliveira/MuxMaster.JSON
+       2MB  0.11% 52.93%    43.02MB  2.42%  net/http.Error
+         0     0% 52.93%    45.51MB  2.56%  encoding/json.Marshal (inline)
+         0     0% 52.93%    45.51MB  2.56%  encoding/json/v2.Marshal
+         0     0% 52.93%    19.50MB  1.10%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 52.93%    21.50MB  1.21%  encoding/json/v2.marshalEncode
+         0     0% 52.93%       11MB  0.62%  encoding/json/v2.newAddressableValue
+         0     0% 52.93%   101.03MB  5.69%  github.com/FlavioCFOliveira/MuxMaster.(*Group).HandleE.func1
+         0     0% 52.93%   949.30MB 53.43%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 52.93%   949.30MB 53.43%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 52.93%    32.01MB  1.80%  github.com/FlavioCFOliveira/MuxMaster.NoContent (inline)
+         0     0% 52.93%   206.06MB 11.60%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 52.93%   114.03MB  6.42%  github.com/FlavioCFOliveira/MuxMaster/middleware.BasicAuth.func1.1
+         0     0% 52.93%   458.64MB 25.82%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 52.93%   444.62MB 25.03%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 52.93%   118.53MB  6.67%  github.com/FlavioCFOliveira/MuxMaster/middleware.ThrottlePerIPCapped.func2.1
+         0     0% 52.93%    34.51MB  1.94%  io.WriteString
+         0     0% 52.93%    61.02MB  3.43%  main.main.func1
+         0     0% 52.93%    32.01MB  1.80%  main.main.func7
+         0     0% 52.93%        6MB  0.34%  net/http.(*Request).BasicAuth
+         0     0% 52.93%   949.30MB 53.43%  net/http.(*conn).serve
+         0     0% 52.93%   240.57MB 13.54%  net/http.(*response).WriteHeader
+         0     0% 52.93%    34.51MB  1.94%  net/http.(*response).WriteString
+         0     0% 52.93%    34.51MB  1.94%  net/http.(*response).write
+         0     0% 52.93%   819.26MB 46.11%  net/http.HandlerFunc.ServeHTTP
+         0     0% 52.93%    37.01MB  2.08%  net/http.Header.Set (inline)
+         0     0% 52.93%   949.30MB 53.43%  net/http.serverHandler.ServeHTTP
+         0     0% 52.93%       13MB  0.73%  net/textproto.CanonicalMIMEHeaderKey
+         0     0% 52.93%       13MB  0.73%  reflect.New
+         0     0% 52.93%     6.50MB  0.37%  reflect.Value.MapIndex
+         0     0% 52.93%     6.50MB  0.37%  reflect.copyVal
+         0     0% 52.93%    24.55MB  1.38%  sync.(*Pool).Get
+         0     0% 52.93%    21.05MB  1.18%  sync.(*Pool).pin

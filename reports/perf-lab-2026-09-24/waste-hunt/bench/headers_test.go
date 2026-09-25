@@ -114,6 +114,28 @@ func BenchmarkJSONHelper(b *testing.B) {
 	}
 }
 
+type xmlBook struct {
+	ID     int    `xml:"id"`
+	Title  string `xml:"title"`
+	Author string `xml:"author"`
+	Year   int    `xml:"year"`
+	Genre  string `xml:"genre"`
+}
+
+// BenchmarkXMLHelper mirrors BenchmarkJSONHelper for mm.XML — added
+// [waste-hunt task #250, MID-RESPONSE-1 aliasing fix] alongside the existing
+// Text/JSONHelper benchmarks so the Content-Type header-slice fix (response.go)
+// is measured for all three response helpers, not just two.
+func BenchmarkXMLHelper(b *testing.B) {
+	v := xmlBook{1, "The Go Programming Language", "Donovan", 2015, "tech"}
+	w := newDiscardRW()
+	b.ReportAllocs()
+	for range b.N {
+		_ = mm.XML(w, 200, v)
+		w.reset()
+	}
+}
+
 func BenchmarkHeaderSetConst(b *testing.B) {
 	b.Run("Header.Set", func(b *testing.B) {
 		h := make(http.Header, 4)

@@ -1,0 +1,12 @@
+scenario=static-site conns=32 duration=12.001s
+requests=539803 req/s=44981 p50=552.801µs p90=1.454255ms p99=2.587724ms
+  GET /health (fast)                       expect=200 got 200×59981
+  HEAD /health (fast)                      expect=200 got 200×59980
+  GET /api/config                          expect=200 got 200×59976
+  GET / (serveFile index.html)             expect=200 got 200×59977
+  GET /assets/*filepath (ServeFiles+CORS; example root maps /assets/X to static/X) expect=200 got 404×59979
+  GET /docs/v1/ (Mount -> sub-mux ServeFiles) expect=200 got 200×59976
+  GET /docs/v2/ (Mount -> sub-mux ServeFiles) expect=200 got 200×59977
+  GET /doc (handler redirect)              expect=301 got 301×59978
+  GET /nope (custom 404 page; 200 = Compress WriteHeader defect) expect=200 got 404×59979
+STATUS-MISMATCH: at least one request returned an unexpected status or error

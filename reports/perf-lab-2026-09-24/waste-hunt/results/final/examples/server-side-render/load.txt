@@ -1,0 +1,9 @@
+scenario=server-side-render conns=32 duration=12.001s
+requests=596837 req/s=49733 p50=473.81µs p90=1.347955ms p99=2.436166ms
+  GET /                                    expect=200 got 200×99473
+  GET /about                               expect=200 got 200×99473
+  GET /guestbook                           expect=200 got 200×99476
+  POST /guestbook (validation error re-render) expect=200 got 200×99473
+  GET /static/*filepath (embed)            expect=200 got 200×99472
+  GET /nope (themed 404)                   expect=404 got 404×99470
+STATUS-OK: every response matched its expected status

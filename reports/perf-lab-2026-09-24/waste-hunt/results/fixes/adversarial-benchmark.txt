@@ -1,0 +1,14 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkAdversarialBacktracking/1-16  	10751570	       112.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkAdversarialBacktracking/2-16  	 8726395	       138.6 ns/op	     416 B/op	       1 allocs/op
+BenchmarkAdversarialBacktracking/4-16  	 3033721	       394.5 ns/op	    1008 B/op	       5 allocs/op
+BenchmarkAdversarialBacktracking/8-16  	 1649150	       728.3 ns/op	    1712 B/op	       8 allocs/op
+BenchmarkAdversarialBacktracking/16-16 	  946177	      1060 ns/op	    2736 B/op	       9 allocs/op
+BenchmarkAdversarialBacktracking/32-16 	  669366	      1673 ns/op	    5168 B/op	      10 allocs/op
+BenchmarkAdversarialBacktracking/64-16 	  395019	      2870 ns/op	    9776 B/op	      11 allocs/op
+BenchmarkAdversarialBacktracking/128-16         	  237363	      5268 ns/op	   19760 B/op	      12 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	10.855s

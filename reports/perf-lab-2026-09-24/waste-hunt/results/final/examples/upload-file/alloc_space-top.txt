@@ -1,0 +1,33 @@
+File: upload-file
+Build ID: b577b88df8b62e651989ea469b17bd5506848be3
+Type: alloc_space
+Time: 2026-09-25 12:39:17 WEST
+Duration: 10.01s, Total samples = 49577.60MB 
+Showing nodes accounting for 48883.24MB, 98.60% of 49577.60MB total
+Dropped 115 nodes (cum <= 247.89MB)
+      flat  flat%   sum%        cum   cum%
+45269.18MB 91.31% 91.31% 45269.18MB 91.31%  bytes.growSlice
+ 2790.41MB  5.63% 96.94% 48060.59MB 96.94%  io.copyBuffer
+  546.59MB  1.10% 98.04%   546.59MB  1.10%  bufio.NewReaderSize (inline)
+   78.52MB  0.16% 98.20% 34227.83MB 69.04%  mime/multipart.(*Reader).readForm
+   64.02MB  0.13% 98.33% 49275.82MB 99.39%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+   57.01MB  0.11% 98.44%   267.06MB  0.54%  net/http.(*conn).readRequest
+   24.50MB 0.049% 98.49%   571.09MB  1.15%  mime/multipart.NewReader
+   18.50MB 0.037% 98.53% 13107.57MB 26.44%  main.multiUpload
+   17.50MB 0.035% 98.57% 22853.35MB 46.10%  main.asyncProcessUpload
+      13MB 0.026% 98.59% 13180.36MB 26.59%  main.singleUpload
+       4MB 0.0081% 98.60% 49550.60MB 99.95%  net/http.(*conn).serve
+         0     0% 98.60% 45270.18MB 91.31%  bytes.(*Buffer).ReadFrom
+         0     0% 98.60% 45269.18MB 91.31%  bytes.(*Buffer).grow
+         0     0% 98.60% 49156.78MB 99.15%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 98.60% 49275.82MB 99.39%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 98.60% 49156.78MB 99.15%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 98.60% 49156.78MB 99.15%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 98.60% 48060.59MB 96.94%  io.Copy (inline)
+         0     0% 98.60% 34017.29MB 68.61%  io.CopyN
+         0     0% 98.60%  2836.91MB  5.72%  main.saveFile
+         0     0% 98.60% 34227.83MB 69.04%  mime/multipart.(*Reader).ReadForm (inline)
+         0     0% 98.60% 34903.44MB 70.40%  net/http.(*Request).ParseMultipartForm
+         0     0% 98.60%   612.10MB  1.23%  net/http.(*Request).multipartReader
+         0     0% 98.60% 49278.04MB 99.40%  net/http.HandlerFunc.ServeHTTP
+         0     0% 98.60% 49278.04MB 99.40%  net/http.serverHandler.ServeHTTP

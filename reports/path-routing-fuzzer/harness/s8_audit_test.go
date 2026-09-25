@@ -1059,25 +1059,40 @@ func TestS8_RegexParam_CaptureGroup(t *testing.T) {
 	}
 }
 
-// TestS8_RegexParam_RegexpNameEnd_LongName — regexpNameEnd is uint8 (max 255 bytes).
+// TestS8_RegexParam_RegexpNameEnd_LongName — regexpNameEnd (tree.go) is a
+// uint8 that stores nameEnd = len(name)+1, i.e. the exclusive end offset of
+// the param name inside the "{name:expr}" token (offset 0 is '{', so the
+// name itself starts at offset 1). For that value to fit in a uint8 without
+// wrapping, len(name)+1 must be <= 255, which caps the maximum regex-param
+// name length at 254 bytes, not 255 — a 255-byte name already produces
+// nameEnd=256, which does not fit in a uint8 (see the addRouteInternal
+// insertChild guard `if nameEnd > 255 { panic(...) }` and its "at most 254
+// bytes" message in tree.go).
+//
+// This test previously asserted the wrong boundary (treated 255 bytes as
+// the maximum and required the rejection message to contain "255"). That
+// was an off-by-one in the TEST, not the code: tree.go's own guard and its
+// panic message ("regex param name must be at most 254 bytes") are correct
+// and internally consistent — 254 is the true, uint8-safe limit. Verified
+// empirically below: a 254-byte name registers without panicking, and a
+// 255-byte name panics with a message naming the real limit (254).
 func TestS8_RegexParam_RegexpNameEnd_LongName(t *testing.T) {
-	// 255-byte name is the maximum.
-	name255 := strings.Repeat("a", 255)
-	name256 := strings.Repeat("a", 256)
+	name254 := strings.Repeat("a", 254) // the true maximum — must NOT panic
+	name255 := strings.Repeat("a", 255) // one byte over — must panic, message names 254
 
-	// 255-byte name: should work or panic with meaningful error.
+	// 254-byte name: must register successfully (nameEnd=255, fits uint8).
 	func() {
 		defer func() {
 			if rec := recover(); rec != nil {
-				t.Logf("S8-REGEXPNAME: 255-byte name panicked: %v", rec)
+				t.Errorf("S8-REGEXPNAME: 254-byte name (the documented maximum) unexpectedly panicked: %v", rec)
 			}
 		}()
 		r := mm.New()
-		r.GET("/{"+name255+":[0-9]+}", s8h("r"))
+		r.GET("/{"+name254+":[0-9]+}", s8h("r"))
 		_ = r
 	}()
 
-	// 256-byte name: must panic with "exceeds 255 bytes" error.
+	// 255-byte name: must panic, and the message must name the real limit (254).
 	panicked := false
 	var msg string
 	func() {
@@ -1088,15 +1103,15 @@ func TestS8_RegexParam_RegexpNameEnd_LongName(t *testing.T) {
 			}
 		}()
 		r := mm.New()
-		r.GET("/{"+name256+":[0-9]+}", s8h("r"))
+		r.GET("/{"+name255+":[0-9]+}", s8h("r"))
 		_ = r
 	}()
 	if !panicked {
-		t.Errorf("S8-REGEXPNAME: 256-byte param name should panic, but didn't")
-	} else if !strings.Contains(msg, "255") {
-		t.Errorf("S8-REGEXPNAME: 256-byte param name panicked with wrong message: %s", msg)
+		t.Errorf("S8-REGEXPNAME: 255-byte param name should panic (true limit is 254 bytes), but didn't")
+	} else if !strings.Contains(msg, "254") {
+		t.Errorf("S8-REGEXPNAME: 255-byte param name panicked with wrong message (want it to name the 254-byte limit): %s", msg)
 	} else {
-		t.Logf("S8-REGEXPNAME: 256-byte name correctly rejected: %s", msg)
+		t.Logf("S8-REGEXPNAME: 255-byte name correctly rejected against the true 254-byte limit: %s", msg)
 	}
 }
 

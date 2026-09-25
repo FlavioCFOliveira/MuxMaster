@@ -271,6 +271,17 @@ mux.POST("/uploads/:id", func(w http.ResponseWriter, r *http.Request) {
 })
 ```
 
+### Special case: libraries that spawn background goroutines
+
+Some standard library handlers and third-party middleware spawn goroutines that outlive `ServeHTTP`. The most common case is `net/http.Transport` (used by `httputil.ReverseProxy` and HTTP clients): under concurrent load, `Transport.startDialConnForLocked` can start a background dial goroutine that continues calling `ctx.Value()` on the request's context **after** your handler returns.
+
+**❌ Do NOT enable `PoolRequestBundle` if:**
+- Your handler calls `httputil.ReverseProxy.ServeHTTP`
+- Your handler calls an HTTP client that uses `net/http.Transport` and reuses the request object
+- Any middleware in the chain spawns long-lived goroutines that read the request or its context
+
+If you need pooling with a reverse-proxy gateway, keep `PoolRequestBundle = false` on the gateway handler and enable it only on handlers that remain pool-safe (e.g., the backend services being proxied to).
+
 ---
 
 ## Auditing your handlers

@@ -1,0 +1,66 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16                 	 7402309	       164.6 ns/op	      96 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                 	 8945653	       151.7 ns/op	      84 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                 	 9099118	       152.6 ns/op	      83 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                 	 9044871	       152.2 ns/op	      83 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                 	 9080599	       153.4 ns/op	      83 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                 	 8614790	       154.3 ns/op	      86 B/op	       2 allocs/op
+BenchmarkOPTIONSAuto-16                      	 9537178	       124.2 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                      	 9541378	       124.2 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                      	 9498348	       124.4 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                      	 9616118	       124.1 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                      	 9468924	       124.6 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                      	 9584042	       124.9 ns/op	      40 B/op	       3 allocs/op
+BenchmarkRedirectTSL-16                      	 1421288	       846.6 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                      	 1411978	       843.4 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                      	 1432771	       853.0 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                      	 1419421	       845.8 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                      	 1416888	       845.8 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                      	 1418523	       849.6 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSLWithMiddleware-16        	 1000000	      1008 ns/op	    1401 B/op	      19 allocs/op
+BenchmarkRedirectTSLWithMiddleware-16        	 1000000	      1010 ns/op	    1401 B/op	      19 allocs/op
+BenchmarkRedirectTSLWithMiddleware-16        	 1000000	      1011 ns/op	    1401 B/op	      19 allocs/op
+BenchmarkRedirectTSLWithMiddleware-16        	 1000000	      1010 ns/op	    1401 B/op	      19 allocs/op
+BenchmarkRedirectTSLWithMiddleware-16        	 1000000	      1016 ns/op	    1401 B/op	      19 allocs/op
+BenchmarkRedirectTSLWithMiddleware-16        	 1000000	      1007 ns/op	    1401 B/op	      19 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16    	10400179	       120.4 ns/op	     312 B/op	       8 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16    	 9816748	       122.4 ns/op	     312 B/op	       8 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16    	 9352638	       122.9 ns/op	     312 B/op	       8 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16    	 9679408	       124.3 ns/op	     312 B/op	       8 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16    	 9597806	       124.7 ns/op	     312 B/op	       8 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16    	 9598642	       125.1 ns/op	     312 B/op	       8 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16       	52705088	        21.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16       	57225422	        21.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16       	56516905	        21.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16       	59619578	        21.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16       	57046255	        21.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16       	58534951	        21.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16       	 4260102	       280.6 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16       	 4284138	       280.1 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16       	 4266882	       279.6 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16       	 4309016	       279.1 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16       	 4307533	       280.7 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16       	 4277404	       278.7 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_SetHeader-16             	 7703986	       157.8 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16             	 7648408	       157.3 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16             	 7527146	       157.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16             	 7739553	       157.0 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16             	 7629468	       157.2 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16             	 7567550	       157.7 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16    	298057245	         3.962 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16    	300925476	         3.999 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16    	304503561	         3.990 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16    	306080038	         3.970 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16    	304262415	         3.980 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16    	301049856	         3.981 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16    	 6666824	       177.1 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16    	 6734100	       178.3 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16    	 6613242	       177.9 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16    	 6734450	       176.8 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16    	 6768421	       175.9 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16    	 6837309	       176.5 ns/op	     512 B/op	       3 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12	85.835s

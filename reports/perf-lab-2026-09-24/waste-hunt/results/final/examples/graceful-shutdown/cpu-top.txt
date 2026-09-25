@@ -1,0 +1,49 @@
+File: graceful-shutdown
+Build ID: d00e4eb8415b84d68d07dc985455d140af387a99
+Type: cpu
+Time: 2026-09-25 12:36:51 WEST
+Duration: 10s, Total samples = 67.69s (676.88%)
+Showing nodes accounting for 52.90s, 78.15% of 67.69s total
+Dropped 622 nodes (cum <= 0.34s)
+Showing top 40 nodes out of 145
+      flat  flat%   sum%        cum   cum%
+    18.09s 26.72% 26.72%     18.09s 26.72%  time.runtimeNow
+    14.40s 21.27% 48.00%     14.40s 21.27%  internal/runtime/syscall/linux.Syscall6
+    12.04s 17.79% 65.79%     12.04s 17.79%  runtime.nanotime (inline)
+     2.06s  3.04% 68.83%      2.06s  3.04%  runtime.usleep
+     1.67s  2.47% 71.30%      1.67s  2.47%  runtime.futex
+     0.41s  0.61% 71.90%      0.41s  0.61%  runtime.procyieldAsm
+     0.24s  0.35% 72.26%      1.08s  1.60%  runtime.lock2
+     0.22s  0.33% 72.58%      2.31s  3.41%  runtime.runqgrab
+     0.20s   0.3% 72.88%     10.73s 15.85%  runtime.findRunnable
+     0.20s   0.3% 73.17%      0.38s  0.56%  runtime.tryDeferToSpanScan
+     0.19s  0.28% 73.45%      4.05s  5.98%  internal/poll.runtime_pollSetDeadline
+     0.17s  0.25% 73.70%     52.63s 77.75%  net/http.(*conn).serve
+     0.17s  0.25% 73.95%      0.43s  0.64%  time.Time.appendFormat
+     0.16s  0.24% 74.19%      0.43s  0.64%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.14s  0.21% 74.40%      2.16s  3.19%  runtime.mallocgc
+     0.14s  0.21% 74.60%      0.36s  0.53%  sync.(*Pool).Get
+     0.13s  0.19% 74.80%      5.96s  8.80%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.13s  0.19% 74.99%      9.05s 13.37%  internal/poll.setDeadlineImpl
+     0.13s  0.19% 75.18%      3.49s  5.16%  net/http.(*chunkWriter).writeHeader
+     0.12s  0.18% 75.36%      3.92s  5.79%  internal/poll.(*FD).Read
+     0.12s  0.18% 75.54%      0.58s  0.86%  runtime.mapaccess2_faststr
+     0.12s  0.18% 75.71%      2.64s  3.90%  runtime.stealWork
+     0.11s  0.16% 75.88%      0.55s  0.81%  runtime.(*timer).modify
+     0.11s  0.16% 76.04%      1.34s  1.98%  runtime.newobject
+     0.11s  0.16% 76.20%     11.53s 17.03%  runtime.schedule
+     0.11s  0.16% 76.36%     18.20s 26.89%  time.Now
+     0.10s  0.15% 76.51%      0.37s  0.55%  internal/runtime/maps.(*Map).Delete
+     0.10s  0.15% 76.66%     10.74s 15.87%  net/http.(*conn).readRequest
+     0.10s  0.15% 76.81%      3.31s  4.89%  runtime.(*timers).check
+     0.09s  0.13% 76.94%      2.54s  3.75%  context.WithDeadlineCause
+     0.09s  0.13% 77.07%     10.82s 15.98%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.09s  0.13% 77.20%      0.51s  0.75%  net/http.Header.writeSubset
+     0.09s  0.13% 77.34%      0.97s  1.43%  runtime.casgstatus
+     0.09s  0.13% 77.47%      1.39s  2.05%  runtime.netpoll
+     0.08s  0.12% 77.59%     13.33s 19.69%  bufio.(*Writer).Flush
+     0.08s  0.12% 77.71%     11.53s 17.03%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+     0.08s  0.12% 77.83%      2.51s  3.71%  net/http.(*connReader).abortPendingRead
+     0.08s  0.12% 77.94%      2.96s  4.37%  net/http.readRequestLimit
+     0.07s   0.1% 78.05%      0.35s  0.52%  net/http.(*Request).WithContext
+     0.07s   0.1% 78.15%      1.66s  2.45%  net/http.(*connReader).backgroundRead

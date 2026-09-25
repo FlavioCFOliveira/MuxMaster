@@ -48,6 +48,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -125,8 +126,11 @@ func (c *Cache) evict() {
 
 // etagFor returns a weak ETag built from the given strings joined by colon.
 // Weak ETags (W/"...") indicate semantic equivalence — appropriate for JSON.
+//
+// strconv.Quote replaces the original fmt.Sprintf(`W/%q`, ...): fmt's
+// reflection-based formatting is unnecessary work for a single string value.
 func etagFor(parts ...string) string {
-	return fmt.Sprintf(`W/%q`, strings.Join(parts, ":"))
+	return "W/" + strconv.Quote(strings.Join(parts, ":"))
 }
 
 // checkNotModified writes 304 and returns true when the client's If-None-Match
@@ -176,15 +180,18 @@ func (s *Store) list() []*Article {
 	return out
 }
 
+// get looks up an article by its string id. articles is keyed by int, so the
+// id is parsed once and used as a direct map key — O(1) instead of a linear
+// scan that re-formats every article's ID with fmt.Sprint on each call.
 func (s *Store) get(id string) (*Article, bool) {
+	n, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, false
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for _, a := range s.articles {
-		if fmt.Sprint(a.ID) == id {
-			return a, true
-		}
-	}
-	return nil, false
+	a, ok := s.articles[n]
+	return a, ok
 }
 
 func (s *Store) create(title string) *Article {
@@ -199,16 +206,21 @@ func (s *Store) create(title string) *Article {
 	return a
 }
 
+// toggleDone flips the done flag for the article with the given string id.
+// Same O(1) map-lookup pattern as get, instead of a linear scan.
 func (s *Store) toggleDone(id string) (*Article, bool) {
+	n, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, false
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, a := range s.articles {
-		if fmt.Sprint(a.ID) == id {
-			a.Done = !a.Done
-			return a, true
-		}
+	a, ok := s.articles[n]
+	if !ok {
+		return nil, false
 	}
-	return nil, false
+	a.Done = !a.Done
+	return a, true
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -228,6 +240,20 @@ func main() {
 	cache := newCache()
 
 	r := mm.New()
+
+	// ── Fast routes ────────────────────────────────────────────────────────────
+	//
+	// HandleFast (via GETFast) must be registered before Use(): stdlib
+	// middleware never wraps the FastHandler path (see the Pre vs Use vs
+	// UseFast policy matrix in README.md), so MuxMaster panics at
+	// registration if a fast route is added after Use() has already been
+	// called. /health is intentionally public, so no auth is dropped here.
+	//
+	// FastHandler: static route — zero allocations per request.
+	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"status":"ok"}`)
+	})
 
 	// ── Global middleware ─────────────────────────────────────────────────────
 	r.Use(
@@ -250,12 +276,6 @@ func main() {
 	}
 
 	// ── Public routes ─────────────────────────────────────────────────────────
-
-	// FastHandler: static route — zero allocations per request.
-	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"status":"ok"}`)
-	})
 
 	// ── GET /articles — list with in-memory cache + Cache-Control ────────────
 	//
@@ -315,7 +335,7 @@ func main() {
 			return mm.Error(http.StatusNotFound, fmt.Errorf("article %q not found", id))
 		}
 
-		etag := etagFor(fmt.Sprint(article.ID), article.Title, fmt.Sprint(article.Done))
+		etag := etagFor(strconv.Itoa(article.ID), article.Title, strconv.FormatBool(article.Done))
 		w.Header().Set("Cache-Control", "public, max-age=60")
 
 		if checkNotModified(w, r, etag) {

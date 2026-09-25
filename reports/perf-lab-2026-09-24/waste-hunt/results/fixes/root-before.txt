@@ -1,0 +1,66 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkStaticRoute-16          	24631182	        47.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16          	24824530	        48.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16          	26921166	        48.73 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16          	24070615	        47.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16          	24700692	        48.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16          	23739992	        49.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute1-16          	 3544069	       329.2 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16          	 3831302	       323.7 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16          	 3722475	       324.2 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16          	 3595491	       330.1 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16          	 4119164	       309.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16          	 5221072	       298.1 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute2-16          	 3884953	       305.6 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16          	 4521450	       268.6 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16          	 4938993	       254.6 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16          	 5100566	       247.1 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16          	 4735328	       242.0 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16          	 5040148	       232.2 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute3-16          	 4801890	       225.5 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16          	 5172586	       208.0 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16          	 5947815	       203.1 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16          	 6044707	       200.3 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16          	 5827972	       207.4 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16          	 5869800	       203.8 ns/op	     480 B/op	       1 allocs/op
+BenchmarkPooledParamRoute1-16    	17461773	        65.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16    	19940986	        62.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16    	20062227	        61.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16    	18738625	        63.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16    	21052051	        63.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16    	21164283	        63.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16    	14709386	        82.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16    	14528475	        84.03 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16    	14803869	        81.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16    	14559932	        83.70 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16    	14192170	        83.37 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16    	14408058	        80.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16    	13519502	        87.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16    	13753926	        88.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16    	12772011	        88.70 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16    	14206874	        88.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16    	14233519	        88.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16    	13854081	        87.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRegisterRoutes/N=100-16 	    1347	    868931 ns/op	      8689 ns/route	 1487309 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=100-16 	    1368	    894007 ns/op	      8940 ns/route	 1487312 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=100-16 	    1357	    882693 ns/op	      8827 ns/route	 1487316 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=100-16 	    1368	    868947 ns/op	      8689 ns/route	 1487313 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=100-16 	    1326	    886372 ns/op	      8864 ns/route	 1487315 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=100-16 	    1261	    885735 ns/op	      8857 ns/route	 1487315 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16         	      13	  90311266 ns/op	     90311 ns/route	146634033 B/op	 1937273 allocs/op
+BenchmarkRegisterRoutes/N=1000-16         	      13	  91635711 ns/op	     91636 ns/route	146634042 B/op	 1937273 allocs/op
+BenchmarkRegisterRoutes/N=1000-16         	      13	  89928828 ns/op	     89929 ns/route	146633824 B/op	 1937271 allocs/op
+BenchmarkRegisterRoutes/N=1000-16         	      13	  90141750 ns/op	     90142 ns/route	146634086 B/op	 1937273 allocs/op
+BenchmarkRegisterRoutes/N=1000-16         	      12	  90795980 ns/op	     90796 ns/route	146633880 B/op	 1937272 allocs/op
+BenchmarkRegisterRoutes/N=1000-16         	      13	  91302958 ns/op	     91303 ns/route	146633855 B/op	 1937271 allocs/op
+BenchmarkRegisterRoutes/N=5000-16         	       1	2869925233 ns/op	    573985 ns/route	3661222592 B/op	48353239 allocs/op
+BenchmarkRegisterRoutes/N=5000-16         	       1	2852251184 ns/op	    570450 ns/route	3661194408 B/op	48353200 allocs/op
+BenchmarkRegisterRoutes/N=5000-16         	       1	2860781903 ns/op	    572156 ns/route	3661193864 B/op	48353195 allocs/op
+BenchmarkRegisterRoutes/N=5000-16         	       1	2864947639 ns/op	    572989 ns/route	3661192920 B/op	48353185 allocs/op
+BenchmarkRegisterRoutes/N=5000-16         	       1	2860296528 ns/op	    572059 ns/route	3661195704 B/op	48353213 allocs/op
+BenchmarkRegisterRoutes/N=5000-16         	       1	2819387738 ns/op	    563877 ns/route	3661188424 B/op	48353147 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	89.966s

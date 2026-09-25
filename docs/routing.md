@@ -112,6 +112,23 @@ mux.GET("/users/*all", catchAll)    // 3. catch  → /users/a/b/c
 
 Registering two patterns that are ambiguous (e.g. two different named parameters at the same position) panics at startup to surface the conflict early.
 
+### Lookup Fallback: Static Branch to Param Sibling
+
+When a request URL matches a static path segment exactly but that static route has no handler registered, MuxMaster falls back to check any sibling parameter routes at the same position.
+
+Example:
+
+```go
+mux.GET("/users/list",  listUsers)   // static route
+mux.GET("/users/:id",   getUser)     // param route
+
+mux.ServeHTTP(rw, request("/users/list"))   // → listUsers (exact static match)
+mux.ServeHTTP(rw, request("/users/alice"))  // → getUser (no static /alice, fallback to :id)
+mux.ServeHTTP(rw, request("/users/listx"))  // → getUser (no static /listx, fallback to :id)
+```
+
+This allows static and param routes to coexist at the same tree depth in either registration order. Both `/users/list` and `/users/:id` work correctly whether you register them as `GET("/users/list", ...)` then `GET("/users/:id", ...)` or vice versa.
+
 ---
 
 ## HTTP Method Helpers
@@ -203,7 +220,16 @@ This design eliminates per-request middleware iteration. Combined with the radix
 - If a request arrives for `/users/` and only `/users` is registered, MuxMaster redirects to `/users`.
 - If a request arrives for `/users` and only `/users/` is registered, MuxMaster redirects to `/users/`.
 
+This also applies to catch-all routes and mounted handlers. For example, with `Mount("/api", handler)` (internally a catch-all `"/*"` at the `/api` prefix):
+
+- A request to `/api` (bare prefix, no trailing slash) triggers a redirect to `/api/` when `RedirectTrailingSlash` is `true`.
+- A request to `/api/` and `/api/anything` both match the mounted handler directly.
+
 The redirect uses the code set in `RedirectCode` (default 301).
+
+**Redirect target encoding:**
+
+When building the redirect target, MuxMaster percent-encodes any ASCII control bytes (0x00–0x1F and 0x7F) that appear in the computed path. This conforms to RFC 9110 section 5.5, which prohibits raw control bytes in HTTP field values. All other bytes, including the query string, are left unchanged. This ensures that redirects containing decoded control characters (e.g., a newline in a path segment after percent-decoding) cannot inject headers or response content.
 
 To disable this and return 404 instead:
 

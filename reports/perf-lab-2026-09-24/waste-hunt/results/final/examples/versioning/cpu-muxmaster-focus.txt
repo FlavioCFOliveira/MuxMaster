@@ -1,0 +1,71 @@
+File: versioning
+Build ID: b142ae72192d96c7028f9c60218c915ed6e68cff
+Type: cpu
+Time: 2026-09-25 12:39:22 WEST
+Duration: 10s, Total samples = 51.25s (512.48%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 3.47s, 6.77% of 51.25s total
+Dropped 154 nodes (cum <= 0.26s)
+Showing top 60 nodes out of 213
+      flat  flat%   sum%        cum   cum%
+     0.21s  0.41%  0.41%      0.21s  0.41%  runtime.memmove
+     0.18s  0.35%  0.76%      2.87s  5.60%  encoding/json/v2.makeMapArshaler.func2
+     0.11s  0.21%  0.98%      0.47s  0.92%  encoding/json/jsontext.(*encoderState).WriteToken
+     0.11s  0.21%  1.19%      0.15s  0.29%  github.com/FlavioCFOliveira/MuxMaster.(*node).getValue
+     0.11s  0.21%  1.40%      0.16s  0.31%  runtime.step
+     0.10s   0.2%  1.60%      0.16s  0.31%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load
+     0.10s   0.2%  1.80%      0.27s  0.53%  runtime.pcvalue
+     0.09s  0.18%  1.97%      0.13s  0.25%  internal/runtime/maps.(*Iter).Next
+     0.09s  0.18%  2.15%      0.09s  0.18%  runtime.memclrNoHeapPointers
+     0.08s  0.16%  2.30%      0.14s  0.27%  encoding/json/jsontext.(*encoderState).reset
+     0.08s  0.16%  2.46%      1.10s  2.15%  encoding/json/v2.makeStructArshaler.func2
+     0.08s  0.16%  2.61%      0.08s  0.16%  internal/runtime/maps.memHashAES
+     0.08s  0.16%  2.77%      0.08s  0.16%  reflect.directlyAssignable
+     0.08s  0.16%  2.93%      0.16s  0.31%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.07s  0.14%  3.06%      0.11s  0.21%  internal/runtime/maps.(*Iter).Init
+     0.07s  0.14%  3.20%      0.37s  0.72%  runtime.mallocgcSmallScanNoHeader
+     0.07s  0.14%  3.34%      0.07s  0.14%  runtime.nanotime (inline)
+     0.06s  0.12%  3.45%      0.08s  0.16%  encoding/json/internal/jsonwire.AppendQuote
+     0.06s  0.12%  3.57%      0.16s  0.31%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+     0.06s  0.12%  3.69%      0.24s  0.47%  runtime.(*unwinder).resolveInternal
+     0.06s  0.12%  3.80%      0.11s  0.21%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.06s  0.12%  3.92%      0.15s  0.29%  runtime.mallocgcSmallScanSlowPath
+     0.05s 0.098%  4.02%      1.35s  2.63%  encoding/json/v2.marshalValueAny
+     0.05s 0.098%  4.12%      0.07s  0.14%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.05s 0.098%  4.21%      0.88s  1.72%  reflect.New
+     0.05s 0.098%  4.31%      0.06s  0.12%  runtime.(*mspan).writeHeapBitsSmall
+     0.05s 0.098%  4.41%      0.22s  0.43%  runtime.adjustframe
+     0.05s 0.098%  4.51%      0.13s  0.25%  runtime.bulkBarrierPreWrite
+     0.05s 0.098%  4.60%      0.05s 0.098%  runtime.readvarint (inline)
+     0.05s 0.098%  4.70%      0.08s  0.16%  runtime.wbBufFlush1
+     0.05s 0.098%  4.80%      0.20s  0.39%  sync.(*Pool).Get
+     0.04s 0.078%  4.88%      0.14s  0.27%  encoding/json/v2.lookupArshaler
+     0.04s 0.078%  4.96%      5.68s 11.08%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.04s 0.078%  5.03%      0.05s 0.098%  internal/runtime/maps.(*Map).putSlotSmallFastStr
+     0.04s 0.078%  5.11%      0.08s  0.16%  main.v1Health
+     0.04s 0.078%  5.19%      0.04s 0.078%  reflect.(*rtype).Key
+     0.04s 0.078%  5.27%      0.09s  0.18%  reflect.Value.Elem
+     0.04s 0.078%  5.35%      0.13s  0.25%  runtime.(*stkframe).getStackMap
+     0.04s 0.078%  5.42%      1.03s  2.01%  runtime.mallocgc
+     0.04s 0.078%  5.50%      0.05s 0.098%  runtime.mallocgcSmallScanNoHeaderSC1
+     0.04s 0.078%  5.58%      0.10s   0.2%  runtime.mallocgcSmallScanNoHeaderSC3
+     0.04s 0.078%  5.66%      0.37s  0.72%  runtime.mapaccess1_fast64
+     0.04s 0.078%  5.74%      0.33s  0.64%  runtime.mapaccess2_fast64
+     0.04s 0.078%  5.81%      0.23s  0.45%  runtime.newobject
+     0.04s 0.078%  5.89%      0.05s 0.098%  sync.runtime_procPin
+     0.03s 0.059%  5.95%      3.92s  7.65%  encoding/json.(*Encoder).Encode
+     0.03s 0.059%  6.01%      0.03s 0.059%  encoding/json/jsontext.(*encoderState).NeedFlush (partial-inline)
+     0.03s 0.059%  6.07%      0.11s  0.21%  encoding/json/jsontext.Token.appendString
+     0.03s 0.059%  6.13%      0.23s  0.45%  encoding/json/jsontext.getBufferedEncoder
+     0.03s 0.059%  6.19%      0.03s 0.059%  internal/chacha8rand.block
+     0.03s 0.059%  6.24%      0.03s 0.059%  internal/runtime/maps.(*ctrlGroup).setEmpty (inline)
+     0.03s 0.059%  6.30%      0.03s 0.059%  internal/runtime/maps.(*groupReference).key (inline)
+     0.03s 0.059%  6.36%      0.03s 0.059%  internal/runtime/syscall/linux.Syscall6
+     0.03s 0.059%  6.42%      0.03s 0.059%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init (inline)
+     0.03s 0.059%  6.48%      0.16s  0.31%  net/http.(*Request).WithContext
+     0.03s 0.059%  6.54%      0.03s 0.059%  net/http.(*conn).hijacked
+     0.03s 0.059%  6.60%      0.54s  1.05%  net/http.(*response).WriteHeader
+     0.03s 0.059%  6.65%      5.63s 10.99%  net/http.HandlerFunc.ServeHTTP
+     0.03s 0.059%  6.71%      0.47s  0.92%  net/http.Header.Clone (inline)
+     0.03s 0.059%  6.77%      0.03s 0.059%  reflect.(*rtype).NumMethod

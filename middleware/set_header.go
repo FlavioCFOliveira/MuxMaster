@@ -32,9 +32,28 @@ func SetHeader(key, value string) func(http.Handler) http.Handler {
 	if strings.ContainsAny(value, "\r\n") {
 		panic("middleware: SetHeader value contains CR or LF: " + strconv.QuoteToASCII(value))
 	}
+	// [waste-hunt WH-05] key is fixed for the lifetime of this middleware, so
+	// canonicalise it once here instead of paying Header().Set's
+	// canonicalisation cost on every request. Direct map assignment with a
+	// PER-REQUEST []string{value} produces the identical header as
+	// Set(key, value) (see specification/middleware-stdlib.md §59).
+	//
+	// MID-SETHEADER-1: the single-element slice backing the header value
+	// MUST be allocated fresh per request, not hoisted alongside canonKey.
+	// A hoisted, shared slice is reachable from every request's Header map
+	// simultaneously; any downstream code that indexes into it directly
+	// (w.Header()[key][0] = ...) — rather than going through Set/Add/Del,
+	// which always install a brand new slice — mutates that ONE shared
+	// backing array in place, corrupting the header value for every other
+	// request (past and future) still holding the same pooled middleware
+	// instance, until process restart. This is a real cross-request
+	// contamination vector for exactly the security headers SetHeader is
+	// typically used for (CSP, HSTS, X-Frame-Options, CORS). Allocating the
+	// slice per request restores normal http.Header isolation.
+	canonKey := http.CanonicalHeaderKey(key)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set(key, value)
+			w.Header()[canonKey] = []string{value}
 			next.ServeHTTP(w, r)
 		})
 	}

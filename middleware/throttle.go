@@ -153,6 +153,20 @@ const throttleShardCount = 64
 // throttleEntry is a per-key rate-limit slot: a channel-based token
 // semaphore plus a reference count of requests currently holding (or
 // waiting to acquire) one of its tokens.
+//
+// WH-01: entries are recycled through throttleTable.entryPool instead of
+// being discarded when refs reaches zero. This is safe because, by
+// construction, every successful acquire() is matched by exactly one
+// decRefs() call, and the token it received is ALWAYS sent back to
+// e.tokens (in the caller's deferred release) strictly before that
+// matching decRefs() call runs — never after. So when the LAST
+// outstanding reference for a key is released and refs reaches zero,
+// every token ever taken from e.tokens has already been returned: the
+// channel is guaranteed to be full (exactly cap(e.tokens) items) and the
+// entry can be handed to a brand-new key with only e.refs reset to 1 —
+// no channel refill, no allocation. A request that times out waiting
+// (never received a token) decrements refs WITHOUT sending, which is
+// correctly symmetric: it never took one either.
 type throttleEntry struct {
 	tokens chan struct{}
 	refs   int
@@ -194,6 +208,17 @@ type throttleTable struct {
 	shards       [throttleShardCount]throttleShard
 	size         atomic.Int64
 	maxTableSize int
+	// entryPool recycles *throttleEntry values whose refs reached zero
+	// (WH-01), avoiding the make(chan struct{}, limit) allocation plus the
+	// `limit` channel sends that filling a fresh entry costs on every
+	// request from a client with no overlapping in-flight request. Left at
+	// its zero value deliberately (no New func): Get returns nil on an
+	// empty pool, which acquire() below treats as "allocate fresh" — the
+	// exact same fallback used when a pooled entry's channel capacity does
+	// not match the requested limit (defensive; acquire's limit argument
+	// is constant in every current call site, but nothing on this type
+	// enforces that).
+	entryPool sync.Pool
 }
 
 func newThrottleTable(maxTableSize int) *throttleTable {
@@ -232,17 +257,27 @@ func (t *throttleTable) acquire(key string, limit int) (chan struct{}, *throttle
 			return nil, nil, true
 		}
 	}
-	e := &throttleEntry{tokens: make(chan struct{}, limit), refs: 1}
-	for range limit {
-		e.tokens <- struct{}{}
+	// WH-01(b): reuse a recycled entry when one is available and its
+	// channel was built for this exact limit; a full channel needs no
+	// refill. Otherwise allocate and fill a fresh one, as before.
+	e, _ := t.entryPool.Get().(*throttleEntry)
+	if e == nil || cap(e.tokens) != limit {
+		e = &throttleEntry{tokens: make(chan struct{}, limit)}
+		for range limit {
+			e.tokens <- struct{}{}
+		}
 	}
+	e.refs = 1
 	sh.m[key] = e
 	sh.mu.Unlock()
 	return e.tokens, e, false
 }
 
 // decRefs decrements the refs counter and removes an empty entry, releasing
-// its capacity reservation.
+// its capacity reservation. A removed entry is returned to entryPool for
+// reuse by a future first-time acquire() (WH-01(b)) — safe per the
+// throttleEntry doc comment: its token channel is guaranteed full at this
+// point.
 func (t *throttleTable) decRefs(key string, e *throttleEntry) {
 	sh := t.shardFor(key)
 	sh.mu.Lock()
@@ -252,8 +287,11 @@ func (t *throttleTable) decRefs(key string, e *throttleEntry) {
 		delete(sh.m, key)
 	}
 	sh.mu.Unlock()
-	if removed && t.maxTableSize > 0 {
-		t.size.Add(-1)
+	if removed {
+		if t.maxTableSize > 0 {
+			t.size.Add(-1)
+		}
+		t.entryPool.Put(e)
 	}
 }
 
@@ -322,23 +360,38 @@ func ThrottlePerIPCapped(limit int, timeout time.Duration, maxTableSize int, key
 				http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
 				return
 			}
-			timer := time.NewTimer(timeout)
-			defer timer.Stop()
+			// WH-01(a): try the non-blocking fast path first. A
+			// time.NewTimer is only created when the request must
+			// actually wait — the overwhelmingly common case is a token
+			// being immediately available, and time.NewTimer plus its
+			// deferred Stop cost a clock read and a heap allocation that
+			// this path never needs. Timeout semantics are unchanged:
+			// the timer still starts the instant a request begins
+			// waiting.
 			select {
 			case <-ch:
-				defer func() {
-					ch <- struct{}{}
+				// Fast path: got a token without waiting.
+			default:
+				timer := time.NewTimer(timeout)
+				defer timer.Stop()
+				select {
+				case <-ch:
+				case <-timer.C:
+					// Token was never consumed — only decrement refs so
+					// the entry can be reaped when no callers remain.
+					// Avoids the silent refs leak that previously kept
+					// the entry alive in the table even after a timeout
+					// (MSR-2026-0068).
 					table.decRefs(key, e)
-				}()
-				next.ServeHTTP(w, r)
-			case <-timer.C:
-				// Token was never consumed — only decrement refs so the
-				// entry can be reaped when no callers remain. Avoids the
-				// silent refs leak that previously kept the entry alive
-				// in the table even after a timeout (MSR-2026-0068).
-				table.decRefs(key, e)
-				http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+					http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+					return
+				}
 			}
+			defer func() {
+				ch <- struct{}{}
+				table.decRefs(key, e)
+			}()
+			next.ServeHTTP(w, r)
 		})
 	}
 }

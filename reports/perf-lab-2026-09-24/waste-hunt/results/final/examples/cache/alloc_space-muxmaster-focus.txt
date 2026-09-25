@@ -1,0 +1,58 @@
+File: cache
+Build ID: 914e44d39a2aa75060787d0bfc91ada9eebed2a7
+Type: alloc_space
+Time: 2026-09-25 12:36:46 WEST
+Duration: 10s, Total samples = 1653.28MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 843.26MB, 51.01% of 1653.28MB total
+Dropped 25 nodes (cum <= 8.27MB)
+      flat  flat%   sum%        cum   cum%
+  222.56MB 13.46% 13.46%   222.56MB 13.46%  net/http.Header.Clone (inline)
+  208.06MB 12.58% 26.05%   675.21MB 40.84%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  143.04MB  8.65% 34.70%   143.04MB  8.65%  net/http.(*Request).WithContext
+   75.53MB  4.57% 39.27%   342.60MB 20.72%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   45.51MB  2.75% 42.02%    45.51MB  2.75%  net/textproto.MIMEHeader.Set (inline)
+   35.51MB  2.15% 44.17%   159.05MB  9.62%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).serveRedirect
+   27.01MB  1.63% 45.80%    27.01MB  1.63%  main.errMsg (inline)
+   22.50MB  1.36% 47.16%    22.50MB  1.36%  bytes.Clone (inline)
+   17.54MB  1.06% 48.22%    17.54MB  1.06%  sync.(*Pool).pinSlow
+       9MB  0.54% 48.77%        9MB  0.54%  strconv.quoteWith (inline)
+       6MB  0.36% 49.13%    51.51MB  3.12%  github.com/FlavioCFOliveira/MuxMaster.writeRedirect
+       6MB  0.36% 49.49%    20.50MB  1.24%  main.etagFor
+    5.50MB  0.33% 49.83%     5.50MB  0.33%  internal/bytealg.MakeNoZero
+    5.50MB  0.33% 50.16%     5.50MB  0.33%  reflect.unsafe_New
+    5.50MB  0.33% 50.49%   142.54MB  8.62%  github.com/FlavioCFOliveira/MuxMaster.JSON
+    4.50MB  0.27% 50.76%    41.01MB  2.48%  io.WriteString
+       4MB  0.24% 51.01%    11.01MB  0.67%  fmt.Sprintf
+         0     0% 51.01%    33.01MB  2.00%  encoding/json.Marshal (inline)
+         0     0% 51.01%    33.01MB  2.00%  encoding/json/v2.Marshal
+         0     0% 51.01%     6.50MB  0.39%  encoding/json/v2.marshalEncode
+         0     0% 51.01%     6.51MB  0.39%  fmt.newPrinter
+         0     0% 51.01%   117.53MB  7.11%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).HandleE.func1
+         0     0% 51.01%   854.27MB 51.67%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 51.01%   854.27MB 51.67%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 51.01%    53.51MB  3.24%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).lazyRedirect.func1
+         0     0% 51.01%   186.05MB 11.25%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 51.01%   321.10MB 19.42%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 51.01%   309.58MB 18.73%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 51.01%    43.01MB  2.60%  main.checkNotModified
+         0     0% 51.01%    68.02MB  4.11%  main.main.func1
+         0     0% 51.01%    65.02MB  3.93%  main.main.func2
+         0     0% 51.01%    73.52MB  4.45%  main.main.func4
+         0     0% 51.01%   117.53MB  7.11%  main.main.func6
+         0     0% 51.01%   854.27MB 51.67%  net/http.(*conn).serve
+         0     0% 51.01%   222.56MB 13.46%  net/http.(*response).WriteHeader
+         0     0% 51.01%    36.51MB  2.21%  net/http.(*response).WriteString
+         0     0% 51.01%    36.51MB  2.21%  net/http.(*response).write
+         0     0% 51.01%   675.21MB 40.84%  net/http.HandlerFunc.ServeHTTP
+         0     0% 51.01%    45.51MB  2.75%  net/http.Header.Set (inline)
+         0     0% 51.01%   854.27MB 51.67%  net/http.serverHandler.ServeHTTP
+         0     0% 51.01%     5.50MB  0.33%  reflect.New
+         0     0% 51.01%        9MB  0.54%  strconv.Quote (inline)
+         0     0% 51.01%     5.50MB  0.33%  strings.(*Builder).Grow
+         0     0% 51.01%     5.50MB  0.33%  strings.(*Builder).grow
+         0     0% 51.01%     5.50MB  0.33%  strings.Join
+         0     0% 51.01%    20.04MB  1.21%  sync.(*Pool).Get
+         0     0% 51.01%     4.50MB  0.27%  sync.(*Pool).Put
+         0     0% 51.01%    17.54MB  1.06%  sync.(*Pool).pin

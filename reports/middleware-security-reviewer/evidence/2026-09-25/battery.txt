@@ -1,0 +1,522 @@
+=== RUN   TestDecodeJWTHeader_MemoHit_ReturnsSameAlgAsFullDecode
+--- PASS: TestDecodeJWTHeader_MemoHit_ReturnsSameAlgAsFullDecode (0.00s)
+=== RUN   TestDecodeJWTHeader_DisallowedAlg_NeverCached
+--- PASS: TestDecodeJWTHeader_DisallowedAlg_NeverCached (0.00s)
+=== RUN   TestDecodeJWTHeader_CritHeader_NeverCached
+--- PASS: TestDecodeJWTHeader_CritHeader_NeverCached (0.00s)
+=== RUN   TestDecodeJWTHeader_MalformedBase64_NeverCachedNorPanics
+--- PASS: TestDecodeJWTHeader_MalformedBase64_NeverCachedNorPanics (0.00s)
+=== RUN   TestDecodeJWTHeader_DifferentBytesSameAlg_BothCorrect
+--- PASS: TestDecodeJWTHeader_DifferentBytesSameAlg_BothCorrect (0.00s)
+=== RUN   TestBytesFromString_EquivalentToByteSliceConversion
+--- PASS: TestBytesFromString_EquivalentToByteSliceConversion (0.00s)
+=== RUN   TestEquiv_AppendSanitisedForLog
+--- PASS: TestEquiv_AppendSanitisedForLog (0.46s)
+=== RUN   TestEquiv_AppendLogDuration
+--- PASS: TestEquiv_AppendLogDuration (0.33s)
+=== RUN   TestLogger_SingleClockRead_StillProducesValidTimestampAndDuration
+--- PASS: TestLogger_SingleClockRead_StillProducesValidTimestampAndDuration (0.00s)
+=== RUN   TestLogger_ReadFrom_DelegatesToUnderlyingReaderFrom
+--- PASS: TestLogger_ReadFrom_DelegatesToUnderlyingReaderFrom (0.00s)
+=== RUN   TestLogger_ReadFrom_FallsBackWhenUnderlyingLacksReaderFrom
+--- PASS: TestLogger_ReadFrom_FallsBackWhenUnderlyingLacksReaderFrom (0.00s)
+=== RUN   TestLogger_ReadFrom_RespectsExplicitStatus
+--- PASS: TestLogger_ReadFrom_RespectsExplicitStatus (0.00s)
+=== RUN   TestOAuth2Cache_SizeNeverExceedsMaxSize
+--- PASS: TestOAuth2Cache_SizeNeverExceedsMaxSize (0.00s)
+=== RUN   TestOAuth2Cache_ExpiredEvictedFirst
+--- PASS: TestOAuth2Cache_ExpiredEvictedFirst (0.00s)
+=== RUN   TestOAuth2Cache_SoonestExpiryFallback
+--- PASS: TestOAuth2Cache_SoonestExpiryFallback (0.00s)
+=== RUN   TestOAuth2Cache_UpdateExistingKeyRepositionsHeap
+--- PASS: TestOAuth2Cache_UpdateExistingKeyRepositionsHeap (0.00s)
+=== RUN   TestOAuth2Cache_MaxSizeZero_NoInsertion
+--- PASS: TestOAuth2Cache_MaxSizeZero_NoInsertion (0.00s)
+=== RUN   TestOAuth2Cache_ConcurrentGetSetAtSaturation_NoRace
+--- PASS: TestOAuth2Cache_ConcurrentGetSetAtSaturation_NoRace (0.10s)
+=== RUN   TestOAuth2Cache_ConcurrentGetSetSameKey_NoRace
+--- PASS: TestOAuth2Cache_ConcurrentGetSetSameKey_NoRace (0.28s)
+=== RUN   TestOAuth2Cache_HeapInvariants_UnderConcurrentChurn
+--- PASS: TestOAuth2Cache_HeapInvariants_UnderConcurrentChurn (0.43s)
+=== RUN   TestSec_OAuth2Cache_ExpiredEntrySurvivingInHeap_NeverServedByGet
+--- PASS: TestSec_OAuth2Cache_ExpiredEntrySurvivingInHeap_NeverServedByGet (0.03s)
+=== RUN   TestSec_OAuth2Cache_RevokedTokenNeverServedAfterExplicitInactiveRecache
+--- PASS: TestSec_OAuth2Cache_RevokedTokenNeverServedAfterExplicitInactiveRecache (0.00s)
+=== RUN   TestNextRandomID_NoOverlapNoDuplicate_HighConcurrency
+--- PASS: TestNextRandomID_NoOverlapNoDuplicate_HighConcurrency (1.58s)
+=== RUN   TestRequestIDBufPool_RefillNeverServesUninitialisedBytes
+--- PASS: TestRequestIDBufPool_RefillNeverServesUninitialisedBytes (0.00s)
+=== RUN   TestNextRandomID_SequentialDraws_SpanningManyRefills_AllUnique
+--- PASS: TestNextRandomID_SequentialDraws_SpanningManyRefills_AllUnique (0.01s)
+=== RUN   TestSec_NextRandomID_CryptoRandDefaultFailureModeCrashesProcess_NotFallback
+--- PASS: TestSec_NextRandomID_CryptoRandDefaultFailureModeCrashesProcess_NotFallback (0.02s)
+=== RUN   TestThrottleSem_InUseNeverNegativeNeverExceedsLimit
+--- PASS: TestThrottleSem_InUseNeverNegativeNeverExceedsLimit (0.17s)
+=== RUN   TestThrottleSem_NoLostWakeup_HighConcurrencyChurn
+--- PASS: TestThrottleSem_NoLostWakeup_HighConcurrencyChurn (0.01s)
+=== RUN   TestThrottleSem_NoLostWakeup_SerialisedHandoff
+--- PASS: TestThrottleSem_NoLostWakeup_SerialisedHandoff (0.02s)
+=== RUN   TestThrottleTable_SizeNeverNegative_CrossShardChurn
+--- PASS: TestThrottleTable_SizeNeverNegative_CrossShardChurn (0.11s)
+=== RUN   TestThrottleTable_ExactCapAcrossAllShards_NoOvershoot
+--- PASS: TestThrottleTable_ExactCapAcrossAllShards_NoOvershoot (0.01s)
+=== RUN   TestSec_ThrottleTable_SeedRandomisedPerInstance
+--- PASS: TestSec_ThrottleTable_SeedRandomisedPerInstance (0.00s)
+=== RUN   TestSec_ThrottleTable_ShardDistributionResistsAdversarialKeys
+--- PASS: TestSec_ThrottleTable_ShardDistributionResistsAdversarialKeys (0.35s)
+=== RUN   TestSec_ThrottleTable_SaturatedTable_ExistingKeyStillServed_OnlyNewKeysRejected
+--- PASS: TestSec_ThrottleTable_SaturatedTable_ExistingKeyStillServed_OnlyNewKeysRejected (0.00s)
+=== RUN   TestSec_ThrottleSem_AuxiliaryChannelsStayBounded
+--- PASS: TestSec_ThrottleSem_AuxiliaryChannelsStayBounded (0.00s)
+=== RUN   TestSec_ThrottleSem_NoBypassOfConfiguredLimit_UnderRapidChurn
+--- PASS: TestSec_ThrottleSem_NoBypassOfConfiguredLimit_UnderRapidChurn (0.30s)
+=== RUN   TestThrottleTable_EntryPool_ReusedEntryIsFullyUsable
+--- PASS: TestThrottleTable_EntryPool_ReusedEntryIsFullyUsable (0.00s)
+=== RUN   TestThrottleTable_EntryPool_CapacityMismatch_FallsBackToFreshEntry
+--- PASS: TestThrottleTable_EntryPool_CapacityMismatch_FallsBackToFreshEntry (0.00s)
+=== RUN   TestThrottlePerIPCapped_FastPath_RaceStress
+--- PASS: TestThrottlePerIPCapped_FastPath_RaceStress (0.02s)
+=== RUN   TestThrottlePerIPCapped_EntryPoolRecycling_NeverExceedsLimit
+--- PASS: TestThrottlePerIPCapped_EntryPoolRecycling_NeverExceedsLimit (0.02s)
+=== RUN   TestAPIKey_FusedContext_IdentityRetrievable
+--- PASS: TestAPIKey_FusedContext_IdentityRetrievable (0.00s)
+=== RUN   TestAPIKey_FusedContext_FallsThroughToOtherKeys
+--- PASS: TestAPIKey_FusedContext_FallsThroughToOtherKeys (0.00s)
+=== RUN   TestAPIKey_GetIdentity_AbsentOnBareContext
+--- PASS: TestAPIKey_GetIdentity_AbsentOnBareContext (0.00s)
+=== RUN   TestAPIKey_TwoInstances_DoNotShareIdentity
+--- PASS: TestAPIKey_TwoInstances_DoNotShareIdentity (0.00s)
+=== RUN   TestCompress_PoolReuse_NoStateLeakAcrossManyRequests
+--- PASS: TestCompress_PoolReuse_NoStateLeakAcrossManyRequests (0.04s)
+=== RUN   TestCompress_PoolHygiene_PanicDoesNotLeakStateToNextRequest
+--- PASS: TestCompress_PoolHygiene_PanicDoesNotLeakStateToNextRequest (0.00s)
+=== RUN   TestCompress_ChunkedWrite_IdenticalAcrossManySniffBufferSizes
+--- PASS: TestCompress_ChunkedWrite_IdenticalAcrossManySniffBufferSizes (0.00s)
+=== RUN   TestJWTAuth_HeaderMemo_DoesNotBypassSignatureVerification
+2026/09/25 10:28:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+--- PASS: TestJWTAuth_HeaderMemo_DoesNotBypassSignatureVerification (0.00s)
+=== RUN   TestJWTAuth_HeaderMemo_DoesNotBypassAlgAllowList
+2026/09/25 10:28:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+--- PASS: TestJWTAuth_HeaderMemo_DoesNotBypassAlgAllowList (0.00s)
+=== RUN   TestJWTAuth_HeaderMemo_DoesNotBypassCritCheck
+2026/09/25 10:28:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+--- PASS: TestJWTAuth_HeaderMemo_DoesNotBypassCritCheck (0.00s)
+=== RUN   TestJWTAuth_HeaderMemo_InstanceIsolation
+2026/09/25 10:28:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 10:28:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+--- PASS: TestJWTAuth_HeaderMemo_InstanceIsolation (0.00s)
+=== RUN   TestJWTAuth_HeaderMemo_ConcurrentDifferentHeaders_RaceStress
+2026/09/25 10:28:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+--- PASS: TestJWTAuth_HeaderMemo_ConcurrentDifferentHeaders_RaceStress (0.10s)
+=== RUN   TestLogger_WritesMethodPathAndStatus
+--- PASS: TestLogger_WritesMethodPathAndStatus (0.00s)
+=== RUN   TestLogger_PanicsOnNilWriter
+--- PASS: TestLogger_PanicsOnNilWriter (0.00s)
+=== RUN   TestLogger_SanitisesCRLFInPath
+--- PASS: TestLogger_SanitisesCRLFInPath (0.00s)
+=== RUN   TestLogger_SanitisesANSIInPath
+--- PASS: TestLogger_SanitisesANSIInPath (0.00s)
+=== RUN   TestCompress_StreamingBoundedMemory
+--- PASS: TestCompress_StreamingBoundedMemory (0.03s)
+=== RUN   TestCompress_SmallResponseNotCompressed
+--- PASS: TestCompress_SmallResponseNotCompressed (0.00s)
+=== RUN   TestRecoverer_Returns500OnPanic
+2026/09/25 10:28:58 ERROR panic recovered panic=boom stack="goroutine 17592 [running]:\nruntime/debug.Stack()\n\t/usr/local/go/src/runtime/debug/stack.go:26 +0x67\ngithub.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1.1()\n\t/data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/recoverer.go:33 +0xcc\npanic({0xf8e930?, 0xb4e570?})\n\t/usr/local/go/src/runtime/panic.go:859 +0x125\ngithub.com/FlavioCFOliveira/MuxMaster/middleware_test.TestRecoverer_Returns500OnPanic.func1({0x4cd2f9?, 0x4ceab1?}, 0x97ff08?)\n\t/data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/middleware_test.go:177 +0x2b\nnet/http.HandlerFunc.ServeHTTP(0xff4e48, {0xff2798, 0xc0000bac80}, 0xc0002ca3c0)\n\t/usr/local/go/src/net/http/server.go:2338 +0x48\ngithub.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1({0xff2798, 0xc0000bac80}, 0xc0002ca3c0)\n\t/data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/recoverer.go:40 +0x11b\nnet/http.HandlerFunc.ServeHTTP(0xc00139a0a0, {0xff2798, 0xc0000bac80}, 0xc0002ca3c0)\n\t/usr/local/go/src/net/http/server.go:2338 +0x48\ngithub.com/FlavioCFOliveira/MuxMaster/middleware_test.TestRecoverer_Returns500OnPanic(0xc0000fe6c8)\n\t/data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/middleware_test.go:181 +0x196\ntesting.tRunner(0xc0000fe6c8, 0xff48c8)\n\t/usr/local/go/src/testing/testing.go:2193 +0x21d\ncreated by testing.(*T).Run in goroutine 1\n\t/usr/local/go/src/testing/testing.go:2258 +0xb13\n" method=GET path=/
+--- PASS: TestRecoverer_Returns500OnPanic (0.00s)
+=== RUN   TestRecoverer_PassesThroughOnNoP
+--- PASS: TestRecoverer_PassesThroughOnNoP (0.00s)
+=== RUN   TestRecovererWithLogger_DoesNotLeakPanicToBody
+2026/09/25 10:28:58 ERROR panic recovered panic="secret internal error" stack="goroutine 17594 [running]:\nruntime/debug.Stack()\n\t/usr/local/go/src/runtime/debug/stack.go:26 +0x67\ngithub.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.func1.1()\n\t/data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/recoverer.go:33 +0xcc\npanic({0xf8e930?, 0xb4e5a0?})\n\t/usr/local/go/src/runtime/panic.go:859 +0x125\ngithub.com/FlavioCFOliveira/MuxMaster/middleware_test.TestRecovererWithLogger_DoesNotLeakPanicToBody.func1({0x4cd2f9?, 0x4ceab1?}, 0xa14957?)\n\t/data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/middleware_test.go:200 +0x2b\nnet/http.HandlerFunc.ServeHTTP(0xff4e40, {0xff2798, 0xc0000bad00}, 0xc0002caa00)\n\t/usr/local/go/src/net/http/server.go:2338 +0x48\ngithub.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.func1({0xff2798, 0xc0000bad00}, 0xc0002caa00)\n\t/data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/recoverer.go:40 +0x11b\nnet/http.HandlerFunc.ServeHTTP(...)\n\t/usr/local/go/src/net/http/server.go:2338\ngithub.com/FlavioCFOliveira/MuxMaster/middleware_test.TestRecovererWithLogger_DoesNotLeakPanicToBody(0xc0000feb48)\n\t/data/dev/github.com/FlavioCFOliveira/MuxMaster/middleware/middleware_test.go:204 +0x277\ntesting.tRunner(0xc0000feb48, 0xff48b8)\n\t/usr/local/go/src/testing/testing.go:2193 +0x21d\ncreated by testing.(*T).Run in goroutine 1\n\t/usr/local/go/src/testing/testing.go:2258 +0xb13\n" method=GET path=/
+--- PASS: TestRecovererWithLogger_DoesNotLeakPanicToBody (0.00s)
+=== RUN   TestCORS_AllowedOriginSetsHeaders
+--- PASS: TestCORS_AllowedOriginSetsHeaders (0.00s)
+=== RUN   TestCORS_RejectsForbiddenOrigin
+--- PASS: TestCORS_RejectsForbiddenOrigin (0.00s)
+=== RUN   TestCORS_PreflightOptions
+--- PASS: TestCORS_PreflightOptions (0.00s)
+=== RUN   TestCORS_WildcardOrigin
+--- PASS: TestCORS_WildcardOrigin (0.00s)
+=== RUN   TestBasicAuth_Returns401WithoutCredentials
+--- PASS: TestBasicAuth_Returns401WithoutCredentials (0.00s)
+=== RUN   TestBasicAuth_AllowsValidCredentials
+--- PASS: TestBasicAuth_AllowsValidCredentials (0.00s)
+=== RUN   TestBasicAuth_RejectsWrongPassword
+--- PASS: TestBasicAuth_RejectsWrongPassword (0.00s)
+=== RUN   TestBasicAuth_PanicsOnNilCreds
+--- PASS: TestBasicAuth_PanicsOnNilCreds (0.00s)
+=== RUN   TestNoCache_SetsHeaders
+--- PASS: TestNoCache_SetsHeaders (0.00s)
+=== RUN   TestRequestID_AddsNonEmptyHeader
+--- PASS: TestRequestID_AddsNonEmptyHeader (0.00s)
+=== RUN   TestRequestID_PropagatesExistingID
+--- PASS: TestRequestID_PropagatesExistingID (0.00s)
+=== RUN   TestRealIP_TrustAll_SetsRemoteAddr
+2026/09/25 10:28:58 WARN RealIP: called with no trusted CIDRs — every peer can spoof X-Forwarded-For / X-Real-IP. This is only safe behind a single trusted proxy that strips inbound XFF. See SECURITY.md "RealIP misconfiguration".
+--- PASS: TestRealIP_TrustAll_SetsRemoteAddr (0.00s)
+=== RUN   TestRealIP_UntrustedPeerIgnored
+--- PASS: TestRealIP_UntrustedPeerIgnored (0.00s)
+=== RUN   TestSec_RealIP_MultiHop_LeftmostXFF_Spoofable
+--- PASS: TestSec_RealIP_MultiHop_LeftmostXFF_Spoofable (0.00s)
+=== RUN   TestSec_RealIP_SingleProxy_XFF_Correct
+--- PASS: TestSec_RealIP_SingleProxy_XFF_Correct (0.00s)
+=== RUN   TestSec_RealIP_AllTrusted_FallsBackToLeftmost
+--- PASS: TestSec_RealIP_AllTrusted_FallsBackToLeftmost (0.00s)
+=== RUN   TestRealIP_RejectsCRLFInXFF
+2026/09/25 10:28:58 WARN RealIP: called with no trusted CIDRs — every peer can spoof X-Forwarded-For / X-Real-IP. This is only safe behind a single trusted proxy that strips inbound XFF. See SECURITY.md "RealIP misconfiguration".
+--- PASS: TestRealIP_RejectsCRLFInXFF (0.00s)
+=== RUN   TestBasicAuth_ValidCredentials
+--- PASS: TestBasicAuth_ValidCredentials (0.00s)
+=== RUN   TestBasicAuth_InvalidCredentials
+--- PASS: TestBasicAuth_InvalidCredentials (0.00s)
+=== RUN   TestBasicAuth_UnknownUser
+--- PASS: TestBasicAuth_UnknownUser (0.00s)
+=== RUN   TestBasicAuth_ConstantTimePath
+--- PASS: TestBasicAuth_ConstantTimePath (0.00s)
+=== RUN   TestBasicAuth_RealmInjectionSanitised
+--- PASS: TestBasicAuth_RealmInjectionSanitised (0.00s)
+=== RUN   TestRequestID_ValidPropagated
+--- PASS: TestRequestID_ValidPropagated (0.00s)
+=== RUN   TestRequestID_OversizedRejected
+--- PASS: TestRequestID_OversizedRejected (0.00s)
+=== RUN   TestRequestID_CRLFRejected
+--- PASS: TestRequestID_CRLFRejected (0.00s)
+=== RUN   TestRequestID_GeneratedWhenMissing
+--- PASS: TestRequestID_GeneratedWhenMissing (0.00s)
+=== RUN   TestCORS_WildcardEmitsLiteralStar
+--- PASS: TestCORS_WildcardEmitsLiteralStar (0.00s)
+=== RUN   TestCORS_CRLFInOriginRejected
+--- PASS: TestCORS_CRLFInOriginRejected (0.00s)
+=== RUN   TestCORS_SpecificOriginReflected
+--- PASS: TestCORS_SpecificOriginReflected (0.00s)
+=== RUN   TestSec_Composition_SetHeaderAfterCORS_OverwritesCORSHeaders
+--- PASS: TestSec_Composition_SetHeaderAfterCORS_OverwritesCORSHeaders (0.00s)
+=== RUN   TestSec_Composition_SetHeaderBeforeCORS_CORSWins
+--- PASS: TestSec_Composition_SetHeaderBeforeCORS_CORSWins (0.00s)
+=== RUN   TestThrottleAllBacklog_IsAlias
+--- PASS: TestThrottleAllBacklog_IsAlias (0.00s)
+=== RUN   TestThrottlePerIP_AllowsDifferentIPs
+2026/09/25 10:28:58 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+--- PASS: TestThrottlePerIP_AllowsDifferentIPs (0.00s)
+=== RUN   TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn
+    middleware_test.go:784: ThrottlePerIPCapped(maxTable=64) under 128 concurrent unique IPs: accepted=64 rejected=64
+--- PASS: TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn (0.02s)
+=== RUN   TestCleanPath_NormalisesDoubleSlash
+--- PASS: TestCleanPath_NormalisesDoubleSlash (0.00s)
+=== RUN   TestCleanPath_ZerosRawPathOnTraversal
+--- PASS: TestCleanPath_ZerosRawPathOnTraversal (0.00s)
+=== RUN   TestStripSlashes_MultipleTrailing
+--- PASS: TestStripSlashes_MultipleTrailing (0.00s)
+=== RUN   TestAPIKey_ValidKeyAllows
+--- PASS: TestAPIKey_ValidKeyAllows (0.00s)
+=== RUN   TestAPIKey_InvalidKeyRejects
+--- PASS: TestAPIKey_InvalidKeyRejects (0.00s)
+=== RUN   TestAPIKey_MissingKeyRejects
+--- PASS: TestAPIKey_MissingKeyRejects (0.00s)
+=== RUN   TestAPIKey_CustomExtractFn
+--- PASS: TestAPIKey_CustomExtractFn (0.00s)
+=== RUN   TestAPIKey_CustomHeader
+--- PASS: TestAPIKey_CustomHeader (0.00s)
+=== RUN   TestAPIKey_PanicsOnEmptyKeys
+--- PASS: TestAPIKey_PanicsOnEmptyKeys (0.00s)
+=== RUN   TestJWTAuth_ValidHS256
+2026/09/25 10:28:58 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+--- PASS: TestJWTAuth_ValidHS256 (0.00s)
+=== RUN   TestSec_TSC_2026_0008_APIKey_HeaderSymmetry
+--- PASS: TestSec_TSC_2026_0008_APIKey_HeaderSymmetry (0.00s)
+=== RUN   TestCompress_SkipNonAcceptingClient
+--- PASS: TestCompress_SkipNonAcceptingClient (0.00s)
+=== RUN   TestCompress_AlreadyCompressedMIME
+=== RUN   TestCompress_AlreadyCompressedMIME/image/png
+=== RUN   TestCompress_AlreadyCompressedMIME/image/jpeg
+=== RUN   TestCompress_AlreadyCompressedMIME/image/gif
+=== RUN   TestCompress_AlreadyCompressedMIME/video/mp4
+=== RUN   TestCompress_AlreadyCompressedMIME/audio/mpeg
+=== RUN   TestCompress_AlreadyCompressedMIME/application/zip
+=== RUN   TestCompress_AlreadyCompressedMIME/application/gzip
+--- PASS: TestCompress_AlreadyCompressedMIME (0.00s)
+    --- PASS: TestCompress_AlreadyCompressedMIME/image/png (0.00s)
+    --- PASS: TestCompress_AlreadyCompressedMIME/image/jpeg (0.00s)
+    --- PASS: TestCompress_AlreadyCompressedMIME/image/gif (0.00s)
+    --- PASS: TestCompress_AlreadyCompressedMIME/video/mp4 (0.00s)
+    --- PASS: TestCompress_AlreadyCompressedMIME/audio/mpeg (0.00s)
+    --- PASS: TestCompress_AlreadyCompressedMIME/application/zip (0.00s)
+    --- PASS: TestCompress_AlreadyCompressedMIME/application/gzip (0.00s)
+=== RUN   TestCompress_WriteHeaderPath
+--- PASS: TestCompress_WriteHeaderPath (0.00s)
+=== RUN   TestCompress_SmallPayloadBelowThreshold
+--- PASS: TestCompress_SmallPayloadBelowThreshold (0.00s)
+=== RUN   TestOAuth2_CacheEviction
+2026/09/25 10:28:58 WARN OAuth2Introspect: insecure plaintext endpoint accepted via AllowInsecureEndpoint — bearer tokens transmitted in clear host=127.0.0.1:34305 scheme=http
+2026/09/25 10:28:58 INFO OAuth2Introspect: configured host=127.0.0.1:34305 scheme=http
+--- PASS: TestOAuth2_CacheEviction (0.00s)
+=== RUN   TestJWT_HS384
+2026/09/25 10:28:58 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+--- PASS: TestJWT_HS384 (0.00s)
+=== RUN   TestJWT_HS512
+2026/09/25 10:28:58 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+--- PASS: TestJWT_HS512 (0.00s)
+=== RUN   TestJWT_ClockSkew
+--- PASS: TestJWT_ClockSkew (0.00s)
+=== RUN   TestWithValue_InjectsValue
+--- PASS: TestWithValue_InjectsValue (0.00s)
+=== RUN   TestWithValue_PanicsOnNilKey
+--- PASS: TestWithValue_PanicsOnNilKey (0.00s)
+=== RUN   TestWithValue_WarnsOnStringKey
+--- PASS: TestWithValue_WarnsOnStringKey (0.00s)
+=== RUN   TestWithValue_NestedMiddleware
+--- PASS: TestWithValue_NestedMiddleware (0.00s)
+=== RUN   TestTimeout_PanicOnZero
+--- PASS: TestTimeout_PanicOnZero (0.00s)
+=== RUN   TestTimeout_PanicOnNegative
+--- PASS: TestTimeout_PanicOnNegative (0.00s)
+=== RUN   TestTimeout_HandlerCompletesBeforeDeadline
+--- PASS: TestTimeout_HandlerCompletesBeforeDeadline (0.00s)
+=== RUN   TestTimeout_PropagatesContextCancellation
+--- PASS: TestTimeout_PropagatesContextCancellation (0.02s)
+=== RUN   TestTimeout_DeadlineSet
+--- PASS: TestTimeout_DeadlineSet (0.00s)
+=== RUN   TestTimeout_ConcurrentIsolation
+--- PASS: TestTimeout_ConcurrentIsolation (0.00s)
+=== RUN   TestSec_MSR_2026_0071_OAuth2SingleflightLeaderCancel
+--- PASS: TestSec_MSR_2026_0071_OAuth2SingleflightLeaderCancel (0.05s)
+=== RUN   TestSec_TM_2026_021_RealIP_XFF_HopCap
+--- PASS: TestSec_TM_2026_021_RealIP_XFF_HopCap (0.00s)
+=== RUN   TestSec_TM_2026_031_CORS_VaryOrigin
+--- PASS: TestSec_TM_2026_031_CORS_VaryOrigin (0.00s)
+=== RUN   TestSec_TM_2026_032_LoggerSanitises
+--- PASS: TestSec_TM_2026_032_LoggerSanitises (0.00s)
+=== RUN   TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass
+=== RUN   TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass/plain_admin
+=== RUN   TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass/encoded_slash
+=== RUN   TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass/encoded_traversal
+=== RUN   TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass/trailing_dot_segment
+--- PASS: TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass (0.00s)
+    --- PASS: TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass/plain_admin (0.00s)
+    --- PASS: TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass/encoded_slash (0.00s)
+    --- PASS: TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass/encoded_traversal (0.00s)
+    --- PASS: TestSec_TM_2026_010_CleanPath_UseRawPath_NoBypass/trailing_dot_segment (0.00s)
+=== RUN   TestSec_OAuth2_EndpointHardening
+=== RUN   TestSec_OAuth2_EndpointHardening/empty_host_https
+=== RUN   TestSec_OAuth2_EndpointHardening/empty_host_scheme_only
+=== RUN   TestSec_OAuth2_EndpointHardening/userinfo_https
+=== RUN   TestSec_OAuth2_EndpointHardening/userinfo_with_password
+=== RUN   TestSec_OAuth2_EndpointHardening/plaintext_no_optin
+--- PASS: TestSec_OAuth2_EndpointHardening (0.00s)
+    --- PASS: TestSec_OAuth2_EndpointHardening/empty_host_https (0.00s)
+    --- PASS: TestSec_OAuth2_EndpointHardening/empty_host_scheme_only (0.00s)
+    --- PASS: TestSec_OAuth2_EndpointHardening/userinfo_https (0.00s)
+    --- PASS: TestSec_OAuth2_EndpointHardening/userinfo_with_password (0.00s)
+    --- PASS: TestSec_OAuth2_EndpointHardening/plaintext_no_optin (0.00s)
+=== RUN   TestSec_JWT_Exp_TypeConfusion
+=== RUN   TestSec_JWT_Exp_TypeConfusion/negative_exp
+=== RUN   TestSec_JWT_Exp_TypeConfusion/negative_nbf
+=== RUN   TestSec_JWT_Exp_TypeConfusion/string_exp
+=== RUN   TestSec_JWT_Exp_TypeConfusion/object_exp
+=== RUN   TestSec_JWT_Exp_TypeConfusion/array_exp
+=== RUN   TestSec_JWT_Exp_TypeConfusion/overflow_exp
+--- PASS: TestSec_JWT_Exp_TypeConfusion (0.00s)
+    --- PASS: TestSec_JWT_Exp_TypeConfusion/negative_exp (0.00s)
+    --- PASS: TestSec_JWT_Exp_TypeConfusion/negative_nbf (0.00s)
+    --- PASS: TestSec_JWT_Exp_TypeConfusion/string_exp (0.00s)
+    --- PASS: TestSec_JWT_Exp_TypeConfusion/object_exp (0.00s)
+    --- PASS: TestSec_JWT_Exp_TypeConfusion/array_exp (0.00s)
+    --- PASS: TestSec_JWT_Exp_TypeConfusion/overflow_exp (0.00s)
+=== RUN   TestSec_JWT_RequireExpiryDefault_EmitsConstructionWarning
+--- PASS: TestSec_JWT_RequireExpiryDefault_EmitsConstructionWarning (0.00s)
+=== RUN   TestSec_JWT_NoExpClaim_AcceptedForever
+    middleware_test.go:1660: CONFIRMED MSR-2026-0066 default behaviour: no-exp token accepted; opt into RequireExpiry to reject
+--- PASS: TestSec_JWT_NoExpClaim_AcceptedForever (0.00s)
+=== RUN   TestSec_JWT_RequireExpiry_RejectsNoExpToken
+--- PASS: TestSec_JWT_RequireExpiry_RejectsNoExpToken (0.00s)
+=== RUN   TestSec_JWT_WithExpClaim_ExpiryEnforced
+--- PASS: TestSec_JWT_WithExpClaim_ExpiryEnforced (0.00s)
+=== RUN   TestJWTAuth_ExpiredTokenRejects
+--- PASS: TestJWTAuth_ExpiredTokenRejects (0.00s)
+=== RUN   TestJWTAuth_InvalidSignatureRejects
+--- PASS: TestJWTAuth_InvalidSignatureRejects (0.00s)
+=== RUN   TestJWTAuth_MissingBearerTokenRejects
+--- PASS: TestJWTAuth_MissingBearerTokenRejects (0.00s)
+=== RUN   TestJWTAuth_WrongAlgorithmRejects
+--- PASS: TestJWTAuth_WrongAlgorithmRejects (0.00s)
+=== RUN   TestJWTAuth_IssuerCheckFails
+--- PASS: TestJWTAuth_IssuerCheckFails (0.00s)
+=== RUN   TestJWTAuth_AudienceCheckPasses
+--- PASS: TestJWTAuth_AudienceCheckPasses (0.00s)
+=== RUN   TestJWTAuth_ClockSkewAllowsSlightlyExpired
+--- PASS: TestJWTAuth_ClockSkewAllowsSlightlyExpired (0.00s)
+=== RUN   TestJWTAuth_BearerCaseInsensitive
+--- PASS: TestJWTAuth_BearerCaseInsensitive (0.00s)
+=== RUN   TestJWTAuth_CritHeaderRejects
+--- PASS: TestJWTAuth_CritHeaderRejects (0.00s)
+=== RUN   TestJWTAuth_ES256WrongCurvePanics
+--- PASS: TestJWTAuth_ES256WrongCurvePanics (0.01s)
+=== RUN   TestJWTAuth_PanicsOnEmptyAlgorithms
+--- PASS: TestJWTAuth_PanicsOnEmptyAlgorithms (0.00s)
+=== RUN   TestJWTAuth_RawPayloadAvailable
+--- PASS: TestJWTAuth_RawPayloadAvailable (0.00s)
+=== RUN   TestOAuth2Introspect_ActiveTokenAllows
+--- PASS: TestOAuth2Introspect_ActiveTokenAllows (0.01s)
+=== RUN   TestOAuth2Introspect_InactiveTokenRejects
+--- PASS: TestOAuth2Introspect_InactiveTokenRejects (0.01s)
+=== RUN   TestOAuth2Introspect_MissingTokenRejects
+--- PASS: TestOAuth2Introspect_MissingTokenRejects (0.00s)
+=== RUN   TestOAuth2Introspect_CacheHitAvoidsSecondCall
+--- PASS: TestOAuth2Introspect_CacheHitAvoidsSecondCall (0.01s)
+=== RUN   TestOAuth2Introspect_EndpointErrorRejects
+--- PASS: TestOAuth2Introspect_EndpointErrorRejects (0.01s)
+=== RUN   TestOAuth2Introspect_PanicsOnEmptyEndpoint
+--- PASS: TestOAuth2Introspect_PanicsOnEmptyEndpoint (0.00s)
+=== RUN   TestSec_OAuth2_PlaintextHTTP_EndpointAccepted
+--- PASS: TestSec_OAuth2_PlaintextHTTP_EndpointAccepted (0.00s)
+=== RUN   TestSec_OAuth2_HTTPS_Endpoint_NotRejected
+--- PASS: TestSec_OAuth2_HTTPS_Endpoint_NotRejected (0.00s)
+=== RUN   TestSec_OAuth2_AllowInsecureEndpoint_AcceptsHTTP
+--- PASS: TestSec_OAuth2_AllowInsecureEndpoint_AcceptsHTTP (0.00s)
+=== RUN   TestSec_OAuth2_MalformedEndpoint_Panics
+--- PASS: TestSec_OAuth2_MalformedEndpoint_Panics (0.00s)
+=== RUN   TestSetHeaderRejectsCRLF
+--- PASS: TestSetHeaderRejectsCRLF (0.00s)
+=== RUN   TestOAuth2Introspect_ConcurrentSameToken_NoRace
+--- PASS: TestOAuth2Introspect_ConcurrentSameToken_NoRace (0.03s)
+=== RUN   TestOAuth2Introspect_ConcurrentManyTokens_HeapEvictionUnderLoad
+--- PASS: TestOAuth2Introspect_ConcurrentManyTokens_HeapEvictionUnderLoad (1.14s)
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/single
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/three_hops
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/leading_space
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/trailing_space
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/internal_spaces
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/empty_entries
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/leading_comma
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/trailing_comma
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/only_commas
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/ipv6
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/ipv6_zone
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/ipv6_loopback_trusted_tail
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/ported_entry_invalid
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/bracketed_ipv6_invalid
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/garbage_entries
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/all_trusted
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/many_hops_exceeds_cap
+=== RUN   TestRealIP_SelectXFFRightmost_TableCases/exactly_maxhops
+--- PASS: TestRealIP_SelectXFFRightmost_TableCases (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/single (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/three_hops (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/leading_space (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/trailing_space (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/internal_spaces (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/empty_entries (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/leading_comma (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/trailing_comma (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/only_commas (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/ipv6 (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/ipv6_zone (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/ipv6_loopback_trusted_tail (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/ported_entry_invalid (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/bracketed_ipv6_invalid (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/garbage_entries (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/all_trusted (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/many_hops_exceeds_cap (0.00s)
+    --- PASS: TestRealIP_SelectXFFRightmost_TableCases/exactly_maxhops (0.00s)
+=== RUN   TestRealIP_SelectXFFRightmost_FuzzEquivalence
+--- PASS: TestRealIP_SelectXFFRightmost_FuzzEquivalence (2.05s)
+=== RUN   TestRequestID_GeneratedFormat_PooledBuffers
+--- PASS: TestRequestID_GeneratedFormat_PooledBuffers (0.00s)
+=== RUN   TestRequestID_NoDuplicates_ConcurrentGeneration
+--- PASS: TestRequestID_NoDuplicates_ConcurrentGeneration (0.71s)
+=== RUN   TestRequestID_ValidInboundHeaderPropagated_Pooled
+--- PASS: TestRequestID_ValidInboundHeaderPropagated_Pooled (0.00s)
+=== RUN   TestRequestID_InvalidInboundHeaderReplaced_Pooled
+--- PASS: TestRequestID_InvalidInboundHeaderReplaced_Pooled (0.00s)
+=== RUN   TestRequestID_AllocsPerRun_GeneratedPath
+--- PASS: TestRequestID_AllocsPerRun_GeneratedPath (0.00s)
+=== RUN   TestRequestID_AllocsPerRun_PropagatedPath
+--- PASS: TestRequestID_AllocsPerRun_PropagatedPath (0.00s)
+=== RUN   TestRequestID_GetRequestID_ThroughFurtherWrappedContext
+--- PASS: TestRequestID_GetRequestID_ThroughFurtherWrappedContext (0.00s)
+=== RUN   TestRequestID_GetRequestID_NoID_ReturnsEmpty
+--- PASS: TestRequestID_GetRequestID_NoID_ReturnsEmpty (0.00s)
+=== RUN   TestRequestID_HeaderCanonicalForm_ObservedByClient
+--- PASS: TestRequestID_HeaderCanonicalForm_ObservedByClient (0.00s)
+=== RUN   TestRequestID_DownstreamHeaderMutation_DoesNotCorruptContextID
+--- PASS: TestRequestID_DownstreamHeaderMutation_DoesNotCorruptContextID (0.00s)
+=== RUN   TestRequestID_DownstreamHeaderMutation_PropagatedPath
+--- PASS: TestRequestID_DownstreamHeaderMutation_PropagatedPath (0.00s)
+=== RUN   TestRequestID_ConcurrentRequests_ContextNeverCrossesRequests
+--- PASS: TestRequestID_ConcurrentRequests_ContextNeverCrossesRequests (0.88s)
+=== RUN   TestSec_RequestID_MultipleInboundValues_FirstValueWins_MatchesHeaderGet
+--- PASS: TestSec_RequestID_MultipleInboundValues_FirstValueWins_MatchesHeaderGet (0.00s)
+=== RUN   TestSec_RequestID_CRLFInValue_NeverReachesValidation
+--- PASS: TestSec_RequestID_CRLFInValue_NeverReachesValidation (0.00s)
+=== RUN   TestSec_RequestID_OversizedInboundValue_Rejected
+--- PASS: TestSec_RequestID_OversizedInboundValue_Rejected (0.00s)
+=== RUN   TestSec_RequestID_EmptyInboundValue_ReplacedWithGenerated
+--- PASS: TestSec_RequestID_EmptyInboundValue_ReplacedWithGenerated (0.00s)
+=== RUN   TestSetHeader_InPlaceSliceMutation_DoesNotLeakAcrossRequests
+--- PASS: TestSetHeader_InPlaceSliceMutation_DoesNotLeakAcrossRequests (0.00s)
+=== RUN   TestSetHeader_ConcurrentRequests_EachGetsIndependentSlice
+--- PASS: TestSetHeader_ConcurrentRequests_EachGetsIndependentSlice (0.00s)
+=== RUN   TestThrottleBacklog_NeverExceedsLimitConcurrent
+--- PASS: TestThrottleBacklog_NeverExceedsLimitConcurrent (0.06s)
+=== RUN   TestThrottleBacklog_BacklogFullReturns503Immediately
+--- PASS: TestThrottleBacklog_BacklogFullReturns503Immediately (0.00s)
+=== RUN   TestThrottleBacklog_TimeoutReturns503
+--- PASS: TestThrottleBacklog_TimeoutReturns503 (0.03s)
+=== RUN   TestThrottleBacklog_ReleaseOnHandlerPanic
+--- PASS: TestThrottleBacklog_ReleaseOnHandlerPanic (0.00s)
+=== RUN   TestThrottleBacklog_NoStarvation
+--- PASS: TestThrottleBacklog_NoStarvation (0.04s)
+=== RUN   TestThrottlePerIPCapped_NeverExceedsLimitSameKey
+--- PASS: TestThrottlePerIPCapped_NeverExceedsLimitSameKey (0.06s)
+=== RUN   TestThrottlePerIPCapped_ExactCapUnderConcurrentChurn
+--- PASS: TestThrottlePerIPCapped_ExactCapUnderConcurrentChurn (0.03s)
+=== RUN   TestThrottlePerIPCapped_EntriesReclaimedAfterTrafficStops
+--- PASS: TestThrottlePerIPCapped_EntriesReclaimedAfterTrafficStops (0.02s)
+=== RUN   TestThrottlePerIPCapped_TimeoutReclaimsRefs
+--- PASS: TestThrottlePerIPCapped_TimeoutReclaimsRefs (0.04s)
+=== RUN   TestThrottlePerIPCapped_ReleaseOnHandlerPanic
+--- PASS: TestThrottlePerIPCapped_ReleaseOnHandlerPanic (0.00s)
+=== RUN   TestThrottlePerIPCapped_ManyShardsManyKeysRace
+--- PASS: TestThrottlePerIPCapped_ManyShardsManyKeysRace (0.04s)
+=== RUN   TestCompress_FirstWriteHeaderWins_SmallBody
+=== RUN   TestCompress_FirstWriteHeaderWins_SmallBody/plain
+=== RUN   TestCompress_FirstWriteHeaderWins_SmallBody/gzip
+--- PASS: TestCompress_FirstWriteHeaderWins_SmallBody (0.00s)
+    --- PASS: TestCompress_FirstWriteHeaderWins_SmallBody/plain (0.00s)
+    --- PASS: TestCompress_FirstWriteHeaderWins_SmallBody/gzip (0.00s)
+=== RUN   TestCompress_FirstWriteHeaderWins_LargeBody
+--- PASS: TestCompress_FirstWriteHeaderWins_LargeBody (0.00s)
+=== RUN   TestLogger_FirstWriteHeaderWins
+--- PASS: TestLogger_FirstWriteHeaderWins (0.00s)
+=== RUN   TestCompress_1xxInformational_DoesNotBlockFinalStatus
+--- PASS: TestCompress_1xxInformational_DoesNotBlockFinalStatus (0.00s)
+=== RUN   TestLogger_1xxInformational_LogsFinalStatusNotInformational
+--- PASS: TestLogger_1xxInformational_LogsFinalStatusNotInformational (0.00s)
+=== RUN   TestResponseController_Flush_ThroughWrappers
+=== RUN   TestResponseController_Flush_ThroughWrappers/bare
+=== RUN   TestResponseController_Flush_ThroughWrappers/logger
+=== RUN   TestResponseController_Flush_ThroughWrappers/compress
+=== RUN   TestResponseController_Flush_ThroughWrappers/logger+compress
+--- PASS: TestResponseController_Flush_ThroughWrappers (0.00s)
+    --- PASS: TestResponseController_Flush_ThroughWrappers/bare (0.00s)
+    --- PASS: TestResponseController_Flush_ThroughWrappers/logger (0.00s)
+    --- PASS: TestResponseController_Flush_ThroughWrappers/compress (0.00s)
+    --- PASS: TestResponseController_Flush_ThroughWrappers/logger+compress (0.00s)
+=== RUN   TestSSEStreaming_ThroughLoggerAndCompress
+--- PASS: TestSSEStreaming_ThroughLoggerAndCompress (0.00s)
+=== RUN   ExampleAPIKey
+--- PASS: ExampleAPIKey (0.00s)
+=== RUN   ExampleJWTAuth
+--- PASS: ExampleJWTAuth (0.00s)
+=== RUN   ExampleOAuth2Introspect
+--- PASS: ExampleOAuth2Introspect (0.01s)
+=== RUN   ExampleLogger
+--- PASS: ExampleLogger (0.00s)
+=== RUN   ExampleRecoverer
+--- PASS: ExampleRecoverer (0.00s)
+=== RUN   ExampleTimeout
+--- PASS: ExampleTimeout (0.00s)
+=== RUN   ExampleRequestID
+--- PASS: ExampleRequestID (0.00s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/middleware	10.860s

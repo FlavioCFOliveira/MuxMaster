@@ -1,0 +1,46 @@
+File: reverse-proxy
+Build ID: 48a15e7ff5d798963f257d48b956acc46e4bb289
+Type: alloc_space
+Time: 2026-09-25 12:38:16 WEST
+Duration: 10.01s, Total samples = 9615.41MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 6790.80MB, 70.62% of 9615.41MB total
+Dropped 30 nodes (cum <= 48.08MB)
+      flat  flat%   sum%        cum   cum%
+ 5649.42MB 58.75% 58.75%  5649.42MB 58.75%  net/http/httputil.(*ReverseProxy).copyBuffer
+  183.55MB  1.91% 60.66%   183.55MB  1.91%  net/http.Header.Clone (inline)
+  138.54MB  1.44% 62.10%   138.54MB  1.44%  net/http.(*Request).WithContext (partial-inline)
+  138.14MB  1.44% 63.54%   138.14MB  1.44%  github.com/FlavioCFOliveira/MuxMaster/middleware.newExhaustedRequestIDBuf (inline)
+  102.03MB  1.06% 64.60%  6899.36MB 71.75%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+   79.03MB  0.82% 65.42%  6527.11MB 67.88%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   77.01MB   0.8% 66.22%   148.03MB  1.54%  net/http.(*persistConn).roundTrip
+   71.52MB  0.74% 66.97%    71.52MB  0.74%  net/textproto.MIMEHeader.Set (inline)
+   62.52MB  0.65% 67.62%   160.04MB  1.66%  net/http.(*Request).Clone
+   62.01MB  0.64% 68.26%    80.51MB  0.84%  net/http.(*Transport).getConn
+   57.51MB   0.6% 68.86%    57.51MB   0.6%  mime.ParseMediaType
+   53.51MB  0.56% 69.42%    53.51MB  0.56%  context.(*cancelCtx).propagateCancel
+      37MB  0.38% 69.80%       37MB  0.38%  context.(*cancelCtx).Done
+   35.50MB  0.37% 70.17%  6448.08MB 67.06%  net/http/httputil.(*ReverseProxy).ServeHTTP
+   27.50MB  0.29% 70.46%    81.01MB  0.84%  context.withCancel (inline)
+      13MB  0.14% 70.59%   355.56MB  3.70%  net/http.(*Transport).roundTrip
+       3MB 0.031% 70.62%    72.51MB  0.75%  context.WithCancelCause
+         0     0% 70.62%    45.03MB  0.47%  fmt.Fprintln
+         0     0% 70.62%  6573.15MB 68.36%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 70.62%  6899.36MB 71.75%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 70.62%  6573.15MB 68.36%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 70.62%  6573.15MB 68.36%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 70.62%   138.14MB  1.44%  github.com/FlavioCFOliveira/MuxMaster/middleware.init.func3
+         0     0% 70.62%   149.66MB  1.56%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+         0     0% 70.62%  1612.80MB 16.77%  main.adminAuth.func1
+         0     0% 70.62%    46.03MB  0.48%  main.indexPage
+         0     0% 70.62%  3213.91MB 33.42%  main.newRoundRobin.func1
+         0     0% 70.62%   355.56MB  3.70%  net/http.(*Transport).RoundTrip
+         0     0% 70.62%  6899.36MB 71.75%  net/http.(*conn).serve
+         0     0% 70.62%   101.53MB  1.06%  net/http.(*response).WriteHeader
+         0     0% 70.62%  6899.36MB 71.75%  net/http.HandlerFunc.ServeHTTP
+         0     0% 70.62%    71.52MB  0.74%  net/http.Header.Set (inline)
+         0     0% 70.62%  6899.36MB 71.75%  net/http.serverHandler.ServeHTTP
+         0     0% 70.62%  5649.42MB 58.75%  net/http/httputil.(*ReverseProxy).copyResponse
+         0     0% 70.62%    57.51MB   0.6%  net/http/httputil.(*ReverseProxy).flushInterval
+         0     0% 70.62%   158.18MB  1.65%  sync.(*Pool).Get

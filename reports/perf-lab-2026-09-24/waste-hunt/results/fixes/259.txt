@@ -1,0 +1,165 @@
+Sprint 18 — rmp #259 (DIV-001 bounded backtracking fix) — fix evidence
+================================================================================
+Host: AMD Ryzen 9 5900HX (16 threads), Go 1.26/1.27, Linux. go test -benchmem
+-count=6, compared with benchstat.
+
+"before" = working tree at commit d980583 plus the already-validated,
+uncommitted #248/#250-#257 work (i.e. the state this task started from,
+BEFORE any #259 tree.go change). File: routing-before.txt
+"after"  = the same tree with #259's getValue bounded-backtracking fix
+applied (tree.go: backtrackFrame/backtrackStack/backtrackDepth/
+backtrackInline, the getValue rewrite). File: routing-after.txt
+Comparison: routing-benchstat.txt
+
+Benchmarks covered (bench_test.go): BenchmarkStaticRoute, ParamRoute1/2/3,
+WildcardRoute, ParallelStaticRoute, ParallelParamRoute, FastStaticRoute,
+FastParamRoute1/2/3, FastParallelParamRoute, PooledParamRoute1/2/3,
+PooledWildcardRoute, PooledParallelParamRoute — the full core-routing set
+named in the task.
+
+================================================================================
+SUMMARY
+================================================================================
+
+allocs/op and B/op: UNCHANGED on every benchmark (0 allocs on static/
+pooled/wildcard-pooled paths, 1 alloc on param/fast/wildcard paths, exactly
+as before). The fix is allocation-neutral in all steady-state cases; see
+"tiered backtrack stack" below for the one case that DOES allocate, and why
+it is rare and bounded.
+
+sec/op, geomean across the 17 benchmarks: +5.94%.
+
+Per-benchmark, the regression cleanly separates into two groups:
+
+  1. Routes with NO static/wildchild sibling collision on the exercised
+     lookup path — the task's explicit "no significant regression" class:
+       ParamRoute1        -2.08%  (noise / measurement, i.e. flat)
+       ParamRoute2        -1.07%  (flat)
+       ParamRoute3         ~0%    (not significant, p=0.515)
+       WildcardRoute       ~0%    (not significant, p=0.180)
+       ParallelParamRoute  +1.05%
+       PooledParamRoute2   ~0%    (not significant, p=0.132)
+       PooledParamRoute3   -1.89%
+     These routes never touch the new stack.push code path at all (the
+     request's first byte after the shared prefix never matches a static
+     sibling index when a wildchild is present — see mechanism below), so
+     the observed deltas are measurement noise, not a real cost.
+
+  2. Routes that DO exercise a genuine static-vs-wildchild collision —
+     i.e. the DIV-001 shape itself. newBenchMux() registers "/users/list"
+     (static) as a sibling of "/users/:id" (param), and BenchmarkStaticRoute
+     requests exactly "/users/list" — so EVERY iteration hits the new
+     stack.push(), by design (the request is choosing the static branch
+     over a real wildchild alternative that must be remembered in case the
+     static branch fails):
+       StaticRoute          +17.80%  (24.94ns -> 29.38ns,   +4.4ns absolute)
+       FastStaticRoute      +17.62%  (25.57ns -> 30.08ns,   +4.5ns absolute)
+       ParallelStaticRoute  +20.60%  ( 3.74ns ->  4.51ns,   +0.8ns absolute)
+       FastParamRoute1/2/3  +10.05% / +9.69% / +6.46%  (also cross a
+         static/wildchild fork under /orgs/:org/repos/:repo/issues/:num
+         and /products/:id, which share a parent with other siblings)
+       PooledParamRoute1    +6.89%
+       PooledWildcardRoute  +5.92%
+       PooledParallelParamRoute +10.20%
+
+Interpretation: this second group is exactly the class of route the DIV-001
+bug report itself is about (static registered as a sibling of a param/
+wildcard). Before #259, this shape was FAST but WRONG — it silently 404'd
+on any near-miss of the static branch instead of falling back to the param
+route (the bug). After #259, it is CORRECT and pays a small, bounded,
+measured cost (single-digit nanoseconds) for the one extra bookkeeping step
+(remembering a fallback point) that correctness requires. Absolute ns/op
+remains far inside the project's ≤185ns/≤4 allocs static-route target
+(29.38ns, 0 allocs) and still competitive with httprouter/bunrouter.
+
+================================================================================
+MECHANISM (why group 1 is unaffected)
+================================================================================
+
+getValue only calls stack.push() at the exact point where a static child's
+first byte MATCHES an index entry AND n.wildChild is true (tree.go, the
+`for j := range len(n.indices)` loop inside the "descend into static
+children" branch). For a request like "/users/42" against a node with
+static children "list"/"search" and wildchild ":id", the byte '4' matches
+NEITHER static index, so the loop finds no match and falls straight through
+to the wildchild — push is never called. Only requests that literally match
+a static sibling's first byte (and therefore descend into it) ever pay for
+the bookkeeping, which is precisely the routes with an actual static/
+wildchild collision on that request.
+
+================================================================================
+TIERED BACKTRACK STACK (why B/op and allocs/op are unchanged)
+================================================================================
+
+Three implementations were measured before settling on the final design
+(see the conversation history / tree.go comments for the full rationale):
+
+  1. Two-function split (getValue wrapper calling a separate getValueWalk),
+     backtrackDepth=8 frames inline in a plain struct: StaticRoute +92%,
+     geomean +25%. The extra real function call (getValueWalk was too
+     large to inline) dominated the cost.
+  2. Single function merged via `goto fail` (no extra call), backtrackDepth=8
+     frames inline: StaticRoute +17.4%, geomean +8.1% — confirms the call
+     overhead, not the array size, was the main driver in (1); reducing the
+     inline array from 8 to 2 frames changed nothing measurable (+17.46%
+     vs +17.42%), further confirming array size was not the bottleneck once
+     the extra call was removed.
+  3. Lazy heap allocation (nil *backtrackStack, allocated only on first
+     push): StaticRoute +325.62%, ParallelStaticRoute +2031.62%, with a
+     NEW 352 B/op / 1 alloc appearing on BenchmarkStaticRoute. This was a
+     regression, not an improvement: BenchmarkStaticRoute's exact shape
+     (a static route that IS a wildchild sibling and matches immediately)
+     pushes a frame on every single call, so "lazy" heap allocation meant
+     paying a full malloc (~70-80ns) on every call instead of a few extra
+     stack bytes.
+
+Final design (tree.go): backtrackStack is tiered like the existing
+paramsBuf — backtrackInline=2 frames live inline in getValue's own stack
+frame (zero allocation, covers the single- and double-collision cases,
+i.e. every case actually measured here), with a heap-allocated overflow
+slice for the rare case of more than 2 simultaneous collisions along one
+lookup, up to the hard backtrackDepth=8 cap. This is why every benchmark
+above shows 0 additional B/op / allocs/op: none of them exercise more than
+one collision at a time.
+
+================================================================================
+DoS BOUND — BenchmarkAdversarialBacktracking (bench_test.go)
+================================================================================
+
+A purpose-built adversarial tree forces a genuine NESTED static-vs-wildchild
+fork at every one of `depth` levels along a single lookup (see
+buildAdversarialBacktrackMux's doc comment in bench_test.go for the exact
+construction: a pure-static dead-end spine "/a/x/x/.../x/STATICEND" plus a
+param alternative at every depth, with the sole real target reachable only
+via the full all-param chain). This is the shape that would force up to
+2^depth combinations to be explored before a naive unbounded backtracking
+implementation could report 404.
+
+  depth   ns/op      B/op     allocs/op
+  1       112.3        384       1
+  2       138.6        416       1
+  4       394.5       1008       5
+  8       728.3       1712       8
+  16     1060        2736       9
+  32     1673        5168      10
+  64     2870        9776      11
+  128    5268       19760      12
+
+128x growth in depth -> ~47x growth in ns/op: clearly sub-linear relative to
+depth, and nowhere close to the 2^depth an unbounded implementation would
+need to explore (2^128 is astronomically larger than anything measurable).
+allocs/op growth is also bounded and small (max 12 allocs at depth=128,
+each one a single overflow-slice append past backtrackInline=2, capped by
+backtrackDepth=8 — see TestAdversarialBacktracking_BoundedNotExponential in
+tree_backtrack_bound_test.go for the exact correctness boundary this
+produces: depth==backtrackDepth still finds the true target; depth==
+backtrackDepth+1 safely (no panic, no hang) returns 404 instead, because the
+frame for the deepest fork was dropped once backtrackDepth was reached).
+
+================================================================================
+RAW DATA
+================================================================================
+See routing-before.txt, routing-after.txt, routing-benchstat.txt (same
+directory) for the full benchstat output (sec/op, B/op, allocs/op, all with
+n=6 and p-values) and adversarial-benchmark.txt for the
+BenchmarkAdversarialBacktracking raw output.

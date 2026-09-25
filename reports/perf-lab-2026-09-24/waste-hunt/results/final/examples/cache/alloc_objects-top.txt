@@ -1,0 +1,49 @@
+File: cache
+Build ID: 914e44d39a2aa75060787d0bfc91ada9eebed2a7
+Type: alloc_objects
+Time: 2026-09-25 12:36:46 WEST
+Duration: 10s, Total samples = 14920691 
+Showing nodes accounting for 14785714, 99.10% of 14920691 total
+Dropped 60 nodes (cum <= 74603)
+Showing top 40 nodes out of 57
+      flat  flat%   sum%        cum   cum%
+   2829223 18.96% 18.96%    2829223 18.96%  net/textproto.readMIMEHeader
+   1472049  9.87% 28.83%    1472049  9.87%  net/http.Header.Clone (inline)
+   1261614  8.46% 37.28%    1261614  8.46%  net/textproto.MIMEHeader.Set (inline)
+   1050273  7.04% 44.32%    6010276 40.28%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+   1031250  6.91% 51.23%    6572385 44.05%  net/http.(*conn).readRequest
+    753675  5.05% 56.28%     753675  5.05%  net/http.(*connReader).startBackgroundRead
+    635748  4.26% 60.55%     635748  4.26%  net.(*conn).Read
+    570207  3.82% 64.37%     570207  3.82%  context.withCancel (inline)
+    568698  3.81% 68.18%    4521684 30.30%  net/http.readRequestLimit
+    564416  3.78% 71.96%     564416  3.78%  net/url.parse
+    546145  3.66% 75.62%     546145  3.66%  net/textproto.(*Reader).ReadLine (inline)
+    468725  3.14% 78.76%     468725  3.14%  net/http.(*Request).WithContext
+    436912  2.93% 81.69%     436912  2.93%  reflect.unsafe_New
+    425991  2.86% 84.55%     996198  6.68%  context.WithCancel
+    360453  2.42% 86.96%    1674933 11.23%  github.com/FlavioCFOliveira/MuxMaster.JSON
+    223935  1.50% 88.46%     223935  1.50%  bytes.Clone (inline)
+    206240  1.38% 89.85%    2844157 19.06%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+    196617  1.32% 91.16%     196617  1.32%  strconv.quoteWith (inline)
+    196614  1.32% 92.48%     573461  3.84%  main.etagFor
+    196613  1.32% 93.80%     539728  3.62%  github.com/FlavioCFOliveira/MuxMaster.writeRedirect
+    180230  1.21% 95.01%     180230  1.21%  internal/bytealg.MakeNoZero
+    174766  1.17% 96.18%     202369  1.36%  fmt.Sprintf
+    143842  0.96% 97.14%     143842  0.96%  main.errMsg (inline)
+    105787  0.71% 97.85%    1021454  6.85%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).serveRedirect
+     98308  0.66% 98.51%     385808  2.59%  io.WriteString
+     87383  0.59% 99.10%      87383  0.59%  github.com/FlavioCFOliveira/MuxMaster.(*redirectCtx).Value
+         0     0% 99.10%     676144  4.53%  encoding/json.Marshal (inline)
+         0     0% 99.10%     676144  4.53%  encoding/json/v2.Marshal
+         0     0% 99.10%     441009  2.96%  encoding/json/v2.marshalEncode
+         0     0% 99.10%    1959284 13.13%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).HandleE.func1
+         0     0% 99.10%    6953899 46.61%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 99.10%    6953899 46.61%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 99.10%     627111  4.20%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).lazyRedirect.func1
+         0     0% 99.10%      87383  0.59%  github.com/FlavioCFOliveira/MuxMaster.redirectTargetFrom
+         0     0% 99.10%      87383  0.59%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*requestIDCtx).Value
+         0     0% 99.10%    1184549  7.94%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 99.10%    4482065 30.04%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 99.10%    4440640 29.76%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 99.10%     432480  2.90%  main.checkNotModified
+         0     0% 99.10%     631596  4.23%  main.main.func1

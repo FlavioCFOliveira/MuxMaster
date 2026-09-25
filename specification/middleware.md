@@ -32,7 +32,13 @@ There are four middleware scopes. Each scope defines which requests a middleware
 
 9. Global middleware is registered via `r.Use(middleware ...func(http.Handler) http.Handler)`.
 10. Global middleware wraps every handler registered after the `Use` call. It does not wrap handlers registered before the `Use` call.
-11. Global middleware does not wrap the 404 handler (`NotFound`), the 405 handler (`MethodNotAllowed`), the OPTIONS auto-response, or the TSR/fixed-path redirects. It only wraps explicitly registered route handlers.
+11. Global middleware wraps every internally generated response the router produces on its own, not only explicitly registered route handlers. This includes:
+    - the 404 handler (`NotFound`) (see [error-handling.md](error-handling.md) requirement 5);
+    - the 405 handler (`MethodNotAllowed`) (see [error-handling.md](error-handling.md) requirement 10);
+    - the automatic OPTIONS response, whether or not `GlobalOPTIONS` is set (see [error-handling.md](error-handling.md) requirement 21);
+    - the TSR and fixed-path redirect response (see [routing.md](routing.md) requirements 52 and 56).
+
+    For all four, the middleware binding is dynamic rather than fixed at registration time: the router builds and caches a middleware-wrapped handler for each of them, invalidates that cache on every subsequent `Use` call (and on `Rebuild`), and rebuilds it — with whatever `Use` chain is registered at that moment — the next time it is needed. The wrapping therefore always reflects the most recently registered `Use` chain as of when the response is produced, never the chain in effect at some earlier point such as when `NotFound` was assigned or when a particular route was registered. This is the opposite binding rule from ordinary route handlers, whose middleware is fixed at the moment `Handle` is called and never changes afterward (requirement 12 below).
 12. Global middleware is applied at registration time (see [routing.md](routing.md) requirement 44). There is no per-request overhead for global middleware.
 13. Multiple `Use` calls append to the middleware chain. Earlier calls are outermost.
 

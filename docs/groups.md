@@ -142,6 +142,10 @@ mux.Mount("/v2", v2)
 
 The mounted handler receives `r.URL.Path` with the prefix stripped, so a sub-router mounted at `/v2` sees `/users`, not `/v2/users`.
 
+**Request handling:**
+
+Before forwarding to the mounted handler, MuxMaster creates a shallow request copy — a new `*http.Request` that shares the header map and context with the original, but carries a new `*url.URL` with the stripped path. The original request passed to `ServeHTTP` is never modified. The original path is available via `r.URL.RawPath` or via `RoutePattern()` if the mounted handler is another `*Mux`.
+
 ### Organizing a large application
 
 ```go

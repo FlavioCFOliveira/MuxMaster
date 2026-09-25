@@ -156,8 +156,18 @@ func buildMux(log *slog.Logger) *mm.Mux {
 	// demonstrating pool wins to users without leaving curl.
 	mux.GET("/bench", benchHandler)
 
-	// pprof — Mount the standard net/http/pprof handler tree at /debug/pprof/.
-	mux.Mount("/debug/pprof", http.DefaultServeMux)
+	// pprof — attach net/http/pprof's handlers directly instead of using
+	// Mount. Mount rewrites r.URL.Path to only the segment captured after
+	// the prefix (e.g. "/profile"), but net/http/pprof matches on the FULL
+	// path: pprof.Index expects r.URL.Path to still start with
+	// "/debug/pprof/", and http.DefaultServeMux routes cmdline/profile/
+	// symbol/trace by their exact, unstripped registered patterns. Mounting
+	// with prefix-stripping made every "/debug/pprof/*" request 404.
+	// Forwarding the request unchanged makes DefaultServeMux's own routing
+	// work as documented.
+	mux.GET("/debug/pprof/*filepath", func(w http.ResponseWriter, r *http.Request) {
+		http.DefaultServeMux.ServeHTTP(w, r)
+	})
 
 	// ── Diagnostics endpoint: a route that returns the active Mux config ─────
 	mux.GET("/config", configHandler)
@@ -270,6 +280,15 @@ func metricsFast(w http.ResponseWriter, r *http.Request, ps mm.Params) {
 func fastTimer(log *slog.Logger) mm.FastMiddleware {
 	return func(next mm.FastHandler) mm.FastHandler {
 		return func(w http.ResponseWriter, r *http.Request, ps mm.Params) {
+			// log's handler defaults to slog.LevelInfo (built with nil
+			// HandlerOptions), so every Debug call below is dropped. Reading
+			// the clock and boxing the log arguments on every fast request
+			// only to discard them is pure waste — skip both when Debug is
+			// not enabled.
+			if !log.Enabled(r.Context(), slog.LevelDebug) {
+				next(w, r, ps)
+				return
+			}
 			start := time.Now()
 			next(w, r, ps)
 			log.Debug("fast", "path", r.URL.Path, "elapsed", time.Since(start))

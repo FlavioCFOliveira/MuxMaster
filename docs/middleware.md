@@ -201,7 +201,7 @@ import "github.com/FlavioCFOliveira/MuxMaster/middleware"
 
 ### Logger
 
-Logs each request after it completes. Output format: `timestamp method path status duration`.
+Logs each request after it completes. Output format: `timestamp method path status duration`. The logged status is always the final HTTP status code; if a handler sends a 1xx informational response (e.g., 103 Early Hints) followed by a final status (e.g., 403), the final status is recorded, not the informational code.
 
 ```go
 mux.Use(middleware.Logger(os.Stdout))
@@ -216,6 +216,10 @@ Sample output:
 
 **Parameters:**
 - `out io.Writer` — destination for log lines; panics if nil
+
+**Supported interfaces:**
+
+Logger implements `http.Flusher` (delegating to the underlying response writer) and `io.ReaderFrom` (for `sendfile`/`splice` fast paths). It also exposes `Unwrap() http.ResponseWriter` for tools that use `http.ResponseController`.
 
 ---
 
@@ -262,6 +266,10 @@ mux.Use(middleware.CORS(middleware.CORSOptions{
 | `ExposedHeaders`   | `[]string` | Response headers accessible to the browser                  |
 | `AllowCredentials` | `bool`     | Whether the response can include cookies (cannot use `"*"`) |
 | `MaxAge`           | `int`      | Seconds to cache the preflight response                     |
+
+**Header isolation:**
+
+Header values set by CORS are independent per request. Code downstream that directly indexes into the `Header()` map (e.g., `w.Header()["Key"][0] = ...`) mutates only that request's copy; other requests are unaffected. This is true for every CORS() instance.
 
 ---
 
@@ -493,6 +501,12 @@ mux.Use(middleware.Compress(5)) // compression level 1–9; 5 is a good default
 
 Responses smaller than a threshold are not compressed. The `Content-Encoding: gzip` header is set automatically.
 
+The middleware applies a "first-WriteHeader wins" lock to prevent multiple calls from changing the status code once compression has begun. To match `net/http`'s own behaviour, 1xx informational responses (e.g., 103 Early Hints) are exempt from this lock and do not block subsequent final status codes.
+
+**Supported interfaces:**
+
+Compress implements `http.Flusher` (delegating to the underlying gzip writer) and `Unwrap() http.ResponseWriter` for tools that use `http.ResponseController`.
+
 ---
 
 ### ThrottleBacklog
@@ -559,7 +573,11 @@ Extracts the real client IP address from `X-Forwarded-For` or `X-Real-IP` header
 mux.Use(middleware.RealIP)
 ```
 
-Only use this middleware if the server is behind a trusted reverse proxy. Accepting these headers from arbitrary clients is a security risk.
+For `X-Forwarded-For` (a comma-separated list of IPs in proxy chain order), RealIP searches from right-to-left for the rightmost untrusted proxy in the chain. It respects a 30-hop limit to defend against unbounded list sizes.
+
+**Security:**
+
+Only use this middleware if the server is behind a trusted reverse proxy. Accepting these headers from arbitrary clients is a security risk — the client can spoof `X-Forwarded-For` to claim any IP address. If the proxy chain is compromised, RealIP will assign the IP address that an attacker inserted into the rightmost position.
 
 ---
 
@@ -596,6 +614,10 @@ mux.Use(middleware.NoCache)
 
 Headers set: `Cache-Control: no-cache, no-store, no-transform, must-revalidate, private, max-age=0`, `Pragma: no-cache`, `Expires: 0`.
 
+**Header isolation:**
+
+Each request gets its own independent copy of the cache-control headers. Code downstream that directly indexes into the `Header()` map (e.g., `w.Header()["Cache-Control"][0] = ...`) mutates only that request's copy; other requests retain the original no-cache headers.
+
 ---
 
 ### SetHeader
@@ -607,6 +629,10 @@ mux.Use(middleware.SetHeader("X-Content-Type-Options", "nosniff"))
 mux.Use(middleware.SetHeader("X-Frame-Options", "DENY"))
 mux.Use(middleware.SetHeader("Strict-Transport-Security", "max-age=31536000"))
 ```
+
+**Header isolation:**
+
+Each request gets its own independent copy of the header value. Code downstream that directly indexes into the `Header()` map (e.g., `w.Header()["X-Custom"][0] = ...`) mutates only that request's copy; other requests are unaffected.
 
 ---
 

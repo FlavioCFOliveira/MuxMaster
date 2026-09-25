@@ -1,0 +1,49 @@
+File: reverse-proxy
+Build ID: 48a15e7ff5d798963f257d48b956acc46e4bb289
+Type: alloc_objects
+Time: 2026-09-25 12:38:16 WEST
+Duration: 10.01s, Total samples = 21475501 
+Showing nodes accounting for 18921314, 88.11% of 21475501 total
+Dropped 87 nodes (cum <= 107377)
+Showing top 40 nodes out of 111
+      flat  flat%   sum%        cum   cum%
+   2453831 11.43% 11.43%    2519368 11.73%  net/textproto.readMIMEHeader
+   1399022  6.51% 17.94%    1399022  6.51%  net/http.Header.Clone (inline)
+   1026300  4.78% 22.72%    1026300  4.78%  net/textproto.MIMEHeader.Set (inline)
+    917578  4.27% 26.99%    1452362  6.76%  net/http.(*persistConn).roundTrip
+    911022  4.24% 31.23%    3704174 17.25%  net/http.(*Transport).dialConn
+    884748  4.12% 35.35%    1429989  6.66%  net/http.(*Request).write
+    854558  3.98% 39.33%    2981817 13.88%  net/http.(*persistConn).readLoop
+    750966  3.50% 42.83%    8508911 39.62%  net/http/httputil.(*ReverseProxy).ServeHTTP
+    708387  3.30% 46.13%     769248  3.58%  context.(*cancelCtx).propagateCancel
+    562932  2.62% 48.75%    1117815  5.21%  net/http.(*Transport).getConn
+    537432  2.50% 51.25%     950025  4.42%  context.withCancel (inline)
+    511579  2.38% 53.63%    9808708 45.67%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    496255  2.31% 55.95%     496255  2.31%  context.(*cancelCtx).Done
+    458760  2.14% 58.08%     458760  2.14%  net/textproto.MIMEHeader.Add (inline)
+    453976  2.11% 60.20%     453976  2.11%  net/http.(*Request).WithContext (partial-inline)
+    421678  1.96% 62.16%    2915709 13.58%  net/http.(*conn).readRequest
+    373246  1.74% 63.90%     373246  1.74%  mime.ParseMediaType
+    360453  1.68% 65.58%     688156  3.20%  context.WithCancel
+    327687  1.53% 67.10%     327687  1.53%  io.LimitReader (inline)
+    305841  1.42% 68.53%     305841  1.42%  net/textproto.(*Reader).ReadLine (inline)
+    288380  1.34% 69.87%     288380  1.34%  net.(*conn).Read
+    275272  1.28% 71.15%     537423  2.50%  net/http.readTransfer
+    254897  1.19% 72.34%     254897  1.19%  net/url.parse
+    245767  1.14% 73.48%     245767  1.14%  syscall.anyToSockaddr
+    229385  1.07% 74.55%     229385  1.07%  net/http.(*transportRequest).extraHeaders (inline)
+    224709  1.05% 75.60%     381008  1.77%  context.AfterFunc
+    215802  1.00% 76.60%    8724713 40.63%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+    214696     1% 77.60%    2045599  9.53%  net/http.readRequestLimit
+    212103  0.99% 78.59%     212103  0.99%  bufio.NewReaderSize (inline)
+    207540  0.97% 79.55%     207540  0.97%  net.sockaddrToTCP
+    204862  0.95% 80.51%     971694  4.52%  net/http.(*Request).Clone
+    196611  0.92% 81.42%     196611  0.92%  net/http.(*connReader).startBackgroundRead
+    196610  0.92% 82.34%     818932  3.81%  context.WithCancelCause
+    193361   0.9% 83.24%     193361   0.9%  net/http.newTransferWriter
+    192994   0.9% 84.14%    2006482  9.34%  net/http.ReadResponse
+    180780  0.84% 84.98%     180780  0.84%  net/http/httputil.(*ReverseProxy).copyBuffer
+    180216  0.84% 85.82%     180216  0.84%  bufio.NewWriterSize (inline)
+    170405  0.79% 86.61%    4006917 18.66%  net/http.(*Transport).roundTrip
+    163845  0.76% 87.38%     163845  0.76%  context.WithValue
+    156828  0.73% 88.11%     474225  2.21%  context.WithDeadlineCause

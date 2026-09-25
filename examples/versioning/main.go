@@ -112,9 +112,12 @@ func main() {
 // header-based versioning WITHOUT a runtime routing penalty — the rewrite
 // happens in Pre, before tree lookup.
 //
-// Note: this allocates a new URL object only on the (rare) cache-miss path.
-// For pool safety, the rewrite writes through r.URL (which is itself a
-// pointer into the bundle and gets recycled cleanly).
+// Note: Pre runs BEFORE route dispatch, on the ORIGINAL *http.Request that
+// ServeHTTP received — the pooled reqBundle (which fuses a per-route
+// requestCtx with a *http.Request copy) is only created later, inside
+// dispatch, for routes that carry path parameters. So this rewrite mutates
+// r.URL.Path on the caller's actual request, not on a recycled copy; that
+// mutation is what the tree matches against for the rest of this request.
 func acceptHeaderVersionDispatch(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only apply to /api/ paths that DON'T already have a /vN/ prefix.
@@ -133,8 +136,8 @@ func acceptHeaderVersionDispatch(next http.Handler) http.Handler {
 		if a := r.Header.Get("Accept"); strings.Contains(a, "v=2") {
 			v = "2"
 		}
-		// Rewrite r.URL.Path in place. The bundle copy is mutable; the
-		// original request is never modified.
+		// Rewrite r.URL.Path in place. Pre runs before the pooled reqBundle
+		// exists, so this mutates the ORIGINAL *http.Request, not a copy.
 		r.URL.Path = "/api/v" + v + "/" + rest
 		next.ServeHTTP(w, r)
 	})

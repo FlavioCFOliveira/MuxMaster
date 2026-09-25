@@ -1,0 +1,137 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                               │ root-baseline-d980583.txt │         root-new-split.txt          │
+                               │          sec/op           │   sec/op     vs base                │
+StaticRoute-16                                 24.37n ± 1%   26.93n ± 0%  +10.50% (p=0.000 n=10)
+ParamRoute1-16                                 118.0n ± 1%   114.9n ± 1%   -2.67% (p=0.000 n=10)
+ParamRoute2-16                                 130.4n ± 0%   130.6n ± 1%        ~ (p=0.670 n=10)
+ParamRoute3-16                                 145.5n ± 1%   143.8n ± 1%   -1.20% (p=0.001 n=10)
+WildcardRoute-16                               108.6n ± 1%   114.1n ± 6%   +5.06% (p=0.000 n=10)
+NotFound-16                                    220.7n ± 3%   215.3n ± 2%   -2.40% (p=0.000 n=10)
+ParallelStaticRoute-16                         3.693n ± 1%   3.967n ± 1%   +7.40% (p=0.000 n=10)
+ParallelParamRoute-16                          107.8n ± 2%   104.0n ± 2%   -3.48% (p=0.000 n=10)
+FastStaticRoute-16                             25.61n ± 2%   28.36n ± 2%  +10.72% (p=0.000 n=10)
+FastParamRoute1-16                             43.56n ± 1%   46.03n ± 0%   +5.68% (p=0.000 n=10)
+FastParamRoute2-16                             61.69n ± 0%   64.40n ± 0%   +4.38% (p=0.000 n=10)
+FastParamRoute3-16                             86.26n ± 0%   82.97n ± 2%   -3.81% (p=0.000 n=10)
+FastParallelParamRoute-16                      16.57n ± 1%   16.75n ± 2%        ~ (p=0.165 n=10)
+PooledParamRoute1-16                           42.48n ± 2%   54.46n ± 1%  +28.19% (p=0.000 n=10)
+PooledParamRoute2-16                           54.66n ± 1%   63.85n ± 1%  +16.82% (p=0.000 n=10)
+PooledParamRoute3-16                           58.81n ± 1%   66.06n ± 1%  +12.32% (p=0.000 n=10)
+PooledWildcardRoute-16                         41.32n ± 2%   52.88n ± 1%  +27.96% (p=0.000 n=10)
+PooledParallelParamRoute-16                    6.483n ± 2%   7.512n ± 2%  +15.86% (p=0.000 n=10)
+RegisterRoutes/N=100-16                                      54.13µ ± 1%
+RegisterRoutes/N=1000-16                                     671.4µ ± 1%
+RegisterRoutes/N=5000-16                                     4.662m ± 1%
+ServeFiles-16                                                809.4n ± 0%
+GroupServeFiles-16                                           804.0n ± 1%
+AdversarialBacktracking/1-16                                 170.6n ± 1%
+AdversarialBacktracking/2-16                                 210.2n ± 1%
+AdversarialBacktracking/4-16                                 548.6n ± 0%
+AdversarialBacktracking/8-16                                 1.208µ ± 0%
+AdversarialBacktracking/16-16                                2.197µ ± 1%
+AdversarialBacktracking/32-16                                4.220µ ± 1%
+AdversarialBacktracking/64-16                                8.098µ ± 1%
+AdversarialBacktracking/128-16                               15.76µ ± 6%
+QuadraticBacktracking/2-16                                   211.7n ± 2%
+QuadraticBacktracking/4-16                                   561.7n ± 1%
+QuadraticBacktracking/8-16                                   1.218µ ± 1%
+QuadraticBacktracking/16-16                                  2.264µ ± 2%
+QuadraticBacktracking/32-16                                  4.525µ ± 1%
+QuadraticBacktracking/64-16                                  8.825µ ± 2%
+geomean                                        48.06n        456.7n        +6.95%
+
+                               │ root-baseline-d980583.txt │          root-new-split.txt           │
+                               │           B/op            │     B/op      vs base                 │
+StaticRoute-16                                0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+ParamRoute1-16                                384.0 ± 0%       384.0 ± 0%       ~ (p=1.000 n=10) ¹
+ParamRoute2-16                                416.0 ± 0%       416.0 ± 0%       ~ (p=1.000 n=10) ¹
+ParamRoute3-16                                480.0 ± 0%       480.0 ± 0%       ~ (p=1.000 n=10) ¹
+WildcardRoute-16                              384.0 ± 0%       384.0 ± 0%       ~ (p=1.000 n=10) ¹
+NotFound-16                                   93.00 ± 3%       92.50 ± 3%       ~ (p=0.073 n=10)
+ParallelStaticRoute-16                        0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+ParallelParamRoute-16                         384.0 ± 0%       384.0 ± 0%       ~ (p=1.000 n=10) ¹
+FastStaticRoute-16                            0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+FastParamRoute1-16                            32.00 ± 0%       32.00 ± 0%       ~ (p=1.000 n=10) ¹
+FastParamRoute2-16                            64.00 ± 0%       64.00 ± 0%       ~ (p=1.000 n=10) ¹
+FastParamRoute3-16                            96.00 ± 0%       96.00 ± 0%       ~ (p=1.000 n=10) ¹
+FastParallelParamRoute-16                     32.00 ± 0%       32.00 ± 0%       ~ (p=1.000 n=10) ¹
+PooledParamRoute1-16                          0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+PooledParamRoute2-16                          0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+PooledParamRoute3-16                          0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+PooledWildcardRoute-16                        0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+PooledParallelParamRoute-16                   0.000 ± 0%       0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RegisterRoutes/N=100-16                                      84.75Ki ± 0%
+RegisterRoutes/N=1000-16                                     1.025Mi ± 0%
+RegisterRoutes/N=5000-16                                     6.008Mi ± 0%
+ServeFiles-16                                                  709.0 ± 0%
+GroupServeFiles-16                                             708.0 ± 0%
+AdversarialBacktracking/1-16                                   384.0 ± 0%
+AdversarialBacktracking/2-16                                   416.0 ± 0%
+AdversarialBacktracking/4-16                                   896.0 ± 0%
+AdversarialBacktracking/8-16                                 2.031Ki ± 0%
+AdversarialBacktracking/16-16                                3.719Ki ± 0%
+AdversarialBacktracking/32-16                                7.469Ki ± 0%
+AdversarialBacktracking/64-16                                14.97Ki ± 0%
+AdversarialBacktracking/128-16                               30.72Ki ± 0%
+QuadraticBacktracking/2-16                                     416.0 ± 0%
+QuadraticBacktracking/4-16                                     896.0 ± 0%
+QuadraticBacktracking/8-16                                   2.031Ki ± 0%
+QuadraticBacktracking/16-16                                  3.719Ki ± 0%
+QuadraticBacktracking/32-16                                  7.469Ki ± 0%
+QuadraticBacktracking/64-16                                  14.97Ki ± 0%
+geomean                                                  ²                 -0.03%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                               │ root-baseline-d980583.txt │          root-new-split.txt          │
+                               │         allocs/op         │  allocs/op   vs base                 │
+StaticRoute-16                                0.000 ± 0%      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+ParamRoute1-16                                1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=10) ¹
+ParamRoute2-16                                1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=10) ¹
+ParamRoute3-16                                1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=10) ¹
+WildcardRoute-16                              1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=10) ¹
+NotFound-16                                   3.000 ± 0%      3.000 ± 0%       ~ (p=1.000 n=10) ¹
+ParallelStaticRoute-16                        0.000 ± 0%      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+ParallelParamRoute-16                         1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=10) ¹
+FastStaticRoute-16                            0.000 ± 0%      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+FastParamRoute1-16                            1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=10) ¹
+FastParamRoute2-16                            1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=10) ¹
+FastParamRoute3-16                            1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=10) ¹
+FastParallelParamRoute-16                     1.000 ± 0%      1.000 ± 0%       ~ (p=1.000 n=10) ¹
+PooledParamRoute1-16                          0.000 ± 0%      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+PooledParamRoute2-16                          0.000 ± 0%      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+PooledParamRoute3-16                          0.000 ± 0%      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+PooledWildcardRoute-16                        0.000 ± 0%      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+PooledParallelParamRoute-16                   0.000 ± 0%      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+RegisterRoutes/N=100-16                                      1.135k ± 0%
+RegisterRoutes/N=1000-16                                     13.40k ± 0%
+RegisterRoutes/N=5000-16                                     75.94k ± 0%
+ServeFiles-16                                                 8.000 ± 0%
+GroupServeFiles-16                                            8.000 ± 0%
+AdversarialBacktracking/1-16                                  1.000 ± 0%
+AdversarialBacktracking/2-16                                  1.000 ± 0%
+AdversarialBacktracking/4-16                                  6.000 ± 0%
+AdversarialBacktracking/8-16                                  11.00 ± 0%
+AdversarialBacktracking/16-16                                 13.00 ± 0%
+AdversarialBacktracking/32-16                                 15.00 ± 0%
+AdversarialBacktracking/64-16                                 17.00 ± 0%
+AdversarialBacktracking/128-16                                19.00 ± 0%
+QuadraticBacktracking/2-16                                    1.000 ± 0%
+QuadraticBacktracking/4-16                                    6.000 ± 0%
+QuadraticBacktracking/8-16                                    11.00 ± 0%
+QuadraticBacktracking/16-16                                   13.00 ± 0%
+QuadraticBacktracking/32-16                                   15.00 ± 0%
+QuadraticBacktracking/64-16                                   17.00 ± 0%
+geomean                                                  ²                +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                         │ root-new-split.txt │
+                         │     sec/route      │
+RegisterRoutes/N=100-16           541.3n ± 1%
+RegisterRoutes/N=1000-16          671.4n ± 1%
+RegisterRoutes/N=5000-16          932.4n ± 1%
+geomean                           697.2n

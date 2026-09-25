@@ -39,6 +39,27 @@ that the issue is closed.
 | **FPE-2026-010** | 6 | CWE-693 / CWE-863 | Calling `Mux.Use(authMW)` followed by `Mux.HandleFast(...)` silently registered a fast route with NO middleware applied. `Use()`'s GoDoc explicitly claimed this combination panics — but the panic guard from CSA-2026-0054 was only wired to `Group.HandleFast`, not root `Mux.HandleFast`. | `mux.go:435-445` — root `HandleFast` panics when `Use()`-registered middleware is present, mirroring `Group.HandleFast` | **FIXED** |
 | **TM-2026-005** | 4 | CWE-532 | The construction-time `slog.Warn` issued when `OAuth2Introspect` is configured with `AllowInsecureEndpoint: true` logged the full endpoint URL — including any credentials embedded in the query string. | `middleware/oauth2.go:229-233` — log `host` + `scheme` only, never the full URL | **FIXED** |
 
+## Defects Found and Fixed (Sprint 18 — Unreleased)
+
+Three defects were discovered, fixed, and validated during Sprint 18's waste-hunt profiling and middleware security review. **No released version is affected** — all three defects were introduced and fixed within the same unreleased development cycle. Each fix includes a regression test that fails against the defective code and passes against the current code.
+
+| ID | Sev | Class | Summary | Fix location | Regression test |
+|---|---|---|---|---|---|
+| **MID-COMPRESS-1** | Critical | CWE-670 | `Compress` middleware: 1xx informational status (e.g., 103 Early Hints) followed by a final status (e.g., 403) caused the final status to be silently dropped; the client received an implicit **200 OK** with the full response body for any request with `Accept-Encoding: gzip`. Root cause: the "first WriteHeader wins" lock in `gzipResponseWriter` lacked the 1xx exemption that `net/http` itself applies. | `middleware/compress.go:WriteHeader` — added exemption: `if code >= 100 && code <= 199 && code != http.StatusSwitchingProtocols { return }` | `middleware/wrapper_flusher_test.go:TestCompress_1xxInformational_DoesNotBlockFinalStatus` |
+| **MID-SETHEADER-1** | High | CWE-668 | `SetHeader` middleware, `response.go` `JSON`/`XML`/`Text`, `mux.go` `lazyMethodNotAllowed`/`lazyOPTIONS`: hoisted header-value `[]string` (not just the constant string) into closure/package variables, shared across requests. Downstream code indexing directly (`w.Header()[k][0] = ...`) mutated **shared backing array**, corrupting headers for all other requests until process restart. **Introduced and fixed within this unreleased work**. | `middleware/set_header.go`, `response.go`, `mux.go` — each changed to allocate slices fresh per request. | `middleware/setheader_wastehunt_test.go`, `header_aliasing_wastehunt_test.go`. |
+| **MID-LOGGER-1** | Medium | CWE-778 | `Logger` middleware: when a handler sent both a 1xx informational status and a final status, the logger recorded the 1xx code instead of the final status in the access log. Client-visible response was correct (net/http applies its own 1xx exemption to the real `ResponseWriter`); only the **logged** status was wrong, hiding security-relevant codes (401/403/429) from status-code-based log monitoring. Root cause: same as MID-COMPRESS-1 — missing 1xx exemption in the "first wins" lock. | `middleware/logger.go:statusRecorder.WriteHeader` — added exemption matching net/http's own predicate. | `middleware/wrapper_flusher_test.go:TestLogger_1xxInformational_LogsFinalStatusNotInformational` |
+
+## Pre-Existing Header-Aliasing Defects (Fixed in Sprint 18)
+
+Two middleware components shipped with header-slice aliasing defects that affected released versions. Both defects are identical in root cause to MID-SETHEADER-1 (hoisted `[]string` shared across requests) but differed in scope and visibility:
+
+| ID | Sev | Class | Summary | Affected versions | Fix location |
+|---|---|---|---|---|---|
+| **MID-CORS-HEADER-1** | High | CWE-668 | `CORS()`: seven per-instance closure variables (`Access-Control-Allow-Origin`, `-Credentials`, `-Vary`, `-Methods`, `-Headers`, `-Expose-Headers`, `-Max-Age`) were hoisted and shared across all requests through that middleware instance. Any downstream code mutating these slices directly corrupted headers for all other requests (and other CORS() instances). | All versions shipping `middleware.CORS` | `middleware/cors.go` — value slices now allocated fresh per request. |
+| **MID-NOCACHE-HEADER-1** | High | CWE-668 | `NoCache()`: five package-level `[]string` values (`Cache-Control`, `Pragma`, `Expires`, `Surrogate-Control`, `X-Accel-Expires`) shared across every `NoCache()` instance and every request in the process — **widest blast radius found**. Any downstream code mutating these slices corrupted headers for all other requests. | All versions shipping `middleware.NoCache` | `middleware/no_cache.go` — value slices now allocated fresh per request. |
+
+Regression tests: `middleware/cors_wastehunt_test.go`, `middleware/nocache_wastehunt_test.go` — sequential and concurrent mutation tests preventing reintroduction.
+
 ### Audit-trail breakdown
 
 - **S1..S6:** initial security battery covering SAST, supply-chain, HTTP protocol, path-routing, DoS, concurrency, middleware, timing.
@@ -402,12 +423,10 @@ MuxMaster cannot apply these mitigations on the operator's behalf because
 they require domain knowledge of which response fields are secret vs
 user-controlled.
 
-### Registration Panics Leave Tree Inconsistent (MM-2026-0033)
+### Registration Panics Rollback Guarantee (MM-2026-0033)
 
 If `Handle` (or any route registration method) panics — for example due to a
-route conflict — the radix tree may be in an inconsistent state. **Do not catch
-and ignore registration panics.** Let them crash `main()` so the inconsistency
-is discovered during development, not in production.
+route conflict — the radix tree is guaranteed to remain unchanged. The two-phase copy-on-write implementation (path copying instead of full tree cloning) ensures that any mutation panicking mid-insertion rolls back atomically. **Do not catch and ignore registration panics.** Let them crash `main()` during development — the tree's consistency is protected, but the error is a sign of a bug (route conflict, invalid pattern, etc.). The rollback guarantee is enforced by test `TestRegistrationRollback_PanicMidInsert_LiveTreeUntouched` in the test suite.
 
 ### Recoverer Must Be Outermost (MM-2026-0034)
 

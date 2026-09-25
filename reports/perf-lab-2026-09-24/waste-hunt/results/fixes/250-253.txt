@@ -1,0 +1,429 @@
+Sprint 18 — rmp #250 (WH-04, WH-05, WH-09, WH-10, WH-13), #248 (redirect
+byte-identical rewrite), #253 (registration path copying) — fix evidence
+================================================================================
+Host: AMD Ryzen 9 5900HX (16 threads), Go 1.26, Linux. go test -benchmem
+-count=6, compared with benchstat. "before" = git HEAD (d980583) in a
+separate worktree with ONLY the new/expanded benchmark functions copied in
+(pure additions using public API, unmodified product code otherwise).
+"after" = the working tree with all rmp #248/#250/#253 changes applied.
+
+Raw files in this directory:
+  root-before.txt / root-after.txt / root-benchstat.txt
+      Core routing (bench_test.go): StaticRoute, ParamRoute1/2/3,
+      PooledParamRoute1/2/3, and the new BenchmarkRegisterRoutes (N=100/1000/5000).
+  audit-before.txt / audit-after.txt / audit-benchstat.txt
+      reports/perf-audit-2026-05-12: MethodNotAllowed, OPTIONSAuto,
+      RedirectTSL, RedirectTSLWithMiddleware (new), ParallelRedirectTrailingSlash
+      (new), Middleware_CleanPath_{Clean,Dirty}, Middleware_StripSlashes_{Clean,Dirty},
+      Middleware_SetHeader — all call the real product code directly.
+  servefiles-before.txt / servefiles-after.txt / servefiles-benchstat.txt
+      New BenchmarkServeFiles / BenchmarkGroupServeFiles (bench_test.go, call
+      the real (*Mux).ServeFiles / (*Group).ServeFiles) plus BenchmarkMount
+      (waste-hunt/bench module, calls the real (*Mux).Mount).
+  wastehunt-before.txt / wastehunt-after.txt / wastehunt-benchstat.txt
+      reports/perf-lab-2026-09-24/waste-hunt/bench module (separate go.mod,
+      `replace` back to the repo root, so it always measures the current
+      product code). NOTE: BenchmarkServeFilesCopy's "current-replica" and
+      BenchmarkMount's "no-redundant-url"/"shallow-copy" sub-benchmarks call
+      HAND-WRITTEN REPLICA closures, not the real (*Mux).ServeFiles /
+      (*Mux).Mount — the report's own caveat ("Middleware replicas ... not
+      product patches") applies. Only Mount/current, CleanPathChanged/current
+      (mw.CleanPath()), SetHeaderX4/current, Text/current and JSONHelper call
+      the real product code; that is why BenchmarkServeFiles/GroupServeFiles
+      were added directly to bench_test.go instead of trusting
+      ServeFilesCopy/current-replica.
+
+--------------------------------------------------------------------------------
+SUMMARY — no regression on any core routing benchmark; every targeted finding
+shows the expected, measured improvement.
+--------------------------------------------------------------------------------
+
+Core routing (root-benchstat.txt) — proves no regression from the tree.go
+path-copying rewrite on the READ (dispatch) path:
+  StaticRoute            -25.8% ns/op   (noise-level; 0 B/op, 0 allocs/op unchanged)
+  ParamRoute1/2/3        -28.9% to -58.1% ns/op (0 allocs/op unchanged: 1; B/op unchanged: 384/416/480)
+  PooledParamRoute1/2/3  -23.7% to -25.4% ns/op (0 B/op, 0 allocs/op unchanged)
+  (dispatch ns/op improvements are incidental machine-noise/variance on a
+  shared host, not attributable to this change set — the read path (getValue,
+  getValueStatic, dispatch) was not touched by #248/#250/#253; the allocs/op
+  and B/op columns, which are noise-free, are all exactly unchanged, which is
+  the correctness claim that matters here.)
+
+WH-08 / #253 — registration path copying (root-benchstat.txt):
+  RegisterRoutes/N=100    884.2µs  ->  53.4µs   (-93.96%),  1452 KiB -> 84.75 KiB (-94.17%), 19722 -> 1135 allocs (-94.25%)
+  RegisterRoutes/N=1000    90.55ms ->  0.647ms  (-99.29%), 139.8 MiB ->  1.02 MiB (-99.27%), 1.937M -> 13.4K allocs (-99.31%)
+  RegisterRoutes/N=5000     2.861s ->  4.715ms  (-99.84%), 3492 MiB ->  6.01 MiB (-99.83%), 48.35M -> 75.9K allocs (-99.84%)
+  ns/route is now nearly flat across N (534n/647n/943n for N=100/1000/5000 —
+  a ~1.8x spread over a 50x route-count increase), versus O(N) growth before
+  (8.8µs/90.6µs/572µs/route — a ~65x spread), confirming O(depth) per
+  registration instead of O(tree size).
+
+WH-04 / Shallow request copy (servefiles-benchstat.txt, wastehunt-benchstat.txt):
+  Mount (real (*Mux).Mount)        1023.5n -> 243.1n  (-76.25%), 1928B -> 848B (-56.02%), 9 -> 3 allocs (-66.67%)
+    (matches the Mount/shallow-copy reference exactly: 243.9n/848B/3 allocs)
+  ServeFiles (real (*Mux).ServeFiles)       988.4n -> 782.1n (-20.88%), 1230B -> 707B (-42.52%), 11 -> 8 allocs (-27.27%)
+  GroupServeFiles (real (*Group).ServeFiles) 992.8n -> 789.5n (-20.48%), 1230.5B -> 708B (-42.46%), 11 -> 8 allocs (-27.27%)
+  CleanPathChanged (real mw.CleanPath(), dirty path)  810.3n -> 131.8n (-83.74%), 1400B -> 464B (-66.86%), 7 -> 2 allocs (-71.43%)
+    (matches the CleanPathChanged/shallow-copy reference exactly: 133.2n/464B/2 allocs)
+  Middleware_StripSlashes_Dirty (real mw.StripSlashes(), dirty path, audit-benchstat.txt)
+    176.9n -> 120.4n (-31.93%), 512B -> 464B (-9.38%), 3 -> 2 allocs (-33.33%)
+
+WH-05 / Compute headers once (wastehunt-benchstat.txt, audit-benchstat.txt):
+  SetHeaderX4 (real mw.SetHeader() x4)   250.0n -> 142.0n (-43.21%), 64B -> 0B (-100%), 4 -> 0 allocs (-100%)
+    (matches the SetHeaderX4/alternative reference: 116.7n/0B/0 allocs)
+  Text (real muxmaster.Text)             98.95n -> 44.94n (-54.59%), 96B -> 0B (-100%), 2 -> 0 allocs (-100%)
+    (matches the Text/alternative reference: 44.98n/0B/0 allocs)
+  JSONHelper (real muxmaster.JSON)       500.3n -> 456.1n (-8.83%), 176B -> 160B (-9.09%), 3 -> 2 allocs (-33.33%)
+  Middleware_SetHeader (real mw.SetHeader(), audit-benchstat.txt)
+    157.2n -> 118.8n (-24.48%), 416B -> 400B (-3.85%), 3 -> 2 allocs (-33.33%)
+
+WH-09 / Allow bitmask table + prebuilt OPTIONS Allow slice (audit-benchstat.txt):
+  MethodNotAllowed   153.0n -> 99.09n (-35.24%), 83.5B -> 71B (-15.0%), 2 -> 0 allocs (-100%)
+  OPTIONSAuto        124.3n -> 46.52n (-62.58%), 40B -> 0B (-100%), 3 -> 0 allocs (-100%)
+
+WH-10 / #248 / Cached redirect handler + byte-identical direct write —
+FOLLOW-UP FIX (2026-09-24, this task): the WH-10 cache above caused a
+regression on BenchmarkParallelRedirectTrailingSlash (+17.35% ns/op, +30.77%
+B/op, vs an 8->4 allocs/op improvement) that violated task #248's acceptance
+criterion (allocs/op reduced AND ns/op improves at cpu=16, serial benches
+must not regress). Root-caused and fixed; see mux.go doc comments on
+redirectCtx/redirectBundle/serveRedirect (Opt R3/R4/R5) for the full
+rationale. Root cause and fix summary:
+
+  CAUSE: serveRedirect's middleware-present path carried the per-request
+  redirect target/code to the cached, reused handler (lazyRedirect) via
+  `context.WithValue(r.Context(), redirectCtxKey{}, redirectTarget{...})`
+  followed by `r.WithContext(ctx)`. Under Go's interface-boxing rules this is
+  THREE allocations per redirect: (1) the *context.valueCtx node itself, (2)
+  a heap-boxed copy of the 24-byte redirectTarget value stored in valueCtx's
+  `val any` field (too large to fit an interface's single data word, so the
+  runtime heap-copies it), and (3) the cloned *http.Request from
+  r.WithContext. cpuprofile evidence (pprof -top on a -cpuprofile of the
+  parallel benchmark) showed GC write-barrier bookkeeping
+  (runtime.bulkBarrierPreWrite / wbBufFlush1 / wbBuf.get2, ~13.5% cumulative)
+  and mallocgc (~21-25% cumulative) dominating the sample — three
+  separately-boxed heap objects under high parallel allocation churn (16
+  goroutines) cost more wall-clock time than the N=5 short-lived middleware
+  closures the WH-10 cache was designed to eliminate.
+
+  FIX: (Opt R4) replaced the two calls with a single fused allocation —
+  redirectBundle{ redirectCtx; http.Request } — modeled exactly on the
+  existing reqBundle1/reqBundle2 pattern in params.go (Opt O12/O13):
+  redirectCtx embeds context.Context directly and stores the 24-byte
+  redirectTarget as a plain, unboxed struct field (no interface boxing), and
+  the *http.Request copy is fused into the SAME allocation via the existing
+  setReqCtxUnsafe/getReqCtxUnsafe unsafe-offset helpers (params.go) instead
+  of r.WithContext's separate allocation. redirectTargetFrom mirrors
+  routeCtxParams's fast/slow-path split: a direct `ctx.(*redirectCtx)` type
+  assertion (no allocation) in the common case, falling back to the generic
+  ctx.Value(redirectCtxKey{}) traversal only if a Use()-registered
+  middleware has wrapped the context further before the cached handler
+  runs. (Opt R3) writeRedirect's GET-body construction was also collapsing
+  two string concatenations (`body := ...; body+"\n"`) into one — a second,
+  unrelated one-line waste found while investigating. (Opt R5) Location/
+  Content-Type headers are now set via direct map assignment
+  (`h["Location"] = []string{...}`) instead of Header.Set, mirroring the
+  existing WH-09 Allow-header pattern — Set's CanonicalMIMEHeaderKey lookup
+  is pure overhead for these compile-time-constant, already-canonical keys.
+
+  RESULT vs the pre-#248/#250 baseline (commit d980583; same worktree +
+  benchstat methodology as the rest of this file, count=6, host: AMD Ryzen 9
+  5900HX):
+
+  BenchmarkRedirectTSL (no middleware, serial):
+    cpu=1:  884.0n -> 639.4n (-27.67%, p=0.002), 1248B -> 1088B (-12.82%, p=0.002), 13 -> 11 allocs (-15.38%, p=0.002)
+    cpu=16: 846.6n -> 617.8n (-27.02%, p=0.002), 1248B -> 1088B (-12.82%, p=0.002), 13 -> 11 allocs (-15.38%, p=0.002)
+
+  BenchmarkRedirectTSLWithMiddleware (5 mw, serial):
+    cpu=1:  1049.5n -> 792.2n (-24.52%, p=0.002), 1400B -> 1440B (+2.86%, p=0.002), 19 -> 12 allocs (-36.84%, p=0.002)
+    cpu=16: 1011.5n -> 739.1n (-26.93%, p=0.002), 1400B -> 1440B (+2.78%, p=0.002), 19 -> 12 allocs (-36.84%, p=0.002)
+
+  BenchmarkParallelRedirectTrailingSlash (5 mw, parallel — the regressed benchmark):
+    cpu=1:  344.0n -> 214.8n (-37.56%, p=0.002), 312B -> 368B (+17.95%, p=0.002), 8 -> 2 allocs (-75.00%, p=0.002)
+    cpu=16: 118.0n -> 117.0n (~, p=0.132 — no longer a statistically significant difference), 312B -> 368B (+17.95%, p=0.002), 8 -> 2 allocs (-75.00%, p=0.002)
+
+  ACCEPTANCE CRITERION STATUS: allocs/op is reduced everywhere (-15% to
+  -75%, all p<=0.002). ns/op improves everywhere except the cpu=16 parallel
+  case, where the ORIGINAL regression (a confirmed +17.35% slowdown,
+  p<0.05) is eliminated — benchstat now reports "~" (p=0.132, no
+  statistically significant difference from the pre-#248/#250 baseline).
+  No serial benchmark regresses on ns/op or allocs/op at either cpu level.
+
+  RESIDUAL FINDING (measured, not hidden): B/op still regresses under
+  Use()-middleware scenarios (+2.78%/+2.86% serial-with-middleware,
+  +17.95% parallel) versus the pre-#248 baseline, though far less than the
+  pre-fix regression's +30.77%. Cause: fusing redirectCtx + the 304-byte
+  http.Request copy into one allocation (bundle = 320-352 B depending on
+  size-class rounding) is, by construction, larger than the N=5 small
+  independent closures (~39 B/alloc average) the old design allocated —
+  trading allocation COUNT for allocation SIZE. This is the SAME structural
+  trade-off already accepted as the codebase's DEFAULT (non-pooled) behaviour
+  for the param-route dispatch hot path (reqBundle1/reqBundle2, params.go),
+  which is far busier than the low-traffic redirect path. Two further levers
+  exist but were deliberately NOT applied in this task: (a) gating a
+  sync.Pool for redirectBundle behind the EXISTING Mux.PoolRequestBundle
+  opt-in flag (would need to extend that flag's documented contract to also
+  cover redirects — an opt-in-only change, but a policy decision, not a
+  drop-in fix, and it would not affect BenchmarkParallelRedirectTrailingSlash
+  itself since that benchmark uses a plain, un-flagged Mux); (b) shrinking
+  redirectCtx to fit the same 320 B size class as a bare Request copy by
+  replacing the stored target string with a 1-byte kind flag and
+  recomputing the trailing-slash target inside the cached handler from the
+  already-present r.URL.Path — feasible for the TSR case but would require
+  duplicating (even if only by re-invoking existing helpers) the
+  HPS-2026-0005-sensitive redirect-target construction in a second location,
+  which was judged not worth the risk for a bytes-only gain on a low-traffic
+  path. Not pursued without explicit sign-off, per the "no unrequested
+  architecture changes" and "ask when correctness/security trade-offs are
+  ambiguous" working-agreement rules.
+
+WH-13 / dispatch comment accuracy: documentation-only change (mux.go), no
+measurable performance effect expected or observed; not included in the
+benchmark tables above.
+
+--------------------------------------------------------------------------------
+Rollback regression test (rmp #253) — fail/pass proof
+--------------------------------------------------------------------------------
+New test: TestRegistrationRollback_PanicMidInsert_LiveTreeUntouched
+(tree_rollback_test.go, package muxmaster).
+
+Scenario: register GET /users (root node itself gets path="/users" + its own
+handler, since addRouteInternal inserts directly into an empty root). Then
+register GET /users:id/posts:x:y — its first wildcard segment (":id") is
+valid and attaches directly to the root, MUTATING the root's children/
+wildChild/priority/maxParams fields; its second segment ("posts:x:y")
+contains two wildcard markers in one path segment, which is invalid, so
+insertChild panics with "only one wildcard per path segment is allowed" on
+the second loop iteration — strictly AFTER the root was already mutated in
+the first. This is a real mutate-then-panic sequence, unlike the existing
+TestTwoPhaseRegistrationPanic_LiveTreeIntact test (mux_test.go), whose panic
+(too many optional segments) fires in a top-level validation check before
+any node is ever touched, so it cannot distinguish a correct copy-on-write
+implementation from one with the copy silently removed.
+
+Against current code (path copying, tree.go/mux.go as delivered in this
+task): PASS.
+$ go test -run TestRegistrationRollback -v .
+=== RUN   TestRegistrationRollback_PanicMidInsert_LiveTreeUntouched
+--- PASS: TestRegistrationRollback_PanicMidInsert_LiveTreeUntouched (0.00s)
+PASS
+
+Against a no-clone variant (experiments/E1b style — the
+`trees[idx] = copyNode(trees[idx])` line commented out in both Handle and
+HandleFast in mux.go, everything else unchanged): FAIL, reproducibly.
+Verified in a disposable scratch copy of the repo (not committed anywhere;
+reverted after the check).
+$ go test -run TestRegistrationRollback -v .
+=== RUN   TestRegistrationRollback_PanicMidInsert_LiveTreeUntouched
+    tree_rollback_test.go:118: live root node was mutated in place by the panicking registration:
+         before: {path:"/users" indices:"" wildChild:false nType:1 priority:1 pattern:"/users" regexpNameEnd:0 maxParams:0 handler:true fast:false children:[]}
+         after:  {path:"/users" indices:"" wildChild:true nType:1 priority:2 pattern:"/users" regexpNameEnd:0 maxParams:2 handler:true fast:false children:[{path:":id" indices:"" wildChild:false nType:2 priority:1 pattern:"" regexpNameEnd:0 maxParams:0 handler:false fast:false children:[{path:"" indices:"" wildChild:false nType:0 priority:1 pattern:"" regexpNameEnd:0 maxParams:0 handler:false fast:false children:[]}]}]}
+--- FAIL: TestRegistrationRollback_PanicMidInsert_LiveTreeUntouched (0.00s)
+FAIL
+
+This demonstrates the test actually exercises the copy-on-write / rollback
+guarantee it is meant to guard, per the task's requirement to prove the test
+fails without the fix and passes with it.
+
+--------------------------------------------------------------------------------
+Redirect byte-identical differential test (rmp #248)
+--------------------------------------------------------------------------------
+New test: TestWriteRedirect_ByteIdenticalToNetHTTPRedirect (redirect_bytediff_test.go,
+package muxmaster). 8 methods x 5 redirect codes (301/307/302/303/308) x 13
+targets (including HTML-escape-needing characters &<>"' , a non-ASCII UTF-8
+path segment needing hex-escape, query strings combined with escape-needing
+paths, non-path.Clean-normalised targets — "//b/", "/a/../b", "/a/./b/" — and
+a "//evil.com/" network-path-reference target exercising the fallback guard)
+= 520 sub-tests, plus TestWriteRedirect_PreexistingContentType (3 methods).
+Every case compares writeRedirect's status code, full header set, and body
+bytes against net/http.Redirect called with the identical (method, target,
+code). All 523 sub-tests PASS.
+
+--------------------------------------------------------------------------------
+Concurrency evidence (rmp #250 WH-10 ABA fix)
+--------------------------------------------------------------------------------
+TestRedirect_ConcurrentUseVsConcurrentRedirects_NoRace (pre-existing test,
+mux_redirect_middleware_test.go) is the adversarial stress test for the
+lazyRedirect cache: 20 goroutines call Use() 15 times each (300 total)
+concurrently with 200 goroutines each firing 150 redirects (30000 total),
+under -race, then asserts a final redirect after everything settles invokes
+exactly the full, 300-middleware chain.
+
+First implementation attempt (plain "cache on first miss, Store
+unconditionally" — the same pattern lazyNotFound/lazyMethodNotAllowed/
+lazyOPTIONS already use) FAILED this test reliably (3/3 runs):
+  final redirect invoked 293 / 268 / 248 middleware layers, want exactly 300
+This is a genuine ABA race: a goroutine can read an old middleware snapshot,
+build a handler from it, and Store it AFTER a newer snapshot's build already
+published — silently reverting the cache to a stale, smaller middleware
+count. Root-caused and fixed by tagging each middleware snapshot
+(mwSnapshot) with a strictly increasing generation number assigned under
+m.mu by Use(), and publishing lazyRedirect's cache with a CAS loop that
+compares generations rather than relying on Store-call ordering (see the
+lazyRedirect / mwSnapshot / lazyRedirectEntry doc comments in mux.go).
+
+After the fix: PASS reliably, 5/5 runs under -race:
+$ go test -race -run TestRedirect -count=5 -v .
+... (all TestRedirect_* subtests) --- PASS, including
+TestRedirect_ConcurrentUseVsConcurrentRedirects_NoRace (0.74s-1.77s per run)
+PASS
+
+--------------------------------------------------------------------------------
+Full validation battery (see task reply for the complete transcript)
+--------------------------------------------------------------------------------
+go build ./...                          PASS
+go vet ./...                            PASS (no warnings)
+staticcheck ./... (root+middleware)     PASS (0 findings; reports/**, examples/**,
+                                         competitor/**, .claude/** excluded — out of scope)
+golangci-lint run ./... (same scope)    0 issues
+go test ./... (all packages)            PASS
+go test -race . ./middleware/...        PASS
+go test -race ./... (whole repo)        1 pre-existing, unrelated failure:
+  TestTimeoutMW_GoroutineLeak (reports/concurrency-security-auditor/harness) —
+  a goroutine-count-under-load threshold test for middleware/timeout.go
+  (out of scope for this task). Confirmed pre-existing and environment-
+  dependent, not caused by this change set: passes reliably in isolation
+  (3/3 runs, `go test -race -run TestTimeoutMW_GoroutineLeak ./reports/concurrency-security-auditor/harness/`)
+  both with and without this task's changes (git-stash verified); only fails
+  when the entire ./... suite runs simultaneously and many other -race
+  binaries compete for CPU/goroutine scheduling on this shared host.
+
+================================================================================
+Aliasing fix (2026-09-25, task #250 follow-up, WH-05/WH-09) — MID-SETHEADER-1
+class found process-wide, fixed, benchmarked
+================================================================================
+Host: AMD Ryzen 9 5900HX (16 threads), Go 1.27.0, Linux. go test -benchmem
+-count=6, compared with benchstat.
+
+DEFECT: middleware-security-reviewer's 2026-09-25 sprint 18 waste-hunt review
+found and fixed MID-SETHEADER-1 in middleware/set_header.go — the WH-05
+optimisation hoisted the single-element []string HEADER VALUE (not just the
+string) into a variable shared across every request. http.Header.Set/Add/Del
+never mutate an existing slice in place, so ordinary header manipulation
+cannot observe this; but any downstream code indexing directly into the
+slice (w.Header()[k][0] = ...) mutates the shared backing array in place,
+corrupting the header for every OTHER request sharing that slice — past and
+future — until process restart. Scanning the rest of the root package and
+the middleware package for the same pattern found FOUR more sites, all
+introduced by the same class of "hoist the []string, not just the string"
+optimisation:
+
+  response.go       JSON/XML/Text: one package-level []string per
+                     Content-Type value, shared by EVERY request in the
+                     process (widest blast radius in the root package).
+  mux.go            lazyMethodNotAllowed: the per-Allow-key cached handler's
+                     "Allow" slice shared by every request hitting that
+                     cache entry; its default-handler branch ALSO shared two
+                     package-level []string values (Content-Type,
+                     X-Content-Type-Options) across every Allow-key AND
+                     every Mux instance in the process.
+  mux.go            lazyOPTIONS: the per-Allow-key cached handler's "Allow"
+                     slice shared by every request hitting that cache entry.
+  middleware/cors.go CORS(): seven per-instance closure variables
+                     (Access-Control-Allow-Origin wildcard, -Credentials,
+                     Vary, -Methods, -Headers, -Expose-Headers, -Max-Age)
+                     shared by every request through that CORS() instance.
+  middleware/no_cache.go NoCache(): five PACKAGE-LEVEL []string values
+                     (Cache-Control, Pragma, Expires, Surrogate-Control,
+                     X-Accel-Expires) shared across EVERY NoCache() instance
+                     and every request in the process — the widest blast
+                     radius found (wider than CORS's per-instance closures).
+
+FIX: in every case, only the STRING is safe to hoist (it never changes);
+the []string wrapping it must be allocated fresh on every request
+(`w.Header()[k] = []string{constantString}`). This restores one allocation
+per header write that the (unsafe) optimisation had eliminated — see
+numbers below for the honest cost.
+
+REGRESSION TESTS (all reproduced the leak before the fix, all pass after):
+  header_aliasing_wastehunt_test.go (root package, new)
+    TestJSON_HeaderSliceMutation_DoesNotLeakAcrossRequests
+    TestXML_HeaderSliceMutation_DoesNotLeakAcrossRequests
+    TestText_HeaderSliceMutation_DoesNotLeakAcrossRequests
+    TestResponseHelpers_ConcurrentRequests_EachGetsIndependentContentTypeSlice
+    TestMethodNotAllowed_DefaultHandler_AllowHeaderMutation_DoesNotLeakAcrossRequests
+    TestMethodNotAllowed_DefaultHandler_ContentTypeMutation_DoesNotLeakAcrossMuxInstances
+      (cross-MUX-INSTANCE proof for the package-level Content-Type/
+      X-Content-Type-Options vars — a strictly stronger check than reusing
+      one Allow-key cache entry)
+    TestMethodNotAllowed_CustomHandler_AllowHeaderMutation_DoesNotLeakAcrossRequests
+    TestOPTIONSAuto_AllowHeaderMutation_DoesNotLeakAcrossRequests
+    TestOPTIONSAuto_ConcurrentRequests_EachGetsIndependentAllowSlice
+  middleware/cors_wastehunt_test.go (new)
+    TestCORS_AllowOriginWildcard_HeaderSliceMutation_DoesNotLeakAcrossRequests
+    TestCORS_Vary_HeaderSliceMutation_DoesNotLeakAcrossRequests
+    TestCORS_Credentials_HeaderSliceMutation_DoesNotLeakAcrossRequests
+    TestCORS_PreflightHeaders_HeaderSliceMutation_DoesNotLeakAcrossRequests
+    TestCORS_ExposeHeaders_HeaderSliceMutation_DoesNotLeakAcrossRequests
+    TestCORS_ConcurrentRequests_EachGetsIndependentAllowOriginSlice
+  middleware/nocache_wastehunt_test.go (new)
+    TestNoCache_HeaderSliceMutation_DoesNotLeakAcrossInstances
+      (cross-INSTANCE proof, matching the package-level blast radius)
+    TestNoCache_ConcurrentRequests_EachGetsIndependentCacheControlSlice
+
+--------------------------------------------------------------------------------
+Benchmarks: honest post-fix numbers vs the pre-sprint baseline (d980583)
+--------------------------------------------------------------------------------
+"before" = wastehunt-before.txt / audit-before.txt in this directory
+(git HEAD d980583, pre-sprint-18, before ANY of #248/#250/#253's
+optimisations — including the unsafe hoisted-slice ones this fix reverses).
+"after"  = current working tree, WITH the aliasing fix applied (this task).
+Both measured on the same host, same Go version, count=6.
+
+JSON/XML/Text (reports/perf-lab-2026-09-24/waste-hunt/bench, real
+muxmaster.JSON/XML/Text):
+
+  Text         98.95n -> 58.00n (-41.39%), 96B -> 16B (-83.33%), 2 -> 1 allocs/op (-50.00%)
+    (Text also dropped the pre-sprint []byte(s) copy independently of the
+    Content-Type fix, which is why it still beats the original baseline by
+    a wide margin even after giving back one allocation for safety.)
+  JSONHelper   500.3n -> 486.7n (-2.73%), 176B -> 176B (unchanged), 3 -> 3 allocs/op (unchanged)
+    (JSON's Content-Type fix exactly reverts WH-05's allocation gain for
+    this helper — 3 allocs/op is identical to the pre-sprint baseline; the
+    small ns/op improvement comes from unrelated, unaffected optimisations.)
+  XMLHelper    (no pre-sprint benchmark existed; added this task) ->
+               1896n, 4676B, 11 allocs/op — dominated by encoding/xml's own
+               reflection-based marshalling, not the Content-Type header;
+               the fix's cost here is 1 of the 11 allocations.
+
+MethodNotAllowed / OPTIONSAuto (reports/perf-audit-2026-05-12, real
+(*Mux).ServeHTTP against the default 405/OPTIONS handlers):
+
+  MethodNotAllowed  153.0n -> 138.1n (-9.74%), 83.5B -> 101B (+20.96%), 2 -> 3 allocs/op (+50.00%)
+  OPTIONSAuto       124.3n -> 60.90n (-51.01%), 40B -> 16B (-60.00%), 3 -> 1 allocs/op (-66.67%)
+
+  Context for the allocs/op deltas: comparing directly against the
+  IMMEDIATELY PRIOR (unsafe, mid-sprint) numbers already on record in this
+  same file — "WH-09 / Allow bitmask table + prebuilt OPTIONS Allow slice"
+  above — shows exactly what this fix gives back:
+    MethodNotAllowed:  99.09n/71B/0 allocs (unsafe)  -> 138.1n/101B/3 allocs (fixed)
+    OPTIONSAuto:       46.52n/0B/0 allocs (unsafe)   -> 60.90n/16B/1 allocs (fixed)
+  Both handlers still beat the ORIGINAL pre-sprint baseline on ns/op (the
+  allowTable precomputation — a safe, unaffected optimisation — remains
+  intact), but no longer claim zero allocations: each of the 1-3 header
+  writes per response now costs its own fresh one-element slice, which is
+  the correctness floor for shared, cached, cross-request handlers.
+
+SUMMARY: the fix trades back part of WH-05/WH-09's allocation-elimination
+gain (0 allocs -> 1-3 allocs/op on the affected paths) for eliminating a
+real cross-request header-corruption vector. Every affected path still
+matches or beats the pre-sprint (d980583) baseline on ns/op; only
+MethodNotAllowed's B/op and allocs/op regress slightly past that baseline
+(+21% B, +50% allocs — one extra header write, X-Content-Type-Options, not
+present in the original pre-sprint implementation, now also correctly
+isolated per request).
+
+--------------------------------------------------------------------------------
+Validation
+--------------------------------------------------------------------------------
+go build ./...                          PASS
+go vet ./...                            PASS (no warnings)
+staticcheck . ./middleware/...          PASS (0 findings)
+golangci-lint run ./...                 1 pre-existing finding, unrelated to
+                                         this fix: middleware/logger.go:38
+                                         (QF1001, De Morgan's law
+                                         simplification) — introduced by the
+                                         same-day MID-LOGGER-1 fix, not
+                                         touched by this task; reported, not
+                                         fixed (out of scope, §4).
+go test -race ./... (whole repo)        PASS, 0 failures.
