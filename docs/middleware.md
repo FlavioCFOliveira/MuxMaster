@@ -225,11 +225,17 @@ Logger implements `http.Flusher` (delegating to the underlying response writer) 
 
 ### Recoverer
 
-Catches panics in downstream handlers, writes a 500 response, and resumes normal request processing. Without this middleware a panic crashes the entire server.
+Catches panics in downstream handlers and resumes normal request processing. Without this middleware a panic crashes the entire server. The panic value and stack trace are always logged; the panic value itself is never written to the response body.
 
 ```go
 mux.Use(middleware.Recoverer)
 ```
+
+**Response behavior:** Recoverer writes a plain 500 response only if the handler has not already committed its own response — that is, only if the handler panicked before calling `WriteHeader` or `Write`. If the handler already sent a status or wrote body bytes before panicking, Recoverer leaves the response exactly as the handler left it and does not append anything; this is a handler bug independent of Recoverer, not something Recoverer can safely correct after the fact.
+
+**Supported interfaces:**
+
+Recoverer implements `http.Flusher` (delegating to the underlying response writer) and exposes `Unwrap() http.ResponseWriter`, so `http.ResponseController` reaches `Hijack` and other optional interfaces on the underlying writer.
 
 ---
 

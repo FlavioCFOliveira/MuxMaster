@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -114,6 +115,38 @@ func BenchmarkThrottlePerIP(b *testing.B) {
 
 func BenchmarkLogger(b *testing.B) {
 	h := middleware.Logger(io.Discard)(benchNop)
+	r := realisticRequest(http.MethodGet, "/api/v1/books/42/reviews")
+	w := newDiscardRW()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		h.ServeHTTP(w, r)
+		w.reset()
+	}
+}
+
+// ── Recoverer: no-panic hot path (rmp #276, sprint 20) ───────────────────
+//
+// Measures the cost Recoverer adds to a request that never panics — the
+// overwhelming majority of traffic through any deployment that wraps
+// routes with Recoverer. This is the path the O-14 fix (started-tracking
+// wrapper, pooled via recovererWriterPool) must not regress.
+
+func BenchmarkRecoverer_NoPanic(b *testing.B) {
+	h := middleware.Recoverer()(benchNop)
+	r := realisticRequest(http.MethodGet, "/api/v1/books/42/reviews")
+	w := newDiscardRW()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		h.ServeHTTP(w, r)
+		w.reset()
+	}
+}
+
+func BenchmarkRecovererWithLogger_NoPanic(b *testing.B) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := middleware.RecovererWithLogger(logger)(benchNop)
 	r := realisticRequest(http.MethodGet, "/api/v1/books/42/reviews")
 	w := newDiscardRW()
 	b.ReportAllocs()

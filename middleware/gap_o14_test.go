@@ -757,40 +757,178 @@ func TestSec_CleanPath_NullByteDoesNotPanicAndSurvivesCleaning(t *testing.T) {
 	}
 }
 
-// ── Recoverer: a panic after the handler's own WriteHeader does not crash, ──
-// ── though the response body is unavoidably appended to, not replaced      ──
+// ── Recoverer: a panic after the handler's own WriteHeader/Write does not ──
+// ── crash, and the response is left EXACTLY as the handler committed it   ──
 
-// O-14 FINDING (Low, reported — not fixed, see final report): spec item 14
-// reads "writes a 500 response (if headers have not already been sent)".
-// Verified empirically here and against a REAL net/http.Server (not just
-// httptest.ResponseRecorder, whose semantics differ from a live connection
-// on this exact point — it does not model "superfluous WriteHeader" at all,
-// unconditionally overwriting .Code): on a live connection, once the
-// handler has already committed a 200 and streamed a partial body,
-// Recoverer's http.Error(w, ..., 500) call (a) does NOT change the
-// status line the client already received (net/http silently discards the
-// second WriteHeader, logging "superfluous response.WriteHeader call" to
-// its own ErrorLog) — the parenthetical's spirit holds for the STATUS —
-// but (b) DOES still append "Internal Server Error\n" as extra body bytes
-// after "partial", because http.Error's body write is not guarded the same
-// way. The client ends up with 200 and a corrupted/concatenated body. No
-// panic value or stack trace leaks (the security property MM-2026-0023
-// documents), so this is a body-integrity nicety, not a vulnerability —
-// but it does not fully match "headers have not already been sent" read as
-// "Recoverer skips writing anything once headers are sent". Fixing it
-// would require Recoverer to wrap ResponseWriter with a status-tracking
-// recorder (like logger.go's statusRecorder) on EVERY request to detect
-// "already sent" before calling http.Error — a hot-path allocation for an
-// edge case that is otherwise unreachable without a HANDLER bug (writing,
-// then panicking). Left unfixed; reported for the user's decision.
-func TestSec_Recoverer_PanicAfterOwnWriteHeader_NoPanicEscapesAndStatusLineUnchanged(t *testing.T) {
+// O-14 FIX (rmp #276, sprint 20): spec item 14 reads "writes a 500 response
+// (if headers have not already been sent)". The prior implementation called
+// http.Error(w, ..., 500) unconditionally on every recovered panic — on a
+// live connection this did not rewrite an already-sent status line
+// (net/http silently discards a superfluous WriteHeader), but it still
+// APPENDED "Internal Server Error\n" to whatever body bytes the handler had
+// already streamed, corrupting the response.
+//
+// RecovererWithLogger now wraps the ResponseWriter it hands to the next
+// handler with recovererWriter (recoverer.go), which tracks whether the
+// response has already been committed — a WriteHeader call with a final
+// (non-1xx) status, or the first byte written (which implies an implicit
+// 200) — exactly the same "first commit wins" tracking statusRecorder
+// (logger.go) and gzipResponseWriter (compress.go) already use for their
+// own purposes. Recoverer's panic handler now calls http.Error only when
+// the wrapper says the response has NOT started, matching the spec's
+// parenthetical literally instead of only in spirit for the status line.
+func recovererVariants(t *testing.T) []struct {
+	name   string
+	wrap   func(http.Handler) http.Handler
+	logBuf *bytes.Buffer // nil for the bare Recoverer() variant (logs to slog.Default())
+} {
+	t.Helper()
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+	return []struct {
+		name   string
+		wrap   func(http.Handler) http.Handler
+		logBuf *bytes.Buffer
+	}{
+		{"Recoverer", middleware.Recoverer(), nil},
+		{"RecovererWithLogger", middleware.RecovererWithLogger(logger), &buf},
+	}
+}
+
+func TestSec_Recoverer_PanicAfterOwnWriteHeaderAndWrite_StatusAndBodyPreserved(t *testing.T) {
+	for _, tc := range recovererVariants(t) {
+		t.Run(tc.name, func(t *testing.T) {
+			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK) // headers already committed...
+				_, _ = w.Write([]byte("partial"))
+				panic("boom after WriteHeader") // ...then the handler panics
+			})
+			srv := httptest.NewServer(tc.wrap(inner)) // a REAL connection, not httptest.ResponseRecorder
+			defer srv.Close()
+
+			resp, err := http.Get(srv.URL) //nolint:noctx // test-only
+			if err != nil {
+				t.Fatalf("GET %s: %v", srv.URL, err)
+			}
+			defer func() { _ = resp.Body.Close() }()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("reading body: %v", err)
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("status = %d, want 200 (the handler's own committed status; Recoverer must not "+
+					"write its own 500 once the response has started)", resp.StatusCode)
+			}
+			// The body is EXACTLY what the handler wrote — no "Internal
+			// Server Error" text appended, no panic value or stack trace
+			// substituted or prepended.
+			if string(body) != "partial" {
+				t.Fatalf("body = %q, want exactly %q (Recoverer must not write anything once the response "+
+					"has started)", body, "partial")
+			}
+			if tc.logBuf != nil && !strings.Contains(tc.logBuf.String(), "panic recovered") {
+				t.Fatalf("log = %q, want the panic to still be logged even though no 500 was written", tc.logBuf.String())
+			}
+		})
+	}
+}
+
+// TestSec_Recoverer_PanicBeforeAnyWrite_Returns500WithGenericBody verifies
+// the OTHER half of the spec parenthetical: when the handler panics before
+// writing anything, Recoverer's 500 response is written exactly as before.
+func TestSec_Recoverer_PanicBeforeAnyWrite_Returns500WithGenericBody(t *testing.T) {
+	for _, tc := range recovererVariants(t) {
+		t.Run(tc.name, func(t *testing.T) {
+			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				panic("boom before any write")
+			})
+			srv := httptest.NewServer(tc.wrap(inner))
+			defer srv.Close()
+
+			resp, err := http.Get(srv.URL) //nolint:noctx // test-only
+			if err != nil {
+				t.Fatalf("GET %s: %v", srv.URL, err)
+			}
+			defer func() { _ = resp.Body.Close() }()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("reading body: %v", err)
+			}
+
+			if resp.StatusCode != http.StatusInternalServerError {
+				t.Fatalf("status = %d, want 500", resp.StatusCode)
+			}
+			want := http.StatusText(http.StatusInternalServerError) + "\n"
+			if string(body) != want {
+				t.Fatalf("body = %q, want %q (the generic http.Error body)", body, want)
+			}
+			if strings.Contains(string(body), "boom") {
+				t.Fatalf("body = %q, panic value leaked to the response", body)
+			}
+		})
+	}
+}
+
+// TestSec_Recoverer_WriteHeaderOnlyThenPanic_NoExtraBody covers the case
+// where the handler commits a final status but never writes a body byte
+// before panicking — WriteHeader alone must be enough to mark the response
+// as started, so Recoverer's 500 body is not appended after an
+// otherwise-empty body.
+func TestSec_Recoverer_WriteHeaderOnlyThenPanic_NoExtraBody(t *testing.T) {
+	for _, tc := range recovererVariants(t) {
+		t.Run(tc.name, func(t *testing.T) {
+			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK) // commits the status, writes no body
+				panic("boom after WriteHeader, no body")
+			})
+			srv := httptest.NewServer(tc.wrap(inner))
+			defer srv.Close()
+
+			resp, err := http.Get(srv.URL) //nolint:noctx // test-only
+			if err != nil {
+				t.Fatalf("GET %s: %v", srv.URL, err)
+			}
+			defer func() { _ = resp.Body.Close() }()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("reading body: %v", err)
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("status = %d, want 200", resp.StatusCode)
+			}
+			if len(body) != 0 {
+				t.Fatalf("body = %q, want empty (Recoverer must not append its own 500 body once "+
+					"WriteHeader alone has committed the response)", body)
+			}
+		})
+	}
+}
+
+// TestSec_Recoverer_Hijack_WorksThroughUnwrap verifies recovererWriter's
+// Unwrap() lets http.ResponseController(w).Hijack() reach the underlying
+// connection's http.Hijacker, exactly as it already does behind Logger and
+// Compress (recoverer.go does not implement Hijacker directly).
+func TestSec_Recoverer_Hijack_WorksThroughUnwrap(t *testing.T) {
 	mw := middleware.Recoverer()
+	const raw = "HTTP/1.1 200 OK\r\nContent-Length: 6\r\nConnection: close\r\n\r\nhijack"
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK) // headers already committed...
-		_, _ = w.Write([]byte("partial"))
-		panic("boom after WriteHeader") // ...then the handler panics
+		conn, bufrw, err := http.NewResponseController(w).Hijack()
+		if err != nil {
+			t.Errorf("Hijack: %v", err)
+			return
+		}
+		defer func() { _ = conn.Close() }()
+		if _, err := bufrw.WriteString(raw); err != nil {
+			t.Errorf("write hijacked response: %v", err)
+			return
+		}
+		if err := bufrw.Flush(); err != nil {
+			t.Errorf("flush hijacked response: %v", err)
+		}
 	})
-	srv := httptest.NewServer(mw(inner)) // a REAL connection, not httptest.ResponseRecorder
+	srv := httptest.NewServer(mw(inner))
 	defer srv.Close()
 
 	resp, err := http.Get(srv.URL) //nolint:noctx // test-only
@@ -802,17 +940,10 @@ func TestSec_Recoverer_PanicAfterOwnWriteHeader_NoPanicEscapesAndStatusLineUncha
 	if err != nil {
 		t.Fatalf("reading body: %v", err)
 	}
-
-	// The client-visible STATUS LINE was already sent as 200 before the
-	// panic — Recoverer's 500 attempt cannot rewrite bytes already on the
-	// wire, and does not crash the connection trying.
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want 200 (the handler's own committed status; Recoverer cannot rewrite an "+
-			"already-sent status line)", resp.StatusCode)
+		t.Fatalf("status = %d, want 200 (raw hijacked response)", resp.StatusCode)
 	}
-	// The body legitimately starts with what the handler already sent — no
-	// panic value or stack trace was substituted or prepended.
-	if !strings.HasPrefix(string(body), "partial") {
-		t.Fatalf("body = %q, want a prefix of %q (the handler's own partial write must survive)", body, "partial")
+	if string(body) != "hijack" {
+		t.Fatalf("body = %q, want %q", body, "hijack")
 	}
 }

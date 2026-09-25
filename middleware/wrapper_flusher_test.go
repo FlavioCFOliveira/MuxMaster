@@ -229,8 +229,12 @@ func TestResponseController_Flush_ThroughWrappers(t *testing.T) {
 		{"bare", func(h http.Handler) http.Handler { return h }},
 		{"logger", middleware.Logger(io.Discard)},
 		{"compress", middleware.Compress(gzip.BestSpeed)},
+		{"recoverer", middleware.Recoverer()},
 		{"logger+compress", func(h http.Handler) http.Handler {
 			return middleware.Logger(io.Discard)(middleware.Compress(gzip.BestSpeed)(h))
+		}},
+		{"recoverer+logger+compress", func(h http.Handler) http.Handler {
+			return middleware.Recoverer()(middleware.Logger(io.Discard)(middleware.Compress(gzip.BestSpeed)(h)))
 		}},
 	}
 
