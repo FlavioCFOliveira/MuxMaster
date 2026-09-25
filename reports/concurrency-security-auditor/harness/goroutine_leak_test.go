@@ -254,3 +254,110 @@ func TestThrottleBacklog_ChannelLeak(t *testing.T) {
 		t.Errorf("goroutine leak in ThrottleBacklog: count=%d exceeds threshold %d and did not settle within budget", after, threshold)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Restored coverage (rmp #274 pt.1/4): commit 5f804fa removed
+// TestServeHTTPSteadyState_NoGoroutineLeak (a general, middleware-free
+// baseline) and TestThrottleCounterRace (peak-concurrency-under-limit
+// invariant) from middleware_race_test.go without a replacement — the
+// current file's tests all target a specific middleware's goroutine
+// lifecycle, not the plain dispatch path or the throttle limit's
+// correctness under concurrency.
+// ---------------------------------------------------------------------------
+
+// TestServeHTTP_SteadyState_NoGoroutineLeak asserts that serving requests
+// through plain param-route dispatch (no middleware) does not leak
+// goroutines: MuxMaster runs each request entirely on the caller's
+// goroutine — no fan-out — for both the default and PoolRequestBundle=true
+// dispatch paths.
+//
+// Deterministic by construction — see TestTimeoutMW_GoroutineLeak for why
+// t.Parallel() is deliberately absent and bounded polling is used instead of
+// a fixed sleep.
+func TestServeHTTP_SteadyState_NoGoroutineLeak(t *testing.T) {
+	r := mm.New()
+	r.PoolRequestBundle = true
+	r.GET("/a/:id", func(w http.ResponseWriter, req *http.Request) {
+		_ = mm.PathParam(req, "id")
+	})
+	r.GET("/b", func(w http.ResponseWriter, req *http.Request) {})
+
+	// Warm up and settle.
+	for i := 0; i < 1000; i++ {
+		r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, fmt.Sprintf("/a/warm%d", i), nil))
+	}
+	before := stableGoroutineBaseline(500 * time.Millisecond)
+
+	n := runtime.GOMAXPROCS(0)
+	var wg sync.WaitGroup
+	for g := 0; g < n*2; g++ {
+		wg.Add(1)
+		go func(g int) {
+			defer wg.Done()
+			for i := 0; i < 1500; i++ {
+				path := fmt.Sprintf("/a/w%d-i%d", g, i)
+				r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, path, nil))
+			}
+		}(g)
+	}
+	wg.Wait()
+
+	threshold := before + n*2
+	after, settled := waitForGoroutineCeiling(threshold, 2*time.Second)
+	t.Logf("steady-state goroutine count: %d (before=%d threshold=%d)", after, before, threshold)
+	if !settled {
+		t.Errorf("unexpected goroutine leak on plain dispatch: count=%d exceeds threshold %d and did not settle within budget", after, threshold)
+	}
+}
+
+// TestThrottleBacklog_PeakConcurrency_NeverExceedsLimit restores
+// TestThrottleCounterRace: N goroutines hammer a limit=R throttled handler
+// that holds briefly inside so contention is maximised. The observed peak
+// number of handlers running simultaneously must never exceed R — an
+// observation of peak > R would reveal a counter race in ThrottleBacklog's
+// admission logic.
+func TestThrottleBacklog_PeakConcurrency_NeverExceedsLimit(t *testing.T) {
+	t.Parallel()
+	const (
+		limit   = 8
+		backlog = 100
+		workers = 64
+		per     = 32
+	)
+
+	var active, peak, served int64
+
+	r := mm.New()
+	r.Use(mw.ThrottleBacklog(limit, backlog, 2*time.Second))
+	r.GET("/throttled", func(w http.ResponseWriter, req *http.Request) {
+		n := atomic.AddInt64(&active, 1)
+		for {
+			cur := atomic.LoadInt64(&peak)
+			if n <= cur || atomic.CompareAndSwapInt64(&peak, cur, n) {
+				break
+			}
+		}
+		time.Sleep(2 * time.Millisecond)
+		atomic.AddInt64(&active, -1)
+		atomic.AddInt64(&served, 1)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	var wg sync.WaitGroup
+	for g := 0; g < workers; g++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < per; i++ {
+				r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/throttled", nil))
+			}
+		}()
+	}
+	wg.Wait()
+
+	p := atomic.LoadInt64(&peak)
+	t.Logf("throttle: served=%d peak=%d (limit=%d)", served, p, limit)
+	if p > int64(limit) {
+		t.Errorf("throttle counter race: peak concurrency %d exceeded limit %d", p, limit)
+	}
+}

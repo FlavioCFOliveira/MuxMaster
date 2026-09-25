@@ -478,6 +478,97 @@ func TestPoolRequestBundle_PanicPath_PoolStaysClean(t *testing.T) {
 	t.Logf("PoolRequestBundle panic path: %d panic+check cycles, 0 violations", total)
 }
 
+// TestPoolRequestBundle_PanicPath_NoPanicHandler_PoolStaysClean restores a
+// property from the removed TestPanicWithoutHandler_PoolRelease
+// (panic_pool_cleanliness_test.go, deleted by commit 5f804fa — rmp #274
+// pt.1/4): when Mux.PanicHandler is NOT set, dispatch() takes the no-recover
+// fast path (mux.go: `if cfg.hasPanicHandler { dispatchWithRecover } else {
+// dispatch }`), so a handler panic propagates straight out of ServeHTTP with
+// no defer/recover at all. Under PoolRequestBundle=true this means the
+// `*b = reqBundle1{}; reqBundle1Pool.Put(b)` cleanup lines that normally run
+// after handler.ServeHTTP are skipped entirely on the panicking call —
+// the bundle is simply never returned to sync.Pool (Get() allocates fresh
+// next time), not corrupted. This test's only prior coverage
+// (TestPoolRequestBundle_PanicPath_PoolStaysClean, above) always sets
+// PanicHandler; this is the no-PanicHandler case, now exercised specifically
+// against the opt-in pooled tiers where a missed Put is structurally
+// possible (unlike the default GC-managed reqBundle, which never returns to
+// a pool at all).
+func TestPoolRequestBundle_PanicPath_NoPanicHandler_PoolStaysClean(t *testing.T) {
+	m := muxmaster.New()
+	m.PoolRequestBundle = true
+	m.Pre(poolTestTokenMiddleware)
+
+	m.GET("/np1/:id", func(w http.ResponseWriter, r *http.Request) {
+		panic("boom-no-handler-1")
+	})
+	m.GET("/np3/:a/:b/:c", func(w http.ResponseWriter, r *http.Request) {
+		panic("boom-no-handler-3")
+	})
+
+	var violations int64
+	m.GET("/nc1/:id", func(w http.ResponseWriter, r *http.Request) {
+		tok, _ := r.Context().Value(poolTestTokenKey{}).(string)
+		checkTokenContext(r, tok, &violations)
+		ps := muxmaster.ParamsFromContext(r.Context())
+		if len(ps) != 1 || ps.Get("id") != tok {
+			atomic.AddInt64(&violations, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	m.GET("/nc3/:a/:b/:c", func(w http.ResponseWriter, r *http.Request) {
+		tok, _ := r.Context().Value(poolTestTokenKey{}).(string)
+		checkTokenContext(r, tok, &violations)
+		ps := muxmaster.ParamsFromContext(r.Context())
+		if len(ps) != 3 || ps.Get("a") != tok+"A" || ps.Get("b") != tok+"B" || ps.Get("c") != tok+"C" {
+			atomic.AddInt64(&violations, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	goroutines, iters := stressWorkers(t)
+	iters /= 6 // uncaught panics unwind through the full defer chain — heavier than a recovered one
+	var wg sync.WaitGroup
+	for g := 0; g < goroutines; g++ {
+		wg.Add(1)
+		go func(g int) {
+			defer wg.Done()
+			for i := 0; i < iters; i++ {
+				tok := poolToken(g, i)
+
+				pr1 := httptest.NewRequest(http.MethodGet, "/np1/"+tok, nil)
+				pr1.Header.Set("X-Test-Token", tok)
+				func() {
+					defer func() { _ = recover() }() // no PanicHandler: caller must recover
+					m.ServeHTTP(httptest.NewRecorder(), pr1)
+				}()
+
+				pr3 := httptest.NewRequest(http.MethodGet, "/np3/"+tok+"X/"+tok+"Y/"+tok+"Z", nil)
+				pr3.Header.Set("X-Test-Token", tok)
+				func() {
+					defer func() { _ = recover() }()
+					m.ServeHTTP(httptest.NewRecorder(), pr3)
+				}()
+
+				cr1 := httptest.NewRequest(http.MethodGet, "/nc1/"+tok, nil)
+				cr1.Header.Set("X-Test-Token", tok)
+				m.ServeHTTP(httptest.NewRecorder(), cr1)
+
+				cr3 := httptest.NewRequest(http.MethodGet, "/nc3/"+tok+"A/"+tok+"B/"+tok+"C", nil)
+				cr3.Header.Set("X-Test-Token", tok)
+				m.ServeHTTP(httptest.NewRecorder(), cr3)
+			}
+		}(g)
+	}
+	wg.Wait()
+
+	total := goroutines * iters
+	if v := atomic.LoadInt64(&violations); v != 0 {
+		t.Fatalf("PoolRequestBundle panic-path (no PanicHandler) contamination: %d violations out of %d check requests", v, total*2)
+	}
+	t.Logf("PoolRequestBundle panic path (no PanicHandler): %d panic+check cycles, 0 violations", total)
+}
+
 // TestPoolFastParams_PanicPath_PoolStaysClean mirrors the above for
 // FastHandler routes under PoolFastParams.
 func TestPoolFastParams_PanicPath_PoolStaysClean(t *testing.T) {
