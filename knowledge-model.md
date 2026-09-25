@@ -47,8 +47,8 @@ properties; `gitCommit`/`gitDate` always mean *"when the graph last confirmed th
 | `Spec` | A file under `specification/`. | `path` | `title` |
 | `Doc` | A user-facing document (`docs/`, `README.md`, `CHANGELOG.md`, …). | `path` | `title` |
 | `Example` | A runnable example under `examples/`. | `name` | `path` |
-| `Report` | An audit/benchmark report under `reports/`. | `path` | `agent`, `date` |
-| `Finding` | A security or performance finding raised by an audit. | `id` (string, e.g. `CSA-2026-0050`) | `title`, `severity` (integer), `severityLabel` (string: the qualitative severity exactly as the source states it, e.g. `Critical`; never converted to or from `severity`), `family`, `status` |
+| `Report` | An audit artefact under `reports/`: a narrative report, or a harness or evidence file that is the record of a finding. | `path` | `agent`, `date`, `kind` (`report` \| `harness` \| `evidence`) |
+| `Finding` | A security or performance finding raised by an audit. | `id` (string, e.g. `CSA-2026-0050`) | `title`, `severity` (integer), `severityLabel` (string: the qualitative severity exactly as the source states it, e.g. `Critical`; never converted to or from `severity`), `family`, `status` (remediation state), `traceability` (`documented` \| `documented-new` \| `not-documented`: how the finding is traced to a record), `traceabilityReason` (string: the evidence or, for `not-documented`, the justification), `alsoKnownAs` (list of strings: the aliases under which the records name it) |
 | `Optimization` | A performance optimisation evaluated by the perf audit. | `name` | `optId`, `summary`, `outcome` (`applied` \| `no-gain`) |
 | `Release` | A published SemVer tag. | `version` | `tag`, `commit`, `date` |
 | `Commit` | A git commit. | `hash` | `shortHash`, `date`, `subject`, `type` (Conventional Commits type) |
@@ -115,7 +115,8 @@ the repository:
 | `FIXED_BY` | `Finding` → `Commit` | The commit that closed the finding. |
 | `AFFECTS` | `Finding` → `File` \| `Middleware` \| `Feature` | What the finding compromises. |
 | `REPORTED_IN` | `Finding` → `Report` | The report that raised it. |
-| `REPORTED_IN` | `Finding` → `Doc` | No report raised it; the security advisory in the document (`SECURITY.md`) is its primary source. |
+| `REPORTED_IN` | `Finding` → `Doc` | No report raised it; the security advisory in the document (`SECURITY.md`) is its primary source, or the document is a secondary record of it. |
+| `DUPLICATES` | `Finding` → `Finding` | The finding is not distinct: it re-validates or repeats the target finding. |
 | `ADDRESSES` | `Task` → `Finding` | The task that closed the finding. |
 | `OPTIMIZES` | `Optimization` → `Feature` \| `File` | What the optimisation targets. |
 | `DELIVERED_BY` | `Optimization` → `Commit`, `Task` → `Commit` | The commit that carried the work. |
@@ -141,7 +142,15 @@ time:
   completion summary; for a finding without a source identifier (`*-OOS-*`), from the task
   description citing the same defect and evidence file.
 - `REPORTED_IN` requires the finding identifier (or, for `*-OOS-*`, the listed defect) to appear
-  in the target's prose.
+  in the target's prose, or — for a finding recorded under another name — one of its
+  `alsoKnownAs` aliases, verified by content (behaviour, affected file, fix commit, task).
+  A plain string match in a harness whose identifiers are reused for unrelated checks is not
+  evidence (see `reports/overview/findings.md` §5).
+- `DUPLICATES` requires a written justification in `traceabilityReason` and in
+  `reports/overview/findings.md` §3.
+- Every `Finding` without a `REPORTED_IN` edge carries `traceability = 'not-documented'` and a
+  `traceabilityReason`; `MATCH (f:Finding) WHERE NOT (f)-[:REPORTED_IN]->() AND f.traceability
+  IS NULL RETURN f.id` must return no rows.
 - `TESTS` / `FUZZES` / `BENCHMARKS` require evidence in the function body: a call to the
   middleware constructor for a `Middleware` target, a feature-specific API or keyword for a
   `Feature` target. A symbol with no such evidence gets no edge.
