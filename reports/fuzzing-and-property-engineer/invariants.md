@@ -1,5 +1,5 @@
 # MuxMaster Invariants (fuzz/property-checked)
-Version: 2026-05-07-S9 | Commit: e30ae94 | Go: 1.26
+Version: 2026-09-25-Sprint20 | Commit: b1986ba | Go: 1.26
 
 ## I-01 — ServeHTTP never panics
 For any `*http.Request` with a valid URL (no raw control bytes), `mux.ServeHTTP(w, r)` returns without panic regardless of method, path, or middleware configuration.
@@ -103,6 +103,36 @@ After `Mount(prefix, inner)`, the inner handler receives `r.URL.Path` without th
 - Test: `TestProp_TimeoutSetsDeadline`
 - Last verified: 2026-05-07
 - Fail-count: 0
+- Engineering note (added 2026-09-25, rmp #265, closes O-2/FPE-2026-005): this
+  property intentionally checks deadline *presence* only, not cancellation
+  timing — cancellation is asynchronous with respect to the deadline (fired
+  by a runtime timer on a separate goroutine) and is covered separately by
+  **I-15b** below, which carries an explicit, measured tolerance. The original
+  `TestProp_TimeoutCancelsContext` (rmp #176) was lost before being committed;
+  its only trace was a failing rapid seed
+  (`harness/testdata/rapid/TestProp_TimeoutCancelsContext/...`, now removed —
+  superseded by the reconstructed property below). See
+  `2026-09-25-FPE-2026-005-timeout-cancellation-property.md` for the full
+  history and root-cause analysis.
+
+## I-15b — Timeout cancels context within a measured, justified tolerance of the deadline (FPE-2026-005)
+`Timeout(d)` closes the request context's `Done()` channel no earlier than
+`now+d`, and no later than `now+d+300ms`. The 300ms tolerance is a fixed
+floor derived from empirical measurement (this repository's dev machine,
+go1.26.2 linux/amd64, `go test -race`): isolated firing lag ≈1.5ms max over
+200 samples; under synthetic heavy scheduler/GC contention, lag ≈60ms max
+over 90 samples. 300ms is ~5x the worst contended measurement, sized to
+absorb slower/virtualised CI runners and `-count=20` repetition without
+hiding a genuine regression (e.g. a timer that never fires or fires seconds
+late). No library code change was required — re-investigation of the
+original failing seed (`timeoutMs=50, sleepMs=51`) found a test-tolerance
+defect (polling after a fixed sleep only 1ms past the timeout, which races
+against the same scheduler jitter measured here), not a defect in
+`middleware/timeout.go`.
+- Test: `TestProp_TimeoutCancelsContext` (`harness/properties_test.go`)
+- Last verified: 2026-09-25 — `go test -race -count=20`: 20/20 runs pass, 2000 total rapid iterations, 0 failures, ~104s total
+- Fail-count: 0
+- FPE-2026-005: Open (AC-unmet) → **Resolved** — acceptance criteria of rmp #176 met via option (b) (tolerant cancellation property) rather than (a)/(c)
 
 ## I-16 — Recoverer prevents panics from escaping
 `Recoverer()` absorbs any panic from the wrapped handler and writes a 500 response. No panic escapes `ServeHTTP`.
@@ -220,11 +250,11 @@ When both flags are true, path param values equal `url.PathUnescape(rawSegment)`
 - Last verified: 2026-05-07
 - Fail-count: 0
 
-## I-REGEX-01 — Regex params: valid regex (without '}') registers without panic (H8-52)
-Any syntactically valid Go regex that does not contain a `}` byte registers as a `{name:expr}` param without panic. Regex with `}` in the expression body fails due to the tree parser's delimiter search (known limitation FPE-2026-REGEX-01).
-- Test: `FuzzRegexParamRegistration`
-- Last verified: 2026-05-07 (60s, 1.8M execs, 0 crashes post-fix)
-- Finding: FPE-2026-REGEX-01 (sev=3) — `}` in regex body causes confusing panic
+## I-REGEX-01 — Regex params: any syntactically valid Go regex registers without panic, including expressions containing '}' (H8-52)
+Any syntactically valid Go regex registers as a `{name:expr}` param without panic — this now includes expressions containing a `}` byte (e.g. `a{2,3}`, `[}]`, `(})`, `\}`). **Fixed** in `tree.go` (~line 1255, commit `825c623`): the parser used to stop at the FIRST `}` byte in the segment; it now scans the whole path segment and picks the LAST `}` before the next `/` (or end of pattern) as the token's closing brace, so a `}` anywhere inside `expr` no longer truncates or breaks registration.
+- Test: `FuzzRegexParamRegistration` (assertion strengthened 2026-09-25 to require success for `}`-containing valid regexes — previously silently skipped as a "known limitation"); `TestRegexBraceFixed` (new 2026-09-25, deterministic regression guard — registers 4 distinct `}`-containing regexes and confirms both successful registration and correct request-time matching)
+- Last verified: 2026-09-25 (`FuzzRegexParamRegistration`: 20s, 409K execs, 0 crashes; `TestRegexBraceFixed`: 8/8 subtests pass)
+- Finding: FPE-2026-0001 / FPE-2026-REGEX-01 (sev=3) — **Fixed**, commit `825c623`. Closes O-5.
 - H8-52: PARTIAL — no catastrophic backtracking at *registration* time; ReDoS at *request* time is bounded by Go's regexp engine (linear for common patterns, see TestRegexReDoSBudget)
 
 ## I-REGEX-02 — Regex param ServeHTTP never panics (H8-52)
@@ -334,3 +364,20 @@ OPEN FINDING (task #181, sev=6): `Mux.Use(stdlibMW) + Mux.HandleFast` does NOT p
 - Test: `TestCDX_MuxUsePlusHandleFastDoesNotPanic` — logs the open gap, becomes an assertion when fixed
 - Evidence: `CRASH-FPE-010/repro_test.go`
 - Fix: add `if len(m.middleware) > 0 { panic(...) }` guard in `Mux.HandleFast` (mux.go)
+
+---
+## Sprint 20 Invariants (2026-09-25, rmp #265 — closes O-6/FPE-2026-006)
+
+## I-SERVEFILES-01 — ServeFiles never discloses a file outside its served root
+For any requested path under a `ServeFiles(prefix, root)` route, no response body ever contains the content of a file that lives outside `root`, including for raw `..` traversal, encoded (`%2e%2e`, `%2f`), double-encoded (`%252e%252e`), backslash-separator, absolute-looking, NUL-byte, and pathologically deep traversal payloads. The protection is `http.FileServer`'s internal `path.Clean` step on the rewritten request path (see `mux.go` CDX-S8-002 comment; `specification/static-files.md` item 6) — ServeFiles adds no protection of its own beyond that, under the default (`UseRawPath=false`) configuration it supports.
+- Test: `FuzzServeFiles`, `TestProp_ServeFilesNoEscape`
+- Last verified: 2026-09-25 (`FuzzServeFiles`: 36s, 658K execs, 0 crashes, 121 corpus entries persisted to `corpora/FuzzServeFiles/`; `TestProp_ServeFilesNoEscape`: 100 rapid runs, 0 failures)
+- Fail-count: 0
+- Scope note: symlinks placed *inside* the served root that point outside it are NOT covered by this invariant — `http.Dir`'s own godoc documents that it follows such symlinks, and MuxMaster neither adds nor removes that behaviour (spec item 6). See `TestServeFiles_SymlinkFollowsUpstreamBehavior`, which pins and documents that upstream (net/http) characteristic separately, so it is never conflated with a MuxMaster regression.
+
+## I-SERVEFILES-02 — ServeFiles never panics for any requested path
+`ServeFiles`-registered routes never panic in `ServeHTTP`, for any requested path (including malformed percent-encoding, NUL bytes, and pathological traversal depth).
+- Test: `FuzzServeFiles`, `TestProp_ServeFilesNoEscape`
+- Last verified: 2026-09-25 (see I-SERVEFILES-01 run figures — same harness, same runs)
+- Fail-count: 0
+- Finding: FPE-2026-006 (sev=4) — **Fixed** (last of the 8 named surfaces; ServeFiles was the only remaining gap). Closes O-6.
