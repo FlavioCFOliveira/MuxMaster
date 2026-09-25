@@ -42,11 +42,13 @@ A análise concluiu que **eliminar o reqBundle é estruturalmente impossível** 
 | 5 | **O5a** | Substituir `r.Context()` por `*(*context.Context)(unsafe.Add(...))` no dispatch param | **−2 a −5 ns/op** param routes | All param dispatch | **SEGURO** (validado) | S | SIM (controlado) |
 | 6 | **O2** | Eliminar `prefixMatch` redundante no terminal node de `getValue` | **−2 a −4 ns/op** todas as routes | Static + param | Zero | S | NO |
 | 7 | **R1** | `RedirectTSL` rewrite: handler cached + builder manual sem `url.URL{}.String()` | **−1000+ ns/op, −10 allocs** redirect path | Redirect TSL/Fixed | Baixo | M | NO |
-| 8 | **O10** | Mover `var ps2 paramsBuf` para função `dispatchWildcard` separada | **−2 a −4 ns/op** todas as routes (stack frame menor) | Todas | Baixo | M | NO |
+| 8 | **O14**¹ | Mover `var ps2 paramsBuf` para função `dispatchWildcard` separada | **−2 a −4 ns/op** todas as routes (stack frame menor) | Todas | Baixo | M | NO |
 | 9 | **M1** | `MethodNotAllowed`: rebuild com menos allocs (allow string pre-cached) | **−300 ns/op, −4 allocs** 405 path | 405 responses | Baixo | M | NO |
 | 10 | **O3** | Remover `children := n.children[:len(n.indices)]` slice header dentro do loop `getValue` | **−1 a −2 ns/op** todas as routes | Static + param | Zero | S | NO |
 | 11 | **L2** | RequestID: `hex.Encode` em buffer stack em vez de `hex.EncodeToString` | **−200 ns, −1 alloc** RequestID generate | RequestID middleware | Zero | S | NO |
 | 12 | **L3** | NoCache + CORS: pre-canonicalisar header keys; direct map assignment | **−150 ns, −2 allocs / −100 ns, −1 alloc** | NoCache + CORS middleware | Zero | S | NO |
+
+¹ Rotulado **O10** neste rascunho original. O id **O10** foi mais tarde reatribuído (auditoria da mesma tarde, commit `6cc0686`) à optimização aplicada "eliminar a indirecção de function-pointer `doDispatch1`/`doDispatch2`". Esta ideia (dispatchWildcard) foi implementada e empiricamente **rejeitada** — regressão em todos os benchmarks, sem ganho líquido — commit `943a1d1`. Renumerada para **O14** para eliminar a colisão de identificador.
 
 ### Ganho potencial total (acumulado, estimativas)
 
@@ -101,7 +103,7 @@ Após estas optimizações, MuxMaster:
 - `var ps2 paramsBuf` em mux.go:980 sempre alocado mesmo se starRoot==nil
 
 **Plano:**
-- **O10**: mover lookup wildcard para função separada `dispatchWildcard` — `var ps2` só é alocado se necessário (raro)
+- **O14** (id renumerado; ver nota¹ acima): mover lookup wildcard para função separada `dispatchWildcard` — `var ps2` só é alocado se necessário (raro)
 - Não é viável reduzir o `var ps` principal (necessário para param routes)
 
 ### D. NotFound path
@@ -159,7 +161,7 @@ Após estas optimizações, MuxMaster:
 | **O2** (eliminar prefixMatch redundante) | Nenhum | Code golf |
 | **O5a** (unsafe r.ctx read) | **Validado SEGURO** pelo agente | net/http sempre seta ctx; `reqCtxFieldOffset` já validado em `setReqCtxUnsafe`; fallback `hasReqCtxField==false` mantido |
 | **O9** (sync.Pool FastHandler Params) | **Lifetime contract footgun** | Documentado no `FastHandler` que ps só é válido durante o call; documentar AINDA mais; consider opt-in via `MuxMasterPool` flag |
-| **O10** (dispatchWildcard) | Nenhum | Refactor |
+| **O14** (dispatchWildcard; ver nota¹) | Nenhum | Refactor |
 | **M1** (MethodNotAllowed cache) | Nenhum | Pre-build é determinístico |
 | **R1** (RedirectTSL cache) | Verificar **HPS-2026-0005** (Location injection) ainda safe — o builder manual NÃO deve permitir scheme injection | Path-only Location — string builder garante que `target` começa com `/` |
 | **L1-L3** (middlewares) | Nenhum sem mudar semântica | Verificar timing equalisations não alteradas |
@@ -180,7 +182,7 @@ Após estas optimizações, MuxMaster:
 
 ### Sprint 2 — Mid-complexity (baixo risco)
 - O1: Split getValue static fast path
-- O10: dispatchWildcard separation
+- O14: dispatchWildcard separation (id renumerado; ver nota¹)
 - O5a: Unsafe r.ctx read (validar com -race extensivo)
 - L1: Logger pooled buffer
 - M1: MethodNotAllowed pre-build
