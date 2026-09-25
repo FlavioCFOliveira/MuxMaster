@@ -56,6 +56,10 @@ MuxMaster will not provide session management. Session state is application stat
 
 MuxMaster will not provide full authentication or authorization engines: session management, RBAC, and policy evaluation remain out of scope. Three middleware in the `muxmaster/middleware` sub-package are narrow, low-level exceptions that validate a credential or a bearer token for a single request and stop there — they do not issue tokens, manage sessions, or make authorization decisions: `BasicAuth` (documented in [middleware-stdlib.md](middleware-stdlib.md)), `JWTAuth`, and `OAuth2Introspect` (both implemented in `middleware/jwt_auth.go` and `middleware/oauth2.go`, but not yet covered by a middleware-stdlib.md section).
 
+### 2.7 Custom and Extension HTTP Methods
+
+MuxMaster will not support registering handlers for custom or extension HTTP methods, such as the WebDAV method `PROPFIND` or the informal `PURGE` method used by some caching proxies, and provides no `RegisterMethod` function or equivalent to declare one. The set of method tokens the router recognizes — the ten standard methods (GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY) plus the internal `"*"` token used by `Mount` — is a fixed array indexed by a compile-time constant (`methodIdx`), replacing a `map[string]*node` lookup so that method dispatch on the request-time hot path is an O(1) array access rather than a hash-map lookup. Supporting an open-ended set of method strings would require reintroducing a map, or an equivalent dynamic structure, on that hot path, which conflicts with the performance-first design principle (see [README.md](README.md) "Design Principles" and [performance.md](performance.md) section 7, Lock-Free Dispatch). See [routing.md](routing.md) section 2.3 for the resulting registration-time panic behavior.
+
 ---
 
 ## 3. Operational Concerns

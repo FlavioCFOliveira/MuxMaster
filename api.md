@@ -93,6 +93,28 @@ Usage:
 Middleware must be registered (via Use) before the routes it should wrap.
 Dynamic route registration after the server starts serving is not supported.
 
+CONSTANTS
+
+const MethodQuery = "QUERY"
+    MethodQuery is the HTTP QUERY method, standardized by RFC 10008
+    (https://www.rfc-editor.org/rfc/rfc10008.html, June 2026). Per RFC 10008
+    section 2, QUERY is safe and idempotent like GET and HEAD, but — like POST —
+    it carries request content (a "query") in its body.
+
+    As of Go 1.27, the standard library's net/http package does not define
+    a MethodQuery constant (tracked by the Go project as golang/go#80058).
+    MuxMaster defines this constant so callers do not need to write the literal
+    string "QUERY". If a future Go release adds http.MethodQuery, its value is
+    guaranteed to be "QUERY" — RFC 10008 defines the method token and Go does
+    not redefine HTTP method tokens — so MuxMaster's constant remains equal
+    to it and no code using MethodQuery needs to change. MuxMaster does not
+    deprecate or remove MethodQuery when that happens.
+
+    The router performs no validation of a QUERY request's Content-Type or body;
+    that responsibility belongs to the registered handler (see the QUERY method
+    on *Mux).
+
+
 FUNCTIONS
 
 func JSON(w http.ResponseWriter, code int, v any) error
@@ -256,12 +278,27 @@ func (g *Group) PUTE(path string, h HandlerFuncE)
     PUTE registers a HandlerFuncE for PUT requests on path. Errors are passed to
     g.mux.ErrorHandler if set, otherwise a 500 is returned.
 
+func (g *Group) QUERY(path string, h http.HandlerFunc)
+    QUERY registers a HandlerFunc for QUERY requests on path. QUERY is a
+    standard HTTP method (RFC 10008); see MethodQuery. *Group has no dedicated
+    QUERYFast: register a fast QUERY route via g.HandleFast(MethodQuery, path,
+    h).
+
+func (g *Group) QUERYE(path string, h HandlerFuncE)
+    QUERYE registers a HandlerFuncE for QUERY requests on path. Errors are
+    passed to g.mux.ErrorHandler if set, otherwise a 500 is returned. QUERY is a
+    standard HTTP method (RFC 10008); see MethodQuery.
+
 func (g *Group) Route(prefix string, fn func(*Group))
     Route creates a sub-group at prefix and calls fn with it.
 
 func (g *Group) ServeFiles(prefix string, root http.FileSystem)
     ServeFiles serves static files from root under the given prefix pattern.
     prefix must end with "/*name" (relative to the group prefix).
+
+    http.FileServer receives a shallow copy of the request (see the Terminology
+    section in README.md): a new *http.Request with a new URL, but sharing the
+    original's header map and context.
 
 func (g *Group) TRACE(path string, h http.HandlerFunc)
     TRACE registers a HandlerFunc for TRACE requests on path.
@@ -515,6 +552,13 @@ func (m *Mux) Mount(prefix string, h http.Handler)
     Mount attaches h at prefix, stripping the prefix before forwarding the
     request. The catch-all parameter is named "mux_mount".
 
+    h receives a shallow copy of the request (see the Terminology section in
+    README.md): a new *http.Request with a new URL, but sharing the original's
+    header map, Trailer, Form and context. h may read the original request's
+    headers, but must not mutate them in place — such a mutation would be
+    visible to the caller's original request and to any outer middleware that
+    runs after Mount returns.
+
 func (m *Mux) OPTIONS(pattern string, h http.HandlerFunc)
     OPTIONS registers a HandlerFunc for OPTIONS requests on pattern.
 
@@ -565,15 +609,38 @@ func (m *Mux) Pre(mw ...func(http.Handler) http.Handler)
     uniformly — auth gates, CleanPath, RealIP, RecovererWithLogger, request IDs.
     See SECURITY.md "Pre vs Use security boundary".
 
+func (m *Mux) QUERY(pattern string, h http.HandlerFunc)
+    QUERY registers a HandlerFunc for QUERY requests on pattern.
+
+    QUERY is a standard HTTP method, standardized by RFC 10008. Per RFC 10008
+    section 2, it is safe and idempotent but — unlike GET — carries request
+    content in its body; see MethodQuery. The router performs no validation
+    of the Content-Type header or body of a QUERY request: RFC 10008 section
+    2.1 requires servers to fail the request (400, 415, or 422) when the
+    Content-Type field is missing or inconsistent with the request content, and
+    RFC 10008 section 3 defines the Accept-Query response header for advertising
+    supported query formats — implementing both is the responsibility of the
+    registered handler.
+
+func (m *Mux) QUERYE(pattern string, h HandlerFuncE)
+    QUERYE registers a HandlerFuncE for QUERY requests on pattern. Errors are
+    passed to m.ErrorHandler if set, otherwise a 500 is returned. QUERY is a
+    standard HTTP method (RFC 10008); see MethodQuery.
+
+func (m *Mux) QUERYFast(pattern string, h FastHandler)
+    QUERYFast registers a FastHandler for QUERY requests on pattern. QUERY is a
+    standard HTTP method (RFC 10008); see MethodQuery.
+
 func (m *Mux) Rebuild()
-    Rebuild resets the frozen configuration snapshot and the lazy NotFound
-    / MethodNotAllowed / OPTIONS handler caches so the next ServeHTTP call
-    re-reads every configuration field and rebuilds the wrapped handlers.
+    Rebuild resets the frozen configuration snapshot and the lazy NotFound /
+    MethodNotAllowed / OPTIONS / redirect handler caches so the next ServeHTTP
+    call re-reads every configuration field and rebuilds the wrapped handlers.
 
     Safe to call concurrently with ServeHTTP: every reset is a single atomic
     operation, and the next config() / lazyNotFound() / lazyMethodNotAllowed()
-    / lazyOPTIONS() call re-initialises via CompareAndSwap or sync.Map
-    re-population. Intended for tests and dynamic reconfiguration scenarios.
+    / lazyOPTIONS() / lazyRedirect() call re-initialises via CompareAndSwap
+    or sync.Map re-population. Intended for tests and dynamic reconfiguration
+    scenarios.
 
 func (m *Mux) Route(prefix string, fn func(*Group))
     Route creates a sub-group at prefix and calls fn with it.
@@ -585,6 +652,10 @@ func (m *Mux) Routes() []RouteInfo
 func (m *Mux) ServeFiles(prefix string, root http.FileSystem)
     ServeFiles serves static files from root under the given prefix pattern.
     prefix must end with "/*name" (e.g. "/static/*filepath").
+
+    http.FileServer receives a shallow copy of the request (see the Terminology
+    section in README.md): a new *http.Request with a new URL, but sharing the
+    original's header map and context.
 
     SECURITY (CDX-S8-002): http.FileServer applies path.Clean internally,
     so a request like /static/../etc/passwd cannot escape root. However,
@@ -770,6 +841,11 @@ func CleanPath() func(http.Handler) http.Handler
     from what path.Clean produces for the percent-decoded Path, RawPath is
     zeroed to prevent encoded path-traversal bypass (MM-2026-0018).
 
+    When the path changes, next receives a shallow copy of the request (see
+    the Terminology section in README.md): a new *http.Request with a new URL,
+    but sharing the original's header map and context. The original request
+    passed to CleanPath is never mutated.
+
 func Compress(level int) func(http.Handler) http.Handler
     Compress compresses responses with gzip when the client accepts it.
     Responses smaller than 1024 bytes are passed through uncompressed. Uses
@@ -830,6 +906,18 @@ func Logger(out io.Writer) func(http.Handler) http.Handler
     implementation pools the statusRecorder and assembles the log line into a
     pooled []byte buffer via direct strconv.Append*. Output bytes are identical:
     the format is "<RFC3339> <method> <path> <status> <duration>\n".
+
+    WH-02: a single clock read at the end of the request (`end := time.Now()`)
+    now serves both the logged timestamp (`end.AppendFormat`) and the logged
+    duration (`end.Sub(start)`, monotonic exactly like time.Since) — the
+    original implementation read the clock again for each. Sanitising method and
+    path now appends straight into the pooled buffer (appendSanitisedForLog)
+    instead of allocating a quoted string and copying it, and the duration is
+    appended without allocating (appendLogDuration). The output format and every
+    logged byte are unchanged; the request duration this logs now excludes
+    the logger's own formatting work (it previously included the time spent
+    reading and formatting the timestamp), which is closer to, not further from,
+    the wrapped handler's true latency.
 
 func NoCache() func(http.Handler) http.Handler
     NoCache sets response headers to prevent caching at every layer: browsers
@@ -898,6 +986,18 @@ func RequestID() func(http.Handler) http.Handler
     Incoming X-Request-ID values are validated; invalid or oversized values are
     replaced with a freshly generated random ID (MM-2026-0011).
 
+    Allocation budget: exactly 2 allocations per request, on either path
+    (generated or propagated) — (1) the fused *requestIDCtx node, which also
+    carries the hex-encoded id storage (buf) and the response header's []string
+    backing array (hdr), and (2) r.WithContext's copy of *http.Request, required
+    for a stdlib-compatible middleware so the id is reachable via r.Context()
+    inside next.ServeHTTP. Down from 7 before rmp #245 (context.WithValue's
+    *context.valueCtx node; boxing the id string into an `any`;
+    hex.EncodeToString's separate string; canonicalising "X-Request-ID" on both
+    the inbound Get and the outbound Set; and the []string{id} header-value
+    slice). See reports/perf-lab-2026-09-24/results/fixes/245.txt for the
+    measured gain.
+
 func SetHeader(key, value string) func(http.Handler) http.Handler
     SetHeader sets a fixed response header before calling the next handler.
     Panics at construction time if key or value contains CR or LF, as those
@@ -927,6 +1027,11 @@ func StripSlashes() func(http.Handler) http.Handler
     also strips trailing '/' bytes from RawPath. Without this the dispatch
     path would diverge between Path and RawPath when Mux.UseRawPath is true
     (HPS-2026-0004).
+
+    When the path has trailing slashes to strip, next receives a shallow copy of
+    the request (see the Terminology section in README.md): a new *http.Request
+    with a new URL, but sharing the original's header map and context. The
+    original request passed to StripSlashes is never mutated.
 
 func ThrottleAllBacklog(limit int, backlog int, timeout time.Duration) func(http.Handler) http.Handler
     ThrottleAllBacklog is the renamed ThrottleBacklog — limits concurrency

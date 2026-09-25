@@ -24,6 +24,7 @@ The hot path allocates **zero bytes** for static routes and makes a **single tie
 - **Radix tree routing** — O(k) lookup, independent of the total number of registered routes
 - **Path parameters** — named (`:id`), regex-constrained (`{id:[0-9]+}`), and catch-all (`*filepath`)
 - **Typed parameter helpers** — parse path parameters directly to `int`, `int64`, `float64`, `bool`
+- **All standard HTTP methods** — GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY (RFC 10008)
 - **Middleware scopes** — apply middleware globally, to a group, or to a single route
 - **Groups and sub-groups** — organize routes with shared path prefixes and middleware stacks
 - **Error-returning handlers** — `HandlerFuncE` enables centralized error handling without boilerplate
@@ -139,6 +140,7 @@ mux.PATCH("/users/:id", patchUser)
 mux.DELETE("/users/:id", deleteUser)
 mux.HEAD("/users/:id", headUser)
 mux.OPTIONS("/users", optionsUsers)
+mux.QUERY("/books/search", searchBooks)  // RFC 10008
 
 // Register a handler for all standard HTTP methods at once
 mux.ANY("/health", healthCheck)
@@ -356,7 +358,7 @@ mux.DELETEFast("/api/v1/items/:id", deleteItemFast)
 mux.HandleFast("GET", "/files/*filepath", serveFilesFast)
 ```
 
-Available methods: `GETFast`, `HEADFast`, `POSTFast`, `PUTFast`, `PATCHFast`, `DELETEFast`, `OPTIONSFast`, `CONNECTFast`, `TRACEFast`.
+Available methods: `GETFast`, `HEADFast`, `POSTFast`, `PUTFast`, `PATCHFast`, `DELETEFast`, `OPTIONSFast`, `CONNECTFast`, `TRACEFast`, `QUERYFast`.
 
 ### Fast middleware
 
@@ -552,7 +554,7 @@ mux.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
 })
 ```
 
-The common HTTP methods have error-returning variants: `GETE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, `HEADE`, `OPTIONSE`. Use `HandleE` directly for `CONNECT` and `TRACE`.
+The common HTTP methods have error-returning variants: `GETE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, `HEADE`, `OPTIONSE`, `QUERYE`. Use `HandleE` directly for `CONNECT` and `TRACE`.
 
 ### The `HTTPError` interface
 

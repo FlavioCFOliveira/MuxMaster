@@ -66,7 +66,7 @@ mux.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
 })
 ```
 
-The same pattern applies to every HTTP method: `GETE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, `HEADE`, `OPTIONSE`.
+The same pattern applies to every HTTP method: `GETE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, `HEADE`, `OPTIONSE`, `QUERYE`.
 
 ---
 

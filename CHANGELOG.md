@@ -7,7 +7,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **HTTP QUERY method (RFC 10008)** — first-class support for the QUERY method standardised by RFC 10008 (June 2026). QUERY is a safe, idempotent method like GET, but carries request content in the body like POST. Supports `Mux.QUERY`, `Mux.QUERYE`, `Mux.QUERYFast`, `Group.QUERY`, and `Group.QUERYE`. Included in the `ANY` method set. The router performs no Content-Type or body validation; responsibility is the handler's, per RFC 10008 §2. Default redirect code for `RedirectTrailingSlash` and `RedirectFixedPath` on QUERY routes is 307 (preserves method and body).
+
+- **`MethodQuery` constant** — defined in muxmaster because Go 1.27's `net/http` does not yet define `http.MethodQuery` (tracked by golang/go#80058). The constant value is guaranteed to be `"QUERY"` and will remain equal to any future `http.MethodQuery` added by the Go project. Previously, attempting to register a route with `Handle("QUERY", ...)` panicked with "unsupported HTTP method 'QUERY'"; this panic is now eliminated.
+
+- **Allow header includes QUERY** — the `Allow` header in 405 Method Not Allowed and automatic OPTIONS responses now includes QUERY when applicable. Order: GET, HEAD, POST, PUT, PATCH, DELETE, CONNECT, TRACE, QUERY, OPTIONS.
+
 ### Changed
+
+- **`Mux.ANY` and `Group.ANY` now register QUERY** — routes registered via `ANY` now also match QUERY requests (RFC 10008), in addition to GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, and TRACE. This is an observable behaviour change: previously, QUERY requests to a path registered only via `ANY` would receive 405 Method Not Allowed (if `HandleMethodNotAllowed=true`) or 404 Not Found (if false). Now they are matched and handled.
 
 - **Performance: `ThrottlePerIP` and `ThrottlePerIPCapped`** — sharded the internal rate-limit table from a single global `sync.Mutex` to 64-way per-shard mutexes (selected by `hash/maphash`), with an atomic global entry counter keeping the `maxTableSize` cap exact. Eliminates anti-scaling at high core counts. Measured at 16 logical CPUs: **4.68× faster** (2114 ns → 451 ns/op), scales correctly above 4 cores instead of anti-scaling. Closes CH-01 / rmp #244.
 
@@ -20,6 +30,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **Performance: `mux.go` redirect path** — snapshot the middleware chain into `redirectMWPtr` (an atomic pointer refreshed by `Use()`) and read it lock-free in `serveRedirect`, eliminating the unconditional `m.mu.RLock()` call on every redirect request. No measurable ns/op change on synthetic benchmarks (RWMutex was already cheap for reader-only access), but removes a reader-count atomic operation from the hot path. Closes CH-06 / rmp #247.
 
 - **Documentation: `RequestID` middleware reference** — rewritten to clarify context-based retrieval via `middleware.GetRequestID()`, explain inbound header validation (MM-2026-0011: ASCII alphanumeric plus `-`, `_`, `.`; max 128 characters), and document the 2-allocation budget. Updated `docs/middleware.md` with correct function call form and validation rules. Added high-concurrency scaling subsection to `docs/max-performance.md` with measured data at 1/4/16 cores, explaining the allocation-driven GC and runtime lock pressure mechanism.
+
+### Fixed
+
+- **Documentation corrected: custom HTTP methods are not supported** (rmp #262, sprint 19): `README.md`, `docs/routing.md`, and specification have been corrected to reflect the verified behavior — MuxMaster recognizes a fixed, closed set of eleven method tokens (the ten standard HTTP methods: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY, plus the internal `"*"` token used by `Mount`), and registering any other method string (e.g., `PURGE`, `PROPFIND`) via `Handle`, `HandleFunc`, `HandleE`, `HandleFast`, or `Match` panics with `"muxmaster: unsupported HTTP method '<method>'"`. No `RegisterMethod` function exists. The router provides no mechanism to extend the method set at runtime. Custom-method requests can be served by attaching a `Mount` at a prefix and dispatching on `r.Method` within the mounted handler. Previously, documentation incorrectly claimed support for custom methods. Regression tests added in `method_set_test.go` pin all related specification rules and panic messages.
 
 ### Performance (Sprint 18 — Waste-Hunt Campaign)
 

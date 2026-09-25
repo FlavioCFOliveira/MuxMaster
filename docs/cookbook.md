@@ -10,6 +10,7 @@ This page collects ready-to-use patterns for common production scenarios.
 - [JWT authentication](#jwt-authentication)
 - [Request validation](#request-validation)
 - [Pagination](#pagination)
+- [QUERY endpoint (RFC 10008)](#query-endpoint-rfc-10008)
 - [Graceful shutdown](#graceful-shutdown)
 - [Health and readiness endpoints](#health-and-readiness-endpoints)
 - [Rate limiting per IP](#rate-limiting-per-ip)
@@ -279,6 +280,61 @@ mux.GET("/users", func(w http.ResponseWriter, r *http.Request) {
         "limit": pg.Limit,
     })
 })
+```
+
+---
+
+## QUERY endpoint (RFC 10008)
+
+The QUERY method (RFC 10008) is a standard HTTP method for executing queries against resources. It is safe and idempotent like GET, but carries request content in the body like POST. Unlike the router, the handler is responsible for validating the Content-Type (RFC 10008 §2.1) and advertising accepted query formats via the `Accept-Query` response header (RFC 10008 §3).
+
+```go
+// Define the query request structure
+type BookQuery struct {
+    Title  string `json:"title"`
+    Author string `json:"author"`
+    Year   int    `json:"year"`
+}
+
+mux.QUERY("/books/search", func(w http.ResponseWriter, r *http.Request) {
+    // RFC 10008 §2.1: reject requests with missing or unsupported Content-Type
+    ct := r.Header.Get("Content-Type")
+    if ct == "" {
+        http.Error(w, "Content-Type is required", http.StatusBadRequest)
+        return
+    }
+    if ct != "application/json" {
+        http.Error(w, "unsupported query media type", http.StatusUnsupportedMediaType)
+        return
+    }
+
+    // Parse the query body
+    var query BookQuery
+    if err := json.NewDecoder(r.Body).Decode(&query); err != nil {
+        http.Error(w, "invalid query format", http.StatusBadRequest)
+        return
+    }
+
+    // RFC 10008 §3: advertise accepted query formats
+    w.Header().Set("Accept-Query", `"application/json"`)
+
+    // Execute the query and return results
+    results := db.SearchBooks(query.Title, query.Author, query.Year)
+    muxmaster.JSON(w, http.StatusOK, results)
+})
+```
+
+### CORS and QUERY
+
+The QUERY method is not a CORS-safelisted method, meaning cross-origin QUERY requests require a preflight OPTIONS request. If your API uses CORS, ensure `AllowedMethods` includes `"QUERY"`:
+
+```go
+mux.Use(middleware.CORS(middleware.CORSOptions{
+    AllowedOrigins: []string{"https://app.example.com"},
+    AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "QUERY", "OPTIONS"},
+    AllowedHeaders: []string{"Content-Type"},
+    MaxAge:         86400,
+}))
 ```
 
 ---

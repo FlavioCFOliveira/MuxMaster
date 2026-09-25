@@ -2,8 +2,10 @@ package muxmaster_test
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	muxmaster "github.com/FlavioCFOliveira/MuxMaster"
 )
@@ -183,6 +185,66 @@ func ExampleJSON() {
 	fmt.Println(rec.Body.String())
 	// Output:
 	// {"v":"1"}
+}
+
+// ExampleMux_QUERY demonstrates registering a QUERY route (RFC 10008) with
+// RFC-conformant Content-Type handling: RFC 10008 section 2.1 requires
+// servers to fail a QUERY request when Content-Type is missing (400) or
+// unsupported (415), and section 3 defines the Accept-Query response
+// header for advertising the accepted query format. The router itself
+// performs none of this validation (routing.md section 9, rule 86) — it
+// is entirely the handler's responsibility, exactly as shown here.
+func ExampleMux_QUERY() {
+	mux := muxmaster.New()
+	mux.QUERY("/books/search", func(w http.ResponseWriter, r *http.Request) {
+		// Accept-Query (RFC 10008 section 3) is a Structured Field List
+		// (RFC 9651); "application/json" is encoded as a Structured Field
+		// String.
+		w.Header().Set("Accept-Query", `"application/json"`)
+
+		switch ct := r.Header.Get("Content-Type"); {
+		case ct == "":
+			// RFC 10008 section 2.1: fail when Content-Type is missing.
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, "Content-Type is required")
+			return
+		case ct != "application/json":
+			// RFC 10008 section 2.1: fail on an unsupported media type.
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+			_, _ = io.WriteString(w, "unsupported query media type")
+			return
+		}
+
+		body, _ := io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "query=%s", body)
+	})
+
+	send := func(body, contentType string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(muxmaster.MethodQuery, "/books/search", strings.NewReader(body))
+		if contentType != "" {
+			req.Header.Set("Content-Type", contentType)
+		}
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		return rec
+	}
+
+	rec := send(`{"genre":"sci-fi"}`, "")
+	fmt.Printf("%d %s\n", rec.Code, rec.Body.String())
+
+	rec = send("genre=sci-fi", "application/x-www-form-urlencoded")
+	fmt.Printf("%d %s\n", rec.Code, rec.Body.String())
+
+	rec = send(`{"genre":"sci-fi"}`, "application/json")
+	fmt.Printf("%d %s\n", rec.Code, rec.Body.String())
+	fmt.Println("Accept-Query:", rec.Header().Get("Accept-Query"))
+
+	// Output:
+	// 400 Content-Type is required
+	// 415 unsupported query media type
+	// 200 query={"genre":"sci-fi"}
+	// Accept-Query: "application/json"
 }
 
 // ExampleMux_Pre demonstrates registering Pre middleware that wraps both

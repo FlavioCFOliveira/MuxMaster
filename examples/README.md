@@ -18,7 +18,7 @@ To try one: `cd examples/<name> && go run .`
 |---|---|:---:|---|
 | [`basic`](#basic) — see `rest-api` | — | — | — |
 | [`max-performance`](max-performance/) | Every opt-in stacked: `PoolRequestBundle` + `PoolFastParams` + `Pre` + `HandleFast` + `/bench` endpoint that measures live speed-up | ✅ | ⭐⭐⭐ |
-| [`rest-api`](rest-api/) | Full bookstore REST API: groups, sub-groups, every HTTP method, regex params, validation, `HandlerFuncE`, middleware composition, error handling | ✅ | ⭐⭐ |
+| [`rest-api`](rest-api/) | Full bookstore REST API: groups, sub-groups, all HTTP methods (including QUERY per RFC 10008), regex params, validation, `HandlerFuncE`, middleware composition, error handling | ✅ | ⭐⭐ |
 | [`versioning`](versioning/) | Path-based (`/v1/`, `/v2/`) + header-based (`Accept: ...;v=N`) API versioning with nested groups + admin gate | ✅ | ⭐⭐⭐ |
 | [`server-sent-events`](server-sent-events/) | SSE streaming endpoint — pool-safe because handler stays alive for the whole stream | ✅ | ⭐⭐ |
 | [`upload-file`](upload-file/) | Multipart file upload showing the **body-drain-before-spawn** pattern that makes goroutines pool-safe | ✅ | ⭐⭐⭐ |

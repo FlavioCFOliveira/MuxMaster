@@ -123,7 +123,7 @@ This file does not cover the behavior of `NotFound`, `MethodNotAllowed`, `PanicH
 | Type | `int` |
 | Default | `0` (resolved to 301 for GET/HEAD, 307 for others) |
 
-18. When `RedirectCode` is `0`, the router uses 301 for GET and HEAD redirects and 307 for all other methods. This is the default behavior.
+18. When `RedirectCode` is `0`, the router uses 301 for GET and HEAD redirects and 307 for all other methods. This is the default behavior. This includes `QUERY`: although `QUERY` is safe and idempotent (RFC 10008 section 2), it is not GET or HEAD, so it receives 307 by default. See [routing.md](routing.md) section 4.4, rule 53, for why this does not weaken QUERY's semantics.
 19. When `RedirectCode` is set to a non-zero HTTP redirect status code (e.g., 308), that code is used for all redirects regardless of method. The caller is responsible for choosing a semantically appropriate code.
 20. Setting `RedirectCode` to a value outside the 3xx range causes a panic at the time the first redirect is issued.
 
