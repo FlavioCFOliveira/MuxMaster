@@ -22,7 +22,7 @@ This file does not cover redirect behavior (see [configuration.md](configuration
 
 6. When `Mux.HandleMethodNotAllowed` is true, the path is registered for at least one method, but not for the requested method, the router sets the `Allow` response header and calls the handler assigned to `Mux.MethodNotAllowed`.
 7. If `Mux.MethodNotAllowed` is nil, the router writes a plain-text 405 response with `http.Error(w, http.StatusText(405), 405)`.
-8. The `Allow` header value is a comma-separated list of the HTTP methods registered for the matched path. `OPTIONS` is always included in the list.
+8. The `Allow` header value is a comma-separated list of the HTTP methods registered for the matched path. `OPTIONS` is always included in the list. See [routing.md](routing.md) section 4.7, rule 61, for the exact method order, including where `QUERY` appears in it.
 9. `Mux.MethodNotAllowed` is of type `http.Handler`.
 10. Global middleware registered via `Use` wraps the `MethodNotAllowed` handler, with the same live-binding behavior as the `NotFound` handler (requirement 5). The router caches one middleware-wrapped handler per distinct `Allow` header value; every cache entry is invalidated on the next `Use` call (and by `Rebuild`), so the wrapping always reflects the most recently registered `Use` chain.
 
@@ -54,7 +54,7 @@ This file does not cover redirect behavior (see [configuration.md](configuration
 22. `HandlerFuncE` is an alternative handler type defined as `type HandlerFuncE func(http.ResponseWriter, *http.Request) error`.
 23. `HandlerFuncE` is additive. It does not replace `http.HandlerFunc`. Both types are supported simultaneously.
 24. `(*Mux).HandleE(method string, pattern string, h HandlerFuncE)` registers a `HandlerFuncE` handler. Internally, `HandleE` wraps `h` in an adapter that calls `h` and, if it returns a non-nil error, delegates the error to `Mux.ErrorHandler`.
-25. Convenience methods `GETE`, `HEADE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, and `OPTIONSE` are the error-returning equivalents of `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, and `OPTIONS`. Each calls `HandleE` with the corresponding method.
+25. Convenience methods `GETE`, `HEADE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, `OPTIONSE`, and `QUERYE` are the error-returning equivalents of `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, and `QUERY`. Each calls `HandleE` with the corresponding method. `QUERY` is a standard HTTP method (RFC 10008); see [routing.md](routing.md) section 9.
 26. `(*Group).HandleE`, `(*Group).GETE`, and all corresponding group variants follow the same rules as their `*Mux` counterparts.
 27. All middleware rules that apply to `Handle` apply equally to `HandleE`. The only difference is the handler signature.
 

@@ -103,6 +103,12 @@ func (g *Group) CONNECT(path string, h http.HandlerFunc) {
 // TRACE registers a HandlerFunc for TRACE requests on path.
 func (g *Group) TRACE(path string, h http.HandlerFunc) { g.HandleFunc(http.MethodTrace, path, h) }
 
+// QUERY registers a HandlerFunc for QUERY requests on path.
+// QUERY is a standard HTTP method (RFC 10008); see MethodQuery.
+// *Group has no dedicated QUERYFast: register a fast QUERY route via
+// g.HandleFast(MethodQuery, path, h).
+func (g *Group) QUERY(path string, h http.HandlerFunc) { g.HandleFunc(MethodQuery, path, h) }
+
 // GETE registers a HandlerFuncE for GET requests on path.
 // Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
 func (g *Group) GETE(path string, h HandlerFuncE) { g.HandleE(http.MethodGet, path, h) }
@@ -130,6 +136,11 @@ func (g *Group) DELETEE(path string, h HandlerFuncE) { g.HandleE(http.MethodDele
 // OPTIONSE registers a HandlerFuncE for OPTIONS requests on path.
 // Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
 func (g *Group) OPTIONSE(path string, h HandlerFuncE) { g.HandleE(http.MethodOptions, path, h) }
+
+// QUERYE registers a HandlerFuncE for QUERY requests on path.
+// Errors are passed to g.mux.ErrorHandler if set, otherwise a 500 is returned.
+// QUERY is a standard HTTP method (RFC 10008); see MethodQuery.
+func (g *Group) QUERYE(path string, h HandlerFuncE) { g.HandleE(MethodQuery, path, h) }
 
 // ANY registers h for all standard HTTP methods on path.
 func (g *Group) ANY(path string, h http.HandlerFunc) {

@@ -32,7 +32,7 @@ MAJOR bump.
 - `Mux.ServeHTTP` (the `http.Handler` implementation)
 - `Mux.Handle`, `Mux.HandleFunc`, `Mux.HandleE`, `Mux.HandleFast`
 - All method shortcuts: `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`,
-  `OPTIONS`, `CONNECT`, `TRACE` and their `*E` and `*Fast` variants
+  `OPTIONS`, `CONNECT`, `TRACE`, `QUERY` and their `*E` and `*Fast` variants
 - `Mux.Use`, `Mux.UseFast`, `Mux.Pre`
 - `Mux.Group`, `Mux.Route`, `Mux.With`, `Mux.Mount`, `Mux.ServeFiles`,
   `Mux.Match`, `Mux.ANY`

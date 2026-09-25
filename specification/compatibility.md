@@ -70,3 +70,11 @@ MuxMaster does not provide adapters for these types. Converting an existing code
 
 15. MuxMaster does not support registering routes after `ServeHTTP` has begun serving requests. The radix tree nodes are written once at registration time and then read concurrently at request time without write locks on the nodes themselves.
 16. Calling `Handle` (or any registration method) concurrently with `ServeHTTP` in a way that creates a new method tree is safe (a `sync.RWMutex` protects the top-level method-to-tree map). However, calling `Handle` after the server has started serving is considered a misuse. Behavior under concurrent registration and serving on the same method tree is undefined.
+
+---
+
+## 6. HTTP Method Constants Not Yet in the Standard Library
+
+17. As of Go 1.27, the standard library's `net/http` package defines constants for GET, HEAD, POST, PUT, PATCH, DELETE, CONNECT, OPTIONS, and TRACE, but not for `QUERY` (RFC 10008, June 2026). The Go project is tracking the addition of an `http.MethodQuery` constant under issue golang/go#80058; as of this specification, it has not been added.
+18. MuxMaster defines its own exported constant, `muxmaster.MethodQuery = "QUERY"`, so that callers do not need to write the literal string `"QUERY"`. See [routing.md](routing.md) section 9 for the full semantics of the `QUERY` method.
+19. If a future Go release adds `http.MethodQuery`, its value is guaranteed to be the string `"QUERY"` (RFC 10008 defines the method token; Go does not redefine HTTP method tokens). `muxmaster.MethodQuery` therefore remains equal to `http.MethodQuery` once that constant exists, and no code using `muxmaster.MethodQuery` needs to change. MuxMaster does not remove or deprecate `muxmaster.MethodQuery` when this happens, consistent with the compatibility guarantee in requirement 5.

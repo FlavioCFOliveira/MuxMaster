@@ -7,7 +7,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **HTTP QUERY method (RFC 10008)** — first-class support for the QUERY method standardised by RFC 10008 (June 2026). QUERY is a safe, idempotent method like GET, but carries request content in the body like POST. Supports `Mux.QUERY`, `Mux.QUERYE`, `Mux.QUERYFast`, `Group.QUERY`, and `Group.QUERYE`. Included in the `ANY` method set. The router performs no Content-Type or body validation; responsibility is the handler's, per RFC 10008 §2. Default redirect code for `RedirectTrailingSlash` and `RedirectFixedPath` on QUERY routes is 307 (preserves method and body).
+
+- **`MethodQuery` constant** — defined in muxmaster because Go 1.27's `net/http` does not yet define `http.MethodQuery` (tracked by golang/go#80058). The constant value is guaranteed to be `"QUERY"` and will remain equal to any future `http.MethodQuery` added by the Go project. Previously, attempting to register a route with `Handle("QUERY", ...)` panicked with "unsupported HTTP method 'QUERY'"; this panic is now eliminated.
+
+- **Allow header includes QUERY** — the `Allow` header in 405 Method Not Allowed and automatic OPTIONS responses now includes QUERY when applicable. Order: GET, HEAD, POST, PUT, PATCH, DELETE, CONNECT, TRACE, QUERY, OPTIONS.
+
 ### Changed
+
+- **`Mux.ANY` and `Group.ANY` now register QUERY** — routes registered via `ANY` now also match QUERY requests (RFC 10008), in addition to GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, and TRACE. This is an observable behaviour change: previously, QUERY requests to a path registered only via `ANY` would receive 405 Method Not Allowed (if `HandleMethodNotAllowed=true`) or 404 Not Found (if false). Now they are matched and handled.
 
 - **Performance: `ThrottlePerIP` and `ThrottlePerIPCapped`** — sharded the internal rate-limit table from a single global `sync.Mutex` to 64-way per-shard mutexes (selected by `hash/maphash`), with an atomic global entry counter keeping the `maxTableSize` cap exact. Eliminates anti-scaling at high core counts. Measured at 16 logical CPUs: **4.68× faster** (2114 ns → 451 ns/op), scales correctly above 4 cores instead of anti-scaling. Closes CH-01 / rmp #244.
 

@@ -25,6 +25,7 @@ func TestWriteRedirect_ByteIdenticalToNetHTTPRedirect(t *testing.T) {
 	methods := []string{
 		http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
 		http.MethodPatch, http.MethodDelete, http.MethodOptions, http.MethodConnect,
+		MethodQuery,
 	}
 	codes := []int{
 		http.StatusMovedPermanently,  // 301 — GET/HEAD default

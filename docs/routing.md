@@ -31,6 +31,7 @@ mux.HEAD("/users/:id", headUser)
 mux.OPTIONS("/users", optionsUsers)
 mux.CONNECT("/tunnel", tunnel)
 mux.TRACE("/trace", trace)
+mux.QUERY("/books/search", searchBooks)
 ```
 
 All helpers accept a `http.HandlerFunc`. To pass an `http.Handler` directly, use `Handle`.
@@ -146,8 +147,11 @@ Each standard HTTP method has a direct helper on `*Mux` and on `*Group`:
 | OPTIONS   | `mux.OPTIONS` | `g.OPTIONS`      |
 | CONNECT   | `mux.CONNECT` | `g.CONNECT`      |
 | TRACE     | `mux.TRACE`   | `g.TRACE`        |
+| QUERY¹    | `mux.QUERY`   | `g.QUERY`        |
 
-Each helper also has an error-returning variant (`GETE`, `POSTE`, `PUTE`, etc.) — see [Error Handling](error-handling.md).
+¹ QUERY is standardised by RFC 10008 (June 2026). It is a safe, idempotent method like GET, but carries request content in the body like POST. The router performs no Content-Type validation; the handler is responsible.
+
+Each helper also has an error-returning variant (`GETE`, `POSTE`, `PUTE`, `QUERYE`, etc.) — see [Error Handling](error-handling.md).
 
 ---
 
@@ -155,7 +159,7 @@ Each helper also has an error-returning variant (`GETE`, `POSTE`, `PUTE`, etc.) 
 
 ### ANY
 
-`ANY` registers the same handler for all standard HTTP methods (GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE):
+`ANY` registers the same handler for all standard HTTP methods (GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY):
 
 ```go
 mux.ANY("/health", func(w http.ResponseWriter, r *http.Request) {

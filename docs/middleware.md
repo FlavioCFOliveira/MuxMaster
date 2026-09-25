@@ -271,6 +271,17 @@ mux.Use(middleware.CORS(middleware.CORSOptions{
 
 Header values set by CORS are independent per request. Code downstream that directly indexes into the `Header()` map (e.g., `w.Header()["Key"][0] = ...`) mutates only that request's copy; other requests are unaffected. This is true for every CORS() instance.
 
+**QUERY method and CORS preflight:**
+
+The QUERY method (RFC 10008) is not a CORS-safelisted method. Cross-origin QUERY requests require a preflight OPTIONS request. To support QUERY from browser clients, include `"QUERY"` in `AllowedMethods`:
+
+```go
+mux.Use(middleware.CORS(middleware.CORSOptions{
+    AllowedOrigins: []string{"https://app.example.com"},
+    AllowedMethods: []string{"GET", "POST", "QUERY", "OPTIONS"},
+}))
+```
+
 ---
 
 ### BasicAuth

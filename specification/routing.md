@@ -66,7 +66,7 @@ This file does not cover middleware application order (see [middleware.md](middl
 
 ### 2.1 Supported Methods
 
-30. The following HTTP methods have dedicated convenience registration methods on `*Mux` and `*Group`:
+30. The following HTTP methods have dedicated convenience registration methods on `*Mux` and `*Group`. All of them, including `QUERY`, are standard methods, not custom ones (see section 2.3); `QUERY` is standardized by RFC 10008, and section 9 specifies its full semantics, including its `HandlerFuncE` and `FastHandler` convenience methods:
 
 | Method | `*Mux` method | `*Group` method |
 |---|---|---|
@@ -79,12 +79,13 @@ This file does not cover middleware application order (see [middleware.md](middl
 | OPTIONS | `OPTIONS(pattern, handler)` | `OPTIONS(pattern, handler)` |
 | CONNECT | `CONNECT(pattern, handler)` | `CONNECT(pattern, handler)` |
 | TRACE | `TRACE(pattern, handler)` | `TRACE(pattern, handler)` |
+| QUERY | `QUERY(pattern, handler)` | `QUERY(pattern, handler)` |
 
 31. Any HTTP method string (including custom methods such as `PURGE` or `PROPFIND`) can be registered via `Handle(method, pattern, handler)` or `HandleFunc(method, pattern, handler)`.
 
 ### 2.2 ANY and Match
 
-32. `ANY(pattern, handler)` registers `handler` for every standard HTTP method: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, and TRACE. Each registration is independent. A subsequent call to `GET(pattern, other)` panics because GET is already registered for that pattern.
+32. `ANY(pattern, handler)` registers `handler` for every standard HTTP method: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, and QUERY. Each registration is independent. A subsequent call to `GET(pattern, other)` panics because GET is already registered for that pattern.
 33. `Match(methods []string, pattern string, handler http.Handler)` registers `handler` for each method in `methods`. The same panic-on-duplicate rule applies.
 
 ### 2.3 Custom Methods
@@ -158,24 +159,24 @@ This file does not cover middleware application order (see [middleware.md](middl
     - If the path ends with `/` and a handler exists at the path without the trailing `/`, the router issues a redirect to the path without the trailing `/`.
     - If the path does not end with `/` and a handler exists at the path with a trailing `/`, the router issues a redirect to the path with a trailing `/`.
     - This applies equally when the trailing-slash form is reached only through a catch-all parameter (for example, `/assets` against a registered `/assets/*filepath`) or through a route registered via `Mount` (see [groups.md](groups.md) requirement 28): the trailing-slash form counts as "a handler exists" for this rule exactly like any other registered route.
-53. For GET and HEAD requests, the redirect uses status code 301 (Moved Permanently). For all other methods, status code 307 (Temporary Redirect) is used.
+53. For GET and HEAD requests, the redirect uses status code 301 (Moved Permanently). For all other methods, status code 307 (Temporary Redirect) is used. QUERY is classified under "all other methods" for this purpose: it receives 307 by default even though it is safe and idempotent (RFC 10008 section 2), because MuxMaster does not extend the GET/HEAD 301 treatment to it. This is not a functional loss: unlike 301 or 302, a 307 redirect always preserves both the request method and the request content (RFC 10008 section 2.5), so the historical GET-rewrite behavior that some clients apply to 301/302 redirects of non-GET/HEAD requests is not a concern for the default QUERY redirect. An operator who sets `RedirectCode` to a 301 or 302 value (see [configuration.md](configuration.md) section 4.1) overrides this default for every method, including QUERY, and is responsible for confirming that the resulting client behavior is acceptable.
 54. TSR does not apply to the root path `/`.
 55. TSR does not apply to CONNECT requests.
 
 ### 4.5 Fixed Path Redirect
 
 56. When `RedirectFixedPath` is true and no handler matches the exact path and no TSR applies, the router computes `path.Clean(r.URL.Path)`. If the cleaned path differs from the original and a handler is registered for the cleaned path, the router issues a redirect.
-57. For GET and HEAD requests, the redirect uses status code 301. For all other methods, status code 307 is used.
+57. For GET and HEAD requests, the redirect uses status code 301. For all other methods, status code 307 is used. The QUERY-specific note in section 4.4, rule 53, applies here without change: QUERY receives 307 by default, preserving both the request method and the request content.
 
 ### 4.6 OPTIONS Handling
 
-58. When `HandleOPTIONS` is true and the method is OPTIONS, the router builds the Allow header from all methods registered at the matched path and responds. The response body is empty with status 204 No Content, unless `GlobalOPTIONS` or a per-path OPTIONS handler is configured (see [configuration.md](configuration.md) and [error-handling.md](error-handling.md)).
+58. When `HandleOPTIONS` is true and the method is OPTIONS, the router builds the Allow header from all methods registered at the matched path and responds. The response body is empty with status 204 No Content, unless `GlobalOPTIONS` or a per-path OPTIONS handler is configured (see [configuration.md](configuration.md) and [error-handling.md](error-handling.md)). See section 4.7, rule 61, for the exact method order used when building this header, including where QUERY appears in it.
 59. If a handler is explicitly registered for `OPTIONS` at a path, that handler takes precedence over the automatic OPTIONS response for that path.
 
 ### 4.7 Method Not Allowed
 
 60. When `HandleMethodNotAllowed` is true and the path is registered for at least one method but not the requested method, the router sets the `Allow` header and calls the `MethodNotAllowed` handler (or writes a default 405 plain-text response if `MethodNotAllowed` is nil).
-61. The `Allow` header value is a comma-separated list of all methods registered for the path, always including OPTIONS.
+61. The `Allow` header value is a comma-separated list of all methods registered for the path, always including OPTIONS. The methods appear in a fixed order: GET, HEAD, POST, PUT, PATCH, DELETE, CONNECT, TRACE, QUERY — restricted to whichever of these are actually registered at the path — followed by OPTIONS last, which always appears regardless of whether an OPTIONS handler was explicitly registered for the path. This order is shared by the automatic OPTIONS response (section 4.6, rule 58) and the 405 response described in this section.
 
 ---
 
@@ -218,3 +219,16 @@ The following conditions cause a call to the built-in `panic` function at route 
 
 80. When the router builds the `Location` header value for a trailing-slash redirect (section 4.4) or a fixed-path redirect (section 4.5), any ASCII control byte (0x00-0x1F) or DEL (0x7F) present in the computed target — for example, one that reached the request path through percent-decoding — is percent-encoded before being written to the `Location` header and, for GET requests, into the generated HTML redirect body's link target. Every other byte, including the rest of the path and the query string, is left unchanged. RFC 9110 section 5.5 prohibits raw control bytes in HTTP field values.
 81. Aside from this control-byte encoding, the redirect response — status line, headers, and body — is byte-identical to what `net/http.Redirect` produces for the same target and status code.
+
+---
+
+## 9. QUERY Method Semantics
+
+82. `QUERY` is a standard HTTP method, standardized by RFC 10008 (June 2026, https://www.rfc-editor.org/rfc/rfc10008.html). It is a first-class method in MuxMaster: it has dedicated convenience registration methods exactly like GET, POST, and the other methods in section 2.1's table (see that table, and [error-handling.md](error-handling.md) section 5 for `QUERYE`, and [performance.md](performance.md) section 6 for `QUERYFast`). It is not a custom method; it requires no call to `RegisterMethod` (section 2.3) and is unaffected by the custom-method rules in that section.
+83. The package exports the constant `muxmaster.MethodQuery = "QUERY"`. As of Go 1.27, the standard library's `net/http` package does not define a `MethodQuery` constant (tracked by the Go project as golang/go#80058); MuxMaster's constant fills this gap. If a future Go release adds `http.MethodQuery`, MuxMaster's constant continues to hold the same string value `"QUERY"` and requires no change to code that uses it. See [compatibility.md](compatibility.md) section 6.
+84. Per RFC 10008 section 2, `QUERY` is safe and idempotent: sending a `QUERY` request, or sending it more than once, does not modify server state as a consequence of the request itself. Unlike GET or HEAD, a `QUERY` request carries request content (a "query" in the RFC's terminology) in its body, similar to how POST carries a request body. The IANA HTTP Method Registry records QUERY with Safe = yes and Idempotent = yes.
+85. `QUERY` is cacheable per RFC 10008 section 2.3, subject to the same HTTP caching rules (RFC 9111) that apply to any cacheable method. MuxMaster does not implement HTTP response caching (see [out-of-scope.md](out-of-scope.md)); response cacheability for `QUERY` requests is the responsibility of the application, a reverse proxy, or a CDN placed in front of the router.
+86. The router performs no validation of the `Content-Type` header or the body of a `QUERY` request. RFC 10008 section 2 requires servers to fail the request when the `Content-Type` field is missing or is inconsistent with the request content, and section 2.1 specifies the applicable failure status codes (400, 415, 422). Implementing these checks is the responsibility of the registered handler; MuxMaster dispatches a `QUERY` request to its handler unchanged, exactly as it does for the bodies of POST, PUT, and PATCH requests.
+87. The `Accept-Query` response header (RFC 10008 section 3), a Structured Field List advertising the query format(s) a resource accepts, is not set by the router. An application that wants to advertise supported query formats must set this header itself, from a handler or a dedicated middleware.
+88. `QUERY` is not a CORS-safelisted method. A cross-origin `QUERY` request triggers a CORS preflight `OPTIONS` request in conforming browsers (RFC 10008 section 4), exactly as a POST request with a non-safelisted `Content-Type` does. This is browser behavior, not router behavior: the `CORS` middleware documented in [middleware-stdlib.md](middleware-stdlib.md) section 10 already handles preflight `OPTIONS` requests generically for any method, including `QUERY`, without requiring any QUERY-specific change to that middleware.
+89. See section 4.4, rule 53, and section 4.5, rule 57, for how `RedirectTrailingSlash` and `RedirectFixedPath` apply to `QUERY` requests, and section 4.7, rule 61, for where `QUERY` appears in the `Allow` header.

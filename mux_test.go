@@ -867,6 +867,7 @@ func TestMux_AllFastShortcuts(t *testing.T) {
 	r.OPTIONSFast("/o", hf)
 	r.CONNECTFast("/c", hf)
 	r.TRACEFast("/t", hf)
+	r.QUERYFast("/q", hf)
 
 	for _, c := range []struct{ m, p string }{
 		{http.MethodHead, "/h"},
@@ -877,6 +878,7 @@ func TestMux_AllFastShortcuts(t *testing.T) {
 		{http.MethodOptions, "/o"},
 		{http.MethodConnect, "/c"},
 		{http.MethodTrace, "/t"},
+		{muxmaster.MethodQuery, "/q"},
 	} {
 		rec := httptest.NewRecorder()
 		r.ServeHTTP(rec, httptest.NewRequest(c.m, c.p, nil))
@@ -899,6 +901,7 @@ func TestMux_AllStdlibShortcuts(t *testing.T) {
 	r.OPTIONS("/o", hf)
 	r.CONNECT("/c", hf)
 	r.TRACE("/t", hf)
+	r.QUERY("/q", hf)
 	for _, c := range []struct{ m, p string }{
 		{http.MethodHead, "/h"},
 		{http.MethodPut, "/u"},
@@ -907,6 +910,7 @@ func TestMux_AllStdlibShortcuts(t *testing.T) {
 		{http.MethodOptions, "/o"},
 		{http.MethodConnect, "/c"},
 		{http.MethodTrace, "/t"},
+		{muxmaster.MethodQuery, "/q"},
 	} {
 		rec := httptest.NewRecorder()
 		r.ServeHTTP(rec, httptest.NewRequest(c.m, c.p, nil))
@@ -923,7 +927,7 @@ func TestMux_ANY_Match_With_Route(t *testing.T) {
 	r.ANY("/any", func(w http.ResponseWriter, _ *http.Request) { hits++; w.WriteHeader(200) })
 	r.Match([]string{http.MethodGet, http.MethodPost}, "/m", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }))
 
-	for _, m := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
+	for _, m := range []string{http.MethodGet, http.MethodPost, http.MethodDelete, muxmaster.MethodQuery} {
 		rec := httptest.NewRecorder()
 		r.ServeHTTP(rec, httptest.NewRequest(m, "/any", nil))
 		if rec.Code != 200 {
@@ -1218,6 +1222,7 @@ func TestGroup_AllMethodShortcuts(t *testing.T) {
 		{http.MethodOptions, "/o", g.OPTIONS},
 		{http.MethodConnect, "/c", g.CONNECT},
 		{http.MethodTrace, "/t", g.TRACE},
+		{muxmaster.MethodQuery, "/q", g.QUERY},
 	}
 	for _, rt := range routes {
 		rt.fn(rt.path, hf)
@@ -1230,6 +1235,7 @@ func TestGroup_AllMethodShortcuts(t *testing.T) {
 		{http.MethodPatch, "/epa", g.PATCHE},
 		{http.MethodDelete, "/ed", g.DELETEE},
 		{http.MethodOptions, "/eo", g.OPTIONSE},
+		{muxmaster.MethodQuery, "/eq", g.QUERYE},
 	}
 	for _, rt := range eroutes {
 		rt.fn(rt.path, ef)
@@ -1364,6 +1370,7 @@ func TestHandleE_AllShortcuts(t *testing.T) {
 		{(*muxmaster.Mux).PATCHE, http.MethodPatch},
 		{(*muxmaster.Mux).DELETEE, http.MethodDelete},
 		{(*muxmaster.Mux).OPTIONSE, http.MethodOptions},
+		{(*muxmaster.Mux).QUERYE, muxmaster.MethodQuery},
 	}
 	for _, m := range methods {
 		t.Run(m.method, func(t *testing.T) {

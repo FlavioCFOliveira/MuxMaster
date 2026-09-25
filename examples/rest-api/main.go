@@ -13,6 +13,9 @@
 //	curl -X POST http://localhost:8080/api/v1/books \
 //	     -H 'Content-Type: application/json' \
 //	     -d '{"title":"The Go Programming Language","author":"Donovan","year":2015}'
+//	curl -X QUERY http://localhost:8080/api/v1/books/search \
+//	     -H 'Content-Type: application/json' \
+//	     -d '{"genre":"tech"}'
 //	curl http://localhost:8080/debug/routes
 package main
 
@@ -364,6 +367,14 @@ func main() {
 	// HEAD requests are automatically registered alongside GET by ServeFiles.
 	books.ServeFiles("/files/*filepath", http.Dir("./static/books"))
 
+	// QUERY /api/v1/books/search — HTTP QUERY (RFC 10008): safe and
+	// idempotent like GET, but carries a JSON query body like POST.
+	// store.searchBooks enforces the Content-Type validation RFC 10008
+	// section 2.1 requires (400 when missing, 415 when unsupported) and
+	// advertises the accepted query format via Accept-Query (RFC 10008
+	// section 3) — the router itself performs none of this validation.
+	books.QUERY("/search", store.searchBooks)
+
 	// ── Authors (With: scoped CORS + XML demo) ────────────────────────────────
 
 	// With() returns a new Group with extra middleware applied to its routes only.
@@ -643,6 +654,61 @@ func (s *Store) featuredBooks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = mm.JSON(w, http.StatusOK, list)
+}
+
+// searchQuery is the request body a QUERY /api/v1/books/search caller sends —
+// analogous to POST's request body, but for a read-only, side-effect-free
+// query (RFC 10008 section 2).
+type searchQuery struct {
+	Genre string `json:"genre"`
+}
+
+// searchBooks implements QUERY /api/v1/books/search (RFC 10008). It performs
+// the Content-Type validation RFC 10008 section 2.1 requires of a
+// conformant QUERY handler — MuxMaster itself performs none of this — and
+// advertises the accepted query media type via Accept-Query (RFC 10008
+// section 3) on every response, success or failure.
+func (s *Store) searchBooks(w http.ResponseWriter, r *http.Request) {
+	// Accept-Query is a Structured Field List (RFC 9651); "application/json"
+	// is encoded here as a Structured Field String.
+	w.Header().Set("Accept-Query", `"application/json"`)
+
+	switch ct := r.Header.Get("Content-Type"); {
+	case ct == "":
+		// RFC 10008 section 2.1: fail when Content-Type is missing.
+		_ = mm.JSON(w, http.StatusBadRequest, ErrorResponse{
+			Error: "Content-Type is required for a QUERY request",
+			Code:  400,
+		})
+		return
+	case ct != "application/json":
+		// RFC 10008 section 2.1: fail on an unsupported media type.
+		_ = mm.JSON(w, http.StatusUnsupportedMediaType, ErrorResponse{
+			Error: fmt.Sprintf("unsupported query media type: %s (expected application/json)", ct),
+			Code:  415,
+		})
+		return
+	}
+
+	var q searchQuery
+	if err := json.NewDecoder(r.Body).Decode(&q); err != nil {
+		_ = mm.JSON(w, http.StatusBadRequest, ErrorResponse{
+			Error: fmt.Sprintf("invalid JSON query body: %v", err),
+			Code:  400,
+		})
+		return
+	}
+
+	s.mu.RLock()
+	results := make([]*Book, 0, len(s.books))
+	for _, b := range s.books {
+		if q.Genre == "" || b.Genre == q.Genre {
+			results = append(results, b)
+		}
+	}
+	s.mu.RUnlock()
+
+	_ = mm.JSON(w, http.StatusOK, results)
 }
 
 // ─── Review handlers ──────────────────────────────────────────────────────────

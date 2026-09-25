@@ -27,7 +27,7 @@ This file does not cover the middleware application rules for groups (see [middl
 
 ## 3. Registering Routes on a Group
 
-8. A `*Group` exposes the same route registration methods as `*Mux`: `Handle`, `HandleFunc`, `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `CONNECT`, `TRACE`, `ANY`, and `Match`.
+8. A `*Group` exposes the same route registration methods as `*Mux`: `Handle`, `HandleFunc`, `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `CONNECT`, `TRACE`, `QUERY`, `ANY`, and `Match`. `QUERY` is a standard HTTP method (RFC 10008); see [routing.md](routing.md) section 9 for its full semantics. `*Group` also exposes `HandleFast` (see [performance.md](performance.md) section 6) and `HandleE` plus its `...E` convenience methods, including `QUERYE` (see [error-handling.md](error-handling.md) section 5). Unlike `*Mux`, `*Group` has no dedicated `...Fast` convenience methods (such as `GETFast` or `QUERYFast`): a fast route on a group must be registered via `(*Group).HandleFast(method, pattern, h)` directly.
 9. For each registration, the final pattern passed to the underlying `*Mux` is `group.prefix + path`.
 10. The handler passed to the group is first wrapped with the group's middleware, then passed to `(*Mux).Handle`, where the mux's global middleware is applied. The resulting wrapped handler is stored in the tree.
 

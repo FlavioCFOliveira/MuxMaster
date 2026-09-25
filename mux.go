@@ -35,14 +35,44 @@ import (
 	"unicode/utf8"
 )
 
+// MethodQuery is the HTTP QUERY method, standardized by RFC 10008
+// (https://www.rfc-editor.org/rfc/rfc10008.html, June 2026). Per RFC 10008
+// section 2, QUERY is safe and idempotent like GET and HEAD, but — like
+// POST — it carries request content (a "query") in its body.
+//
+// As of Go 1.27, the standard library's net/http package does not define a
+// MethodQuery constant (tracked by the Go project as golang/go#80058).
+// MuxMaster defines this constant so callers do not need to write the
+// literal string "QUERY". If a future Go release adds http.MethodQuery,
+// its value is guaranteed to be "QUERY" — RFC 10008 defines the method
+// token and Go does not redefine HTTP method tokens — so MuxMaster's
+// constant remains equal to it and no code using MethodQuery needs to
+// change. MuxMaster does not deprecate or remove MethodQuery when that
+// happens.
+//
+// The router performs no validation of a QUERY request's Content-Type or
+// body; that responsibility belongs to the registered handler (see the
+// QUERY method on *Mux).
+const MethodQuery = "QUERY"
+
 // anyMethods is the full set of HTTP methods registered by ANY and Group.ANY.
 var anyMethods = []string{
 	http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
 	http.MethodPatch, http.MethodDelete, http.MethodOptions,
-	http.MethodConnect, http.MethodTrace,
+	http.MethodConnect, http.MethodTrace, MethodQuery,
 }
 
 // Method index constants — replace the map[string]*node lookup with an O(1) array access.
+//
+// idxQUERY is appended AFTER idxTRACE (not inserted among the existing
+// indices) so every previously computed Allow-header bitmask keeps its
+// original meaning and every existing Allow string stays byte-identical.
+// allowed()'s per-index walk (see allowTable below) always skips idxOPTIONS
+// and idxWild and always appends OPTIONS last, so QUERY's array position
+// relative to OPTIONS does not affect ordering — only its position relative
+// to CONNECT/TRACE does, which is why it is placed immediately after
+// idxTRACE: routing.md §4.7 rule 61 orders the Allow header as
+// "GET, HEAD, POST, PUT, PATCH, DELETE, CONNECT, TRACE, QUERY, OPTIONS".
 const (
 	idxGET      = 0
 	idxHEAD     = 1
@@ -53,8 +83,9 @@ const (
 	idxOPTIONS  = 6
 	idxCONNECT  = 7
 	idxTRACE    = 8
-	idxWild     = 9 // "*" — used by Mount
-	methodCount = 10
+	idxQUERY    = 9
+	idxWild     = 10 // "*" — used by Mount
+	methodCount = 11
 )
 
 // methodNames maps an index back to the HTTP method string.
@@ -68,12 +99,9 @@ var methodNames = [methodCount]string{
 	idxOPTIONS: http.MethodOptions,
 	idxCONNECT: http.MethodConnect,
 	idxTRACE:   http.MethodTrace,
+	idxQUERY:   MethodQuery,
 	idxWild:    "*",
 }
-
-// methodTrees holds one radix tree root per HTTP method.
-// Loaded atomically from treesPtr on every request — no lock needed.
-type methodTrees [methodCount]*node
 
 // methodIdx returns the array index for a standard HTTP method, or -1.
 func methodIdx(m string) int {
@@ -96,12 +124,18 @@ func methodIdx(m string) int {
 		return idxCONNECT
 	case http.MethodTrace:
 		return idxTRACE
+	case MethodQuery:
+		return idxQUERY
 	case "*":
 		return idxWild
 	default:
 		return -1
 	}
 }
+
+// methodTrees holds one radix tree root per HTTP method.
+// Loaded atomically from treesPtr on every request — no lock needed.
+type methodTrees [methodCount]*node
 
 // muxConfig is a frozen snapshot of Mux configuration flags, captured on the
 // first ServeHTTP call. Changes to Mux fields after first use are ignored.
@@ -593,6 +627,10 @@ func (m *Mux) CONNECTFast(pattern string, h FastHandler) {
 // TRACEFast registers a FastHandler for TRACE requests on pattern.
 func (m *Mux) TRACEFast(pattern string, h FastHandler) { m.HandleFast(http.MethodTrace, pattern, h) }
 
+// QUERYFast registers a FastHandler for QUERY requests on pattern.
+// QUERY is a standard HTTP method (RFC 10008); see MethodQuery.
+func (m *Mux) QUERYFast(pattern string, h FastHandler) { m.HandleFast(MethodQuery, pattern, h) }
+
 // GET registers a HandlerFunc for GET requests on pattern.
 func (m *Mux) GET(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodGet, pattern, h) }
 
@@ -626,6 +664,19 @@ func (m *Mux) CONNECT(pattern string, h http.HandlerFunc) {
 // TRACE registers a HandlerFunc for TRACE requests on pattern.
 func (m *Mux) TRACE(pattern string, h http.HandlerFunc) { m.HandleFunc(http.MethodTrace, pattern, h) }
 
+// QUERY registers a HandlerFunc for QUERY requests on pattern.
+//
+// QUERY is a standard HTTP method, standardized by RFC 10008. Per RFC 10008
+// section 2, it is safe and idempotent but — unlike GET — carries request
+// content in its body; see MethodQuery. The router performs no validation
+// of the Content-Type header or body of a QUERY request: RFC 10008 section
+// 2.1 requires servers to fail the request (400, 415, or 422) when the
+// Content-Type field is missing or inconsistent with the request content,
+// and RFC 10008 section 3 defines the Accept-Query response header for
+// advertising supported query formats — implementing both is the
+// responsibility of the registered handler.
+func (m *Mux) QUERY(pattern string, h http.HandlerFunc) { m.HandleFunc(MethodQuery, pattern, h) }
+
 // GETE registers a HandlerFuncE for GET requests on pattern.
 // Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
 func (m *Mux) GETE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodGet, pattern, h) }
@@ -653,6 +704,11 @@ func (m *Mux) DELETEE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodDel
 // OPTIONSE registers a HandlerFuncE for OPTIONS requests on pattern.
 // Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
 func (m *Mux) OPTIONSE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodOptions, pattern, h) }
+
+// QUERYE registers a HandlerFuncE for QUERY requests on pattern.
+// Errors are passed to m.ErrorHandler if set, otherwise a 500 is returned.
+// QUERY is a standard HTTP method (RFC 10008); see MethodQuery.
+func (m *Mux) QUERYE(pattern string, h HandlerFuncE) { m.HandleE(MethodQuery, pattern, h) }
 
 // ANY registers handler for all standard HTTP methods on pattern.
 func (m *Mux) ANY(pattern string, h http.HandlerFunc) {
