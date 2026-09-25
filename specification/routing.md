@@ -141,6 +141,8 @@ This file does not cover middleware application order (see [middleware.md](middl
     9. If `HandleMethodNotAllowed` is true and other methods are registered at the path, respond with 405.
     10. Call the `NotFound` handler.
 
+    See section 10 for the asterisk-form request target (`OPTIONS *`, RFC 9110 section 9.3.7): under `net/http`'s default server configuration, this sequence never runs at all for that request, because `net/http` answers it before `Mux.ServeHTTP` is called; when it does run, it always falls through every step to step 10.
+
 ### 4.2 Matching Precedence
 
 48. When multiple route types could match a path, they are evaluated in the following order, from highest to lowest priority:
@@ -174,6 +176,8 @@ This file does not cover middleware application order (see [middleware.md](middl
 
 58. When `HandleOPTIONS` is true and the method is OPTIONS, the router builds the Allow header from all methods registered at the matched path and responds. The response body is empty with status 204 No Content, unless `GlobalOPTIONS` or a per-path OPTIONS handler is configured (see [configuration.md](configuration.md) and [error-handling.md](error-handling.md)). See section 4.7, rule 61, for the exact method order used when building this header, including where QUERY appears in it.
 59. If a handler is explicitly registered for `OPTIONS` at a path, that handler takes precedence over the automatic OPTIONS response for that path.
+
+    This automatic OPTIONS response requires a matched path (rules 58 and 60 both key off "the matched path"). It therefore never applies to the asterisk-form request target (`OPTIONS *`), for which no path is ever matched; see section 10.
 
 ### 4.7 Method Not Allowed
 
@@ -234,3 +238,21 @@ The following conditions cause a call to the built-in `panic` function at route 
 87. The `Accept-Query` response header (RFC 10008 section 3), a Structured Field List advertising the query format(s) a resource accepts, is not set by the router. An application that wants to advertise supported query formats must set this header itself, from a handler or a dedicated middleware.
 88. `QUERY` is not a CORS-safelisted method. A cross-origin `QUERY` request triggers a CORS preflight `OPTIONS` request in conforming browsers (RFC 10008 section 4), exactly as a POST request with a non-safelisted `Content-Type` does. This is browser behavior, not router behavior: the `CORS` middleware documented in [middleware-stdlib.md](middleware-stdlib.md) section 10 already handles preflight `OPTIONS` requests generically for any method, including `QUERY`, without requiring any QUERY-specific change to that middleware.
 89. See section 4.4, rule 53, and section 4.5, rule 57, for how `RedirectTrailingSlash` and `RedirectFixedPath` apply to `QUERY` requests, and section 4.7, rule 61, for where `QUERY` appears in the `Allow` header.
+
+---
+
+## 10. Asterisk-Form Request Target (`OPTIONS *`)
+
+90. RFC 9110 section 9.3.7 defines the asterisk-form request target: an `OPTIONS` request whose request-target is the single character `*` rather than a path, used to query the capabilities of a server as a whole rather than of a specific resource. When such a request is parsed, `r.URL.Path` is set to the literal two-byte string `*`. This is the only request-target form MuxMaster ever observes that is not, and cannot become, a path beginning with `/` (contrast section 1.1, rule 1, which requires every registered pattern to begin with `/`).
+
+91. Under `net/http`'s default server configuration — `http.Server.DisableGeneralOptionsHandler == false`, which is the default value when a `*Mux` is served via `http.ListenAndServe` or an unconfigured `http.Server` — an incoming `OPTIONS * HTTP/1.1` request is intercepted and answered by `net/http`'s own internal handler before the registered `http.Handler`, including `Mux.ServeHTTP`, is ever invoked. The response is a bare 200 OK with `Content-Length: 0` and no `Allow` header. Consequently, none of MuxMaster's request handling runs for this request: not pre-routing middleware (see [middleware.md](middleware.md) rule 6), not route lookup, not `GlobalOPTIONS` (see [error-handling.md](error-handling.md) section 4), and not any global, group, or per-route middleware.
+
+92. Setting `http.Server.DisableGeneralOptionsHandler = true` disables that interception. It is the only way for an asterisk-form request to reach `Mux.ServeHTTP` at all. When it does, `r.URL.Path` is the literal string `*`, which cannot equal any registered pattern (rule 1). Consequently, in every configuration of the router, and regardless of which or how many routes are registered:
+    - Steps 1-2 of the lookup sequence (section 4.1, rule 47) find no matching route — static, named, regex, or catch-all — for any method: the tree can only be reached through paths beginning with `/`.
+    - No trailing-slash redirect (section 4.4) is produced: the path `*` shares no common prefix with any registered pattern for the TSR check to apply to.
+    - No fixed-path redirect (section 4.5) is produced: `path.Clean("*")` equals `*`, unchanged, so the "differs from the original" precondition in rule 56 is never satisfied.
+    - Step 6 of the lookup sequence, the internal `"*"` method-wildcard tree used by `Mount` (section 2.1, rule 31), is unrelated to the asterisk-form request path even though both use the character `*`: that tree is keyed by the literal HTTP method string `"*"`, not by the request path, and every pattern registered in it must still begin with `/` (rules 1 and 15). It does not special-case, and cannot match, the request path `*`.
+    - The automatic OPTIONS response (section 4.6, rules 58 and 59) and the 405 response (section 4.7, rule 60) both require at least one method to be registered at the matched path. Since no path ever matches `*`, neither applies, and `GlobalOPTIONS` (see [error-handling.md](error-handling.md) section 4) is never invoked. No `Allow` header is ever produced for this request.
+    - The request falls through to the `NotFound` handler (section 4.1, rule 47, step 10; see [error-handling.md](error-handling.md) section 1), exactly as any other unmatched path does. This holds regardless of the `HandleOPTIONS` setting, and regardless of whether an explicit `OPTIONS` handler is registered elsewhere in the tree.
+
+93. Pre-routing middleware does run for this request when `DisableGeneralOptionsHandler` is `true`, because nothing intercepts the request before `Mux.ServeHTTP` in that configuration; see [middleware.md](middleware.md) rule 6.

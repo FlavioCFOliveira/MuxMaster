@@ -24,7 +24,7 @@ There are four middleware scopes. Each scope defines which requests a middleware
 
 4. Pre-routing middleware is registered via `r.Pre(middleware ...func(http.Handler) http.Handler)`.
 5. Pre-routing middleware executes before route lookup. It can inspect or modify the request, including `r.URL.Path`, before the router selects a route.
-6. Pre-routing middleware wraps the entire router. It sees every request, including requests that result in 404 or 405.
+6. Pre-routing middleware wraps the entire router. It sees every request that reaches `Mux.ServeHTTP`, including requests that result in 404 or 405. The one exception is the asterisk-form request target defined by RFC 9110 section 9.3.7 (`OPTIONS * HTTP/1.1`): under `net/http`'s default server configuration (`http.Server.DisableGeneralOptionsHandler == false`, the default), `net/http` answers this request itself, before `Mux.ServeHTTP` is ever called, so pre-routing middleware does not run for it. When `DisableGeneralOptionsHandler` is set to `true`, the request reaches `Mux.ServeHTTP` with `r.URL.Path` equal to the literal string `*`, like any other request, and pre-routing middleware does see it, consistent with the rest of this rule. See [routing.md](routing.md) section 10 for the full behavior of the asterisk-form request target in both server configurations.
 7. Because pre-routing middleware runs before route lookup, it does not have access to path parameters or the matched route pattern.
 8. Pre-routing middleware is applied in registration order. The first `Pre` call registers the outermost middleware.
 

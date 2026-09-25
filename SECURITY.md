@@ -662,6 +662,15 @@ Operators auditing an auth/CORS/rate-limit policy by reading `Use(...)`
 calls SHOULD also inspect `HandleFast(...)` registrations and
 `UseFast(...)` calls; otherwise a fast-route bypass is invisible.
 
+**Exception — Asterisk-form `OPTIONS * HTTP/1.1`:** Auth gates registered
+in `Pre()` do not see asterisk-form OPTIONS requests by default, because
+`net/http` intercepts and answers them before `Mux.ServeHTTP` is called
+(under the default server configuration `DisableGeneralOptionsHandler ==
+false`). This is NOT exploitable: `net/http`'s response is fixed (200 OK,
+`Content-Length: 0`, no `Allow` header) and route-independent. To route
+these requests through MuxMaster and apply `Pre()` middleware to them, set
+`http.Server.DisableGeneralOptionsHandler = true`.
+
 ## HTTP/1.1 Smuggling (MM-2026-0045)
 
 Request smuggling (CL.TE / TE.CL / TE.TE) is defended by Go's `net/http`

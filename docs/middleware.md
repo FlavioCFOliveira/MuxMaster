@@ -82,6 +82,19 @@ mux.Pre(middleware.StripSlashes())
 
 Pre-routing middleware cannot access path parameters because routing has not happened yet. It is useful for path normalization, request ID injection, and real IP extraction.
 
+**Exception — asterisk-form `OPTIONS * HTTP/1.1`:** Under `net/http`'s default server configuration (`http.Server.DisableGeneralOptionsHandler == false`, the default), an incoming `OPTIONS * HTTP/1.1` request is answered by `net/http` itself before `Mux.ServeHTTP` is called, so pre-routing middleware does not run for it. To route these requests through MuxMaster and its middleware, set `http.Server.DisableGeneralOptionsHandler` to `true`:
+
+```go
+server := &http.Server{
+    Addr:                         ":8080",
+    Handler:                      mux,
+    DisableGeneralOptionsHandler: true,  // Allow OPTIONS * to reach MuxMaster
+}
+server.ListenAndServe()
+```
+
+When `DisableGeneralOptionsHandler` is `true`, `OPTIONS *` requests reach `Mux.ServeHTTP` with `r.URL.Path == "*"` and pre-routing middleware does run, consistent with all other requests. No route can match the path `*`, so the router then answers through `NotFound` (404 by default): no automatic `Allow` response and no `GlobalOPTIONS` call (see `specification/routing.md` section 10).
+
 ---
 
 ## Group Middleware

@@ -80,6 +80,8 @@ mux.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request
 
 Set to `false` if you handle OPTIONS manually (e.g. through the CORS middleware).
 
+**Note — Asterisk-form `OPTIONS * HTTP/1.1`:** By default, `net/http` intercepts and answers asterisk-form OPTIONS requests directly (see [Middleware — Pre routing](middleware.md#pre-routing-middleware) for details). These requests never reach `GlobalOPTIONS`. To route them through MuxMaster, set `http.Server.DisableGeneralOptionsHandler = true`.
+
 ---
 
 ### RedirectCode
