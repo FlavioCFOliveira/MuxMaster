@@ -52,15 +52,18 @@ See [[task_kg2026001_fastpath_spec]] for the 2026-07-14 change that added the Fa
 - "Configuration snapshot" = one-time immutable copy of Mux config fields taken on first `ServeHTTP`/first need; reset via `Rebuild()`.
 - "Shallow request copy" (added 2026-09-24, [[task_rmp250_253_perflab_spec]]) = a new `*http.Request` struct-copy with a fresh `*url.URL` (net/http.StripPrefix technique); shares header map and context with the original; original never mutated. Used by Mount, ServeFiles/Group.ServeFiles, StripSlashes, CleanPath — always cross-reference the README glossary entry rather than re-describing the mechanism inline. Distinct from "request bundle."
 
-## Current highest requirement number per file (updated 2026-09-25, see [[task_rmp258_sprint18_reconciliation]])
+## Current highest requirement number per file (updated 2026-09-25, see [[task_rmp261_query_verb_spec]])
 
 Grep `^[0-9]\+\.` before appending to any of these — do not trust an older number from memory:
 
-- routing.md: 81 (added §6 Lookup Fallback, §7 Sibling Registration, §8 Redirect Target Encoding)
+- routing.md: 89 (added §9 QUERY Method Semantics, items 82-89 — see [[task_rmp261_query_verb_spec]])
+- compatibility.md: 19 (added §6 HTTP Method Constants Not Yet in the Standard Library, items 17-19)
 - middleware-stdlib.md: 70 (fully renumbered 2026-09-25 — old rule numbers before that date are stale)
 - middleware.md: 43
 - groups.md: 30
 - performance.md: 45
+- error-handling.md: 39
+- configuration.md: 44
 
 ## Structural conventions
 
