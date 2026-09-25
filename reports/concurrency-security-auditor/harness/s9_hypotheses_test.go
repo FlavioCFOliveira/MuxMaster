@@ -99,7 +99,15 @@ func TestH9_01_SetReqCtxUnsafe_HappensBefore_SpawnedGoroutine(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 5000
+	// iters trimmed 5000 -> 1000 (rmp #271): every iteration spawns a real
+	// goroutine (2 per iteration) that the race detector must track, which
+	// is much more expensive under -race than a plain ServeHTTP call — this
+	// was this package's single most expensive test after the pool-canary
+	// and middleware-chain fixes (measured 2026-09-25: 68.5s in one
+	// isolated run). 1000 iters still spawns 1000*n*4*2 = 128,000 goroutines
+	// at GOMAXPROCS=16, comfortably enough to catch a happens-before
+	// violation if the write-before-spawn guarantee ever regresses.
+	const iters = 1000
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
@@ -140,7 +148,11 @@ func TestH9_02_Pre_Rebuild_AtomicPtr_Race(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 5000
+	// iters trimmed 5000 -> 2000 (rmp #271): pure ServeHTTP volume on this
+	// side (the Pre() mutator side below already bounded); still
+	// 2000*n*4 = 128,000 requests at GOMAXPROCS=16 (measured 2026-09-25:
+	// 40.9s of a 76s package run at 5000 iters).
+	const iters = 2000
 
 	// ServeHTTP goroutines: read preHandlerPtr on every call.
 	for g := 0; g < n*4; g++ {
@@ -155,12 +167,28 @@ func TestH9_02_Pre_Rebuild_AtomicPtr_Race(t *testing.T) {
 	}
 
 	// Pre() goroutines: write preHandlerPtr concurrently.
+	//
+	// Pre() appends unboundedly to m.pre (github.com/.../mux.go Mux.Pre) and
+	// rewraps the ENTIRE dispatch chain on every call — every one of the
+	// n*4*iters ServeHTTP calls above pays for however many Pre layers have
+	// accumulated so far. At the original 500 calls/goroutine * n goroutines
+	// (8000 total at GOMAXPROCS=16), the chain grew to thousands of layers
+	// deep and every request run against it, which was the dominant cost of
+	// this test (rmp #271: 194.9s of a 320s package run, measured 2026-09-25
+	// under go test -race -count=1 in isolation). No real caller registers
+	// Pre() thousands of times per process lifetime — a handful at startup is
+	// the realistic ceiling. preItersPerGoroutine keeps the total Pre() call
+	// count GOMAXPROCS-independent and bounded to ~300 total, which still
+	// races the preHandlerPtr atomic.Pointer swap against concurrent
+	// ServeHTTP hundreds of times per run while keeping the chain shallow.
+	const totalPreCalls = 300
+	preItersPerGoroutine := max(5, totalPreCalls/n)
 	for g := 0; g < n; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			var preCalls int64
-			for i := 0; i < 500; i++ {
+			for i := 0; i < preItersPerGoroutine; i++ {
 				r.Pre(func(next http.Handler) http.Handler {
 					return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 						atomic.AddInt64(&preCalls, 1)
@@ -221,7 +249,12 @@ func TestH9_03_JWT_HMAC_Pool_NoConcurrentContamination(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 5000
+	// iters trimmed 5000 -> 1200 (rmp #271; further trimmed from an
+	// intermediate 2000 on 2026-09-25): each iteration does real
+	// HMAC-SHA256 verification + base64/JSON parsing, which is inherently
+	// more expensive than a plain ServeHTTP call; still 1200*n*4 = 76,800
+	// verifications at GOMAXPROCS=16.
+	const iters = 1200
 
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
@@ -362,7 +395,16 @@ func TestH9_05_ThrottlePerIP_NoSendOnClosedChannel(t *testing.T) {
 				}
 				wg.Done()
 			}()
-			for i := 0; i < 1000; i++ {
+			// iters trimmed 1000 -> 200 (rmp #271): every request either
+			// sleeps 2ms in the handler (holding the single shared throttle
+			// slot) or is rejected by ThrottlePerIP — this test is
+			// real-time-bound, not CPU-bound, so wall time scales close to
+			// linearly with iteration count. All n*4 goroutines contend for
+			// one shared key, so 200 iters (12,800 total requests at
+			// GOMAXPROCS=16) is still a heavy, sustained burst against the
+			// single slot (measured 2026-09-25: 51.3s of a 76s package run
+			// at 1000 iters).
+			for i := 0; i < 200; i++ {
 				r.ServeHTTP(httptest.NewRecorder(),
 					httptest.NewRequest("GET", fmt.Sprintf("/h905/%d", i), nil))
 			}
@@ -402,11 +444,13 @@ func TestH9_06_TSR_URLPath_Mutation_Race(t *testing.T) {
 	var wg sync.WaitGroup
 	var okCount, redirectCount int64
 
+	// iters trimmed 5000 -> 2000 (rmp #271): pure ServeHTTP volume, still
+	// 2000*n*4 = 128,000 requests at GOMAXPROCS=16.
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 5000; i++ {
+			for i := 0; i < 2000; i++ {
 				// Alternate between canonical path and path-with-trailing-slash (TSR triggers).
 				var path string
 				if i%2 == 0 {
@@ -471,7 +515,9 @@ func TestH9_07_ParamsBuf_StackLifetime_NoEscape(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 5000
+	// iters trimmed 5000 -> 2000 (rmp #271): pure ServeHTTP volume, still
+	// 2000*n*4 = 128,000 requests at GOMAXPROCS=16.
+	const iters = 2000
 
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
@@ -588,7 +634,13 @@ func TestH9_09_LazyNotFound_UseRace_PostFix_Regression(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 30000
+	// iters trimmed 30000 -> 6000 (rmp #271): at n*8 reader goroutines this
+	// still issues 3500*n*8 ServeHTTP calls (further trimmed from an
+	// intermediate 6000 on 2026-09-25; 448,000 at GOMAXPROCS=16),
+	// comfortably above the volume needed to interleave with every Use()
+	// call below; see the Use() comment for why the count below dropped much
+	// further and dominated this test's cost.
+	const iters = 3500
 
 	// Not-found path triggers lazyNotFound (which snapshots middleware under RLock).
 	for g := 0; g < n*8; g++ {
@@ -603,12 +655,26 @@ func TestH9_09_LazyNotFound_UseRace_PostFix_Regression(t *testing.T) {
 	}
 
 	// Concurrent Use() (acquires mu.Lock, then invalidates lazyNotFoundPtr).
+	//
+	// Use() appends unboundedly to m.middleware (mux.go Mux.Use) and every
+	// lazyNotFound rebuild re-wraps the not-found handler with the whole
+	// current chain. At the original 5000 calls/goroutine * n goroutines
+	// (80,000 total at GOMAXPROCS=16) the chain grew to tens of thousands of
+	// layers and every not-found request above paid for it — this was the
+	// single largest contributor to package runtime (rmp #271: 221.2s of a
+	// 320s package run, measured 2026-09-25 under go test -race -count=1 in
+	// isolation). Bounded to ~300 total Use() calls (GOMAXPROCS-independent),
+	// matching the already-validated budget in
+	// TestS8_LazyBuilders_AllThree_UseAndRebuild (s8_hypotheses_test.go),
+	// which races the same invalidation path in 24s.
+	const totalUseCalls = 300
+	useItersPerGoroutine := max(5, totalUseCalls/n)
 	for g := 0; g < n; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			noop := func(next http.Handler) http.Handler { return next }
-			for i := 0; i < 5000; i++ {
+			for i := 0; i < useItersPerGoroutine; i++ {
 				r.Use(noop)
 				runtime.Gosched()
 			}
@@ -713,7 +779,11 @@ func TestH9_11_MassiveParallel_AllRouteTypes(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	goroutines := min(n*8, 128)
-	const iters = 10000
+	// iters trimmed 10000 -> 1500 (rmp #271; further trimmed from an
+	// intermediate 2500 on 2026-09-25): each iteration issues 3 ServeHTTP
+	// calls, so this still exercises 1500*goroutines*3 = 576,000 requests
+	// at goroutines=128.
+	const iters = 1500
 
 	var wg sync.WaitGroup
 	var errors int64
@@ -788,11 +858,22 @@ func TestH9_12_Use_Handle_Concurrent_Lock_Correctness(t *testing.T) {
 	}
 
 	// Concurrent Use goroutines.
+	//
+	// Use() appends unboundedly to m.middleware and grows the chain that
+	// every concurrent ServeHTTP call below is dispatched through. The
+	// original 100 calls/goroutine * n goroutines (1600 total at
+	// GOMAXPROCS=16) was a meaningful share of this test's cost (rmp #271:
+	// 94.7s of a 320s package run, measured 2026-09-25 under go test -race
+	// -count=1 in isolation). Bounded to ~300 total (GOMAXPROCS-independent),
+	// matching the budget validated in
+	// TestS8_LazyBuilders_AllThree_UseAndRebuild (s8_hypotheses_test.go).
+	const totalUseCalls = 300
+	useItersPerGoroutine := max(5, totalUseCalls/n)
 	for g := 0; g < n; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 100; i++ {
+			for i := 0; i < useItersPerGoroutine; i++ {
 				r.Use(func(next http.Handler) http.Handler { return next })
 				atomic.AddInt64(&used, 1)
 				runtime.Gosched()

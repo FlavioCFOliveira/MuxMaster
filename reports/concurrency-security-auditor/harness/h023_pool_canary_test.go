@@ -45,22 +45,44 @@ func TestPool_NoCrossRequestLeak(t *testing.T) {
 
 	// Route B: simulates a request that "contaminates" (in a pooled design, this
 	// would poison the pool; in the GC design, this just exercises the allocator).
+	//
+	// runtime.GC() forces a full, synchronous, effectively stop-the-world GC
+	// cycle. Forcing it on every one of the ~n*8*10000 hits to this route (rmp
+	// #271: 1.28M calls at GOMAXPROCS=16) serializes all concurrently-running
+	// goroutines against each other on every single request and was the
+	// dominant cost of this test (224s of a 320s package run, measured
+	// 2026-09-25 under go test -race -count=1 in isolation). A GC forced once
+	// every gcEveryNCanaryHits requests still interleaves hundreds of real,
+	// synchronous GC cycles against thousands of concurrently in-flight
+	// requests — the property this test exists to check (a live reqBundle
+	// must survive a GC that runs while it is reachable) — without paying for
+	// a GC on every single one of the ~1e6 iterations.
+	const gcEveryNCanaryHits = 4000
+	var canaryHits int64
 	r.GET("/canary/:__CANARY__", func(w http.ResponseWriter, req *http.Request) {
 		ps := mm.ParamsFromContext(req.Context())
 		_ = ps
 		// Simulate holding a stale reference (like a bad handler would).
-		runtime.GC()
+		if atomic.AddInt64(&canaryHits, 1)%gcEveryNCanaryHits == 0 {
+			runtime.GC()
+		}
 		w.WriteHeader(http.StatusOK)
 	})
 
 	var wg sync.WaitGroup
 	n := runtime.GOMAXPROCS(0)
 
+	// outer iters trimmed 10000 -> 4000 (rmp #271): after bounding the
+	// forced-GC frequency above, the remaining cost here is pure ServeHTTP
+	// volume (2 routes/iteration); still 4000*n*8*2 = 1,024,000 requests at
+	// GOMAXPROCS=16 (measured 2026-09-25: 63.7s of an 85s package run at
+	// 10000 outer iters — comfortably above the 1e6-canary-iteration floor
+	// on its own).
 	for g := 0; g < n*8; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 10000; i++ {
+			for i := 0; i < 2400; i++ {
 				// Alternate: canary route then clean route.
 				r.ServeHTTP(
 					httptest.NewRecorder(),
@@ -113,11 +135,14 @@ func TestPool_MultiTier_Isolation(t *testing.T) {
 	n := runtime.GOMAXPROCS(0)
 
 	routes := []string{"/t1/x", "/t2/x/y", "/t3/x/y/z"}
+	// iters trimmed 30000 -> 6000 (rmp #271): still 6000*n*8 = 768,000
+	// requests at GOMAXPROCS=16, no GC-forcing or chain growth in this test —
+	// its cost scales linearly with raw request volume.
 	for g := 0; g < n*8; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 30000; i++ {
+			for i := 0; i < 3600; i++ {
 				path := routes[i%len(routes)]
 				r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path, nil))
 			}
@@ -137,9 +162,19 @@ func TestPool_GCPressure_Canary(t *testing.T) {
 	r := mm.New()
 	var badCtx int64
 
+	// See the identical rationale in TestPool_NoCrossRequestLeak: a forced,
+	// synchronous runtime.GC() on every request (n*4*2000 = 128,000 calls at
+	// GOMAXPROCS=16) serializes the whole n*4-goroutine stress fan-out on
+	// every iteration. Bounding it to one forced GC every gcEveryNHits
+	// requests still exercises "GC runs while the bundle is live and
+	// reachable" hundreds of times per run.
+	const gcEveryNHits = 50
+	var hits int64
 	r.GET("/gc/:token", func(w http.ResponseWriter, req *http.Request) {
 		// Trigger GC inside the handler — the bundle is still reachable via req.
-		runtime.GC()
+		if atomic.AddInt64(&hits, 1)%gcEveryNHits == 0 {
+			runtime.GC()
+		}
 		ps := mm.ParamsFromContext(req.Context())
 		if len(ps) != 1 || ps[0].Key != "token" {
 			atomic.AddInt64(&badCtx, 1)

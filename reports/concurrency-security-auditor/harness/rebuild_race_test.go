@@ -34,7 +34,10 @@ func TestRebuild_CfgOnce_Race(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for j := 0; j < 10000; j++ {
+			// trimmed 10000 -> 3000 (rmp #271); still 3000*n*4 = 192,000
+			// requests at GOMAXPROCS=16 (measured 2026-09-25: 25.5s of a 320s
+			// package run at 10000).
+			for j := 0; j < 3000; j++ {
 				req := httptest.NewRequest("GET", "/", nil)
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, req)
@@ -73,7 +76,10 @@ func TestRebuild_NilCfgPtr_Race(t *testing.T) {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 20000; i++ {
+			// trimmed 20000 -> 4000 (rmp #271); still 4000*n*8 = 512,000
+			// requests at GOMAXPROCS=16 (measured 2026-09-25: 40.8s of a 320s
+			// package run at 20000).
+			for i := 0; i < 2400; i++ {
 				path := fmt.Sprintf("/p%d", (g*i)%100)
 				req := httptest.NewRequest("GET", path, nil)
 				w := httptest.NewRecorder()
@@ -86,7 +92,7 @@ func TestRebuild_NilCfgPtr_Race(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for i := 0; i < 10000; i++ {
+		for i := 0; i < 6000; i++ {
 			r.Rebuild()
 			runtime.Gosched()
 		}

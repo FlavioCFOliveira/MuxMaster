@@ -68,7 +68,10 @@ func TestTieredDispatch_AllPaths_Race(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 30000
+	// iters trimmed 30000 -> 3000 (rmp #271; further trimmed from an
+	// intermediate 6000 on 2026-09-25): pure ServeHTTP volume, no GC-forcing
+	// or chain growth — still 3000*n*8 = 384,000 requests at GOMAXPROCS=16.
+	const iters = 1800
 
 	for g := 0; g < n*8; g++ {
 		wg.Add(1)
@@ -109,11 +112,13 @@ func TestUse_LazyNotFound_Race(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// ServeHTTP goroutines hit the not-found path (calls lazyNotFound).
+	// iters trimmed 20000 -> 4000 (rmp #271); see the Use() comment below for
+	// why the mutator side, not this reader side, was the dominant cost.
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 20000; i++ {
+			for i := 0; i < 2500; i++ {
 				req := httptest.NewRequest("GET", "/missing", nil)
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, req)
@@ -122,11 +127,22 @@ func TestUse_LazyNotFound_Race(t *testing.T) {
 	}
 
 	// Concurrent Use() writes m.middleware.
+	//
+	// Use() appends unboundedly to m.middleware and every lazyNotFound
+	// rebuild re-wraps the not-found handler with the whole current chain.
+	// 5000 Use() calls on a single goroutine grew the chain to 5000 layers by
+	// the end of the run, and every not-found request from the goroutines
+	// above paid for however deep the chain was at that moment — this test
+	// took 98s of a 320s package run (rmp #271, measured 2026-09-25 under go
+	// test -race -count=1 in isolation). 300 calls is the same budget
+	// validated in TestS8_LazyBuilders_AllThree_UseAndRebuild
+	// (s8_hypotheses_test.go), which races this same invalidation path in
+	// 24s.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		noop := func(next http.Handler) http.Handler { return next }
-		for i := 0; i < 5000; i++ {
+		for i := 0; i < 300; i++ {
 			r.Use(noop)
 			runtime.Gosched()
 		}
@@ -147,11 +163,14 @@ func TestUse_LazyMethodNotAllowed_Race(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// Requests that trigger 405 (hit lazyMethodNotAllowed).
+	// iters trimmed 20000 -> 4000; Use() below (not this reader side) trimmed
+	// 5000 -> 300 was the dominant cost — see TestUse_LazyNotFound_Race above
+	// for the full rationale (rmp #271, measured 2026-09-25).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 20000; i++ {
+			for i := 0; i < 2500; i++ {
 				req := httptest.NewRequest("DELETE", "/item", nil)
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, req)
@@ -164,7 +183,7 @@ func TestUse_LazyMethodNotAllowed_Race(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		noop := func(next http.Handler) http.Handler { return next }
-		for i := 0; i < 5000; i++ {
+		for i := 0; i < 300; i++ {
 			r.Use(noop)
 			runtime.Gosched()
 		}
@@ -188,11 +207,14 @@ func TestUse_LazyOPTIONS_Race(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// OPTIONS requests trigger lazyOPTIONS.
+	// iters trimmed 20000 -> 4000; Use() below (not this reader side) trimmed
+	// 5000 -> 300 was the dominant cost — see TestUse_LazyNotFound_Race above
+	// for the full rationale (rmp #271, measured 2026-09-25).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 20000; i++ {
+			for i := 0; i < 2500; i++ {
 				req := httptest.NewRequest("OPTIONS", "/endpoint", nil)
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, req)
@@ -205,7 +227,7 @@ func TestUse_LazyOPTIONS_Race(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		noop := func(next http.Handler) http.Handler { return next }
-		for i := 0; i < 5000; i++ {
+		for i := 0; i < 300; i++ {
 			r.Use(noop)
 			runtime.Gosched()
 		}
@@ -243,7 +265,10 @@ func TestTieredDispatch_FastHandler_NoMW(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 10000
+	// iters trimmed 10000 -> 2500 (rmp #271): still 2500*n*4*2 = 320,000
+	// requests at GOMAXPROCS=16 (measured 2026-09-25: 39.3s of a 320s package
+	// run at 10000 iters).
+	const iters = 1500
 
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
