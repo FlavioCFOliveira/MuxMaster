@@ -607,7 +607,7 @@ Redirects URLs with redundant components to their canonical form:
 - `/a/./users` → `/a/users`
 
 ```go
-mux.Pre(middleware.CleanPath())// run before routing to avoid a redirect
+mux.Pre(middleware.CleanPath()) // run before routing to avoid a redirect
 ```
 
 ---

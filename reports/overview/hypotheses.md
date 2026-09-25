@@ -1,40 +1,40 @@
-# MuxMaster — Zero-Day Hypotheses (Pós-Sprint)
+# MuxMaster — Zero-Day Hypotheses (Post-Sprint)
 
-**Date:** 2026-04-17 (Fase 3 — consolidação)
+**Date:** 2026-04-17 (Phase 3 — consolidation)
 **Commit:** `533d0c9cea2ff9e8c2f1ed4da7da5ee9032b3d4c`
 **Author:** threat-modeler-and-zero-day-researcher
-**Status:** Estados finais pós-sprint + novas hipóteses H-031 a H-034 adicionadas
+**Status:** Final states post-sprint + new hypotheses H-031 to H-034 added
 
-## Resumo de verdicts
+## Summary of verdicts
 
 | Verdict | Count | IDs |
 |---|---|---|
 | **Confirmed** | 22 | H-001, H-002, H-003, H-004, H-005, H-006, H-008, H-009, H-010, H-011, H-012, H-013 (partial), H-015, H-017, H-021, H-024, H-025, H-026, H-027, H-030, H-031 (new), H-032 (new) |
-| **Refuted** | 5 | H-007, H-016, H-019, H-023 (funcional), H-028 |
+| **Refuted** | 5 | H-007, H-016, H-019, H-023 (functional), H-028 |
 | **Partial** | 4 | H-013, H-018, H-022, H-023 |
 | **Deferred** | 3 | H-014, H-020 (subsumed H-007), H-029 |
 | **Open (new)** | 2 | H-033, H-034 |
 
-**Total de hipóteses pós-sprint: 34** (30 originais + 4 novas H-031 a H-034).
+**Total hypotheses post-sprint: 34** (30 original + 4 new H-031 to H-034).
 
 ---
 
-## Convenções
+## Conventions
 
-- `H-NNN` — hipótese número NNN, sequencial
-- **Premise:** a claim concreta a testar
-- **Testability:** como construir evidência empírica
-- **Assigned:** agente(s) responsável(is)
+- `H-NNN` — hypothesis number NNN, sequential
+- **Premise:** concrete claim to test
+- **Testability:** how to build empirical evidence
+- **Assigned:** responsible agent(s)
 - **Priority:** `Critical` / `High` / `Medium` / `Low`
 - **Status:** `open` / `confirmed` / `refuted` / `partial` / `merged-into-H-NNN`
 
-Cada hipótese tem ligações cruzadas para attack tree (§) e finding ID quando aplicável.
+Each hypothesis has cross-links to attack tree (§) and finding ID when applicable.
 
 ---
 
 ## H-001 — Cross-goroutine race on r.ctx via unsafe.Add
 
-**Premise:** O padrão `*origCtxPtr = rc` ... `handler.ServeHTTP(w, r)` ... `*origCtxPtr = origCtx` em `mux.go:464-480` (e espelhado em 521-537) assume que `r` é goroutine-owned. Se um handler faz `go func() { _ = r.Context() }()` — padrão legítimo em background work —  a goroutine filha pode ler `r.Context()` enquanto a goroutine do dispatcher já sobrescreveu o ponteiro `r.ctx` com o `origCtx`, devolveu `rc` ao pool, e o pool devolveu `rc` a outro request que acabou de mutar `rc.params`. Resultado: a goroutine filha observa o contexto **de outro request concurrente**. O race detector deve flag-ar a escrita do pointer + leitura, mas só se a goroutine filha executar dentro da janela.
+**Premise:** The pattern `*origCtxPtr = rc` ... `handler.ServeHTTP(w, r)` ... `*origCtxPtr = origCtx` in `mux.go:464-480` (and mirrored in 521-537) assumes that `r` is goroutine-owned. If a handler does `go func() { _ = r.Context() }()` — a legitimate pattern in background work — the child goroutine may read `r.Context()` while the dispatcher goroutine has already overwritten the pointer `r.ctx` with `origCtx`, returned `rc` to the pool, and the pool has returned `rc` to another request that just mutated `rc.params`. Result: the child goroutine observes the context **of another concurrent request**. The race detector should flag-ar the pointer write + read, but only if the child goroutine executes within the window.
 
 **Testability:**
 ```go
@@ -53,18 +53,18 @@ r.GET("/a/:id", func(w http.ResponseWriter, req *http.Request) {
 // Assert: `seen` contains only "alpha" and "beta", never empty string or crossed value
 ```
 
-**Expected outcome:** `-race` detecta write-write ou read-write no offset de `r.ctx`, ou a saída contém valores cruzados. Se confirmado, é `CWE-362` + `CWE-362` combined data race + pool contamination.
+**Expected outcome:** `-race` detects write-write or read-write on `r.ctx` offset, or output contains crossed values. If confirmed, it is `CWE-362` + `CWE-362` combined data race + pool contamination.
 
 **Assigned:** concurrency-security-auditor
 **Priority:** Critical
-**Status:** **CONFIRMED** — finding MM-2026-0003 (CSA-001). 3 DATA RACE warnings captured em `h001_run1_full.txt` com stacks completas. Corresponde exactamente ao cenário predito.
+**Status:** **CONFIRMED** — finding MM-2026-0003 (CSA-001). 3 DATA RACE warnings captured in `h001_run1_full.txt` with complete stacks. Matches exactly the predicted scenario.
 **Cross-refs:** threat-model §6 `Params / pool` column I, attack tree §D3.1, MM-2026-0003, MM-TM-2026-0004
 
 ---
 
 ## H-002 — User enumeration timing in basic_auth via map lookup path
 
-**Premise:** `basic_auth.go` compara credenciais assim:
+**Premise:** `basic_auth.go` compares credentials like this:
 ```go
 user, pass, ok := r.BasicAuth()
 if ok {
@@ -74,39 +74,39 @@ if ok {
 }
 // else: 401
 ```
-Um user que existe segue um caminho com `subtle.ConstantTimeCompare` (custos de ~200ns + tamanho da password). Um user que não existe não executa o compare (salta directamente para 401). A diferença é arquitecturalmente **garantida** e mensurável.
+A user that exists follows a path with `subtle.ConstantTimeCompare` (costs ~200ns + password size). A user that does not exist does not execute the compare (jumps directly to 401). The difference is architecturally **guaranteed** and measurable.
 
-**Testability:** Coletar N=1e6 samples timing `auth(r, "alice", "wrong")` (user existe) vs `auth(r, "charlie", "wrong")` (user não existe). Welch t-test. Esperado: p ≪ 0.01. Remediação proposta: executar `subtle.ConstantTimeCompare` sempre contra uma senha dummy (e.g. `dummyHash := "00000000000000000000000000000000"`) quando user não existe, para igualar o path.
+**Testability:** Collect N=1e6 samples timing `auth(r, "alice", "wrong")` (user exists) vs `auth(r, "charlie", "wrong")` (user does not exist). Welch t-test. Expected: p ≪ 0.01. Proposed remediation: always execute `subtle.ConstantTimeCompare` against a dummy password (e.g. `dummyHash := "00000000000000000000000000000000"`) when user does not exist, to equalize the path.
 
 **Assigned:** timing-and-sidechannel-analyst (primary) + middleware-security-reviewer (advisory)
 **Priority:** High (CWE-208, CWE-203 info disclosure via timing)
-**Status:** **CONFIRMED** — finding MM-2026-0009 (TSC-001 + MSR-BA-001). N=1.5M samples, 3 runs triplicados, Welch p=0, KS p=0, MWU p=0. Mean diff 319-429 ns, Cohen d 0.33-0.45. Assembly confirmed: `JEQ 0x00d9` skipa compare quando map miss. Distribuição bimodal para "user absent". Fix proposto: constant-path dummy compare.
+**Status:** **CONFIRMED** — finding MM-2026-0009 (TSC-001 + MSR-BA-001). N=1.5M samples, 3 runs tripled, Welch p=0, KS p=0, MWU p=0. Mean diff 319-429 ns, Cohen d 0.33-0.45. Assembly confirmed: `JEQ 0x00d9` skips compare on map miss. Bimodal distribution for "user absent". Proposed fix: constant-path dummy compare.
 **Cross-refs:** attack tree §A2.3.1, transposition §15, MM-2026-0009, MM-TM-2026-0001
 
 ---
 
 ## H-003 — CRLF log injection via r.URL.Path in logger
 
-**Premise:** `logger.go` faz:
+**Premise:** `logger.go` does:
 ```go
 fmt.Fprintf(out, "%s %s %s %d %s\n", time.Now().Format(time.RFC3339), r.Method, r.URL.Path, rec.status, time.Since(start))
 ```
-`r.URL.Path` é passado sem qualquer escape. Se um cliente enviar um request com path contendo bytes `\r\n` (o que stdlib `net/http` **normalmente** rejeita na request line, MAS pode passar via percent-decode interno de RawPath), o log produz uma linha forjada + uma nova linha injectada.
+`r.URL.Path` is passed without any escape. If a client sends a request with path containing bytes `\r\n` (which stdlib `net/http` **normally** rejects in the request line, BUT can pass via internal percent-decode of RawPath), the log produces a forged line + a new injected line.
 
-**Testability:** Enviar `GET /admin%0D%0A2026-04-17T00:00:00Z%20GET%20/fake%20200%200s HTTP/1.1\r\n`. Verificar se `r.URL.Path` (após net/http) contém `\r\n`. Se sim, `fmt.Fprintf(%s)` escreve directamente e o log tem 2 linhas. Alternativamente, path inclui bytes de controlo como `\x1b[2J` (ANSI clear screen) se o log vai a TTY — ofuscação.
+**Testability:** Send `GET /admin%0D%0A2026-04-17T00:00:00Z%20GET%20/fake%20200%200s HTTP/1.1\r\n`. Check if `r.URL.Path` (after net/http) contains `\r\n`. If yes, `fmt.Fprintf(%s)` writes directly and the log has 2 lines. Alternatively, path includes control bytes like `\x1b[2J` (ANSI clear screen) if the log goes to TTY — obfuscation.
 
-**Expected outcome:** net/http já rejeita CR/LF no request-target (retorna 400 no parser) — hipótese provavelmente **refuted** para CRLF directo. Mas `\x1b[...` (ESC sequences) são aceitáveis como bytes válidos em paths (RFC 3986 permite) → ANSI injection confirmada.
+**Expected outcome:** net/http already rejects CR/LF in request-target (returns 400 in parser) — hypothesis probably **refuted** for direct CRLF. But `\x1b[...` (ESC sequences) are acceptable as valid bytes in paths (RFC 3986 allows) → ANSI injection confirmed.
 
 **Assigned:** middleware-security-reviewer + http-protocol-security-auditor
 **Priority:** High (CWE-117 log injection, CWE-93 CRLF, CWE-150 ANSI)
-**Status:** **CONFIRMED** — finding MM-2026-0006 (HPS-001 + MSR-LG-001). Stdlib rejeita CRLF literal em request-target (400) MAS **percent-decoda CRLF para `r.URL.Path`**. 15 payload classes confirmadas em corpus: CRLF, LF, ANSI clear/colour, NUL, BEL, VT, BOM, Unicode line separators.
+**Status:** **CONFIRMED** — finding MM-2026-0006 (HPS-001 + MSR-LG-001). Stdlib rejects literal CRLF in request-target (400) BUT **percent-decodes CRLF to `r.URL.Path`**. 15 payload classes confirmed in corpus: CRLF, LF, ANSI clear/colour, NUL, BEL, VT, BOM, Unicode line separators.
 **Cross-refs:** attack tree §D7, transposition §12, MM-2026-0006, MM-TM-2026-0002
 
 ---
 
 ## H-004 — request_id CRLF reflection causes response splitting
 
-**Premise:** `request_id.go` copia `X-Request-ID` header do cliente para `w.Header().Set("X-Request-ID", id)` sem validação. Go `net/http` valida bytes inválidos em `Header().Set` via `textproto` e **rejeita** valores com CR/LF (`http.invalidHeaderFields` check). HIPÓTESE: se o valor contém apenas `\t` ou `\x00` ou UTF-8 high chars, passa; se for `\r\n`, `net/http` silenciosamente ignora ou trunca → test.
+**Premise:** `request_id.go` copies `X-Request-ID` header from client to `w.Header().Set("X-Request-ID", id)` without validation. Go `net/http` validates invalid bytes in `Header().Set` via `textproto` and **rejects** values with CR/LF (`http.invalidHeaderFields` check). HYPOTHESIS: if the value contains only `\t` or `\x00` or UTF-8 high chars, it passes; if it is `\r\n`, `net/http` silently ignores or truncates → test.
 
 **Testability:**
 ```go
@@ -116,28 +116,28 @@ req.Header.Set("X-Request-ID", "abc\r\nSet-Cookie: evil=1")
 // Inspect raw bytes via http.ResponseWriter.WriteHeader (or real TCP response)
 ```
 
-Validar também: client sends 1MB X-Request-ID → response inclui 1MB header → amplifica tráfego de saída (D6 DoS amplification).
+Also validate: client sends 1MB X-Request-ID → response includes 1MB header → amplifies outbound traffic (D6 DoS amplification).
 
 **Assigned:** http-protocol-security-auditor (primary) + middleware-security-reviewer
 **Priority:** High (CWE-113 response splitting)
-**Status:** **CONFIRMED partial** — finding MM-2026-0011 (HPS-005 + MSR-RQ-004 + FPE-001). **Response splitting sanitised on wire by Go 1.26 stdlib** (rejeitou CRLF em response header serialisation). **MAS**: (1) CRLF retido in-memory em `w.Header()` → downstream middleware vê bytes raw; (2) 1 MiB X-Request-ID → 1 MiB response amplification (1024×). Severity High mantida pela amplificação + in-memory state.
+**Status:** **CONFIRMED partial** — finding MM-2026-0011 (HPS-005 + MSR-RQ-004 + FPE-001). **Response splitting sanitised on wire by Go 1.26 stdlib** (rejected CRLF in response header serialization). **BUT**: (1) CRLF retained in-memory in `w.Header()` → downstream middleware sees raw bytes; (2) 1 MiB X-Request-ID → 1 MiB response amplification (1024×). Severity High maintained by amplification + in-memory state.
 **Cross-refs:** attack tree §A2.7, §D1.3, MM-2026-0011, MM-TM-2026-0002
 
 ---
 
 ## H-005 — CORS Origin reflection when allowAll=true permits credentials theft
 
-**Premise:** `cors.go:22-24` rejects configurations with `AllowedOrigins=["*"]` **AND** `AllowCredentials=true` via panic em config-time. MAS: se caller passa `AllowedOrigins=["*"]` e `AllowCredentials=false`, o middleware reflecte o Origin do atacante no ACAO header. Combinado com:
-- se a aplicação usa cookies sem `SameSite=Strict`, resposta cross-site permite CSRF
-- request_id reflection ou logger CRLF ainda são vectores laterais
+**Premise:** `cors.go:22-24` rejects configurations with `AllowedOrigins=["*"]` **AND** `AllowCredentials=true` via panic at config-time. BUT: if caller passes `AllowedOrigins=["*"]` and `AllowCredentials=false`, the middleware reflects the attacker's Origin in the ACAO header. Combined with:
+- if the application uses cookies without `SameSite=Strict`, cross-site response permits CSRF
+- request_id reflection or logger CRLF are still lateral vectors
 
-Adicionalmente: HIPÓTESE secundária — se caller passa `AllowedOrigins=["*"]` dinamicamente (e.g. built em runtime a partir de env vars) e **em simultâneo** algo passa `AllowCredentials=true` a partir de outro middleware, não há re-check.
+Additionally: secondary HYPOTHESIS — if caller passes `AllowedOrigins=["*"]` dynamically (e.g. built at runtime from env vars) and **simultaneously** something passes `AllowCredentials=true` from another middleware, there is no re-check.
 
-**Testability:** Build muxmaster com `cors.CORS(CORSOptions{AllowedOrigins:[]string{"*"}})`. Enviar `Origin: https://evil.com`. Assert `Access-Control-Allow-Origin: https://evil.com` in response. E depois: `Origin: null` — é aceite? `Origin: evil.com\x1b[` — survives? `Origin: evil.com,` trailing comma? `Origin: ` (empty)?
+**Testability:** Build muxmaster with `cors.CORS(CORSOptions{AllowedOrigins:[]string{"*"}})`. Send `Origin: https://evil.com`. Assert `Access-Control-Allow-Origin: https://evil.com` in response. And then: `Origin: null` — is it accepted? `Origin: evil.com\x1b[` — survives? `Origin: evil.com,` trailing comma? `Origin: ` (empty)?
 
 **Assigned:** middleware-security-reviewer
 **Priority:** High (CWE-942)
-**Status:** **CONFIRMED** — finding MM-2026-0012 (MSR-CO-003 + FPE-002). `AllowedOrigins=["*"]` + `Origin: https://evil.example` → `ACAO: https://evil.example` em vez de `ACAO: *`. Spec violation; enables credential-grant se `AllowCredentials=true` for adicionado dinamicamente noutra middleware. Fix trivial: emitir literal `*` quando `allowAll=true`.
+**Status:** **CONFIRMED** — finding MM-2026-0012 (MSR-CO-003 + FPE-002). `AllowedOrigins=["*"]` + `Origin: https://evil.example` → `ACAO: https://evil.example` instead of `ACAO: *`. Spec violation; enables credential-grant if `AllowCredentials=true` is added dynamically to another middleware. Fix trivial: emit literal `*` when `allowAll=true`.
 **Cross-refs:** attack tree §A2.5, §E2; transposition §5, §11; MM-2026-0012, MM-TM-2026-0002
 
 ---
@@ -154,9 +154,9 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
     return g.gz.Write(b)
 }
 ```
-O handler pode escrever conteúdo **ilimitado** antes de `g.done` ser true (só é true depois do handler retornar em `next.ServeHTTP(grw, r); grw.done = true`). Se o handler faz streaming de 10GB de zeros, `g.buf` cresce para 10GB → OOM.
+The handler can write **unlimited** content before `g.done` is true (only true after handler returns in `next.ServeHTTP(grw, r); grw.done = true`). If the handler does streaming of 10GB of zeros, `g.buf` grows to 10GB → OOM.
 
-Vector adicional: heap fragmentation — muitos handlers simultâneos com responses médios (100MB) exaurem RSS.
+Additional vector: heap fragmentation — many simultaneous handlers with medium responses (100MB) exhaust RSS.
 
 **Testability:**
 ```go
@@ -172,11 +172,11 @@ req.Header.Set("Accept-Encoding", "gzip")
 // Expected: RSS grows by ~10GB in buf; fails on constrained env
 ```
 
-**Expected outcome:** confirmed OOM. Remediação: streaming compression — usar `gz.Write(b)` directo em vez de buffer; ou impor `MaxBufferSize` config.
+**Expected outcome:** confirmed OOM. Remediation: streaming compression — use `gz.Write(b)` directly instead of buffering; or impose `MaxBufferSize` config.
 
 **Assigned:** dos-resilience-tester + middleware-security-reviewer
-**Priority:** High → **Critical** (promovido porque `Accept-Encoding: gzip` é enviado default por todos os browsers — atacante não requer privilégios)
-**Status:** **CONFIRMED** — finding MM-2026-0007 (DOS-001 + MSR-CP-001 + SAST-010). Slope empírico 1.15 byte heap / byte body. 64MB → 178MB peak. 1GB → ~2GB RSS. Streaming compression é o fix.
+**Priority:** High → **Critical** (promoted because `Accept-Encoding: gzip` is sent by default by all browsers — attacker requires no privileges)
+**Status:** **CONFIRMED** — finding MM-2026-0007 (DOS-001 + MSR-CP-001 + SAST-010). Empirical slope 1.15 byte heap / byte body. 64MB → 178MB peak. 1GB → ~2GB RSS. Streaming compression is the fix.
 **Cross-refs:** attack tree §B2.1, §B5.1; transposition §2, §12; MM-2026-0007
 
 ---
@@ -193,9 +193,9 @@ if m.RedirectFixedPath {
     }
 }
 ```
-`cleanedPath` usa `path.Clean(p)`. Para input `//evil.com/foo`, `path.Clean` retorna `/evil.com/foo`. Depois, `r.URL.Path = "/evil.com/foo"`; `r.URL.String()` — dependendo dos campos presentes (Scheme, Host) — pode serializar como URL relativa `"/evil.com/foo"` ou como URL com host extraído.
+`cleanedPath` uses `path.Clean(p)`. For input `//evil.com/foo`, `path.Clean` returns `/evil.com/foo`. Then, `r.URL.Path = "/evil.com/foo"`; `r.URL.String()` — depending on the fields present (Scheme, Host) — may serialize as relative URL `"/evil.com/foo"` or as URL with extracted host.
 
-Teste a variant com `RedirectTrailingSlash` + `//evil.com/foo/`.
+Test the variant with `RedirectTrailingSlash` + `//evil.com/foo/`.
 
 **Testability:**
 ```go
@@ -205,13 +205,13 @@ req := httptest.NewRequest("GET", "http://localhost//evil.com/foo", nil)
 // RedirectFixedPath=true by default
 // Check Location header
 ```
-Teste também com `CaseInsensitive=true` e backslash `/\\evil.com`.
+Also test with `CaseInsensitive=true` and backslash `/\\evil.com`.
 
-**Expected outcome:** provavelmente stdlib `http.Redirect` sanitiza — mas confirmar empiricamente. Se Location header contém valor puramente relativo `/evil.com/foo`, browsers tratam como mesmo-origem (OK). Se contém `//evil.com/foo`, trata como protocol-relative (EVIL).
+**Expected outcome:** probably stdlib `http.Redirect` sanitizes — but confirm empirically. If Location header contains a purely relative value `/evil.com/foo`, browsers treat as same-origin (OK). If it contains `//evil.com/foo`, treats as protocol-relative (EVIL).
 
 **Assigned:** http-protocol-security-auditor (primary) + path-routing-fuzzer
 **Priority:** High (CWE-601)
-**Status:** **REFUTED** — `path.Clean("//evil.com/foo")` → `/evil.com/foo` (single slash). `http.Redirect` produz `Location: /evil.com/foo` — Location relativa **same-origin**. Testado em HPS (`evidence/redirect-raw-bytes.txt`). **Nota importante:** a variante TSC-003 (canonicalization discloses hidden routes) é **diferente** e é CONFIRMED em MM-2026-0005.
+**Status:** **REFUTED** — `path.Clean("//evil.com/foo")` → `/evil.com/foo` (single slash). `http.Redirect` produces `Location: /evil.com/foo` — relative Location **same-origin**. Tested in HPS (`evidence/redirect-raw-bytes.txt`). **Important note:** the TSC-003 variant (canonicalization discloses hidden routes) is **different** and is CONFIRMED as MM-2026-0005.
 **Cross-refs:** attack tree §A2.8, §D2.3
 
 ---
@@ -222,27 +222,27 @@ Teste também com `CaseInsensitive=true` e backslash `/\\evil.com`.
 ```go
 root.addRoute(pattern, wrapMiddleware(handler, m.middleware))
 ```
-`wrapMiddleware` é chamada no momento do `Handle`, capturando a **snapshot** de `m.middleware` nesse instante. Se caller faz:
+`wrapMiddleware` is called at `Handle` time, capturing the **snapshot** of `m.middleware` at that instant. If caller does:
 ```go
 r := mm.New()
-r.GET("/admin", adminHandler)       // wrapMiddleware vê m.middleware = []
-r.Use(auth)                          // ADICIONADO DEPOIS
-r.GET("/profile", profileHandler)   // wrapMiddleware vê m.middleware = [auth]
+r.GET("/admin", adminHandler)       // wrapMiddleware sees m.middleware = []
+r.Use(auth)                          // ADDED AFTER
+r.GET("/profile", profileHandler)   // wrapMiddleware sees m.middleware = [auth]
 ```
-→ `/admin` **não** tem auth. Silent.
+→ `/admin` **does not** have auth. Silent.
 
-Esta é uma consequência conhecida do design (performance decision: wrap at registration). MAS **não está suficientemente documentada** em `README` / `middleware.md`. Se um utilizador migra de `chi` (que aplica no request) para MuxMaster, o código compila e funciona **sem auth no admin** e sem warning.
+This is a known consequence of the design (performance decision: wrap at registration). BUT **it is not sufficiently documented** in `README` / `middleware.md`. If a user migrates from `chi` (which applies on request) to MuxMaster, the code compiles and works **without auth on admin** and without warning.
 
-**Testability:** Test case directo replicando o exemplo. Assert: `r.Handle(...)` depois de `r.Use(...)` aplica; antes, não.
+**Testability:** Direct test case replicating the example. Assert: `r.Handle(...)` after `r.Use(...)` applies; before, it does not.
 
-**Mitigações possíveis:**
-- Panic em `Use()` se já há rotas registadas (breaking — mas claro)
-- Warning log em `Use()` pós-Handle
-- Documentação forte + linter check
+**Possible mitigations:**
+- Panic in `Use()` if there are already routes registered (breaking — but clear)
+- Warning log in `Use()` post-Handle
+- Strong documentation + linter check
 
 **Assigned:** middleware-security-reviewer (docs)
-**Priority:** Critical (auth bypass latente) — severidade depende do utilizador, mas o módulo tem responsabilidade de avisar
-**Status:** **CONFIRMED (docs)** — comportamento reproduzido em CSA harness. Fix via docs normativas em README + GoDoc + lint rule. Não é finding MM-NNN (é documentação; o código é by design).
+**Priority:** Critical (latent auth bypass) — severity depends on user, but the module has responsibility to warn
+**Status:** **CONFIRMED (docs)** — behavior reproduced in CSA harness. Fix via normative docs in README + GoDoc + lint rule. Not a MM-NNN finding (it is documentation; the code is by design).
 **Cross-refs:** attack tree §A2.1.1
 
 ---
@@ -256,74 +256,74 @@ if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
     if i < 0 { r.RemoteAddr = strings.TrimSpace(xff) } else { r.RemoteAddr = strings.TrimSpace(xff[:i]) }
 }
 ```
-Aceita **sempre** o XFF, sem lista de proxies confiáveis. Se MuxMaster for deployed directamente (sem proxy à frente), **qualquer cliente** pode sobrescrever `r.RemoteAddr`. Consequências:
-- `throttle` (se usar `r.RemoteAddr`) é trivialmente bypassável
-- `logger` regista IP falsificado
-- IP-based ACLs em middleware applicational são bypassables
+Always accepts XFF, without trusted proxy list. If MuxMaster is deployed directly (without proxy in front), **any client** can overwrite `r.RemoteAddr`. Consequences:
+- `throttle` (if using `r.RemoteAddr`) is trivially bypassable
+- `logger` records falsified IP
+- IP-based ACLs in application middleware are bypassable
 
-Nota: o `throttle.go` actual NÃO usa `r.RemoteAddr` (é global), mas um utilizador que implemente per-IP throttle em cima do `real_ip` está vulnerável por padrão.
+Note: the current `throttle.go` does NOT use `r.RemoteAddr` (it is global), but a user implementing per-IP throttle on top of `real_ip` is vulnerable by default.
 
-**Testability:** Register muxmaster com `real_ip` + custom throttle-per-IP. Attacker sends 100 requests, each with `X-Forwarded-For: <random IP>`. Assert that only 1 is throttled.
+**Testability:** Register muxmaster with `real_ip` + custom throttle-per-IP. Attacker sends 100 requests, each with `X-Forwarded-For: <random IP>`. Assert that only 1 is throttled.
 
-**Remediação proposta:** adicionar `real_ip.TrustedProxies([]string)` config.
+**Proposed remediation:** add `real_ip.TrustedProxies([]string)` config.
 
 **Assigned:** middleware-security-reviewer + dos-resilience-tester
 **Priority:** High (CWE-345, CWE-290)
-**Status:** **CONFIRMED** — finding MM-2026-0008 (HPS-004 + DOS-005 + MSR-RI-001 + SAST-009). 4 reproducers convergentes. Demonstrated: 10 requests com XFF rotativo produzem 10 contadores únicos. Fix via `RealIP(trustedCIDRs ...*netip.Prefix)`.
+**Status:** **CONFIRMED** — finding MM-2026-0008 (HPS-004 + DOS-005 + MSR-RI-001 + SAST-009). 4 convergent reproducers. Demonstrated: 10 requests with rotating XFF produce 10 unique counters. Fix via `RealIP(trustedCIDRs ...*netip.Prefix)`.
 **Cross-refs:** attack tree §B6, §E5; transposition §1, §5; MM-2026-0008, MM-TM-2026-0002
 
 ---
 
 ## H-010 — clean_path single-pass bypass via encoded traversal
 
-**Premise:** `clean_path.go` faz **uma** chamada a `path.Clean`. `path.Clean` só vê `..` textual. Se o input é `/%2e%2e/etc/passwd`:
-- **Antes** do routing, `r.URL.Path` já pode ter sido decodificado por `net/url` (sim — `r.URL.Path` é decoded)
-- Se stdlib decoded `%2e%2e` para `..`, então `r.URL.Path = "/../etc/passwd"`, clean → `/etc/passwd`, routing ataca
-- Se stdlib deixou `%2e%2e` no `r.URL.RawPath` e MuxMaster usa `r.URL.Path` (já decoded), o clean vê `..` textual e remove
+**Premise:** `clean_path.go` makes **one** call to `path.Clean`. `path.Clean` only sees textual `..`. If the input is `/%2e%2e/etc/passwd`:
+- **Before** routing, `r.URL.Path` may already be decoded by `net/url` (yes — `r.URL.Path` is decoded)
+- If stdlib decoded `%2e%2e` to `..`, then `r.URL.Path = "/../etc/passwd"`, clean → `/etc/passwd`, routing attacks
+- If stdlib left `%2e%2e` in `r.URL.RawPath` and MuxMaster uses `r.URL.Path` (already decoded), the clean sees textual `..` and removes
 
-Mais interessante: `/static/..%2f..%2fsecret`:
-- stdlib decoded → `r.URL.Path = "/static/../../secret"`, clean → `/secret` — **depois** do clean, o routing apanha `/secret`
+More interesting: `/static/..%2f..%2fsecret`:
+- stdlib decoded → `r.URL.Path = "/static/../../secret"`, clean → `/secret` — **after** clean, routing catches `/secret`
 
-MAS o middleware `clean_path` normaliza o **path** e depois chama `next.ServeHTTP(w, r2)`. Se esse "next" é o router, o router faz lookup no path normalizado. Se `/secret` tem handler, attacker bypassou `/static/*filepath` catch-all.
+BUT the middleware `clean_path` normalizes the **path** and then calls `next.ServeHTTP(w, r2)`. If that "next" is the router, the router does lookup on the normalized path. If `/secret` has handler, attacker bypassed `/static/*filepath` catch-all.
 
-Teste exhaustivo de ordem: com e sem `clean_path`, com `UnescapePathValues`, com `RedirectFixedPath`. Matriz 2×2×2.
+Exhaustive test of order: with and without `clean_path`, with `UnescapePathValues`, with `RedirectFixedPath`. Matrix 2×2×2.
 
-**Testability:** Matriz já descrita pelo `path-routing-fuzzer` no seu prompt (Step 5). Confirma resultados.
+**Testability:** Matrix already described by `path-routing-fuzzer` in its prompt (Step 5). Confirms results.
 
 **Assigned:** path-routing-fuzzer + middleware-security-reviewer
 **Priority:** High (CWE-22)
-**Status:** **CONFIRMED** — finding MM-2026-0018 (PRF-002 + HPS-006 + MSR-CL-001). 136 bypass combinations em matrix. `/static/..%2fadmin` → decode → `/static/../admin` → clean → `/admin` → bypass.
+**Status:** **CONFIRMED** — finding MM-2026-0018 (PRF-002 + HPS-006 + MSR-CL-001). 136 bypass combinations in matrix. `/static/..%2fadmin` → decode → `/static/../admin` → clean → `/admin` → bypass.
 **Cross-refs:** attack tree §C1, §C2; transposition §1 (Apache 41773), §5 (Traefik); MM-2026-0018, MM-TM-2026-0003
 
 ---
 
 ## H-011 — Route-existence timing oracle via RedirectFixedPath / RedirectTrailingSlash
 
-**Premise:** Quando MuxMaster processa um path não-existente, segue três tentativas sequenciais:
-1. `getValue` no tree do método
-2. Se falhou, try TSR (`RedirectTrailingSlash`)
-3. Se falhou, try `path.Clean` + re-lookup (`RedirectFixedPath`)
+**Premise:** When MuxMaster processes a non-existent path, it follows three sequential attempts:
+1. `getValue` on the tree of the method
+2. If failed, try TSR (`RedirectTrailingSlash`)
+3. If failed, try `path.Clean` + re-lookup (`RedirectFixedPath`)
 
-Para caminhos que **não existem**, a sequência falha no primeiro getValue. Para caminhos que existem com variante trailing/case, o tempo inclui um extra getValue com diferente input. Timing distinguishes registered routes.
+For paths that **do not exist**, the sequence fails on the first getValue. For paths that exist with trailing/case variant, the time includes an extra getValue with different input. Timing distinguishes registered routes.
 
-A severidade é: reconnaissance é mais barata via redirect. Mas redirect **já revela** (H-007 linha Location), então talvez menos impacto incremental. Ainda assim, timing é measurable mesmo com redirect desabilitado (o código tenta sempre o lookup cleaned).
+The severity is: reconnaissance is cheaper via redirect. But redirect **already reveals** (H-007 line Location), so perhaps less incremental impact. Still, timing is measurable even with redirect disabled (the code always tries the cleaned lookup).
 
 **Testability:** N=1e6 samples:
-- `GET /registered-route` (sem match, mas próximo de existente)
+- `GET /registered-route` (no match, but close to existing)
 - `GET /random-xyz-doesntexist-123`
 
-Welch + KS. Esperado: distinguishable. Se sim, severidade Medium pois complementa outras fugas.
+Welch + KS. Expected: distinguishable. If yes, severity Medium since it complements other leaks.
 
 **Assigned:** timing-and-sidechannel-analyst
 **Priority:** Medium (CWE-208)
-**Status:** **CONFIRMED** — finding MM-2026-0026 (TSC-002). N=1.5M samples, p=0, mean 437-463 ns gap, Cohen d 0.72-0.79 (large effect). Intrinsic a qualquer radix router — httprouter, chi, bunrouter exibem a mesma magnitude. **Accepted risk** (document in SECURITY.md).
+**Status:** **CONFIRMED** — finding MM-2026-0026 (TSC-002). N=1.5M samples, p=0, mean 437-463 ns gap, Cohen d 0.72-0.79 (large effect). Intrinsic to any radix router — httprouter, chi, bunrouter exhibit the same magnitude. **Accepted risk** (document in SECURITY.md).
 **Cross-refs:** attack tree §A1.2, §D2.2; MM-2026-0026
 
 ---
 
 ## H-012 — paramsBuf silent overflow at 4th param causes handler logic error
 
-**Premise:** `paramsBuf.add` em `tree.go:21`:
+**Premise:** `paramsBuf.add` in `tree.go:21`:
 ```go
 func (pb *paramsBuf) add(key, value string) {
     if pb.count < maxInlineParams {  // 3
@@ -332,9 +332,9 @@ func (pb *paramsBuf) add(key, value string) {
     }
 }
 ```
-Para uma rota com 4+ params, o 4º param em diante é **silenciosamente descartado**. Se um developer registra `/a/:b/:c/:d/:e/:f` e um handler lê `PathParam(r, "f")`, obtém `""`. Se esse valor é usado em lógica de auth (`if allowedUsers[pathParam("f")]`), `""` pode mapear para um valor aceite (e.g. empty string em map) → bypass lógico.
+For a route with 4+ params, the 4th param onwards is **silently discarded**. If a developer registers `/a/:b/:c/:d/:e/:f` and a handler reads `PathParam(r, "f")`, gets `""`. If that value is used in auth logic (`if allowedUsers[pathParam("f")]`), `""` may map to an accepted value (e.g. empty string in map) → logic bypass.
 
-O comentário diz "maxInlineParams covers ≥99% of real-world APIs" — `1%` dos casos silenciosamente partem.
+The comment says "maxInlineParams covers ≥99% of real-world APIs" — `1%` of cases silently break.
 
 **Testability:**
 ```go
@@ -344,11 +344,11 @@ r.GET("/a/:p1/:p2/:p3/:p4", h)
 // Assert: PathParam("p4") returns "" (confirmed overflow)
 ```
 
-**Mitigação proposta:** panic em `addRoute` se pattern contém >3 params (breaking), ou aumentar `maxInlineParams` para 8 com fallback para `append` fora do buf. Decisão de design.
+**Proposed mitigation:** panic in `addRoute` if pattern contains >3 params (breaking), or increase `maxInlineParams` to 8 with fallback to `append` outside the buf. Architectural decision.
 
 **Assigned:** fuzzing-and-property-engineer + path-routing-fuzzer
-**Priority:** Medium → **High** (promovido; composto com auth-middleware cria auth bypass)
-**Status:** **CONFIRMED** — finding MM-2026-0010 (PRF-003 + DOS-003 + FPE-004). Rota `/a/:p1/:p2/:p3/:p4/:p5` → p4, p5 = `""`. httprouter/bunrouter suportam 8-16 params — MuxMaster é outlier.
+**Priority:** Medium → **High** (promoted; combined with auth-middleware creates auth bypass)
+**Status:** **CONFIRMED** — finding MM-2026-0010 (PRF-003 + DOS-003 + FPE-004). Route `/a/:p1/:p2/:p3/:p4/:p5` → p4, p5 = `""`. httprouter/bunrouter support 8-16 params — MuxMaster is outlier.
 **Cross-refs:** attack tree §C5; MM-2026-0010, MM-TM-2026-0003
 
 ---
@@ -365,49 +365,49 @@ if r.URL.RawPath != "" {
     r2.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, prefix)
 }
 ```
-Se o handler montado inspecciona `r.URL.RawPath`, vê um prefix trim diferente do que o outer router processou. Se `r.URL.Path = "/api/foo"` mas `r.URL.RawPath = "/%61pi/foo"`, `TrimPrefix("/%61pi/foo", "/api")` falha (sem trim), e o inner router recebe RawPath `/%61pi/foo` — se esse inner faz parsing próprio, divergência possível.
+If the mounted handler inspects `r.URL.RawPath`, sees a prefix trim different from what the outer router processed. If `r.URL.Path = "/api/foo"` but `r.URL.RawPath = "/%61pi/foo"`, `TrimPrefix("/%61pi/foo", "/api")` fails (no trim), and the inner router receives RawPath `/%61pi/foo` — if that inner does its own parsing, divergence possible.
 
-Combinado com: Mount está registado no tree `*` (método wildcard), que é verificado DEPOIS dos methods standard. Se attacker envia método não-standard, vai cair no `*` tree e executar o handler Mount com método arbitrário — potencialmente bypassando method-specific ACL.
+Combined with: Mount is registered in the tree `*` (method wildcard), which is checked AFTER standard methods. If attacker sends non-standard method, falls through to `*` tree and executes the Mount handler with arbitrary method — potentially bypassing method-specific ACL.
 
-**Testability:** `r.Mount("/api", innerRouter)`. Send `GET /api/foo` vs `PROPFIND /api/foo`. Assert: inner router receives PROPFIND (sim — por design). Teste adicional: inner router check `r.Method` to enforce ACL. É consistente?
+**Testability:** `r.Mount("/api", innerRouter)`. Send `GET /api/foo` vs `PROPFIND /api/foo`. Assert: inner router receives PROPFIND (yes — by design). Additional test: inner router check `r.Method` to enforce ACL. Is it consistent?
 
 **Assigned:** path-routing-fuzzer + http-protocol-security-auditor
 **Priority:** Medium
-**Status:** **CONFIRMED partial** — finding MM-2026-0022 (PRF-005). TrimPrefix falha em percent-encoded; inner handler vê `Path="/foo"` mas `RawPath="/%61pi/foo"` (prefix intacta). Risco real apenas se inner handler usa RawPath para routing próprio. Fix: zerar RawPath se TrimPrefix não match.
+**Status:** **CONFIRMED partial** — finding MM-2026-0022 (PRF-005). TrimPrefix fails on percent-encoded; inner handler sees `Path="/foo"` but `RawPath="/%61pi/foo"` (prefix intact). Real risk only if inner handler uses RawPath for its own routing. Fix: zero RawPath if TrimPrefix does not match.
 **Cross-refs:** attack tree §C4, §A2.6; transposition §6; MM-2026-0022
 
 ---
 
 ## H-014 — Registration-time panic in addRoute allows DoS at init
 
-**Premise:** `tree.addRoute` panic em várias condições (catch-all conflict, regex invalid, etc.). Se a aplicação carrega rotas de um ficheiro de config ou de uma variável externa (env var expansion em pattern), attacker que influencia essa input causa panic no `main()` → processo nunca arranca → DoS da aplicação inteira.
+**Premise:** `tree.addRoute` panics in various conditions (catch-all conflict, regex invalid, etc.). If the application loads routes from a config file or from an external variable (env var expansion in pattern), attacker that influences that input causes panic in `main()` → process never starts → DoS of entire application.
 
-Não é um bug no MuxMaster per se — é um design choice. Mas o **scope do risco** depende de como callers constroem patterns. Deve ser documentado explicitamente com aviso.
+Not a bug in MuxMaster per se — it is a design choice. But the **scope of risk** depends on how callers construct patterns. Must be explicitly documented with warning.
 
-**Testability:** Trivial — registar `/[` e ver panic de regexp.Compile. Documentar.
+**Testability:** Trivial — register `/[` and see panic from regexp.Compile. Document.
 
 **Assigned:** middleware-security-reviewer (docs) + sast
 **Priority:** Low (caller responsibility, but document)
-**Status:** **DEFERRED** — documentation-only; não bloqueante para v1.0.0. Mover para SECURITY.md / README pós-release.
+**Status:** **DEFERRED** — documentation-only; not blocking for v1.0.0. Move to SECURITY.md / README post-release.
 
 ---
 
 ## H-015 — Composite: logger CRLF + request_id reflection + CORS reflection → multi-channel exfiltration
 
-**Premise (composite):** Combina H-003, H-004 e H-005. Um atacante que envia `X-Request-ID: <exfil data>\r\nZ:`, `Origin: <exfil data>`, e path `/path%20<exfil data>`, com `Authorization: Bearer <secret>`, e compress habilitado, tem 4 vias de exfiltração do segredo:
-1. Log line inclui o path (exfil data observável se attacker lê log storage)
-2. Response X-Request-ID reflectido (attacker read own response) — **se CRLF survives**
-3. Response ACAO reflectido com Origin — idem
-4. Response body BREACH via compressão — se a app usa auth context no response
+**Premise (composite):** Combines H-003, H-004 and H-005. An attacker sending `X-Request-ID: <exfil data>\r\nZ:`, `Origin: <exfil data>`, and path `/path%20<exfil data>`, with `Authorization: Bearer <secret>`, and compress enabled, has 4 paths for secret exfiltration:
+1. Log line includes the path (exfil data observable if attacker reads log storage)
+2. Response X-Request-ID reflected (attacker reads own response) — **if CRLF survives**
+3. Response ACAO reflected with Origin — same
+4. Response body BREACH via compression — if the app uses auth context in response
 
-Cada canal sozinho pode ser Medium. Combinados, permitem exfiltração paralela de informação — attacker pode correlacionar ou verificar em múltiplos canais.
+Each channel alone may be Medium. Combined, they permit parallel information exfiltration — attacker may correlate or verify on multiple channels.
 
-**Testability:** e2e test: attacker client + muxmaster + logger to file + response measurement. Conta canais disponíveis por request.
+**Testability:** e2e test: attacker client + muxmaster + logger to file + response measurement. Count available channels per request.
 
-**Assigned:** threat-modeler-and-zero-day-researcher (consolida após H-003, H-004, H-005)
+**Assigned:** threat-modeler-and-zero-day-researcher (consolidates after H-003, H-004, H-005)
 **Priority:** High (composite)
-**Status:** **CONFIRMED** — promovido a composto formal **MM-TM-2026-0002** (Multi-channel exfiltration + audit-trail forgery). Inclui agora 4 canais: logger CRLF (MM-2026-0006) + X-Request-ID reflection (MM-2026-0011) + CORS reflection (MM-2026-0012) + BREACH oracle (MM-2026-0047, handler-level) + XFF spoof (MM-2026-0008) para forjar IP source.
-**Cross-refs:** MM-TM-2026-0002, composite derivado
+**Status:** **CONFIRMED** — promoted to formal composite **MM-TM-2026-0002** (Multi-channel exfiltration + audit-trail forgery). Now includes 4 channels: logger CRLF (MM-2026-0006) + X-Request-ID reflection (MM-2026-0011) + CORS reflection (MM-2026-0012) + BREACH oracle (MM-2026-0047, handler-level) + XFF spoof (MM-2026-0008) to forge IP source.
+**Cross-refs:** MM-TM-2026-0002, composite derived
 
 ---
 
@@ -420,17 +420,17 @@ case t := <-tokens:
     next.ServeHTTP(w, r)
     return
 ```
-Se `next.ServeHTTP` panic-ar e NÃO houver `recoverer` **dentro** (antes do throttle wrap), o defer corre e o token retorna. OK. MAS: se `next` panic-ar com `http.ErrAbortHandler` sentinel que o stdlib net/http captura silenciosamente (não chama recoverer do user), o behaviour ainda é OK porque defers correm. CONFIRMADO seguro.
+If `next.ServeHTTP` panics and there is NO `recoverer` **inside** (before the throttle wrap), the defer runs and the token returns. OK. BUT: if `next` panics with `http.ErrAbortHandler` sentinel that stdlib net/http captures silently (does not call user recoverer), the behavior still is OK because defers run. CONFIRMED safe.
 
-Caso de edge: se o panic acontece DEPOIS de o token ser devolvido (i.e. em `defer tokens <- t` itself panic)? O close do channel se fechado causa panic. O channel nunca é fechado no código — safe.
+Edge case: if panic happens AFTER the token is returned (i.e. in `defer tokens <- t` itself panic)? Closing the channel if closed causes panic. The channel is never closed in the code — safe.
 
-HIPÓTESE alternativa: combinação com `context.WithTimeout` — timeout middleware cancel, mas handler continua a correr (goroutine leak H-017). Token retornado normalmente (via defer). OK.
+HYPOTHESIS alternative: combination with `context.WithTimeout` — timeout middleware cancel, but handler keeps running (goroutine leak H-017). Token returned normally (via defer). OK.
 
-**Status:** provavelmente **refuted** via code review, mas auditor deve confirmar com panic injection test.
+**Status:** probably **refuted** via code review, but auditor should confirm with panic injection test.
 
 **Assigned:** concurrency-security-auditor + dos-resilience-tester
 **Priority:** Low
-**Status:** **REFUTED** — DOS agent confirmed defer cleanup correcto (16k panics concurrent, 0 token leaks). `recoverer_throttle_test.go` PASS. Feedback para CSA: o rc leak correspondente (MM-2026-0015) é bug diferente — não confundir.
+**Status:** **REFUTED** — DOS agent confirmed defer cleanup correct (16k concurrent panics, 0 token leaks). `recoverer_throttle_test.go` PASS. Feedback for CSA: the rc leak corresponding (MM-2026-0015) is different bug — do not confuse.
 
 ---
 
@@ -442,7 +442,7 @@ ctx, cancel := context.WithTimeout(r.Context(), d)
 defer cancel()
 next.ServeHTTP(w, r.WithContext(ctx))
 ```
-Apenas define um deadline no context. O handler não é preempted. Um handler bloqueante (`time.Sleep(time.Hour)`) continua a correr mesmo após `cancel()`. A goroutine do dispatcher está bloqueada dentro desse handler — so o **servidor inteiro** não "leaka", mas a goroutine individual fica presa. Sob 1000 req/s com handlers de 1h, 3.6M goroutines acumulam até crash.
+Only sets a deadline on the context. Handler is not preempted. A blocking handler (`time.Sleep(time.Hour)`) keeps running even after `cancel()`. The dispatcher goroutine is blocked inside that handler — so the **entire server** does not "leak", but the individual goroutine gets stuck. Under 1000 req/s with 1h handlers, 3.6M goroutines accumulate until crash.
 
 **Testability:**
 ```go
@@ -458,11 +458,11 @@ after := runtime.NumGoroutine()
 // Assert: after - before ≈ 1000 (all stuck)
 ```
 
-**Mitigação:** impossível sem cooperation do handler. Documentar e recomendar `r.Context().Done()` check no handler.
+**Mitigation:** impossible without handler cooperation. Document and recommend `r.Context().Done()` check in handler.
 
 **Assigned:** dos-resilience-tester + concurrency-security-auditor + docs
 **Priority:** Medium (documented limitation, design choice)
-**Status:** **CONFIRMED** — finding MM-2026-0019 (DOS-002 + CSA-008 + MSR-TO-003). 1000 req/10ms timeout/10s handler → 1000 goroutines vivas durante 10s. Fix: docs normativas. **Docs blocker para v1.0.0.**
+**Status:** **CONFIRMED** — finding MM-2026-0019 (DOS-002 + CSA-008 + MSR-TO-003). 1000 req/10ms timeout/10s handler → 1000 goroutines alive during 10s. Fix: normative docs. **Docs blocker for v1.0.0.**
 **Cross-refs:** MM-2026-0019, MM-TM-2026-0005
 
 ---
@@ -482,17 +482,17 @@ func init() {
     }
 }
 ```
-Se uma futura versão de Go:
-- Renomear `ctx` para outro nome (e.g. `context`) → `reqCtxOffset = 0` silently
-- Remove o campo → idem
-- Move para struct embedding → `NumField` não vê
-- Torna `http.Request` opaca (privada) → init panics ao aceder
+If a future version of Go:
+- Rename `ctx` to another name (e.g. `context`) → `reqCtxOffset = 0` silently
+- Remove the field → same
+- Move to struct embedding → `NumField` does not see
+- Makes `http.Request` opaque (private) → init panics on access
 
-Todas levam a `unsafe.Add(r, 0)` escrita em offset errado → corrupção silenciosa OU panic que o stdlib apanha. **Perigo específico:** actualização automática de Go no CI → tests passam (registo funciona, rotas estáticas funcionam), mas param routes dão comportamento errado.
+All lead to `unsafe.Add(r, 0)` write at wrong offset → silent corruption OR panic that stdlib catches. **Specific danger:** automatic Go upgrade in CI → tests pass (routing works, static routes work), but param routes give wrong behavior.
 
-**Mitigações:**
-- Assert em `init()` que o campo encontrado é do tipo certo: `if f.Type != reflect.TypeOf((*context.Context)(nil)).Elem() { panic }` — `panic` em init faz o programa falhar imediatamente com erro claro
-- Adicionar teste que assert `reqCtxOffset != 0` e que `unsafe.Add(r, reqCtxOffset)` lê um valor compatível com `context.Context` após `r.WithContext(x)` equality.
+**Mitigations:**
+- Assert in `init()` that the field found is correct type: `if f.Type != reflect.TypeOf((*context.Context)(nil)).Elem() { panic }` — `panic` in init makes program fail immediately with clear error
+- Add test that asserts `reqCtxOffset != 0` and that `unsafe.Add(r, reqCtxOffset)` reads a value compatible with `context.Context` after `r.WithContext(x)` equality.
 
 **Testability:**
 ```go
@@ -501,7 +501,7 @@ Todas levam a `unsafe.Add(r, 0)` escrita em offset errado → corrupção silenc
 
 **Assigned:** go-sast-and-memory-auditor + concurrency-security-auditor
 **Priority:** Medium (latent on toolchain upgrade)
-**Status:** **PARTIAL** — finding MM-2026-0035 (CSA-010 + SAST-001). H-018 PASSES em Go 1.26.2 (`TestH018_ReqCtxOffsetAgreement`). Test gate preventivo adicionado pelo SAST agent em `harness/h018_ctx_field_type_test.go`. Fix preventivo adicional recomendado: assert `f.Type == reflect.TypeOf((*context.Context)(nil)).Elem()` em init com panic se falhar.
+**Status:** **PARTIAL** — finding MM-2026-0035 (CSA-010 + SAST-001). H-018 PASSES on Go 1.26.2 (`TestH018_ReqCtxOffsetAgreement`). Preventive test gate added by SAST agent in `harness/h018_ctx_field_type_test.go`. Additional preventive fix recommended: assert `f.Type == reflect.TypeOf((*context.Context)(nil)).Elem()` in init with panic if fails.
 **Cross-refs:** MM-2026-0035
 
 ---
@@ -512,31 +512,31 @@ Todas levam a `unsafe.Add(r, 0)` escrita em offset errado → corrupção silenc
 ```go
 re, err := regexp.Compile("^(?:" + expr + ")$")
 ```
-Go `regexp` usa RE2, que é linear-time para match mas a **compilação** pode ser O(2^n) em tempo/espaço para padrões como `(a|a)*` (na realidade Go rejeita via limite `SyntaxError`, mas o limite é alto — até ~100 operações).
+Go `regexp` uses RE2, which is linear-time for match but **compilation** can be O(2^n) in time/space for patterns like `(a|a)*` (in reality Go rejects via limit `SyntaxError`, but the limit is high — up to ~100 operations).
 
-Se a aplicação regista rotas dinamicamente (hipotético) com padrão baseado em input, attacker provoca pico de CPU/memória durante registo.
+If the application registers routes dynamically (hypothetical) with pattern based on input, attacker provokes CPU/memory spike during registration.
 
-**Testability:** Medir `regexp.Compile` tempo para padrões sintéticos progressivamente complexos. Documentar upper bound observado.
+**Testability:** Measure `regexp.Compile` time for progressively complex synthetic patterns. Document upper bound observed.
 
 **Assigned:** fuzzing-and-property-engineer + dos-resilience-tester
 **Priority:** Low (requires dynamic registration — not supported)
-**Status:** **REFUTED** — DOS agent confirmed RE2 linear; Go regex limit rejeita patterns exponenciais. 10k alternations compile em 380µs. Não-exploitable.
+**Status:** **REFUTED** — DOS agent confirmed RE2 linear; Go regex limit rejects exponential patterns. 10k alternations compile in 380µs. Not-exploitable.
 
 ---
 
-## H-020 — path.Clean + // serialisation open redirect (overlap with H-007)
+## H-020 — path.Clean + // serialization open redirect (overlap with H-007)
 
-**Premise:** Refinamento de H-007 focado numa variante específica. `path.Clean("//evil.com/path")` em Go retorna `/evil.com/path` (não `//evil.com/path`) — verificado. Portanto a saída de clean é safe. MAS: se o attacker envia `/../evil.com/path`, `path.Clean` retorna `/evil.com/path`. Se `r.URL` ainda tem `Scheme=http Host=legit.com`, então `r.URL.String()` produz `http://legit.com/evil.com/path` — safe (caminho interno).
+**Premise:** Refinement of H-007 focused on a specific variant. `path.Clean("//evil.com/path")` in Go returns `/evil.com/path` (not `//evil.com/path`) — verified. Therefore the clean output is safe. BUT: if attacker sends `/../evil.com/path`, `path.Clean` returns `/evil.com/path`. If `r.URL` still has `Scheme=http Host=legit.com`, then `r.URL.String()` produces `http://legit.com/evil.com/path` — safe (internal path).
 
-HIPÓTESE QUE SOBRA: `r.URL.String()` pode omitir Host em certas configurações (e.g. se o `httptest.NewRequest` não setou Host). Aí serializa apenas `/evil.com/path`. Browser recebendo `Location: /evil.com/path` interpreta como mesma-origem — safe. Browser recebendo `Location: //evil.com/path` interpreta cross-host — unsafe. Qual é o output actual?
+HYPOTHESIS THAT REMAINS: `r.URL.String()` may omit Host in certain configs (e.g. if `httptest.NewRequest` did not set Host). Then serializes only `/evil.com/path`. Browser receiving `Location: /evil.com/path` interprets as same-origin — safe. Browser receiving `Location: //evil.com/path` interprets cross-host — unsafe. What is the actual output?
 
-**Testability:** `http.Redirect` wraps `Location` com `r.URL.ResolveReference` lógica; deve sanitizar. Mas confirmar exhaustivamente:
+**Testability:** `http.Redirect` wraps `Location` with `r.URL.ResolveReference` logic; should sanitize. But confirm exhaustively:
 - Cleaned path starts with `//` — happens ever?
-- Cleaned path with backslash `\\evil` — Go net/url rejeita no parse?
+- Cleaned path with backslash `\\evil` — Go net/url rejects in parse?
 
 **Assigned:** http-protocol-security-auditor
 **Priority:** Medium (refinement of H-007)
-**Status:** **REFUTED (variante `//` open redirect)** + **CONFIRMED (variante canonicalization discloses routes)**. O sub-aspecto open-redirect é refuted (ver H-007). O sub-aspecto "FixedPath reveals canonical form of hidden routes" é confirmed como MM-2026-0005.
+**Status:** **REFUTED (variant `//` open redirect)** + **CONFIRMED (variant canonicalization discloses routes)**. The sub-aspect open-redirect is refuted (see H-007). The sub-aspect "FixedPath reveals canonical form of hidden routes" is confirmed as MM-2026-0005.
 **Cross-refs:** MM-2026-0005
 
 ---
@@ -547,34 +547,34 @@ HIPÓTESE QUE SOBRA: `r.URL.String()` pode omitir Host em certas configurações
 ```go
 fmt.Fprintf(os.Stderr, "panic: %v\n%s\n", rcv, debug.Stack())
 ```
-`debug.Stack()` include nomes de funções, paths de ficheiros, e **número de linhas** — suficiente para reverse-engineering parcial. Se o operador ingere stderr em SIEM ou log aggregator com weaker ACL que o binário, attacker que cause panic (e.g. envia payload que triggers `json.Unmarshal` panic num handler) vê layout interno.
+`debug.Stack()` includes function names, file paths, and **line numbers** — sufficient for partial reverse-engineering. If the operator ingests stderr into SIEM or log aggregator with weaker ACL than the binary, attacker that causes panic (e.g. sends payload that triggers `json.Unmarshal` panic in a handler) sees internal layout.
 
-Adicionalmente: `%v` de `rcv` pode incluir bytes arbitrários — se attacker provoca `panic(evilString)`, o evil string (com ANSI escapes, CRLF) entra directamente em stderr.
+Additionally: `%v` of `rcv` may include arbitrary bytes — if attacker provokes `panic(evilString)`, the evil string (with ANSI escapes, CRLF) enters directly into stderr.
 
-**Mitigação proposta:** estruturar o output como JSON escapado; redact paths via build flag.
+**Proposed mitigation:** structure output as JSON escaped; redact paths via build flag.
 
-**Testability:** Handler panic com `panic("\r\n\x1b[2J" + secret)`. Inspect stderr capture.
+**Testability:** Handler panic with `panic("\r\n\x1b[2J" + secret)`. Inspect stderr capture.
 
 **Assigned:** middleware-security-reviewer
 **Priority:** Medium (CWE-209 info disclosure, CWE-117 log injection)
-**Status:** **CONFIRMED** — finding MM-2026-0023 (DOS-008 + MSR-RE-002 + MSR-RE-003 + CSA-009). Panic value com `Authorization: Bearer sk_live_SECRETTOKENVALUEEEEEE` reproduzido em 1505 bytes de stderr. ANSI escapes preserved. Fix: `RecovererWithLogger(slog.Logger)` com redact opcional; deprecate actual.
+**Status:** **CONFIRMED** — finding MM-2026-0023 (DOS-008 + MSR-RE-002 + MSR-RE-003 + CSA-009). Panic value with `Authorization: Bearer sk_live_SECRETTOKENVALUEEEEEE` reproduced in 1505 bytes of stderr. ANSI escapes preserved. Fix: `RecovererWithLogger(slog.Logger)` with optional redaction; deprecate current.
 **Cross-refs:** MM-2026-0023
 
 ---
 
 ## H-022 — Pre-middleware path mutation bypasses group auth
 
-**Premise:** `Mux.Pre()` executa middleware **antes** do dispatch. Se `Pre(CleanPath)` ou `Pre(StripSlashes)` é usado, essas middlewares clonam `r` e alteram o path, depois chamam `m.dispatch`. OK — dispatch vê path clean.
+**Premise:** `Mux.Pre()` executes middleware **before** dispatch. If `Pre(CleanPath)` or `Pre(StripSlashes)` is used, these middlewares clone `r` and alter path, then call `m.dispatch`. OK — dispatch sees clean path.
 
-HIPÓTESE: se há um `Pre()` que faz "magic": transforma `/admin` em `/admin/cleaned` via algoritmo custom, pode isolar caminhos que parecem diferentes para auth do caminho que acaba no handler. Porém isto requer Pre middleware explicito com lógica custom — risco caller-side.
+HYPOTHESIS: if there is a `Pre()` that does "magic": transforms `/admin` into `/admin/cleaned` via custom algorithm, can isolate paths that look different for auth from path that ends up in the handler. However this requires explicit Pre middleware with custom logic — caller-side risk.
 
-**Mais interessante:** `Pre()` é aplicado **ao `m.dispatch`**, portanto `m.preHandler = wrapMiddleware(http.HandlerFunc(m.dispatch), m.pre)`. Se caller chama `Pre` depois de `Handle`, a snapshot funciona como em `Use` (H-008) — ou seja Pre só afecta futuro? NÃO — Pre aplica-se ao m.dispatch que é invariante; a preHandler é construída com `m.pre` actual. Cada `Pre(...)` **reconstrói** `preHandler`. Portanto Pre chamada depois de Handle afecta todas as rotas (diferente de Use). Este design é **inconsistente** com Use — risco de confusão para callers.
+**More interesting:** `Pre()` is applied **to `m.dispatch`**, therefore `m.preHandler = wrapMiddleware(http.HandlerFunc(m.dispatch), m.pre)`. If caller calls `Pre` after `Handle`, the snapshot works like `Use` (H-008) — or does Pre only affect future? NO — Pre applies to m.dispatch which is invariant; the preHandler is constructed with current `m.pre`. Each `Pre(...)` **reconstructs** `preHandler`. Therefore Pre called after Handle affects all routes (different from Use). This design is **inconsistent** with Use — risk of confusion for callers.
 
-**Testability:** Registar Handle, depois Pre. Verificar que Pre corre em requests para Handle. Yes — consistente com o construct de `preHandler`.
+**Testability:** Register Handle, then Pre. Verify that Pre runs on requests for Handle. Yes — consistent with the construct of `preHandler`.
 
 **Assigned:** middleware-security-reviewer (docs + invariant)
 **Priority:** Low (inconsistency; document)
-**Status:** **PARTIAL** — confirmed de jure pela análise estrutural. Não produziu finding MM-NNN específico porque é inconsistência de design, não bug. Subsumido em MM-2026-0014 (race em Pre/Use).
+**Status:** **PARTIAL** — confirmed de jure by structural analysis. Did not produce specific MM-NNN finding because it is design inconsistency, not bug. Subsumed in MM-2026-0014 (race in Pre/Use).
 
 ---
 
@@ -589,23 +589,23 @@ type requestCtx struct {
     small [3]Param  // shared backing for params
 }
 ```
-Em `mux.go:473`: `rc.params = Params(rc.small[:copy(rc.small[:], pslice)])`. Copy preenche `rc.small[0..n]`. Se count=2, `rc.small[2]` ainda tem o valor do **request anterior** (porque é `[3]Param` fixed array, não zeroed em release).
+In `mux.go:473`: `rc.params = Params(rc.small[:copy(rc.small[:], pslice)])`. Copy fills `rc.small[0..n]`. If count=2, `rc.small[2]` still has the value from the **previous request** (because it is `[3]Param` fixed array, not zeroed on release).
 
-Release (linha 478-480): `rc.params = nil; rc.pattern = ""`. MAS `rc.small[0..2]` não é zeroed. Se na próxima iteração o pool retorna o mesmo `rc` e só 1 param é escrito, `rc.small[1..2]` contém dados do request anterior. Isto só "leaka" se algum código acede `rc.small` directamente — mas `rc.params` é a vista slicing correcta `rc.small[:n]`, por isso handlers **não** veem dados antigos **através de `PathParam`**.
+Release (line 478-480): `rc.params = nil; rc.pattern = ""`. BUT `rc.small[0..2]` is not zeroed. If on the next iteration the pool returns the same `rc` and only 1 param is written, `rc.small[1..2]` contains data from the previous request. This only "leaks" if some code accesses `rc.small` directly — but `rc.params` is the correct slicing view `rc.small[:n]`, so handlers **do not** see old data **via `PathParam`**.
 
-HIPÓTESE: através do `Value(key)` method em `requestCtx`, alguém pode obter o `rc` inteiro (`return c` em `Value` returns `rc`) → via reflection, aceder `rc.small[2]` directamente. Unlikely mas testable.
+HYPOTHESIS: via `Value(key)` method in `requestCtx`, someone may obtain the entire `rc` (`return c` in `Value` returns `rc`) → via reflection, access `rc.small[2]` directly. Unlikely but testable.
 
 **Status:** suspected safe, but confirm.
 
 **Assigned:** concurrency-security-auditor (canary test)
 **Priority:** Low — depends on exploitability path
-**Status:** **REFUTED funcional** — CSA canary 256 000 iter = 0 leaks via API pública. `rc.params[:count]` restringe view correctamente. Defence-in-depth: zerar `rc.small` em release opcional (Low hardening).
+**Status:** **REFUTED functional** — CSA canary 256 000 iter = 0 leaks via public API. `rc.params[:count]` restricts view correctly. Defence-in-depth: zero `rc.small` on release optional (Low hardening).
 
 ---
 
 ## H-024 — Handler-spawned goroutine with r retained causes unsafe.Add data race (refinement of H-001)
 
-Ver H-001. Mantido separado para incluir cenário específico de logging async que é padrão comum: handler faz `go logAsync(r.Context(), ...)` — goroutine vive 10ms, durante os quais o dispatcher sobrescreve `r.ctx` 100 vezes → race garantida em 1 request.
+See H-001. Kept separate to include specific scenario of async logging that is common pattern: handler does `go logAsync(r.Context(), ...)` — goroutine lives 10ms, during which dispatcher overwrites `r.ctx` 100 times → race guaranteed in 1 request.
 
 **Status:** **CONFIRMED** (same as H-001); high-confidence variant — finding MM-2026-0003.
 **Priority:** Critical
@@ -615,10 +615,10 @@ Ver H-001. Mantido separado para incluir cenário específico de logging async q
 
 ## H-025 — RedirectTrailingSlash reveals routes before auth middleware
 
-**Premise:** No `dispatch` em `mux.go:490-507`:
-- Se path não tem handler mas tem TSR, ServeHTTP emite `http.Redirect` com 301/307 **sem** ter executado qualquer middleware aplicacional (porque middleware é wrapped ao handler, e aqui não há handler).
+**Premise:** In `dispatch` in `mux.go:490-507`:
+- If path has no handler but has TSR, ServeHTTP emits `http.Redirect` with 301/307 **without** having executed any application middleware (because middleware is wrapped to handler, and here there is no handler).
 
-Resultado: cliente não autenticado consegue distinguir entre rota não-existente (404) e rota protegida que existe só com trailing slash variation (301). A existência da rota é revelada **antes** de qualquer auth correr.
+Result: unauthenticated client can distinguish between non-existent route (404) and protected route that exists only with trailing slash variation (301). The route existence is revealed **before** any auth runs.
 
 **Testability:**
 ```go
@@ -629,64 +629,64 @@ r.GET("/admin/", handler)  // trailing slash variant
 // Expected: 301 Location: /admin/ (!! auth NOT applied, information disclosed)
 ```
 
-**Severidade:** High porque é bypassa o modelo de ameaça "middleware guarda tudo".
+**Severity:** High because it bypasses the "middleware guards everything" threat model.
 
-**Mitigação:** documentar que TSR acontece pré-middleware; ou oferecer opção `TSRRequiresAuth` que aplica middleware à resposta redirect. Alternativa: sempre 404 em vez de 301 para paths alternates (rompe UX — config).
+**Mitigation:** document that TSR happens pre-middleware; or offer option `TSRRequiresAuth` that applies middleware to redirect response. Alternative: always 404 instead of 301 for path alternates (breaks UX — config).
 
 **Assigned:** middleware-security-reviewer + path-routing-fuzzer + http-protocol
-**Priority:** High → **Critical** (promovido via composição MM-TM-2026-0001)
-**Status:** **CONFIRMED** — finding MM-2026-0004 (HPS-002 + PRF-004). Reproduzido em HPS + PRF + differential vs chi. chi no mesmo setup: `403 auth_calls=1`. MuxMaster: `301 Location: /admin/` auth_calls=0.
+**Priority:** High → **Critical** (promoted via composition MM-TM-2026-0001)
+**Status:** **CONFIRMED** — finding MM-2026-0004 (HPS-002 + PRF-004). Reproduced in HPS + PRF + differential vs chi. chi in same setup: `403 auth_calls=1`. MuxMaster: `301 Location: /admin/` auth_calls=0.
 **Cross-refs:** attack tree §A1.5, §D2.2; MM-2026-0004, MM-TM-2026-0001
 
 ---
 
 ## H-026 — Global throttle not per-IP — trivial DoS on shared limit
 
-**Premise:** `throttle.go` usa channels globais sem partição por IP. 1 attacker com 100 req concurrent esgota o budget; todos os outros clientes recebem 503.
+**Premise:** `throttle.go` uses global channels without partitioning by IP. 1 attacker with 100 req concurrent exhausts the budget; all other clients receive 503.
 
-A spec/docs deve esclarecer que é "throttle overall" e não "throttle per IP". A UI do middleware (`ThrottleBacklog(limit, backlog, timeout)`) não sinaliza a partição.
+The spec/docs should clarify that it is "throttle overall" and not "throttle per IP". The UI of the middleware (`ThrottleBacklog(limit, backlog, timeout)`) does not signal the partitioning.
 
 **Testability:** 1 attacker socket, 1 legit client socket. Attacker opens `limit` long-running requests. Legit client → 503.
 
-**Mitigação:** rename para `ThrottleAllBacklog` ou adicionar `ThrottlePerIP(limit, keyFunc)`.
+**Mitigation:** rename to `ThrottleAllBacklog` or add `ThrottlePerIP(limit, keyFunc)`.
 
 **Assigned:** middleware-security-reviewer + dos-resilience-tester
 **Priority:** High (easy DoS + user surprise)
-**Status:** **CONFIRMED** — finding MM-2026-0013 (DOS-004 + MSR-TH-001). 1 attacker com 5 requests em limit=5 nega 100% de 10 clientes legítimos diferentes.
+**Status:** **CONFIRMED** — finding MM-2026-0013 (DOS-004 + MSR-TH-001). 1 attacker with 5 requests in limit=5 denies 100% of 10 different legitimate clients.
 **Cross-refs:** attack tree §B6.2; MM-2026-0013, MM-TM-2026-0002
 
 ---
 
 ## H-027 — introspection Walk/Routes concurrent with Handle produces torn read
 
-**Premise:** `introspection.go` usa `treesPtr.Load()` — atomic, OK. MAS uma vez que tem um ponteiro para `methodTrees`, itera os nodes. Se outro goroutine chama `Handle`, faz COW da array **mas** muta a **raiz** referenciada dentro do array antigo (em `root.addRoute`). Portanto o introspection walker vê mutações em tempo real — linha 223 "root.addRoute(pattern, ...)" altera estrutura (filhos, indices, handler fields).
+**Premise:** `introspection.go` uses `treesPtr.Load()` — atomic, OK. BUT once it has a pointer to `methodTrees`, it iterates the nodes. If another goroutine calls `Handle`, does COW of the array **but** mutates the **root** referenced inside the array (in `root.addRoute`). Therefore introspection walker sees mutations in real time — line 223 "root.addRoute(pattern, ...)" alters structure (children, indices, handler fields).
 
-**Mitigação:** copy-on-write dos nodes também, não só da array. Mas isto rompe performance. Alternativa: docs "Lookup/Walk não são safe com registration concorrente".
+**Mitigation:** copy-on-write the nodes also, not just the array. But this breaks performance. Alternative: docs "Lookup/Walk are not safe with concurrent registration".
 
-**Testability:** stress test — Walk em goroutine A, Handle em B. With -race. Expected: race detector reports.
+**Testability:** stress test — Walk in goroutine A, Handle in B. With -race. Expected: race detector reports.
 
 **Assigned:** concurrency-security-auditor
 **Priority:** Medium (violates docs contract — "no dynamic registration" — so in-practice rare)
-**Status:** **CONFIRMED** — finding MM-2026-0016 (CSA-003). 63 DATA RACE warnings em 2 segundos de stress. Fix: `m.mu.RLock()` em `Walk/Routes/Lookup` (opção C).
+**Status:** **CONFIRMED** — finding MM-2026-0016 (CSA-003). 63 DATA RACE warnings in 2 seconds of stress. Fix: `m.mu.RLock()` in `Walk/Routes/Lookup` (option C).
 **Cross-refs:** MM-2026-0016
 
 ---
 
 ## H-028 — Unicode case-folding asymmetry in CaseInsensitive mode
 
-**Premise:** `foldEq` em `tree.go:445`:
+**Premise:** `foldEq` in `tree.go:445`:
 ```go
 if a >= 'A' && a <= 'Z' { a += 32 }
 ```
-Apenas ASCII. Se pattern é `/Café` e request é `/café` (ambos NFC), não é case-fold — `é` != `É`. Se `/CAFE` com `CaseInsensitive=true` vs request `/cafe`, funciona (ASCII). Mas `/АDMIN` (Cyrillic А) vs `/admin` — falha (char diferente).
+ASCII-only. If pattern is `/Café` and request is `/café` (both NFC), is not case-folded — `é` != `É`. If `/CAFE` with `CaseInsensitive=true` vs request `/cafe`, works (ASCII). But `/АDMIN` (Cyrillic А) vs `/admin` — fails (different char).
 
-OK — NFC/NFD comparison sempre falha sem normalização, mas isto é **by design** e correcto (confusables não devem cross-fold). HIPÓTESE alternativa: attacker envia `/Admin` (ASCII) vs rota `/admin` — com CaseInsensitive=false, RedirectFixedPath usa `path.Clean` (que não faz case) → não match → 404. Então não há ponto de fold problemático.
+OK — NFC/NFD comparison always fails without normalization, but this is **by design** and correct (confusables should not cross-fold). HYPOTHESIS alternative: attacker sends `/Admin` (ASCII) vs route `/admin` — with CaseInsensitive=false, RedirectFixedPath uses `path.Clean` (which does not fold) → no match → 404. Then there is no fold problem point.
 
-Status: provavelmente **refuted**. Auditor deve confirmar via fuzz com input Unicode.
+Status: probably **refuted**. Auditor should confirm via fuzz with Unicode input.
 
 **Assigned:** path-routing-fuzzer
 **Priority:** Low
-**Status:** **REFUTED** — `foldEq` é ASCII-only por design. Confusables Cyrillic/Latin (e.g. `а=U+0430` vs `a=U+0061`) **não** cross-fold. Comportamento correcto — confusables não devem ser equivalentes por routing. PRF corpus incluiu 20+ Unicode confusables, zero bypasses.
+**Status:** **REFUTED** — `foldEq` is ASCII-only by design. Confusable Cyrillic/Latin (e.g. `а=U+0430` vs `a=U+0061`) **do not** cross-fold. Behavior correct — confusables should not be equivalent by routing. PRF corpus included 20+ Unicode confusables, zero bypasses.
 
 ---
 
@@ -696,19 +696,19 @@ Status: provavelmente **refuted**. Auditor deve confirmar via fuzz com input Uni
 ```go
 w.Header().Set("WWW-Authenticate", `Basic realm="`+realm+`"`)
 ```
-Se `realm` contém `"\r\n` (aspa + CRLF), produz `Basic realm=""\r\nX-Injected: y"`. Porém Go `Header().Set` valida bytes — rejeita CR/LF. Se contém aspa sem CR/LF, quebra o parser do cliente mas não injecta header. Se caller passa `realm` de fonte externa não-validada, risco de `Set()` silent drop.
+If `realm` contains `"\r\n` (quote + CRLF), produces `Basic realm=""\r\nX-Injected: y"`. However Go `Header().Set` validates bytes — rejects CR/LF. If it contains quote without CR/LF, breaks the parser of the client but does not inject header. If caller passes `realm` from non-validated external source, risk of `Set()` silent drop.
 
-**Testability:** `BasicAuth("test\r\nX: y", creds)` — retorno silent drop ou keeps string? Test.
+**Testability:** `BasicAuth("test\r\nX: y", creds)` — return silent drop or keeps string? Test.
 
 **Assigned:** middleware-security-reviewer + http-protocol
 **Priority:** Low
-**Status:** **DEFERRED (Low MM-2026-0038)** — wire é sanitizado por Go stdlib; realm CRLF retido in-memory only. Docs-only.
+**Status:** **DEFERRED (Low MM-2026-0038)** — wire is sanitized by Go stdlib; realm CRLF retained in-memory only. Docs-only.
 
 ---
 
 ## H-030 — Composite: Slowloris + timeout + goroutine leak
 
-**Premise:** Combina timeout goroutine leak (H-017) com slowloris. Attacker:
+**Premise:** Combines timeout goroutine leak (H-017) with slowloris. Attacker:
 1. Opens 1000 TCP connections
 2. Drips 1 byte header per 5 seconds (slowloris)
 3. Before reaching handler, Go's `Server.ReadTimeout` fires (if configured) OR `net/http` keeps accepting
@@ -717,100 +717,100 @@ Se `realm` contém `"\r\n` (aspa + CRLF), produz `Basic realm=""\r\nX-Injected: 
 6. Handler **doesn't check ctx.Done**, blocks forever
 7. Goroutine pool grows unboundedly
 
-MuxMaster não pode fix inteiro (requer cooperation do handler), mas pode documentar o risco explicitamente.
+MuxMaster cannot fix entire (requires handler cooperation), but can document the risk explicitly.
 
 **Assigned:** dos-resilience-tester + docs
 **Priority:** Medium (composite, requires deployment context)
-**Status:** **CONFIRMED** — promovido a composto **MM-TM-2026-0005**. Ambos sub-findings (MM-2026-0019 timeout + MM-2026-0024 slowloris docs gap) confirmados separadamente. Vector composto requer ambas as mitigações: `ReadHeaderTimeout` do http.Server + cooperação do handler com `ctx.Done()`.
+**Status:** **CONFIRMED** — promoted to composite **MM-TM-2026-0005**. Both sub-findings (MM-2026-0019 timeout + MM-2026-0024 slowloris docs gap) confirmed separately. Composite vector requires both mitigations: `ReadHeaderTimeout` of http.Server + handler cooperation with `ctx.Done()`.
 **Cross-refs:** MM-TM-2026-0005, MM-2026-0019, MM-2026-0024
 
 ---
 
 ---
 
-## H-031 — Auto-OPTIONS / 405 Allow header leak pré-auth (NOVA — proposta por HPS-003)
+## H-031 — Auto-OPTIONS / 405 Allow header leak pré-auth (NEW — proposed by HPS-003)
 
-**Premise:** As respostas automáticas de `HandleOPTIONS` e `HandleMethodNotAllowed` em `mux.go:546-565` chamam `m.allowed(urlPath, r.Method)` que itera todas as trees e retorna o Allow header com a lista de métodos disponíveis — **antes** da auth middleware correr. Um atacante descobre:
-1. Se um path existe (via status 204/405 vs 404).
-2. Que métodos estão registados naquele path.
-3. Conjuntamente com HPS-002/PRF-004 (TSR leak), enumera a superfície HTTP do servidor sem auditar.
+**Premise:** The automatic responses of `HandleOPTIONS` and `HandleMethodNotAllowed` in `mux.go:546-565` call `m.allowed(urlPath, r.Method)` which iterates all trees and returns the Allow header with the list of available methods — **before** the auth middleware runs. An attacker discovers:
+1. If a path exists (via status 204/405 vs 404).
+2. Which methods are registered on that path.
+3. Combined with HPS-002/PRF-004 (TSR leak), enumerates the HTTP surface of the server without auditing.
 
-**Testability:** Registar `/admin` com auth middleware que denega tudo. Enviar `OPTIONS /admin` — expected em design seguro: `401 Unauthorized`. Actual: `204 Allow: GET, POST, OPTIONS body="" auth_invocations=0`.
+**Testability:** Register `/admin` with auth middleware that denies everything. Send `OPTIONS /admin` — expected in secure design: `401 Unauthorized`. Actual: `204 Allow: GET, POST, OPTIONS body="" auth_invocations=0`.
 
-**Status:** **CONFIRMED** — finding MM-2026-0005 (HPS-003 + PRF-004 FixedPath variant + TSC-003). Esta hipótese consolida os sub-findings do domínio HTTP, path-routing e timing num único finding canónico.
+**Status:** **CONFIRMED** — finding MM-2026-0005 (HPS-003 + PRF-004 FixedPath variant + TSC-003). This hypothesis consolidates the HTTP, path-routing, and timing domain sub-findings into a single canonical finding.
 
-**Assigned:** http-protocol-security-auditor (proponente), middleware-security-reviewer (fix), threat-modeler (consolidação)
-**Priority:** **Critical** (bloqueia v1.0.0)
+**Assigned:** http-protocol-security-auditor (proponent), middleware-security-reviewer (fix), threat-modeler (consolidation)
+**Priority:** **Critical** (blocks v1.0.0)
 **Cross-refs:** MM-2026-0005, MM-TM-2026-0001
 
 ---
 
-## H-032 — UTF-8 invariant violations no radix tree (NOVA — proposta por PRF-006)
+## H-032 — UTF-8 invariant violations in radix tree (NEW — proposed by PRF-006)
 
-**Premise:** A árvore radix em `tree.go` opera sobre `string` (sequência de bytes UTF-8) mas **não valida UTF-8** em `addRoute`. Patterns com bytes ≥ 0x80 que não sejam UTF-8 válidos (e.g. `0xFF` solto, `0xC0` sem continuation byte) corrompem invariantes internas:
-- `n.indices += string(c)` produz string com byte inválido; subsequentes comparações byte-a-byte funcionam mas `for i, r := range path` (que itera runes, não bytes) produz índices diferentes.
-- Em certos paths de split, `len(n.indices) != len(staticChildren)` → slice OOB no hot path.
-- FPE-006 demonstrou `/\xf9` + `/` → slice out of range em dispatch.
-- PRF-006 demonstrou `/\xff` → index out of range em `incrementChildPrio`.
+**Premise:** The radix tree in `tree.go` operates on `string` (sequence of UTF-8 bytes) but **does not validate UTF-8** in `addRoute`. Patterns with bytes ≥ 0x80 that are not valid UTF-8 (e.g. `0xFF` alone, `0xC0` without continuation byte) corrupt internal invariants:
+- `n.indices += string(c)` produces string with invalid byte; subsequent byte-by-byte comparisons work but `for i, r := range path` (which iterates runes, not bytes) produces different indices.
+- In certain split paths, `len(n.indices) != len(staticChildren)` → slice OOB in hot path.
+- FPE-006 demonstrated `/\xf9` + `/` → slice out of range in dispatch.
+- PRF-006 demonstrated `/\xff` → index out of range in `incrementChildPrio`.
 
-**Testability:** Fuzzer target `FuzzAddRoute` com ampla cobertura de bytes ≥ 0x80 (UTF-8 inválido, UTF-8 overlong, BMP, SMP code points). Invariant post-addRoute: `assert(len(n.indices) == num static children)`.
+**Testability:** Fuzzer target `FuzzAddRoute` with broad coverage of bytes ≥ 0x80 (invalid UTF-8, UTF-8 overlong, BMP, SMP code points). Invariant post-addRoute: `assert(len(n.indices) == num static children)`.
 
-**Status:** **CONFIRMED** — finding MM-2026-0002 (PRF-006 + FPE-006). Duas instâncias documentadas; a classe é maior — toda a função `addRoute` e `insertChild` precisa de auditar iteração bytes vs runes.
+**Status:** **CONFIRMED** — finding MM-2026-0002 (PRF-006 + FPE-006). Two instances documented; the class is larger — entire `addRoute` function and `insertChild` need auditing for bytes vs runes iteration.
 
-**Mitigação proposta:**
-1. Rejeitar patterns com bytes ≥ 0x80 que não sejam UTF-8 válidos (via `utf8.Valid`), ou documentar explicitamente "patterns devem ser ASCII".
-2. Auditar `tree.go` para sítios que usam `for i, r := range path` vs `for i := range len(path)` — são contratos diferentes.
-3. Debug-build assert: após cada `addRoute`, validar `len(n.indices) == len(staticChildren)`.
+**Proposed mitigation:**
+1. Reject patterns with bytes ≥ 0x80 that are not valid UTF-8 (via `utf8.Valid`), or explicitly document "patterns must be ASCII".
+2. Audit `tree.go` for sites using `for i, r := range path` vs `for i := range len(path)` — they are different contracts.
+3. Debug-build assert: after each `addRoute`, validate `len(n.indices) == len(staticChildren)`.
 
-**Assigned:** path-routing-fuzzer (proponente), fuzzing-and-property-engineer, sast (bounds check), threat-modeler
-**Priority:** **Critical** (bloqueia v1.0.0 — boot-time DoS via config-file)
+**Assigned:** path-routing-fuzzer (proponent), fuzzing-and-property-engineer, sast (bounds check), threat-modeler
+**Priority:** **Critical** (blocks v1.0.0 — boot-time DoS via config-file)
 **Cross-refs:** MM-2026-0002
 
 ---
 
-## H-033 — atomic.Pointer para Mux.preHandler + public fields setters (NOVA — proposta por CSA)
+## H-033 — atomic.Pointer for Mux.preHandler + public fields setters (NEW — proposed by CSA)
 
-**Premise:** Dos CSA-006 e CSA-007, o padrão actual de leitura sem sync de `m.preHandler`, `m.NotFound`, `m.PanicHandler` e 13 outros fields é teoricamente race-safe apenas em amd64 TSO. Em ARM64 weak memory model, reads podem ver stale writes indefinidamente. A hipótese é: "mudar todos os reassignable fields para `atomic.Pointer[T]` tem overhead aceitável em hot path".
+**Premise:** From CSA-006 and CSA-007, the current pattern of unsynchronized read of `m.preHandler`, `m.NotFound`, `m.PanicHandler` and 13 other fields is theoretically race-safe only on amd64 TSO. On ARM64 weak memory model, reads may see stale writes indefinitely. The hypothesis is: "changing all reassignable fields to `atomic.Pointer[T]` has acceptable overhead in hot path".
 
-**Testability:** Benchstat baseline (read plain) vs proposal (`atomic.Pointer.Load`) em BenchmarkStaticRoute + BenchmarkParamRoute. Aceitável <5% regressão.
+**Testability:** Benchstat baseline (read plain) vs proposal (`atomic.Pointer.Load`) on BenchmarkStaticRoute + BenchmarkParamRoute. Acceptable <5% regression.
 
-**Status:** **OPEN** — novo, pendente de benchmark. Owner: CSA + go-perf-optimizer.
+**Status:** **OPEN** — new, pending benchmark. Owner: CSA + go-perf-optimizer.
 
-**Priority:** Medium (hardening pós-v1.0.0)
+**Priority:** Medium (hardening post-v1.0.0)
 
 ---
 
-## H-034 — unsafe.Add vs r.WithContext performance trade-off (NOVA — proposta por CSA)
+## H-034 — unsafe.Add vs r.WithContext performance trade-off (NEW — proposed by CSA)
 
-**Premise:** Se removermos `unsafe.Add` e usarmos `r.WithContext(rc)` para eliminar CSA-001 race definitivamente, quanto é a regressão em ns/op e allocs/op? Se <30%, preferível à documentação-normativa-only.
+**Premise:** If we remove `unsafe.Add` and use `r.WithContext(rc)` to definitively eliminate CSA-001 race, what is the regression in ns/op and allocs/op? If <30%, preferable to documentation-normative-only.
 
 **Testability:**
 ```
 bench baseline (current): BenchmarkParamRoute1: 27 ns/op, 0 allocs/op
 bench proposal (r.WithContext): BenchmarkParamRoute1: ~40-45 ns/op, 1 alloc/op (estimate)
-benchstat antes/depois: documentar delta
+benchstat before/after: document delta
 ```
 
-**Status:** **OPEN** — depende de decisão arquitectural. Owner: go-perf-optimizer + CSA.
+**Status:** **OPEN** — depends on architectural decision. Owner: go-perf-optimizer + CSA.
 
-**Priority:** **Critical (architectural decision)** — determina fix de MM-2026-0003.
+**Priority:** **Critical (architectural decision)** — determines fix of MM-2026-0003.
 
 ---
 
-## Processo
+## Process
 
-**Owner:** threat-modeler-and-zero-day-researcher é o único que escreve aqui.
+**Owner:** threat-modeler-and-zero-day-researcher is the only one who writes here.
 
-**Ciclo:**
-1. Especialistas reportam findings em `/reports/<agent>/`.
-2. Threat-modeler copia findings para `findings.md` com ID canónico.
-3. Se finding refina uma hipótese, update status aqui para `confirmed` / `partial` / `refuted`.
-4. Findings que compõem nova hipótese criam novo `H-NNN` aqui.
-5. Release gate: todas as hipóteses Critical/High têm status `confirmed` (ship com fix) ou `refuted` (evidência).
+**Cycle:**
+1. Experts report findings in `/reports/<agent>/`.
+2. Threat-modeler copies findings to `findings.md` with canonical ID.
+3. If finding refines a hypothesis, update status here to `confirmed` / `partial` / `refuted`.
+4. Findings that compose new hypothesis create new `H-NNN` here.
+5. Release gate: all Critical/High hypotheses have status `confirmed` (ship with fix) or `refuted` (evidence).
 
-**Registo de mudanças:** cada vez que uma hipótese muda de estado, adicionar linha no changelog local desta hipótese.
+**Change log:** each time a hypothesis changes state, add line in local changelog of that hypothesis.
 
-## Matriz final de hipóteses (summary table)
+## Final hypothesis matrix (summary table)
 
 | ID | Priority | Status | Finding(s) |
 |---|---|---|---|
@@ -835,8 +835,8 @@ benchstat antes/depois: documentar delta
 | H-019 | Low | **REFUTED** | — |
 | H-020 | Medium | **REFUTED (base)** / **CONFIRMED (variant)** | MM-2026-0005 |
 | H-021 | Medium | **CONFIRMED** | MM-2026-0023 |
-| H-022 | Low | **PARTIAL** | subsumido MM-2026-0014 |
-| H-023 | Low | **REFUTED funcional** | hardening opcional |
+| H-022 | Low | **PARTIAL** | subsumed MM-2026-0014 |
+| H-023 | Low | **REFUTED functional** | optional hardening |
 | H-024 | Critical | **CONFIRMED** | MM-2026-0003 (variant) |
 | H-025 | High → Critical | **CONFIRMED** | MM-2026-0004 |
 | H-026 | High | **CONFIRMED** | MM-2026-0013 |
@@ -849,7 +849,7 @@ benchstat antes/depois: documentar delta
 | **H-033** (new) | Medium | **OPEN** (post-v1.0.0) | — |
 | **H-034** (new) | Critical (decision) | **OPEN** | determines MM-2026-0003 fix |
 
-**Totais:** 34 hipóteses. 22 confirmed (+ 4 compostos consolidados). 5 refuted. 4 partial. 2 deferred. 2 new open.
+**Totals:** 34 hypotheses. 22 confirmed (+ 4 composites consolidated). 5 refuted. 4 partial. 2 deferred. 2 new open.
 
 ---
 
@@ -873,7 +873,7 @@ Raised by rmp #240 (findings reconciliation); states as of rmp #267 (2026-09-25,
 
 ## H-RECON-02 — Timing harnesses that pass silently on wrong status codes
 
-**Premise:** TSC-2026-0009 showed `TestTiming_ErrorOracle_404vs405` measuring 401 vs 401 (BasicAuth registered with `Use` wrapped the fallback handlers) and passing. Any `TestTiming_*` whose arms do not return the intended status measures the wrong thing, and every accepted timing oracle in `SECURITY.md` depends on these harnesses.
+**Premise:** TSC-2026-0009 showed `TestTiming_ErrorOracle_404vs405` measuring 401 vs 401 (BasicAuth registered with `Use` wrapped the fallback handlers) and passing. Any `TestTiming_*` whose arms do not return the intended status codes measures the wrong thing, and every accepted timing oracle in `SECURITY.md` depends on these harnesses.
 
 **Testability:** every `TestTiming_*` asserts each arm's status code before computing statistics and on every sample; a deliberately wrong expected status must make the test fail.
 
