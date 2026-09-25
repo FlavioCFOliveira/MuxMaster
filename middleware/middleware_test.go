@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -840,6 +841,66 @@ func TestStripSlashes_MultipleTrailing(t *testing.T) {
 		mw(inner).ServeHTTP(rec, req)
 		if captured != want {
 			t.Errorf("StripSlashes(%q): got %q, want %q", input, captured, want)
+		}
+	}
+}
+
+// TestStripSlashes_EncodedTrailingSlashKeepsRawPathInSync is a regression
+// test for a defect found while restoring FuzzStripSlashesIdempotency (rmp
+// #274 part 5b): a trailing decoded slash spelled as a percent-encoded
+// "%2F"/"%2f" in RawPath (e.g. a client request line "GET /a%2f") was left
+// untouched while the corresponding literal '/' was stripped from Path,
+// desynchronising Path ("/a") from RawPath ("/a%2f", which still decodes to
+// "/a/"). Any RawPath-based consumer downstream (UseRawPath=true routing,
+// logging, a reverse proxy) would then disagree with Path about the
+// request's actual target.
+func TestStripSlashes_EncodedTrailingSlashKeepsRawPathInSync(t *testing.T) {
+	mw := middleware.StripSlashes()
+	var capturedPath, capturedRaw string
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedRaw = r.URL.RawPath
+		w.WriteHeader(200)
+	})
+	for _, tc := range []struct {
+		raw      string // raw request-target, as a client would send it
+		wantPath string
+		wantRaw  string
+	}{
+		{"/a%2f", "/a", "/a"},
+		{"/a%2F", "/a", "/a"},
+		{"/a/b%2f", "/a/b", "/a/b"},
+		{"/a%2f%2f", "/a", "/a"},
+		{"/a%2f/", "/a", "/a"},
+	} {
+		u, err := url.ParseRequestURI(tc.raw)
+		if err != nil {
+			t.Fatalf("ParseRequestURI(%q): %v", tc.raw, err)
+		}
+		capturedPath, capturedRaw = "", ""
+		req := &http.Request{
+			Method:     http.MethodGet,
+			URL:        u,
+			Header:     make(http.Header),
+			Body:       http.NoBody,
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+		}
+		rec := httptest.NewRecorder()
+		mw(inner).ServeHTTP(rec, req)
+		if capturedPath != tc.wantPath || capturedRaw != tc.wantRaw {
+			t.Errorf("StripSlashes(raw=%q): got Path=%q RawPath=%q, want Path=%q RawPath=%q",
+				tc.raw, capturedPath, capturedRaw, tc.wantPath, tc.wantRaw)
+		}
+		// RawPath must stay a valid net/url encoding of Path (empty, or
+		// EscapedPath() round-trips it exactly).
+		if capturedRaw != "" {
+			check := &url.URL{Path: capturedPath, RawPath: capturedRaw}
+			if check.EscapedPath() != capturedRaw {
+				t.Errorf("StripSlashes(raw=%q): output Path=%q/RawPath=%q is not a valid net/url pair (EscapedPath()=%q)",
+					tc.raw, capturedPath, capturedRaw, check.EscapedPath())
+			}
 		}
 	}
 }

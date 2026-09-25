@@ -541,3 +541,87 @@ callers that could reach `n.insertChild` on a non-fresh node with a
 similarly malformed wildcard token, since this class of bug (a caller
 mistakenly treating an *existing* node as a fresh one) is not obviously
 excluded elsewhere in `tree.go` by inspection alone.
+
+## I-17 — StripSlashes idempotency and Path/RawPath sync (MM-2026-0025 restored)
+For any `r.URL.Path`/`r.URL.RawPath` pair a real `*http.Request` could carry
+(RawPath empty, or a valid net/url encoding of Path — `u.EscapedPath() ==
+u.RawPath`):
+- `StripSlashes()` never panics;
+- the root path `"/"` is never stripped further, and the result is never
+  empty;
+- applying `StripSlashes` once vs. twice yields an identical
+  `(r.URL.Path, r.URL.RawPath)` pair (MM-2026-0025, `findings.md`,
+  unconditional idempotency — the original FPE-003 "strips only one
+  trailing slash" carve-out is gone now that the fix is in place);
+- the output `(Path, RawPath)` pair stays valid per the same net/url
+  contract.
+- Test: `FuzzStripSlashesIdempotency` (this file's restoration);
+  deterministic pins: `middleware/middleware_test.go::TestStripSlashes_MultipleTrailing`,
+  `middleware/middleware_test.go::TestStripSlashes_EncodedTrailingSlashKeepsRawPathInSync`
+- Last verified: 2026-09-25 (45s, 2,415,577 execs, ~53k execs/sec, 0 crashes,
+  75 corpus entries persisted to `corpora/FuzzStripSlashesIdempotency/`;
+  `go test -race -count=3` clean, 89 subtests × 3 = 267 passes; `go vet`
+  clean)
+- Fail-count: 0 (after the fix below)
+
+## FINDING FPE-O14-003 — StripSlashes desynchronises Path/RawPath on an encoded trailing slash (FIXED)
+**Severity:** Medium (path-confusion class — CWE-706/707 family, same family
+as MM-2026-0025). No CVE/finding ID has been assigned in `findings.md`
+because this task's scope explicitly excludes editing that file; the
+threat-modeler or a future task should assign one and cross-link it to
+MM-2026-0025.
+
+**Found by:** `FuzzStripSlashesIdempotency` restoration work (rmp #274 part
+5b), while designing the "RawPath stays a valid net/url encoding of Path"
+half of this file's I-17 invariant — confirmed deterministically before any
+fuzz run (`url.ParseRequestURI("/a%2f")` → `Path="/a/"`, `RawPath="/a%2f"`,
+a pair any client sending the raw request-target `/a%2f` produces), then
+also rediscovered by the fuzzer itself within the seed corpus.
+
+**Root cause:** `middleware/strip_slashes.go`'s `RawPath` branch stripped
+trailing bytes equal to the literal ASCII `'/'` from `r.URL.RawPath`,
+independently of the loop stripping trailing `'/'` characters from
+`r.URL.Path`. A decoded trailing slash can be spelled in the raw
+request-target either literally or percent-encoded (`%2F`/`%2f`, RFC 3986
+§2.1); net/url preserves that literal spelling in `RawPath` whenever it
+differs from the default re-escaping of `Path`. For input `Path="/a/"`,
+`RawPath="/a%2f"`, the `Path` loop stripped the trailing `/` to produce
+`"/a"`, but the `RawPath` loop found no trailing `/` byte (the last byte of
+`"/a%2f"` is `'f'`) and left `RawPath` untouched at `"/a%2f"` — which still
+decodes to `"/a/"`. The two disagree post-strip: a `UseRawPath=true`
+consumer downstream, a reverse proxy re-deriving a target from `RawPath`, or
+a log line, would see a different path than the one `Path`-based routing
+just acted on.
+
+**Fix (`middleware/strip_slashes.go`):** the `Path`-stripping loop now also
+counts `n`, the number of trailing `/` characters it removed. A new
+`stripTrailingPathSeparators(rp string, n int) string` helper then walks
+`RawPath` from the end exactly `n` times, consuming one path-separator
+*token* per iteration — either a literal `'/'` byte or a `"%2F"`/`"%2f"`
+3-byte triplet — instead of a fixed byte-suffix loop. For any Path/RawPath
+pair net/http's URL parser can produce, this keeps the two in sync by
+construction (proof sketch: `u.EscapedPath() == u.RawPath` implies
+`unescape(RawPath) == Path`, so RawPath's trailing separator tokens, when
+decoded, correspond 1:1 in count and position with Path's trailing `/`
+characters).
+
+**Regression test:**
+`middleware/middleware_test.go::TestStripSlashes_EncodedTrailingSlashKeepsRawPathInSync`
+(5 cases: `%2f`, `%2F`, nested segment, double-encoded, mixed
+literal+encoded) — each asserts both the exact expected `(Path, RawPath)`
+and `u.EscapedPath() == RawPath` on the output.
+
+**Verification:** `go test -race ./middleware/... ./...` clean;
+`go vet ./...` clean (both root module and harness module);
+`FuzzStripSlashesIdempotency` 45s / 2.4M execs clean after the fix,
+including replay of the encoded-slash regression seeds now baked into the
+fuzzer's `f.Add()` corpus.
+
+**Cross-reference:** related to but distinct from MM-2026-0025 (FPE-003,
+"strips only one trailing slash") — that bug was about *how many* trailing
+slashes get stripped; this one is about *Path and RawPath disagreeing on
+how many were actually removed*. Recommend `path-routing-fuzzer` check
+whether `middleware/clean_path.go` has an analogous RawPath-stripping
+routine with the same class of bug (a quick read of `clean_path.go` during
+this task did not show a byte-suffix RawPath loop of this shape, but it
+was not in scope to fuzz here).
