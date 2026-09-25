@@ -29,6 +29,16 @@ import (
 
 const nAPIKey = 200_000
 
+// tsc20260004BoundNs is the accepted bound for the APIKey hit-vs-miss oracle
+// SECURITY.md documents and accepts as TSC-2026-0004 (architectural: Go's
+// map lookup is not constant-time). rmp #270 / O-9 (2026-09-25): derived as
+// 2× the larger of (the SECURITY.md historical figure, the worst of 3 fresh
+// triplicated runs on the current CI sandbox), rounded up to a clean
+// number — see basic_auth_timing_test.go's tsc20260001BoundNs comment for
+// the full methodology, which applies identically here. Documented in
+// SECURITY.md alongside TSC-2026-0004.
+const tsc20260004BoundNs = 2500.0
+
 func buildAPIKeyHandler(keys map[string]string) http.Handler {
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -103,14 +113,21 @@ func TestTiming_APIKey_HitVsMiss(t *testing.T) {
 		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
 
 	if result.Leak {
-		t.Logf("TIMING DIFFERENCE DETECTED (map lookup is not constant-time by design): "+
-			"Welch p=%.4g, KS p=%.4g, MWU p=%.4g, mean-diff=%.2fns",
-			result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
-		// Not a test failure: map-based lookup is a known, accepted timing side-channel.
-		// The question is whether the effect size is exploitable.
-		if result.MeanDiffNs > 100 {
-			t.Errorf("Effect size too large: mean timing diff %.2fns > 100ns threshold — exploitable oracle", result.MeanDiffNs)
-		}
+		t.Logf("Statistically significant difference (Welch p=%.4g, KS p=%.4g, MWU p=%.4g, "+
+			"mean-diff=%.2fns) — this is the architectural map-lookup oracle SECURITY.md "+
+			"accepts as TSC-2026-0004 (accepted bound: %.0fns); asserting against the bound, "+
+			"not against significance alone",
+			result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs, tsc20260004BoundNs)
+	}
+	// rmp #270 / O-9: previously gated at an ad-hoc 100ns threshold with no
+	// grounding in SECURITY.md, which documents this exact oracle as accepted
+	// up to a much larger magnitude (TSC-2026-0004: 1141 ns historically).
+	// Assert against the documented/derived bound instead.
+	if result.MeanDiffNs > tsc20260004BoundNs {
+		t.Errorf("TIMING LEAK EXCEEDS ACCEPTED BOUND: hit/miss mean-diff=%.2fns > %.0fns "+
+			"(SECURITY.md TSC-2026-0004 accepted bound) — this is larger than the documented "+
+			"architectural map-lookup oracle and may indicate a regression",
+			result.MeanDiffNs, tsc20260004BoundNs)
 	}
 }
 

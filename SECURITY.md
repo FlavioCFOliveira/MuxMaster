@@ -157,10 +157,23 @@ srv := &http.Server{
 
 ### Route-Existence Timing Oracle (MM-2026-0026)
 
-The timing difference between a 404 response (path not in tree) and a 405
-response (path exists, wrong method) is ~440 ns. This is intrinsic to radix
-tree lookup and is present in httprouter, chi, and bunrouter as well. If this
-is a concern, use a WAF or add uniform response delays via middleware.
+The timing difference between dispatch to a **registered** route (200) and
+dispatch to an **unregistered** path (404) — same depth, no auth middleware
+involved — is **~960 ns** (four independent `-count=1` runs on an AMD Ryzen 9
+5900HX development machine, `TestTiming_Route_RegisteredVsUnregistered`:
+946.64 / 962.39 / 967.31 / 978.34 ns, mean 963.67 ns, spread ±2%; see
+`timing-and-sidechannel-analyst/2026-09-25-TSC-2026-0009-error-oracle.md`
+rmp #270 / O-10). This is intrinsic to radix tree lookup and is present in
+httprouter, chi, and bunrouter as well. If this is a concern, use a WAF or
+add uniform response delays via middleware.
+
+This figure previously read "~440 ns" and mis-described the comparison as
+"404 vs 405" — that language did not match either the underlying harness
+(`route_existence_timing_test.go`, which compares registered/200 vs
+unregistered/404) or the actual 404-vs-405 pair (which is a *different*,
+smaller oracle: see `error_oracle_test.go` / TSC-2026-0009, ~250-270 ns).
+Reconciled 2026-09-25 (rmp #270 / O-10) so this section and TSC-2026-0005
+below cite the same figure for the same pair.
 
 ### Path normalisation accepted behaviour (PRF-2026-0001..0005)
 
@@ -323,27 +336,45 @@ changes (out of MuxMaster's scope) or invasive padding that would degrade
 valid-request latency. Operators concerned about LAN-adjacent statistical
 attacks should rate-limit aggressively and monitor for prefix-scan probes.
 
-- **TSC-2026-0001 (BasicAuth valid vs invalid password, 890 ns).** The
-  `map[string][32]byte` credential lookup uses `runtime.mapaccess2_faststr`
-  which is not constant time. The post-auth code path (`next.ServeHTTP` vs
-  `http.Error+WWW-Authenticate`) also dominates the visible delta.
-  Constant-time comparison of the hashed credentials is already used; the
-  remaining oracle is the map shape.
+- **TSC-2026-0001 (BasicAuth valid vs invalid password, 890 ns; accepted
+  bound: ≤2000 ns).** The `map[string][32]byte` credential lookup uses
+  `runtime.mapaccess2_faststr` which is not constant time. The post-auth
+  code path (`next.ServeHTTP` vs `http.Error+WWW-Authenticate`) also
+  dominates the visible delta. Constant-time comparison of the hashed
+  credentials is already used; the remaining oracle is the map shape. The
+  bound is asserted by `TestTiming_BasicAuth_ValidVsInvalid`
+  (`tsc20260001BoundNs` in `basic_auth_timing_test.go`), derived 2026-09-25
+  (rmp #270 / O-9) as 2× the worst of the documented figure and 6
+  independent `-count=1` runs (worst observed: 1258.16 ns), rounded up.
 
-- **TSC-2026-0002 (BasicAuth user-exists vs not-exists, 61 ns).** Same
-  root cause as TSC-0001 — the hashedCreds map lookup leaks existence.
-  Effect size is sub-microsecond and impractical over WAN.
+- **TSC-2026-0002 (BasicAuth user-exists vs not-exists, 61 ns; accepted
+  bound: ≤700 ns).** Same root cause as TSC-0001 — the hashedCreds map
+  lookup leaks existence. Effect size is sub-microsecond and impractical
+  over WAN. The bound is asserted by `TestTiming_BasicAuth_UserExistsVsNotExists`
+  (`tsc20260002BoundNs`), derived 2026-09-25 (rmp #270 / O-9) from 6
+  independent `-count=1` runs (worst observed: 349.39 ns) × 2, rounded up.
+  An initial derivation from only 3 runs (bound 300 ns) proved too tight —
+  a 4th independent run measured 349.39 ns with no evidence of a
+  code-level regression, so the bound was widened using the full 6-run
+  sample rather than the code being changed.
 
-- **TSC-2026-0004 (APIKey hit vs miss, 1141 ns).** The
-  `map[[32]byte]string` lookup leaks key existence with a similar
+- **TSC-2026-0004 (APIKey hit vs miss, 1141 ns; accepted bound: ≤2500 ns).**
+  The `map[[32]byte]string` lookup leaks key existence with a similar
   magnitude. A constant-time alternative requires iterating every
   registered key with `subtle.ConstantTimeCompare`, which is O(n) per
-  request — only worthwhile for very small key sets.
+  request — only worthwhile for very small key sets. The bound is asserted
+  by `TestTiming_APIKey_HitVsMiss` (`tsc20260004BoundNs` in
+  `api_key_timing_test.go`), derived 2026-09-25 (rmp #270 / O-9) as 2× the
+  worst of the documented figure and 6 independent `-count=1` runs (worst
+  observed: 501.04 ns), rounded up. This replaces an earlier, ungrounded
+  100 ns threshold in the same test that had no relationship to this
+  documented figure.
 
-- **TSC-2026-0005 (Route existence, 923 ns) — MM-2026-0026 magnitude
+- **TSC-2026-0005 (Route existence, ~960 ns) — MM-2026-0026 magnitude
   update.** Registered vs unregistered paths take measurably different
   time inside the radix tree. Already documented as the
-  "Route-Existence Timing Oracle" earlier in this file.
+  "Route-Existence Timing Oracle" earlier in this file; both sections cite
+  the same current figure as of 2026-09-25 (rmp #270 / O-10).
 
 - **TSC-2026-0006 (ECDSA zero-sig vs random-sig, 1234 ns).** Stdlib
   `ecdsa.Verify` returns at slightly different times depending on

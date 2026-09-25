@@ -83,6 +83,8 @@ posture-S9 refers to the batch only in aggregate ("5 + 7 revals").
 | O-6 | FPE-2026-006: ServeFiles has no fuzz or property target | `fuzz_s9_new_surfaces_test.go` |
 | O-7 | MM-2026-0051/0052/0053 acceptance criteria cite `v2_new_findings_test.go::TestSec_*_V2_001`, which does not exist | rmp #4, #5, #6 |
 | O-8 | Overview canonical documents deleted in `5f804fa` | §0 |
+| O-9 | ~~`TestTiming_APIKey_HitVsMiss`/`TestTiming_BasicAuth_ValidVsInvalid`/`TestTiming_BasicAuth_UserExistsVsNotExists` fail on any statistically significant difference, conflicting with SECURITY.md's "Accepted Timing Oracles" doctrine for TSC-2026-0001/0002/0004~~ — **Resolved (rmp #270):** each now asserts against an explicit accepted bound (2000 ns / 700 ns / 2500 ns) derived from measured evidence and documented in SECURITY.md next to each TSC entry. All 3 pass, 3× triplicated + once in the full 19-test suite. No library code changed. | TSC-2026-0009 write-up §"O-9 and O-10 — resolved"; `evidence/2026-09-25/o9_bound_runs_1-3.log`, `full_suite_o270.log` |
+| O-10 | ~~SECURITY.md's "Route-Existence Timing Oracle (MM-2026-0026)" prose ("~440 ns", mislabelled "404 vs 405") does not match the TSC-2026-0005 entry ("923 ns", registered-vs-unregistered) from the same harness~~ — **Resolved (rmp #270):** both sections now cite the same current figure (~960 ns, 4 independent runs) for the same, correctly-described pair (registered/200 vs unregistered/404). | TSC-2026-0009 write-up §"O-9 and O-10 — resolved"; SECURITY.md "Route-Existence Timing Oracle (MM-2026-0026)" and TSC-2026-0005 |
 
 ## 5. Identifier-namespace collisions
 

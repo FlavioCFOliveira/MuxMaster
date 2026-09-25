@@ -1,0 +1,72 @@
+=== RUN 1 ===
+=== RUN   TestTiming_APIKey_HitVsMiss
+    api_key_timing_test.go:109: APIKey hit/miss timing comparison (N=200000 each)
+    api_key_timing_test.go:110:   Hit:  mean=6555.5ns std=9980.5ns p50=5168ns p99=15365ns
+    api_key_timing_test.go:111:   Miss: mean=6819.2ns std=9221.1ns p50=5239ns p99=16134ns
+    api_key_timing_test.go:112:   Welch p=0  KS p=0  MWU p=0  |mean diff|=275.10ns
+    api_key_timing_test.go:116: Statistically significant difference (Welch p=0, KS p=0, MWU p=0, mean-diff=275.10ns) — this is the architectural map-lookup oracle SECURITY.md accepts as TSC-2026-0004 (accepted bound: 2500ns); asserting against the bound, not against significance alone
+--- PASS: TestTiming_APIKey_HitVsMiss (4.43s)
+=== RUN   TestTiming_BasicAuth_ValidVsInvalid
+    basic_auth_timing_test.go:128: BasicAuth valid/invalid timing comparison (N=200000 each)
+    basic_auth_timing_test.go:129:   Valid:   mean=5742.0ns std=9881.4ns p50=4749ns p99=14388ns
+    basic_auth_timing_test.go:130:   Invalid: mean=6458.7ns std=8992.8ns p50=5308ns p99=15435ns
+    basic_auth_timing_test.go:131:   Welch p=0  KS p=0  MWU p=0  |mean diff|=772.63ns
+    basic_auth_timing_test.go:135: Statistically significant difference (Welch p=0, KS p=0, MWU p=0, mean-diff=772.63ns) — this is the architectural map-lookup oracle SECURITY.md accepts as TSC-2026-0001 (accepted bound: 2000ns); asserting against the bound, not against significance alone
+--- PASS: TestTiming_BasicAuth_ValidVsInvalid (4.01s)
+=== RUN   TestTiming_BasicAuth_UserExistsVsNotExists
+    basic_auth_timing_test.go:205: BasicAuth user-exists vs not-exists timing comparison (N=200000 each)
+    basic_auth_timing_test.go:206:   Exists:   mean=6554.7ns std=9706.8ns p50=5587ns p99=16063ns
+    basic_auth_timing_test.go:207:   NotExist: mean=6553.5ns std=10917.4ns p50=5378ns p99=15366ns
+    basic_auth_timing_test.go:208:   Welch p=7.23e-08  KS p=2.008e-34  MWU p=4.328e-05  |mean diff|=39.30ns
+    basic_auth_timing_test.go:212: Statistically significant difference (Welch p=7.23e-08, KS p=2.008e-34, MWU p=4.328e-05, mean-diff=39.30ns) — this is the architectural map-lookup oracle SECURITY.md accepts as TSC-2026-0002 (accepted bound: 700ns); asserting against the bound, not against significance alone
+--- PASS: TestTiming_BasicAuth_UserExistsVsNotExists (4.23s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	13.003s
+=== RUN 2 ===
+=== RUN   TestTiming_APIKey_HitVsMiss
+    api_key_timing_test.go:109: APIKey hit/miss timing comparison (N=200000 each)
+    api_key_timing_test.go:110:   Hit:  mean=6534.2ns std=10818.3ns p50=5099ns p99=15155ns
+    api_key_timing_test.go:111:   Miss: mean=6798.3ns std=10751.6ns p50=5238ns p99=15505ns
+    api_key_timing_test.go:112:   Welch p=0  KS p=0  MWU p=0  |mean diff|=287.52ns
+    api_key_timing_test.go:116: Statistically significant difference (Welch p=0, KS p=0, MWU p=0, mean-diff=287.52ns) — this is the architectural map-lookup oracle SECURITY.md accepts as TSC-2026-0004 (accepted bound: 2500ns); asserting against the bound, not against significance alone
+--- PASS: TestTiming_APIKey_HitVsMiss (4.42s)
+=== RUN   TestTiming_BasicAuth_ValidVsInvalid
+    basic_auth_timing_test.go:128: BasicAuth valid/invalid timing comparison (N=200000 each)
+    basic_auth_timing_test.go:129:   Valid:   mean=5727.9ns std=9914.9ns p50=4750ns p99=13968ns
+    basic_auth_timing_test.go:130:   Invalid: mean=6598.0ns std=10253.9ns p50=5378ns p99=15714ns
+    basic_auth_timing_test.go:131:   Welch p=0  KS p=0  MWU p=0  |mean diff|=870.47ns
+    basic_auth_timing_test.go:135: Statistically significant difference (Welch p=0, KS p=0, MWU p=0, mean-diff=870.47ns) — this is the architectural map-lookup oracle SECURITY.md accepts as TSC-2026-0001 (accepted bound: 2000ns); asserting against the bound, not against significance alone
+--- PASS: TestTiming_BasicAuth_ValidVsInvalid (4.03s)
+=== RUN   TestTiming_BasicAuth_UserExistsVsNotExists
+    basic_auth_timing_test.go:205: BasicAuth user-exists vs not-exists timing comparison (N=200000 each)
+    basic_auth_timing_test.go:206:   Exists:   mean=6489.4ns std=9534.5ns p50=5308ns p99=15086ns
+    basic_auth_timing_test.go:207:   NotExist: mean=6528.9ns std=9758.1ns p50=5378ns p99=15714ns
+    basic_auth_timing_test.go:208:   Welch p=0.9572  KS p=1.826e-09  MWU p=0.1115  |mean diff|=0.39ns
+    basic_auth_timing_test.go:212: Statistically significant difference (Welch p=0.9572, KS p=1.826e-09, MWU p=0.1115, mean-diff=0.39ns) — this is the architectural map-lookup oracle SECURITY.md accepts as TSC-2026-0002 (accepted bound: 700ns); asserting against the bound, not against significance alone
+--- PASS: TestTiming_BasicAuth_UserExistsVsNotExists (4.21s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	13.001s
+=== RUN 3 ===
+=== RUN   TestTiming_APIKey_HitVsMiss
+    api_key_timing_test.go:109: APIKey hit/miss timing comparison (N=200000 each)
+    api_key_timing_test.go:110:   Hit:  mean=6414.9ns std=10320.9ns p50=4888ns p99=14736ns
+    api_key_timing_test.go:111:   Miss: mean=6878.8ns std=8720.8ns p50=5308ns p99=15854ns
+    api_key_timing_test.go:112:   Welch p=0  KS p=0  MWU p=0  |mean diff|=501.04ns
+    api_key_timing_test.go:116: Statistically significant difference (Welch p=0, KS p=0, MWU p=0, mean-diff=501.04ns) — this is the architectural map-lookup oracle SECURITY.md accepts as TSC-2026-0004 (accepted bound: 2500ns); asserting against the bound, not against significance alone
+--- PASS: TestTiming_APIKey_HitVsMiss (4.41s)
+=== RUN   TestTiming_BasicAuth_ValidVsInvalid
+    basic_auth_timing_test.go:128: BasicAuth valid/invalid timing comparison (N=200000 each)
+    basic_auth_timing_test.go:129:   Valid:   mean=4715.3ns std=8670.7ns p50=4260ns p99=12851ns
+    basic_auth_timing_test.go:130:   Invalid: mean=5647.5ns std=10102.9ns p50=4750ns p99=14457ns
+    basic_auth_timing_test.go:131:   Welch p=0  KS p=0  MWU p=0  |mean diff|=912.06ns
+    basic_auth_timing_test.go:135: Statistically significant difference (Welch p=0, KS p=0, MWU p=0, mean-diff=912.06ns) — this is the architectural map-lookup oracle SECURITY.md accepts as TSC-2026-0001 (accepted bound: 2000ns); asserting against the bound, not against significance alone
+--- PASS: TestTiming_BasicAuth_ValidVsInvalid (3.63s)
+=== RUN   TestTiming_BasicAuth_UserExistsVsNotExists
+    basic_auth_timing_test.go:205: BasicAuth user-exists vs not-exists timing comparison (N=200000 each)
+    basic_auth_timing_test.go:206:   Exists:   mean=6745.7ns std=8280.7ns p50=5657ns p99=15645ns
+    basic_auth_timing_test.go:207:   NotExist: mean=6914.3ns std=7471.4ns p50=5727ns p99=16204ns
+    basic_auth_timing_test.go:208:   Welch p=2.142e-155  KS p=1.291e-231  MWU p=0  |mean diff|=198.61ns
+    basic_auth_timing_test.go:212: Statistically significant difference (Welch p=2.142e-155, KS p=1.291e-231, MWU p=0, mean-diff=198.61ns) — this is the architectural map-lookup oracle SECURITY.md accepts as TSC-2026-0002 (accepted bound: 700ns); asserting against the bound, not against significance alone
+--- PASS: TestTiming_BasicAuth_UserExistsVsNotExists (4.35s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	12.724s
