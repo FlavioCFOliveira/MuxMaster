@@ -63,6 +63,13 @@ func TestTiming_BasicAuth_ValidVsInvalid(t *testing.T) {
 		handler.ServeHTTP(w2, basicAuthReq("alice", "wrong-password"))
 	}
 
+	VerifyArmStatus(t, "valid", handler, func() *http.Request {
+		return basicAuthReq("alice", "correct-password-for-timing-test")
+	}, http.StatusOK)
+	VerifyArmStatus(t, "invalid", handler, func() *http.Request {
+		return basicAuthReq("alice", "wrong-password")
+	}, http.StatusUnauthorized)
+
 	validSamples = make([]int64, nBasicAuth)
 	invalidSamples = make([]int64, nBasicAuth)
 
@@ -71,11 +78,17 @@ func TestTiming_BasicAuth_ValidVsInvalid(t *testing.T) {
 		t0 := time.Now()
 		handler.ServeHTTP(w, basicAuthReq("alice", "correct-password-for-timing-test"))
 		validSamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusOK {
+			t.Fatalf("valid arm: sample %d returned status %d, want 200 — invalid evidence", i, w.Code)
+		}
 
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		handler.ServeHTTP(w2, basicAuthReq("alice", "wrong-password"))
 		invalidSamples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("invalid arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(validSamples, invalidSamples)
@@ -119,6 +132,13 @@ func TestTiming_BasicAuth_UserExistsVsNotExists(t *testing.T) {
 		handler.ServeHTTP(w2, basicAuthReq("nonexistent-user", "wrong"))
 	}
 
+	VerifyArmStatus(t, "exists", handler, func() *http.Request {
+		return basicAuthReq("alice", "wrong-0")
+	}, http.StatusUnauthorized)
+	VerifyArmStatus(t, "not-exists", handler, func() *http.Request {
+		return basicAuthReq("nonexistent-user", "wrong-0")
+	}, http.StatusUnauthorized)
+
 	existsSamples = make([]int64, nBasicAuth)
 	missSamples = make([]int64, nBasicAuth)
 
@@ -127,11 +147,17 @@ func TestTiming_BasicAuth_UserExistsVsNotExists(t *testing.T) {
 		t0 := time.Now()
 		handler.ServeHTTP(w, basicAuthReq("alice", fmt.Sprintf("wrong-%d", i)))
 		existsSamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("exists arm: sample %d returned status %d, want 401 — invalid evidence", i, w.Code)
+		}
 
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		handler.ServeHTTP(w2, basicAuthReq("nonexistent-user", fmt.Sprintf("wrong-%d", i)))
 		missSamples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("not-exists arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(existsSamples, missSamples)

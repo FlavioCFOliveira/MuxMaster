@@ -31,13 +31,35 @@ import (
 
 const nError = 150_000
 
+// buildErrorOracleMux registers BasicAuth on a Group, NOT on the root Mux via
+// Use(). This matters for the validity of the error-oracle comparisons below:
+//
+// Mux.Use() wraps every handler registered after the call AND the mux's
+// shared, lazily-built NotFound/MethodNotAllowed handlers (see mux.go Use()
+// doc comment and the lazyNotFoundPtr/methodNotAllowedCache invalidation it
+// performs) — that is documented, intended behaviour for cross-cutting
+// middleware. Group.Use()/Group.Handle(), by contrast, wraps only the
+// specific handler registered through that group (see group.go Handle:
+// "g.mux.Handle(method, g.prefix+path, wrapMiddleware(handler, g.middleware))")
+// and never touches the mux-level NotFound/MethodNotAllowed handlers.
+//
+// The original harness used r.Use(...), which meant every unauthenticated
+// request — including ones that should 404 (no route) or 405 (wrong method)
+// — was intercepted by BasicAuth before the router's own NotFound/
+// MethodNotAllowed logic ever ran, and ALL of them observably returned 401.
+// See TSC-2026-0009 for the measured evidence of that defect (both the
+// "404" and "405" arms returned 401, invalidating the reported timing
+// figure). Using a Group here keeps /exists authenticated while leaving the
+// mux's genuine 404/405 dispatch paths — which is what these tests are
+// actually meant to measure — unauthenticated, exactly as intended.
 func buildErrorOracleMux() *muxmaster.Mux {
 	r := muxmaster.New()
-	r.Use(middleware.BasicAuth("test", map[string]string{"user": "password"}))
-	r.GET("/exists", func(w http.ResponseWriter, req *http.Request) {
+	g := r.Group("")
+	g.Use(middleware.BasicAuth("test", map[string]string{"user": "password"}))
+	g.GET("/exists", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	r.POST("/exists", func(w http.ResponseWriter, req *http.Request) {
+	g.POST("/exists", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 	return r
@@ -86,23 +108,38 @@ func TestTiming_ErrorOracle_404vs405(t *testing.T) {
 		mux.ServeHTTP(w2, req405)
 	}
 
-	// DELETE /nonexistent → 404 (no route, no auth check because BasicAuth wraps handler)
+	// DELETE /nonexistent-path → 404 (no route at all)
 	// DELETE /exists → 405 (route exists for GET/POST, not DELETE)
-	// NOTE: BasicAuth middleware is applied at registration time, wrapping only the route handlers.
-	// For 404/405, the mux returns these before reaching the handler, so BasicAuth does NOT run.
-	// This means 404 and 405 are BOTH unauthenticated code paths — good for comparison.
+	// BasicAuth is registered on a Group (see buildErrorOracleMux), so it wraps
+	// only the /exists GET/POST handlers — NOT the mux's shared NotFound/
+	// MethodNotAllowed handlers. Both 404 and 405 dispatch paths are therefore
+	// genuinely unauthenticated, as the comparison requires.
+	//
+	// Mandatory preflight (rmp #264 / TSC-2026-0009): confirm each arm really
+	// produces its intended status BEFORE collecting any timing sample. A
+	// mismatch here means the harness setup is broken and any timing evidence
+	// would not measure what it claims to.
+	VerifyArmStatus(t, "404", mux, func() *http.Request {
+		return httptest.NewRequest(http.MethodDelete, "/nonexistent-path", nil)
+	}, http.StatusNotFound)
+	VerifyArmStatus(t, "405", mux, func() *http.Request {
+		return httptest.NewRequest(http.MethodDelete, "/exists", nil)
+	}, http.StatusMethodNotAllowed)
+
 	s404, statuses404 := measureError(mux, http.MethodDelete, "/nonexistent-path", "", nError)
 	s405, statuses405 := measureError(mux, http.MethodDelete, "/exists", "", nError)
 
-	// Verify status codes.
-	for i, s := range statuses404[:10] {
-		if s != 404 {
-			t.Logf("iteration %d: expected 404, got %d", i, s)
+	// Full-sample status confirmation — every sample must match, not just a
+	// prefix, since the whole point is to guarantee the statistical evidence
+	// below actually reflects the 404 and 405 dispatch paths.
+	for i, s := range statuses404 {
+		if s != http.StatusNotFound {
+			t.Fatalf("404 arm: sample %d returned status %d, want 404 — invalid evidence", i, s)
 		}
 	}
-	for i, s := range statuses405[:10] {
-		if s != 405 {
-			t.Logf("iteration %d: expected 405, got %d", i, s)
+	for i, s := range statuses405 {
+		if s != http.StatusMethodNotAllowed {
+			t.Fatalf("405 arm: sample %d returned status %d, want 405 — invalid evidence", i, s)
 		}
 	}
 
@@ -146,10 +183,29 @@ func TestTiming_ErrorOracle_404vs401(t *testing.T) {
 		mux.ServeHTTP(w2, req401)
 	}
 
-	// GET /no-such-route → 404, no auth
+	// GET /no-such-route → 404, no auth (mux-level NotFound, unaffected by
+	// the Group-scoped BasicAuth — see buildErrorOracleMux)
 	// GET /exists (no auth header) → 401, auth runs
-	s404, _ := measureError(mux, http.MethodGet, "/no-such-route", "", nError)
-	s401, _ := measureError(mux, http.MethodGet, "/exists", "", nError)
+	VerifyArmStatus(t, "404", mux, func() *http.Request {
+		return httptest.NewRequest(http.MethodGet, "/no-such-route", nil)
+	}, http.StatusNotFound)
+	VerifyArmStatus(t, "401", mux, func() *http.Request {
+		return httptest.NewRequest(http.MethodGet, "/exists", nil)
+	}, http.StatusUnauthorized)
+
+	s404, statuses404 := measureError(mux, http.MethodGet, "/no-such-route", "", nError)
+	s401, statuses401 := measureError(mux, http.MethodGet, "/exists", "", nError)
+
+	for i, s := range statuses404 {
+		if s != http.StatusNotFound {
+			t.Fatalf("404 arm: sample %d returned status %d, want 404 — invalid evidence", i, s)
+		}
+	}
+	for i, s := range statuses401 {
+		if s != http.StatusUnauthorized {
+			t.Fatalf("401 arm: sample %d returned status %d, want 401 — invalid evidence", i, s)
+		}
+	}
 
 	result := RunTests(s404, s401)
 	r4 := Summarise(s404)
@@ -193,9 +249,22 @@ func TestTiming_ErrorOracle_200vs401(t *testing.T) {
 		mux.ServeHTTP(w2, req401)
 	}
 
-	s200, _ := measureError(mux, http.MethodGet, "/exists", authOK, nError)
-	s401bad := make([]int64, nError)
 	badAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte("user:wrongpass"))
+
+	VerifyArmStatus(t, "200", mux, func() *http.Request {
+		req := httptest.NewRequest(http.MethodGet, "/exists", nil)
+		req.Header.Set("Authorization", authOK)
+		return req
+	}, http.StatusOK)
+	VerifyArmStatus(t, "401", mux, func() *http.Request {
+		req := httptest.NewRequest(http.MethodGet, "/exists", nil)
+		req.Header.Set("Authorization", badAuth)
+		return req
+	}, http.StatusUnauthorized)
+
+	s200, statuses200 := measureError(mux, http.MethodGet, "/exists", authOK, nError)
+	s401bad := make([]int64, nError)
+	statuses401bad := make([]int, nError)
 	for i := 0; i < nError; i++ {
 		req := httptest.NewRequest(http.MethodGet, "/exists", nil)
 		req.Header.Set("Authorization", badAuth)
@@ -203,6 +272,18 @@ func TestTiming_ErrorOracle_200vs401(t *testing.T) {
 		t0 := time.Now()
 		mux.ServeHTTP(w, req)
 		s401bad[i] = time.Since(t0).Nanoseconds()
+		statuses401bad[i] = w.Code
+	}
+
+	for i, s := range statuses200 {
+		if s != http.StatusOK {
+			t.Fatalf("200 arm: sample %d returned status %d, want 200 — invalid evidence", i, s)
+		}
+	}
+	for i, s := range statuses401bad {
+		if s != http.StatusUnauthorized {
+			t.Fatalf("401 arm: sample %d returned status %d, want 401 — invalid evidence", i, s)
+		}
 	}
 
 	result := RunTests(s200, s401bad)
@@ -240,6 +321,13 @@ func TestTiming_ErrorOracle_Panic(t *testing.T) {
 	runtime.GC()
 	runtime.GC()
 
+	VerifyArmStatus(t, "clean", r, func() *http.Request {
+		return httptest.NewRequest(http.MethodGet, "/clean", nil)
+	}, http.StatusOK)
+	VerifyArmStatus(t, "panic", r, func() *http.Request {
+		return httptest.NewRequest(http.MethodGet, "/panic", nil)
+	}, http.StatusInternalServerError)
+
 	for i := 0; i < 10_000; i++ {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/clean", nil))
@@ -257,12 +345,18 @@ func TestTiming_ErrorOracle_Panic(t *testing.T) {
 		t0 := time.Now()
 		r.ServeHTTP(w, req)
 		cleanSamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusOK {
+			t.Fatalf("clean arm: sample %d returned status %d, want 200 — invalid evidence", i, w.Code)
+		}
 
 		req2 := httptest.NewRequest(http.MethodGet, "/panic", nil)
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		r.ServeHTTP(w2, req2)
 		panicSamples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusInternalServerError {
+			t.Fatalf("panic arm: sample %d returned status %d, want 500 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(cleanSamples, panicSamples)

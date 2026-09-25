@@ -72,6 +72,23 @@ func measureRoute(handler http.Handler, path string, n int) []int64 {
 	return samples
 }
 
+// measureRouteWithStatus is measureRoute plus a per-sample status capture, so
+// every arm's status can be verified across the full sample set — not just a
+// single preflight request — before the timing evidence is trusted (rmp #264).
+func measureRouteWithStatus(handler http.Handler, path string, n int) ([]int64, []int) {
+	samples := make([]int64, n)
+	statuses := make([]int, n)
+	for i := 0; i < n; i++ {
+		req := routeReq(path)
+		w := httptest.NewRecorder()
+		t0 := time.Now()
+		handler.ServeHTTP(w, req)
+		samples[i] = time.Since(t0).Nanoseconds()
+		statuses[i] = w.Code
+	}
+	return samples, statuses
+}
+
 // TestTiming_Route_RegisteredVsUnregistered measures the timing oracle
 // between a registered route and an unregistered route at the same depth.
 func TestTiming_Route_RegisteredVsUnregistered(t *testing.T) {
@@ -92,8 +109,21 @@ func TestTiming_Route_RegisteredVsUnregistered(t *testing.T) {
 		mux.ServeHTTP(w2, routeReq("/totally-random-zzz"))
 	}
 
-	registered := measureRoute(mux, "/users", nRoute)
-	unregistered := measureRoute(mux, "/totally-random-zzz", nRoute)
+	VerifyArmStatus(t, "registered", mux, func() *http.Request { return routeReq("/users") }, http.StatusOK)
+	VerifyArmStatus(t, "unregistered", mux, func() *http.Request { return routeReq("/totally-random-zzz") }, http.StatusNotFound)
+
+	registered, statusesReg := measureRouteWithStatus(mux, "/users", nRoute)
+	unregistered, statusesUnreg := measureRouteWithStatus(mux, "/totally-random-zzz", nRoute)
+	for i, s := range statusesReg {
+		if s != http.StatusOK {
+			t.Fatalf("registered arm: sample %d returned status %d, want 200 — invalid evidence", i, s)
+		}
+	}
+	for i, s := range statusesUnreg {
+		if s != http.StatusNotFound {
+			t.Fatalf("unregistered arm: sample %d returned status %d, want 404 — invalid evidence", i, s)
+		}
+	}
 
 	result := RunTests(registered, unregistered)
 	rs := Summarise(registered)
@@ -133,8 +163,21 @@ func TestTiming_Route_AdminHiddenVsRandom(t *testing.T) {
 		mux.ServeHTTP(w2, routeReq("/xyzxyz"))
 	}
 
-	adminSamples := measureRoute(mux, "/admin", nRoute)
-	randomSamples := measureRoute(mux, "/xyzxyz", nRoute)
+	VerifyArmStatus(t, "admin", mux, func() *http.Request { return routeReq("/admin") }, http.StatusOK)
+	VerifyArmStatus(t, "random", mux, func() *http.Request { return routeReq("/xyzxyz") }, http.StatusNotFound)
+
+	adminSamples, adminStatuses := measureRouteWithStatus(mux, "/admin", nRoute)
+	randomSamples, randomStatuses := measureRouteWithStatus(mux, "/xyzxyz", nRoute)
+	for i, s := range adminStatuses {
+		if s != http.StatusOK {
+			t.Fatalf("admin arm: sample %d returned status %d, want 200 — invalid evidence", i, s)
+		}
+	}
+	for i, s := range randomStatuses {
+		if s != http.StatusNotFound {
+			t.Fatalf("random arm: sample %d returned status %d, want 404 — invalid evidence", i, s)
+		}
+	}
 
 	result := RunTests(adminSamples, randomSamples)
 	as_ := Summarise(adminSamples)
@@ -181,7 +224,13 @@ func TestTiming_Route_DepthCorrelation(t *testing.T) {
 			w := httptest.NewRecorder()
 			mux.ServeHTTP(w, routeReq(p))
 		}
-		samples := measureRoute(mux, p, nRoute/2)
+		VerifyArmStatus(t, labels[j], mux, func() *http.Request { return routeReq(p) }, http.StatusOK)
+		samples, statuses := measureRouteWithStatus(mux, p, nRoute/2)
+		for i, s := range statuses {
+			if s != http.StatusOK {
+				t.Fatalf("%s arm: sample %d returned status %d, want 200 — invalid evidence", labels[j], i, s)
+			}
+		}
 		results[j] = Summarise(samples)
 	}
 
@@ -217,8 +266,21 @@ func TestTiming_Route_Param_vs_Static(t *testing.T) {
 		mux.ServeHTTP(w2, routeReq("/users/alice"))
 	}
 
-	staticSamples := measureRoute(mux, "/users/list", nRoute)
-	paramSamples := measureRoute(mux, "/users/alice", nRoute)
+	VerifyArmStatus(t, "static", mux, func() *http.Request { return routeReq("/users/list") }, http.StatusOK)
+	VerifyArmStatus(t, "param", mux, func() *http.Request { return routeReq("/users/alice") }, http.StatusOK)
+
+	staticSamples, staticStatuses := measureRouteWithStatus(mux, "/users/list", nRoute)
+	paramSamples, paramStatuses := measureRouteWithStatus(mux, "/users/alice", nRoute)
+	for i, s := range staticStatuses {
+		if s != http.StatusOK {
+			t.Fatalf("static arm: sample %d returned status %d, want 200 — invalid evidence", i, s)
+		}
+	}
+	for i, s := range paramStatuses {
+		if s != http.StatusOK {
+			t.Fatalf("param arm: sample %d returned status %d, want 200 — invalid evidence", i, s)
+		}
+	}
 
 	result := RunTests(staticSamples, paramSamples)
 	ss := Summarise(staticSamples)

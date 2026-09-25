@@ -68,6 +68,9 @@ func TestTiming_APIKey_HitVsMiss(t *testing.T) {
 		handler.ServeHTTP(w2, apiKeyReq("invalid-key"))
 	}
 
+	VerifyArmStatus(t, "hit", handler, func() *http.Request { return apiKeyReq("valid-api-key-for-timing-test") }, http.StatusOK)
+	VerifyArmStatus(t, "miss", handler, func() *http.Request { return apiKeyReq("invalid-key-that-is-not-registered") }, http.StatusUnauthorized)
+
 	hitSamples = make([]int64, nAPIKey)
 	missSamples = make([]int64, nAPIKey)
 
@@ -76,11 +79,17 @@ func TestTiming_APIKey_HitVsMiss(t *testing.T) {
 		t0 := time.Now()
 		handler.ServeHTTP(w, apiKeyReq("valid-api-key-for-timing-test"))
 		hitSamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusOK {
+			t.Fatalf("hit arm: sample %d returned status %d, want 200 — invalid evidence", i, w.Code)
+		}
 
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		handler.ServeHTTP(w2, apiKeyReq("invalid-key-that-is-not-registered"))
 		missSamples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("miss arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(hitSamples, missSamples)
@@ -128,6 +137,9 @@ func TestTiming_APIKey_EmptyVsPresent(t *testing.T) {
 		handler.ServeHTTP(w2, apiKeyReq("invalid"))
 	}
 
+	VerifyArmStatus(t, "empty", handler, func() *http.Request { return apiKeyReq("") }, http.StatusUnauthorized)
+	VerifyArmStatus(t, "present", handler, func() *http.Request { return apiKeyReq("invalid-not-registered") }, http.StatusUnauthorized)
+
 	emptySamples = make([]int64, nAPIKey)
 	presentSamples = make([]int64, nAPIKey)
 
@@ -136,11 +148,17 @@ func TestTiming_APIKey_EmptyVsPresent(t *testing.T) {
 		t0 := time.Now()
 		handler.ServeHTTP(w, apiKeyReq(""))
 		emptySamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("empty arm: sample %d returned status %d, want 401 — invalid evidence", i, w.Code)
+		}
 
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		handler.ServeHTTP(w2, apiKeyReq("invalid-not-registered"))
 		presentSamples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("present arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(emptySamples, presentSamples)
