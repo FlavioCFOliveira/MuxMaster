@@ -60,39 +60,72 @@ A high-performance HTTP router / HTTP muxer for Go, implemented **in pure Go** (
 
 # Working agreement
 
-These rules govern **every** interaction with this project. They take precedence over any default behaviour.
+These rules govern **every** interaction with this project. They take precedence over any default behaviour and over every other section of this file. When another section appears to contradict them, these rules win.
 
 ## 1. Core rules
 
 1. **You are NOT authorised to take decisions on your own.** Whenever the instructions are insufficient, unclear, unspecific or not concrete, or whenever contradictions or ambiguities exist, you **MUST ALWAYS ASK** the user how to proceed.
    - When asking, always offer multiple options (a, b, c, …) and state which one you recommend.
    - When several questions need clarification, ask them **one at a time** (sequentially), never all at once.
-   - **The boundary between acting and asking:** obvious, low-risk corrections (for example, a pre-existing bug with an unambiguous fix) proceed immediately; any decision that changes the scope, the expected behaviour, the architecture or the requirements demands that you ask the user first.
-2. **Documentation in English.** All project documentation (including this `CLAUDE.md`) must be written in the most correct English possible, free of spelling, grammatical or syntactic errors. Use clear, simple, unambiguous technical language, written for human readers.
-3. **Documentation faithful to the code.** Documentation must be accurate and must always reflect the real state of the code.
-4. **Workflow.** Work always follows this order: **Specify → Implement → Test → Document.**
+   - **The boundary between acting and asking:** inside the scope of the requested work, obvious, low-risk corrections (for example, a bug with an unambiguous fix in the code being changed) proceed immediately. Any decision that changes the scope, the expected behaviour, the architecture or the requirements demands that you ask the user first. Anything outside the scope of the requested work follows §4.
+2. **Documentation faithful to the code.** Documentation must be accurate and must always reflect the real state of the code.
+3. **Workflow.** Work always follows this order: **Specify → Implement → Test → Document.**
 
-## 2. Self-contained development policy
+## 2. Completeness and self-contained development
 
-- Every development cycle must be **self-contained**: each cycle produces a complete, usable result. You must **NEVER** deliver only part of a task.
-- When new, unforeseen needs arise during a task, they must be resolved within the same development cycle, as quickly as possible (by creating new tasks and executing them straight afterwards).
+- You are **FORBIDDEN** from executing work only partially. Every piece of work you start must be carried out in full. **NEVER leave a task half-done or partially done.**
+- Every development cycle must be **self-contained**: each cycle produces a complete, usable result.
+- When a new, unforeseen need arises during a task and it is **inside** the task's scope, resolve it within the same development cycle. When it is **outside** the task's scope, follow §4.
 - All code must be **full-fledged** (complete and ready to use). Tests with `skip` must **NOT** be created.
-- Whenever you find a pre-existing bug, fix it on the spot and then resume the work you were doing when you found it.
 
 ## 3. Production-grade by default
 
 **EVERY** action you take — development, fixes, evaluations, analyses, audits, and anything else — must be treated with the rigour expected of **production** work.
 
-## 4. Planning and executing work
+## 4. Scope discipline (no unrequested work)
 
-- For any operation involving Tasks or Sprints you must use the `roadmap-manager` skill.
-- Use the `rmp` tool (the roadmap-management CLI available on the system) to plan and coordinate task execution.
+- Your actions must be **strictly directed at the objective** of the work in progress.
+- You are **FORBIDDEN** from voluntarily starting any work that was not **EXPLICITLY** requested.
+- Whenever you identify a need outside the scope of the work in progress (including a pre-existing bug), report it to the user and ask how to proceed. **NEVER** start that work proactively.
+
+## 5. Synergy and convergence
+
+Motto: **"Make the effort pay off: deliver the most with the least work."** This is the default way of working on this project. The user does not need to ask for it, and it is **never** an `rmp` task.
+
+- **Across tasks.** Whenever tasks (in `rmp`, or requested ad hoc by the user) show verifiable functional or technical proximity, complementary objectives, or converging objectives, **ALWAYS** merge them into a single development effort.
+- **Within the work.** Group operations of the same kind:
+  - write all the code (of every grouped task) in one pass;
+  - test all the changes in one pass, instead of testing small pieces in isolation;
+  - write all the documentation in one pass or, when the scope is too large, in a few well-defined blocks.
+- **Goal.** Reach the objectives with the **fewest possible tasks and iterations**, making the most of the internal resources available, so that deliveries are faster and cheaper for the user.
+- **Quality constraint.** Grouping must make delivery faster **without lowering quality**. The result must be at least as good as executing the tasks one by one. Never group work when that would compromise quality.
+
+## 6. Subagents
+
+- **ALL** work on this project must be delegated to the subagent that is specialised in the objective of that work. **ALWAYS** choose the most appropriate subagent.
+- Run **ONLY ONE** subagent at a time alongside the main Claude Code conversation. **NEVER** run more than one subagent in parallel.
+- Use as many subagents as needed to reach the objective, but **in series**, never in parallel.
+- **Exception:** the user may explicitly authorise more than one subagent in parallel. That authorisation covers only the current task and is **always revoked when the task ends**.
+- Subagents contribute their specialty within the scope of the requested work (§4); a subagent's activation conditions never authorise unrequested work.
+
+## 7. Skills
+
+Use these Claude Code skills for the following needs:
+
+- **`gitflow`** — **every** git write command, following the gitflow branching model adopted for this repository.
+- **`roadmap-manager`** — coordination and management of tasks, sprints and comments, and **every** `rmp` command **except** `rmp graph *`.
+- **`knowledge-authority`** — **exclusive** management of the project knowledge graph, including every `rmp graph *` command.
+
+## 8. Planning and executing work
+
+- Use `rmp` (through the `roadmap-manager` skill) to plan and coordinate task execution.
 - Treat `rmp` as the **single source of truth** for the planning and execution of this project's tasks. No other mechanism may be used for this purpose.
 - Use the **Knowledge Graph** to understand the project, its components and the relationships between them, so that the scope and impact of each task can be identified more easily.
 
-### 4.1. Planning
+### 8.1. Planning
 
 - Analyse the scope of the work proposed by the user and decide whether it warrants being split into several development phases. Each phase must correspond to a solid deliverable.
+- Plan with the **fewest possible tasks** (§5): merge work with verifiable functional or technical proximity instead of splitting it.
 - Every task must have a clear and objective definition of:
   - objectives;
   - functional requirements;
@@ -104,32 +137,32 @@ These rules govern **every** interaction with this project. They take precedence
   2. only then, sprint by sprint, define the tasks of each sprint.
 
   In both steps, use `rmp` as the single source of truth.
-- Use the **Knowledge Graph** to identify the tasks with the greatest gain or impact, the foundational tasks, and the ones that unblock other tasks or features, so that the execution order can be optimised.
+- Use the **Knowledge Graph** to identify the tasks with the greatest gain or impact, the foundational tasks, the ones that unblock other tasks or features, and the tasks that can be grouped into one effort, so that the execution order can be optimised.
 - **Prioritisation:** by default, always work from the highest-gain/highest-impact tasks down to the least essential ones. Foundational tasks and tasks that unblock others are always a priority.
-- When a task is too large to be executed in one go by an AI agent (such as Claude Code), subdivide it into parts, respecting the principles already defined (notably that of the self-contained task).
+- When a task is too large to be executed in one go by an AI agent (such as Claude Code), subdivide it into parts, respecting the principles already defined (notably §2).
 
-### 4.2. Task execution
+### 8.2. Task execution
 
 Execution is the step that follows planning. Always use `rmp` and follow this sequence:
 
 1. Check whether there is an open, unfinished task to carry on with.
-2. Identify the next task.
-3. Understand the objective of the task about to start, based on its description and its functional and technical requirements.
-4. Determine the most appropriate subagent and delegate execution to it.
-5. Always validate the acceptance criteria before closing the task.
-6. Close the task with a short summary of what was done.
-7. After closing the task, and before moving on to the next one, make a `git commit` following best practice, explaining what was done.
-8. Update the Knowledge Graph.
+2. Identify the next task, and every other task that can be grouped with it into a single effort (§5).
+3. Understand the objective of each task about to start, based on its description and its functional and technical requirements.
+4. Determine the most appropriate subagent and delegate execution to it (§6).
+5. Always validate the acceptance criteria of every task before closing it.
+6. Close each task with a short summary of what was done.
+7. After closing the task (or the group of tasks executed as one effort), and before moving on, make a `git commit` through the `gitflow` skill, following best practice and explaining what was done and which tasks it closes.
+8. Update the Knowledge Graph through the `knowledge-authority` skill.
 
 Execution notes:
 
 - Whenever possible, adapt the model and its effort level to the requirements of each individual operation within the task.
-- Task and sprint execution is **sequential**.
-- Evaluations and audits may run in parallel, but such parallel execution must **ALWAYS be authorised by the user**.
+- Task and sprint execution is **sequential**. Grouping tasks into one effort (§5) is allowed and expected; running separate efforts in parallel is not.
+- Evaluations and audits follow §6: one subagent at a time, unless the user explicitly authorises parallel execution for the current task.
 
-## 5. Knowledge Graph
+## 9. Knowledge Graph
 
-The KG (Knowledge Graph) must be managed with the help of the `knowledge-authority` skill.
+The KG (Knowledge Graph) is managed **exclusively** through the `knowledge-authority` skill.
 
 - Use the "Graph" features of `rmp` (Groadmap) to create, maintain (update) and query a knowledge graph of the project.
 - This graph **MUST CONTAIN EVERYTHING** worth knowing about the project. Examples:
@@ -142,27 +175,36 @@ The KG (Knowledge Graph) must be managed with the help of the `knowledge-authori
 - **This graph is the absolute truth about the project.** Keep it as up to date as possible, so that, before having to read files, you can query the graph and obtain what you need.
 - Create the nodes and edges that make the most sense for the project. Use the graph together with the tasks and sprints to coordinate the work.
 
-## 6. Never guess
+## 10. Never guess
 
 - Every interaction on this project must be based **EXCLUSIVELY** on verified knowledge. Never try to guess the intended answer.
 - When the available information is not sufficient, look for answers in official or authoritative sources: specifications, RFCs, papers, books, or reference authors in the field.
 - Use the **Knowledge Graph** as the primary source of information — both to query and to record the relationships you discover.
 
-## 7. Measure to decide
+## 11. Measure to decide
 
 Whenever you need to assess performance, completeness (whether something is complete) or correctness (whether something is right), **ALWAYS** gather evidence from the project to determine the needs. **ALWAYS** decide empirically.
 
-## 8. Regression prevention
+## 12. Regression prevention
 
-Whenever you identify a bug, create the regression tests needed to guarantee that the same bug cannot reappear as a consequence of future development.
+Whenever you fix a bug, create the regression tests needed to guarantee that the same bug cannot reappear as a consequence of future development.
 
-## 9. Your team (subagents)
+## 13. Language
 
-- You have at your disposal a team made up of every available subagent (global, user-level or project-level).
-- Use them collaboratively and complementarily, so that each task is completed with the greatest possible confidence, effectiveness and assertiveness.
-- Each subagent must contribute proactively with its own specialty.
+### 13.1. Style
 
-## 10. Decision framework
+Write, and interpret, language that is always:
+
+- **Explicit** — it is clear what is intended.
+- **Objective** — it is always known what must be executed.
+- **Closed** — it defines the scope of the work to be done.
+- **Concise** — it uses few words to describe what is intended.
+
+### 13.2. Documentation language
+
+**All documentation** — from the main `README.md` to the specification, including code documentation and this `CLAUDE.md` — must be written in flawless English, in a professional tone, free of spelling, grammatical or syntactic errors, and must follow §13.1.
+
+## 14. Decision framework
 
 To decide what is expected as the outcome of the project — whether in evaluations and audits or during code implementation — follow this order of priority: **correct → secure → fast.**
 
@@ -338,7 +380,7 @@ The most well-known and widely adopted Go HTTP routers, in order of relevance as
 
 ## Available subagents
 
-Specialised agents are configured under `.claude/agents/`. Use them proactively — do not wait for the user to ask for them explicitly. Delegating the execution of a task to the most appropriate subagent is a mandatory step of the execution sequence (see "Working agreement" §4.2).
+Specialised agents are configured under `.claude/agents/`. Use them without waiting for the user to name them: delegating the execution of the requested work to the most appropriate subagent is mandatory (see "Working agreement" §6 and §8.2). The activation conditions below select **which** subagent handles work that is in scope; they never authorise starting unrequested work (§4). Subagents run one at a time, in series (§6).
 
 ### Performance agents
 
@@ -416,7 +458,7 @@ STRIDE, attack trees, cross-ecosystem transposition (nginx / Rails / Express / S
 
 **Security flow (sprint):**
 1. `threat-modeler` → writes `/reports/overview/<date>-sprint.md`
-2. The 8 specialists run (in parallel only with prior user authorisation) and write to `/reports/<agent>/`
+2. The 8 specialists run one at a time, in series (in parallel only with explicit user authorisation for the current task — §6), and write to `/reports/<agent>/`
 3. `threat-modeler` consolidates into `/reports/overview/<date>-posture.md` + updates `findings.md`, `threat-model.md`, `hypotheses.md`
 
 **Escalation paths (security):**
@@ -426,7 +468,7 @@ STRIDE, attack trees, cross-ecosystem transposition (nginx / Rails / Express / S
 - Routing bypass → `path-routing-fuzzer`
 - Combination of findings → `threat-modeler-and-zero-day-researcher`
 
-**Parallel execution:** evaluations and audits may run in parallel when the tasks are independent, but **parallel execution must always be authorised by the user first** (see "Working agreement" §4.2). Task and sprint execution is always sequential. The `threat-modeler` runs before (planning) and after (consolidation) any batch of specialist runs.
+**Parallel execution:** only one subagent runs at a time. Evaluations and audits may run in parallel only when the user explicitly authorises it; that authorisation covers only the current task and is revoked when the task ends (see "Working agreement" §6). Task and sprint execution is always sequential. The `threat-modeler` runs before (planning) and after (consolidation) any batch of specialist runs.
 
 ---
 
@@ -513,7 +555,7 @@ Interpretation notes (both platforms):
 
 ## Development principles — Maximum performance
 
-> Performance work is subordinate to the decision framework in "Working agreement" §10: **correct → secure → fast**. Never trade correctness or security for speed; when they conflict, ask the user.
+> Performance work is subordinate to the decision framework in "Working agreement" §14: **correct → secure → fast**. Never trade correctness or security for speed; when they conflict, ask the user.
 
 ### Mandatory multi-disciplinary approach
 Before implementing any solution, you must consider **every possible approach** — alternative data structures, algorithms from other languages (C, C++, Rust, Zig, Java, etc.), operating-system techniques, and hardware patterns — and implement the most efficient one in idiomatic Go. Do not limit yourself to what is common in Go; draw inspiration from the best of every language and translate it to Go.
@@ -525,4 +567,4 @@ Before implementing any solution, you must consider **every possible approach** 
 4. **Idiomatic Go** — every implementation must respect Go principles: simplicity, readability, correct use of goroutines/channels/sync, and 100% compatibility with `net/http`
 
 ### Active use of specialised subagents
-The subagents are not optional — they are part of the process. Activate them proactively (without waiting for the user to ask) whenever the conditions described in the "Available subagents" section are met. The goal is maximum performance, and the specialised agents are the mechanism for achieving it with rigour and evidence.
+The subagents are not optional — they are part of the process. Within the scope of the requested work (§4), delegate to them without waiting for the user to ask whenever the conditions described in the "Available subagents" section are met, one at a time (§6). The goal is maximum performance, and the specialised agents are the mechanism for achieving it with rigour and evidence.
