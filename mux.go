@@ -1431,6 +1431,19 @@ func percentEncodeControlBytes(s string) string {
 	return string(b)
 }
 
+// percentEncodeBackslash replaces every '\' (0x5C) byte in s with its
+// percent-encoded form "%5C". See writeRedirect's doc comment for why: a
+// literal backslash reaching the Location header lets a WHATWG-compliant
+// browser resolve the redirect to a different origin (the "special
+// authority slashes state") even though RFC 3986 / net/url see no host
+// component at all. strings.ReplaceAll already returns s unchanged, with no
+// allocation, when s contains no '\' (Count == 0 short-circuits Replace), so
+// output stays byte-identical to net/http.Redirect for every target that
+// never contains a backslash — the overwhelming majority.
+func percentEncodeBackslash(s string) string {
+	return strings.ReplaceAll(s, "\\", "%5C")
+}
+
 // hexEscapeNonASCII mirrors net/http's private helper of the same name, used
 // by net/http.Redirect to escape the Location header value. Duplicated here
 // because that symbol is unexported.
@@ -1482,11 +1495,47 @@ func hexEscapeNonASCII(s string) string {
 //
 // The one thing this function does not re-derive is net/http.Redirect's
 // scheme/host detection: it requires target to start with exactly one '/'
-// (never "//", which url.Parse would read as a network-path reference with
-// a non-empty Host — the classic protocol-relative open-redirect shape).
-// Every caller in this package satisfies that. The guard below falls back
-// to net/http.Redirect itself for anything that doesn't, so the output
-// stays byte-identical regardless.
+// — never "//", which url.Parse would read as a network-path reference with
+// a non-empty Host (the classic protocol-relative open-redirect shape).
+// Every caller in this package satisfies that (Handle() panics on any
+// pattern that does not start with a single '/'). The guard below falls
+// back to net/http.Redirect itself for anything that doesn't, so the "//"
+// output stays byte-identical to net/http.Redirect regardless — "//" is
+// deliberately left unneutralised, matching net/http.Redirect exactly,
+// because HPS-2026-0005 already guarantees no attacker-controlled
+// scheme/host ever reaches this function via that shape, and
+// redirect_bytediff_test.go pins exact parity with net/http.Redirect for
+// it.
+//
+// rmp #279 / rmp #274 part 5a — DELIBERATE DIVERGENCE from net/http.Redirect
+// for any target containing '\' (0x5C): every '\' is percent-encoded to
+// "%5C" (percentEncodeBackslash, below) before anything else runs. RFC 3986
+// gives '\' no meaning (url.Parse reports no Host for a target starting
+// "/\", unlike "//"), but the WHATWG URL Standard's "special authority
+// slashes state" treats ANY two-byte combination of '/' and '\' at the
+// start of a relative reference — "//", "/\", "\/", "\\" — as
+// authority-establishing: a browser resolves a Location of "/\evil.com" to
+// a DIFFERENT origin. net/http.Redirect does not defend against this (its
+// own path.Clean is a no-op on backslash — confirmed empirically), so
+// reproducing its behaviour byte-for-byte here would reproduce the flaw.
+// Encoding is applied to every backslash in target, not only a leading "/\"
+// pair: this is simpler than special-casing position 1, stays byte-identical
+// to net/http.Redirect for every backslash-free target (the overwhelming
+// majority — percentEncodeBackslash is then a true no-op), and additionally
+// neutralises components (some reverse proxies, WAFs, and legacy browsers)
+// that fold ANY backslash in a path to a forward slash, not only a leading
+// pair. A target with '\' can only ever reach writeRedirect if the operator
+// registers that literal backslash-shaped route themselves — path.Clean
+// never introduces a backslash that was not already present verbatim in a
+// registered pattern or the decoded request path — so an anonymous attacker
+// can never choose which backslash-shaped target appears (rmp #274 part 5a's
+// "not attacker reachable" invariant); this is defense-in-depth against that
+// operator-registered shape reaching a real browser unneutralised, not a fix
+// for an attacker-reachable bug. The percent-encoded '\' round-trips
+// correctly: net/http's own request-target decoding turns "%5C" back into a
+// literal '\' byte in the follow-up request's r.URL.Path, so the operator's
+// registered route is still reached, on the same origin (verified
+// end-to-end in TestWriteRedirect_BackslashAuthorityShape_NeutralisesEndToEnd).
 //
 // rmp #260: net/http.Redirect's own hexEscapeNonASCII only escapes bytes
 // >= 0x80 — a percent-decoded ASCII control byte (e.g. a %00 in
@@ -1497,6 +1546,8 @@ func hexEscapeNonASCII(s string) string {
 // input unchanged) for any target without one, so output stays
 // byte-identical to net/http.Redirect for every control-free target.
 func writeRedirect(w http.ResponseWriter, r *http.Request, target string, code int) {
+	target = percentEncodeBackslash(target)
+
 	if len(target) == 0 || target[0] != '/' || (len(target) > 1 && target[1] == '/') {
 		http.Redirect(w, r, percentEncodeControlBytes(target), code) // #nosec G710 — see callers' HPS-2026-0005 guarantees
 		return

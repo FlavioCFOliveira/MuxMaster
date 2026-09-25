@@ -602,22 +602,37 @@ func TestHPS_FixedPath_LiteralLocation_RawTCP(t *testing.T) {
 
 // TestHPS_FixedPath_BackslashAuthority_NotAttackerReachable documents, with
 // a deliberately contrived route registration, why the backslash-authority
-// trick (looksAuthorityEstablishing) cannot be triggered by an anonymous
-// attacker through RedirectFixedPath or RedirectTrailingSlash even though
-// writeRedirect's own "//"-only guard (mux.go, ~line 1500) would not by
-// itself reject a target starting with "/\": path.Clean never introduces a
-// backslash, and cleanedPath/TSR both require an EXISTING registered
-// handler at the resulting path. The only way to make FixedPath emit a
-// Location starting with "/\" is for the operator to register that exact
-// literal route themselves — at which point the "attacker" is choosing
-// among the operator's own routes, not an arbitrary external host.
+// trick (looksAuthorityEstablishing) could never be triggered by an
+// anonymous attacker through RedirectFixedPath or RedirectTrailingSlash:
+// path.Clean never introduces a backslash, and cleanedPath/TSR both require
+// an EXISTING registered handler at the resulting path. The only way to
+// make FixedPath emit a Location shaped like "/\..." is for the operator to
+// register that exact literal route themselves — at which point the
+// "attacker" is choosing among the operator's own routes, not an arbitrary
+// external host.
 //
-// This is filed as a hardening recommendation (writeRedirect's guard could
-// additionally reject target[1] == '\\', matching its own "//" check, as
-// pure defense-in-depth against a future caller that is less careful about
-// only ever passing already-registered-route-derived targets), NOT as an
-// exploitable open redirect: HOLD, no code changes made (audit-only
-// mandate).
+// UPDATE (rmp #279, sprint 20): the hardening recommendation this test
+// originally filed as a HOLD ("writeRedirect's guard could additionally
+// reject target[1] == '\\'... pure defense-in-depth... NOT as an
+// exploitable open redirect") has since been implemented, and implemented
+// more strongly than the original recommendation: writeRedirect now
+// percent-encodes every '\' in target to "%5C" (percentEncodeBackslash,
+// mux.go) before any other processing, rather than merely routing the
+// backslash-prefixed shape through the same fallback branch as "//" (an
+// earlier iteration of this change did only that — routing alone — and was
+// found insufficient: net/http.Redirect itself does not neutralise "/\"
+// either, so routing to it left the byte value, and therefore the browser
+// hazard, unchanged). The Location this test observes is consequently no
+// longer authority-establishing: this test now asserts the neutralised
+// value and that looksAuthorityEstablishing is FALSE for it, in addition to
+// the original "not attacker reachable" invariant (which remains true and
+// valuable independently of the neutralisation — the mitigation is
+// defense-in-depth on top of a shape that was never attacker-reachable, not
+// a fix for one that was). See also
+// TestWriteRedirect_BackslashAuthorityShape_Neutralised and
+// TestWriteRedirect_BackslashAuthorityShape_NeutralisesEndToEnd in the root
+// package's redirect_bytediff_test.go, which exercise the same mechanism as
+// first-class regression tests.
 func TestHPS_FixedPath_BackslashAuthority_NotAttackerReachable(t *testing.T) {
 	m := muxmaster.New()
 	m.RedirectFixedPath = true
@@ -627,23 +642,28 @@ func TestHPS_FixedPath_BackslashAuthority_NotAttackerReachable(t *testing.T) {
 	m.GET("/\\evil.com/foo", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })
 
 	// path.Clean("//\\evil.com/foo") == "/\\evil.com/foo" — the double
-	// leading slash is collapsed, backslash is untouched.
+	// leading slash is collapsed, backslash is untouched by Clean itself;
+	// writeRedirect's own percentEncodeBackslash step is what neutralises
+	// the backslash afterwards.
 	req := httptest.NewRequest(http.MethodGet, "http://example.test//\\evil.com/foo", nil)
 	rec := httptest.NewRecorder()
 	m.ServeHTTP(rec, req)
 	loc := rec.Header().Get("Location")
 	t.Logf("payload=%q status=%d Location=%q", "//\\evil.com/foo", rec.Code, loc)
 
-	if loc != "/\\evil.com/foo" {
-		t.Fatalf("expected Location=%q (operator-registered route), got %q", "/\\evil.com/foo", loc)
+	const wantLoc = "/%5Cevil.com/foo"
+	if loc != wantLoc {
+		t.Fatalf("expected Location=%q (operator-registered route, backslash neutralised per rmp #279), got %q", wantLoc, loc)
 	}
-	if !looksAuthorityEstablishing(loc) {
-		t.Fatalf("expected looksAuthorityEstablishing(%q) == true — this test exists to document that shape", loc)
+	if looksAuthorityEstablishing(loc) {
+		t.Fatalf("expected looksAuthorityEstablishing(%q) == false — rmp #279 neutralised this shape", loc)
 	}
 	// Confirm the mechanism requires operator registration: the identical
 	// payload against a mux that never registered that literal route
 	// produces no such Location for any host an anonymous attacker could
 	// choose (cleanedPath finds no match, cleanedPath returns ok=false).
+	// This invariant is unaffected by the rmp #279 neutralisation — it was
+	// true before and remains true after.
 	m2 := muxmaster.New()
 	m2.RedirectFixedPath = true
 	m2.GET("/legit", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })
