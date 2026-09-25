@@ -585,25 +585,6 @@ func TestHPS0009_HostInjectionInRedirect(t *testing.T) {
 // 3. Malformed request lines are rejected
 
 func TestHPS0010_RequestSmuggling_NetHTTPDefence(t *testing.T) {
-	m := muxmaster.New()
-	// Use atomic to avoid data race between the HTTP server goroutine and
-	// the test goroutine reading the flag.
-	var smuggledHit atomic.Bool
-	m.GET("/SMUGGLED", func(w http.ResponseWriter, r *http.Request) {
-		smuggledHit.Store(true)
-		w.WriteHeader(200)
-		w.Write([]byte("smuggled-reached"))
-	})
-	m.GET("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
-		w.Write([]byte("root"))
-	})
-
-	srv := httptest.NewServer(m)
-	defer srv.Close()
-
-	addr := srv.Listener.Addr().String()
-
 	smugglePayloads := []struct {
 		name               string
 		payload            string
@@ -652,7 +633,45 @@ func TestHPS0010_RequestSmuggling_NetHTTPDefence(t *testing.T) {
 
 	for _, tc := range smugglePayloads {
 		t.Run(tc.name, func(t *testing.T) {
-			smuggledHit.Store(false)
+			// Each subtest gets its own Mux/server/flag. This is deliberate:
+			// a payload that reaches /SMUGGLED does so via HTTP/1.1 pipelining
+			// on the SAME TCP connection — the client (rawHTTP) may close its
+			// side and return before the server-side connection goroutine has
+			// finished parsing and dispatching the pipelined second request,
+			// because net/http continues serving already-buffered bytes off
+			// a conn even after the peer has gone away. With a server/flag
+			// SHARED across subtests (as this test used to be written), that
+			// leftover goroutine could call smuggledHit.Store(true) after the
+			// next subtest's own smuggledHit.Store(false) reset — a false
+			// positive "smuggling detected" report caused purely by scheduler
+			// delay under heavy concurrent load (observed once in a full
+			// `go test -race -count=3 ./...` run; never reproduced in
+			// isolation — see reports/http-protocol-security-auditor/
+			// 2026-09-25-1900-hps0010-flake-fix.md).
+			//
+			// httptest.Server.Close() blocks until all outstanding requests
+			// on that server — including any in-flight pipelined one — have
+			// completed. Giving each subtest its own server and deferring
+			// Close() inside this closure means that guarantee is enforced
+			// BEFORE this t.Run call returns control to the next iteration,
+			// which makes cross-subtest contamination structurally
+			// impossible instead of merely unlikely.
+			m := muxmaster.New()
+			var smuggledHit atomic.Bool
+			m.GET("/SMUGGLED", func(w http.ResponseWriter, r *http.Request) {
+				smuggledHit.Store(true)
+				w.WriteHeader(200)
+				w.Write([]byte("smuggled-reached"))
+			})
+			m.GET("/", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(200)
+				w.Write([]byte("root"))
+			})
+
+			srv := httptest.NewServer(m)
+			defer srv.Close()
+			addr := srv.Listener.Addr().String()
+
 			resp := rawHTTP(t, addr, tc.payload)
 			t.Logf("Response: %s", resp[:min(len(resp), 200)])
 
