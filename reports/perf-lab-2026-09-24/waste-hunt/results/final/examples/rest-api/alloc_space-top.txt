@@ -1,0 +1,49 @@
+File: rest-api
+Build ID: 1b584dc5870f6aeeead88a7efb8f16a72979bb3e
+Type: alloc_space
+Time: 2026-09-25 12:38:01 WEST
+Duration: 10.01s, Total samples = 2482.80MB 
+Showing nodes accounting for 2355.01MB, 94.85% of 2482.80MB total
+Dropped 173 nodes (cum <= 12.41MB)
+Showing top 40 nodes out of 99
+      flat  flat%   sum%        cum   cum%
+  349.11MB 14.06% 14.06%   349.11MB 14.06%  net/http.(*Request).WithContext
+  258.56MB 10.41% 24.48%   259.06MB 10.43%  net/textproto.readMIMEHeader
+  225.07MB  9.06% 33.54%   225.07MB  9.06%  net/http.Header.Clone (inline)
+  183.65MB  7.40% 40.94%   183.65MB  7.40%  github.com/FlavioCFOliveira/MuxMaster/middleware.Compress.func2
+  171.55MB  6.91% 47.85%  1533.74MB 61.77%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  144.54MB  5.82% 53.67%   496.13MB 19.98%  net/http.readRequestLimit
+  113.02MB  4.55% 58.22%   692.23MB 27.88%  net/http.(*conn).readRequest
+  110.86MB  4.47% 62.69%   110.86MB  4.47%  bufio.NewWriterSize (inline)
+   98.22MB  3.96% 66.64%    98.22MB  3.96%  sync.(*Pool).pinSlow
+   76.01MB  3.06% 69.70%   110.52MB  4.45%  context.(*cancelCtx).propagateCancel
+   75.53MB  3.04% 72.75%   838.49MB 33.77%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   74.01MB  2.98% 75.73%    74.01MB  2.98%  net/url.parse
+   72.33MB  2.91% 78.64%    72.33MB  2.91%  encoding/json/v2.makeStringArshaler.func2
+      47MB  1.89% 80.53%   182.52MB  7.35%  context.WithDeadlineCause
+   39.50MB  1.59% 82.12%    39.50MB  1.59%  net.(*conn).Read
+   37.50MB  1.51% 83.63%    37.50MB  1.51%  context.withCancel (inline)
+   34.50MB  1.39% 85.02%    34.50MB  1.39%  context.(*cancelCtx).Done
+      29MB  1.17% 86.19%       29MB  1.17%  bytes.Clone (inline)
+   25.01MB  1.01% 87.20%    25.01MB  1.01%  net/textproto.MIMEHeader.Set (inline)
+      25MB  1.01% 88.21%       25MB  1.01%  time.newTimer
+   23.50MB  0.95% 89.15%    23.50MB  0.95%  sync.(*poolChain).pushHead
+      17MB  0.68% 89.84%       17MB  0.68%  reflect.unsafe_New
+   16.01MB  0.64% 90.48%    16.01MB  0.64%  net/textproto.MIMEHeader.Add (inline)
+   15.50MB  0.62% 91.11%    15.50MB  0.62%  context.WithValue
+      14MB  0.56% 91.67%       14MB  0.56%  net/textproto.(*Reader).ReadLine (inline)
+      10MB   0.4% 92.07%    71.08MB  2.86%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams2
+    9.50MB  0.38% 92.46%    26.01MB  1.05%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).mountAt.func1
+       9MB  0.36% 92.82%    45.02MB  1.81%  main.fastEcho
+    8.50MB  0.34% 93.16%    16.51MB  0.66%  main.adminDashboard
+       8MB  0.32% 93.48%    45.50MB  1.83%  context.WithCancel
+    7.50MB   0.3% 93.79%  1709.82MB 68.87%  github.com/FlavioCFOliveira/MuxMaster/middleware.CleanPath.func1.1
+    6.50MB  0.26% 94.05%    17.51MB  0.71%  main.(*Store).getBookDetails
+       5MB   0.2% 94.25%    73.04MB  2.94%  github.com/FlavioCFOliveira/MuxMaster.JSON
+    4.50MB  0.18% 94.43%    38.02MB  1.53%  github.com/FlavioCFOliveira/MuxMaster/middleware.NoCache.func1.1
+    3.50MB  0.14% 94.57%    78.29MB  3.15%  encoding/xml.NewEncoder (inline)
+       3MB  0.12% 94.69%    19.51MB  0.79%  net/http.Redirect
+       1MB  0.04% 94.73%    12.52MB   0.5%  encoding/json/jsontext.getBufferedEncoder
+       1MB  0.04% 94.77%    15.03MB  0.61%  encoding/json/v2.getStrings
+       1MB  0.04% 94.81%    86.79MB  3.50%  github.com/FlavioCFOliveira/MuxMaster/middleware.CORS.func1.1
+       1MB  0.04% 94.85%   104.36MB  4.20%  main.(*Store).patchBook

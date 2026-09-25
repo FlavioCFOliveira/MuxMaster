@@ -1,0 +1,71 @@
+File: static-site
+Build ID: 73ea6150d83e07f769e1bb2dbda235b9de7cbb57
+Type: cpu
+Time: 2026-09-24 19:54:27 WEST
+Duration: 10s, Total samples = 66.77s (667.66%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 11.35s, 17.00% of 66.77s total
+Dropped 388 nodes (cum <= 0.33s)
+Showing top 60 nodes out of 231
+      flat  flat%   sum%        cum   cum%
+     3.90s  5.84%  5.84%      3.90s  5.84%  internal/runtime/syscall/linux.Syscall6
+     2.33s  3.49%  9.33%      2.33s  3.49%  time.runtimeNow
+     0.69s  1.03% 10.36%      0.69s  1.03%  runtime.nanotime (inline)
+     0.29s  0.43% 10.80%      0.29s  0.43%  net/textproto.validHeaderFieldByte (inline)
+     0.18s  0.27% 11.07%      0.37s  0.55%  internal/runtime/maps.(*Iter).Next
+     0.18s  0.27% 11.34%      0.18s  0.27%  runtime.memclrNoHeapPointers
+     0.17s  0.25% 11.59%      0.23s  0.34%  runtime.exitsyscall
+     0.16s  0.24% 11.83%     16.46s 24.65%  net/http.HandlerFunc.ServeHTTP
+     0.16s  0.24% 12.07%      0.26s  0.39%  runtime.tryDeferToSpanScan
+     0.14s  0.21% 12.28%      0.14s  0.21%  internal/runtime/maps.memHashAES
+     0.14s  0.21% 12.49%      0.31s  0.46%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.14s  0.21% 12.70%      0.14s  0.21%  runtime.memmove
+     0.13s  0.19% 12.90%      2.01s  3.01%  runtime.mallocgc
+     0.12s  0.18% 13.07%      0.41s  0.61%  net/textproto.CanonicalMIMEHeaderKey
+     0.10s  0.15% 13.22%      0.36s  0.54%  runtime.mallocgcSmallScanSlowPath
+     0.09s  0.13% 13.36%      0.14s  0.21%  github.com/FlavioCFOliveira/MuxMaster.(*node).getValue
+     0.09s  0.13% 13.49%      0.09s  0.13%  runtime.nextFreeFast (inline)
+     0.09s  0.13% 13.63%      2.83s  4.24%  syscall.Syscall
+     0.09s  0.13% 13.76%      0.23s  0.34%  time.Time.appendFormat
+     0.09s  0.13% 13.90%      0.09s  0.13%  time.nextStdChunk
+     0.08s  0.12% 14.02%     16.15s 24.19%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.08s  0.12% 14.14%      0.17s  0.25%  runtime.bulkBarrierPreWrite
+     0.08s  0.12% 14.26%      0.22s  0.33%  runtime.mapaccess2_faststr
+     0.08s  0.12% 14.38%      0.88s  1.32%  runtime.mapassign_faststr
+     0.07s   0.1% 14.48%      1.23s  1.84%  net/http.Header.Clone (inline)
+     0.07s   0.1% 14.59%      0.09s  0.13%  runtime.spanOf (inline)
+     0.06s  0.09% 14.68%     16.52s 24.74%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.06s  0.09% 14.77%      0.10s  0.15%  internal/runtime/maps.(*Map).putSlotSmallFastStr
+     0.06s  0.09% 14.86%      0.20s   0.3%  runtime.mallocgcTinySC2
+     0.06s  0.09% 14.95%      0.16s  0.24%  runtime.reentersyscall
+     0.06s  0.09% 15.04%      0.33s  0.49%  runtime.wbBufFlush1
+     0.05s 0.075% 15.11%      0.58s  0.87%  encoding/json/v2.makeMapArshaler.func2
+     0.05s 0.075% 15.19%      0.31s  0.46%  gcWriteBarrier
+     0.05s 0.075% 15.26%     16.44s 24.62%  github.com/FlavioCFOliveira/MuxMaster/middleware.CleanPath.func1.1
+     0.05s 0.075% 15.34%     14.65s 21.94%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.05s 0.075% 15.41%      0.10s  0.15%  internal/filepathlite.Clean
+     0.05s 0.075% 15.49%      0.13s  0.19%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.05s 0.075% 15.56%      2.62s  3.92%  net/http.serveContent
+     0.05s 0.075% 15.64%      0.36s  0.54%  net/textproto.MIMEHeader.Get
+     0.05s 0.075% 15.71%      0.10s  0.15%  runtime.(*unwinder).resolveInternal
+     0.05s 0.075% 15.79%      0.30s  0.45%  runtime.SetFinalizer
+     0.05s 0.075% 15.86%      0.12s  0.18%  runtime.lock2
+     0.05s 0.075% 15.94%      0.09s  0.13%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.05s 0.075% 16.01%      0.09s  0.13%  runtime.mallocgcTinySlowPath
+     0.05s 0.075% 16.09%      0.16s  0.24%  runtime.slicebytetostring
+     0.05s 0.075% 16.16%      3.81s  5.71%  syscall.RawSyscall6
+     0.05s 0.075% 16.23%      0.09s  0.13%  time.Time.locabs
+     0.04s  0.06% 16.29%      0.10s  0.15%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+     0.04s  0.06% 16.35%      0.55s  0.82%  internal/poll.(*SysFile).destroy (inline)
+     0.04s  0.06% 16.41%      0.09s  0.13%  internal/runtime/maps.(*Iter).Init
+     0.04s  0.06% 16.47%      1.19s  1.78%  net/http.(*response).WriteHeader
+     0.04s  0.06% 16.53%      0.14s  0.21%  net/netip.ParseAddr
+     0.04s  0.06% 16.59%      0.54s  0.81%  os.(*File).Write
+     0.04s  0.06% 16.65%      0.12s  0.18%  path.Clean
+     0.04s  0.06% 16.71%      0.53s  0.79%  runtime.growslice
+     0.04s  0.06% 16.77%      0.52s  0.78%  runtime.makeslice
+     0.04s  0.06% 16.83%      0.42s  0.63%  runtime.mallocgcSmallNoscan
+     0.04s  0.06% 16.89%      0.10s  0.15%  runtime.pcvalue
+     0.04s  0.06% 16.95%      0.17s  0.25%  strconv.appendQuotedWith
+     0.03s 0.045% 17.00%     15.67s 23.47%  github.com/FlavioCFOliveira/MuxMaster/middleware.RealIP.func1.1

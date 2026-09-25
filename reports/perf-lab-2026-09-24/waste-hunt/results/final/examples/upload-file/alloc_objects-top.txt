@@ -1,0 +1,49 @@
+File: upload-file
+Build ID: b577b88df8b62e651989ea469b17bd5506848be3
+Type: alloc_objects
+Time: 2026-09-25 12:39:17 WEST
+Duration: 10.01s, Total samples = 13649087 
+Showing nodes accounting for 13325198, 97.63% of 13649087 total
+Dropped 50 nodes (cum <= 68245)
+Showing top 40 nodes out of 90
+      flat  flat%   sum%        cum   cum%
+   1790225 13.12% 13.12%    1943145 14.24%  net/textproto.readMIMEHeader
+   1610274 11.80% 24.91%    1610274 11.80%  bytes.growSlice
+   1365351 10.00% 34.92%    1365351 10.00%  reflect.unsafe_New
+    914002  6.70% 41.61%    1143383  8.38%  mime.ParseMediaType
+    816296  5.98% 47.59%    3835963 28.10%  mime/multipart.(*Reader).readForm
+    455344  3.34% 50.93%     455344  3.34%  net/http.Header.Clone (inline)
+    371394  2.72% 53.65%     628664  4.61%  mime/multipart.NewReader
+    362690  2.66% 56.31%    2844937 20.84%  net/http.(*conn).readRequest
+    300380  2.20% 58.51%     300380  2.20%  io.MultiWriter (inline)
+    294917  2.16% 60.67%     294917  2.16%  net/textproto.(*Reader).ReadLine (inline)
+    291996  2.14% 62.81%   10113984 74.10%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    283994  2.08% 64.89%     283994  2.08%  io.LimitReader (inline)
+    262148  1.92% 66.81%   13263627 97.18%  net/http.(*conn).serve
+    257270  1.88% 68.70%     257270  1.88%  bufio.NewReaderSize (inline)
+    246557  1.81% 70.50%    1076740  7.89%  mime/multipart.newPart
+    235948  1.73% 72.23%     235948  1.73%  net.(*conn).Read
+    229381  1.68% 73.91%     229381  1.68%  strings.(*Builder).WriteByte (inline)
+    215740  1.58% 75.49%    3054423 22.38%  main.asyncProcessUpload
+    196623  1.44% 76.93%     196623  1.44%  context.withCancel (inline)
+    180279  1.32% 78.25%     180279  1.32%  net/http.(*Request).WithContext
+    180235  1.32% 79.57%     180235  1.32%  encoding/hex.EncodeToString (inline)
+    176960  1.30% 80.87%     308035  2.26%  net/http.readTransfer
+    172960  1.27% 82.14%    2937207 21.52%  main.multiUpload
+    172085  1.26% 83.40%    2121268 15.54%  net/http.readRequestLimit
+    163843  1.20% 84.60%     360466  2.64%  context.WithCancel
+    156580  1.15% 85.75%     156580  1.15%  net/url.parse
+    152920  1.12% 86.87%     152920  1.12%  net/textproto.canonicalMIMEHeaderKey
+    142001  1.04% 87.91%     142001  1.04%  bytes.NewReader (inline)
+    142000  1.04% 88.95%     577142  4.23%  net/http.(*Request).ParseForm
+    136541  1.00% 89.95%     136541  1.00%  os.newFile
+    131077  0.96% 90.91%     131077  0.96%  io.NewSectionReader (inline)
+    120154  0.88% 91.79%     120154  0.88%  net/url.ParseQuery (inline)
+    114695  0.84% 92.63%     114695  0.84%  net/http.MaxBytesReader (inline)
+    114691  0.84% 93.47%     114691  0.84%  crypto/internal/fips140/sha256.(*Digest).Sum
+    109232   0.8% 94.27%     109232   0.8%  internal/bytealg.MakeNoZero
+    109229   0.8% 95.07%     382307  2.80%  mime/multipart.(*FileHeader).Open
+     98304  0.72% 95.79%      98304  0.72%  net/http.(*connReader).startBackgroundRead
+     89294  0.65% 96.44%    1765104 12.93%  io.copyBuffer
+     83754  0.61% 97.06%    3544312 25.97%  main.singleUpload
+     77834  0.57% 97.63%      77834  0.57%  crypto/internal/fips140/sha256.New (inline)

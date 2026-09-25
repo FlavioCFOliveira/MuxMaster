@@ -1,0 +1,71 @@
+File: rest-api
+Build ID: 4b8baa8639964aa2c48adae079ae129e2d4dd77e
+Type: cpu
+Time: 2026-09-24 19:53:57 WEST
+Duration: 10s, Total samples = 68.41s (684.06%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 9.84s, 14.38% of 68.41s total
+Dropped 518 nodes (cum <= 0.34s)
+Showing top 60 nodes out of 239
+      flat  flat%   sum%        cum   cum%
+     3.36s  4.91%  4.91%      3.36s  4.91%  time.runtimeNow
+     2.19s  3.20%  8.11%      2.19s  3.20%  runtime.nanotime (inline)
+     0.32s  0.47%  8.58%      0.32s  0.47%  internal/runtime/syscall/linux.Syscall6
+     0.19s  0.28%  8.86%      0.19s  0.28%  runtime.memmove
+     0.18s  0.26%  9.12%      0.18s  0.26%  internal/runtime/maps.memHashAES
+     0.17s  0.25%  9.37%      0.17s  0.25%  runtime.memclrNoHeapPointers
+     0.12s  0.18%  9.55%      0.32s  0.47%  runtime.pcvalue
+     0.12s  0.18%  9.72%      0.20s  0.29%  runtime.tryDeferToSpanScan
+     0.11s  0.16%  9.88%      0.37s  0.54%  runtime.mallocgcSmallScanSlowPath
+     0.10s  0.15% 10.03%      0.75s  1.10%  encoding/json/v2.makeStructArshaler.func2
+     0.10s  0.15% 10.17%      0.14s   0.2%  path.Clean
+     0.10s  0.15% 10.32%      0.28s  0.41%  runtime.bulkBarrierPreWrite
+     0.10s  0.15% 10.47%      0.16s  0.23%  runtime.step
+     0.09s  0.13% 10.60%     15.60s 22.80%  net/http.HandlerFunc.ServeHTTP
+     0.09s  0.13% 10.73%      0.12s  0.18%  runtime.unlock2
+     0.08s  0.12% 10.85%     13.71s 20.04%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.08s  0.12% 10.96%      0.14s   0.2%  internal/runtime/maps.(*Iter).Next
+     0.08s  0.12% 11.08%      0.08s  0.12%  runtime.futex
+     0.08s  0.12% 11.20%      1.81s  2.65%  runtime.mallocgc
+     0.08s  0.12% 11.31%      0.08s  0.12%  runtime.nextFreeFast (inline)
+     0.08s  0.12% 11.43%      0.48s   0.7%  runtime.selectgo
+     0.07s   0.1% 11.53%      0.11s  0.16%  github.com/FlavioCFOliveira/MuxMaster.(*node).getValue
+     0.07s   0.1% 11.64%      0.37s  0.54%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*throttleTable).acquire
+     0.07s   0.1% 11.74%      0.19s  0.28%  runtime.chansend
+     0.07s   0.1% 11.84%      0.21s  0.31%  runtime.mallocgcTinySC2
+     0.07s   0.1% 11.94%      0.47s  0.69%  runtime.mapassign_faststr
+     0.07s   0.1% 12.05%      0.55s   0.8%  runtime.newobject
+     0.07s   0.1% 12.15%      0.14s   0.2%  sync.(*Pool).getSlow
+     0.06s 0.088% 12.24%      0.36s  0.53%  encoding/json/jsontext.(*encoderState).WriteToken
+     0.06s 0.088% 12.32%      0.17s  0.25%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.06s 0.088% 12.41%      0.14s   0.2%  runtime.lock2
+     0.06s 0.088% 12.50%      0.19s  0.28%  runtime.makechan
+     0.06s 0.088% 12.59%      0.26s  0.38%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.06s 0.088% 12.67%      0.14s   0.2%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.06s 0.088% 12.76%      0.11s  0.16%  runtime.scanObject
+     0.06s 0.088% 12.85%      0.16s  0.23%  sync.(*Pool).pin
+     0.05s 0.073% 12.92%      0.11s  0.16%  encoding/json/internal/jsonwire.AppendQuote
+     0.05s 0.073% 13.00%      1.02s  1.49%  encoding/json/v2.makeMapArshaler.func2
+     0.05s 0.073% 13.07%     15.37s 22.47%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+     0.05s 0.073% 13.14%     15.32s 22.39%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.05s 0.073% 13.21%      0.10s  0.15%  github.com/FlavioCFOliveira/MuxMaster/middleware.isAlreadyCompressedMIME
+     0.05s 0.073% 13.29%      0.10s  0.15%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+     0.05s 0.073% 13.36%      0.18s  0.26%  github.com/FlavioCFOliveira/MuxMaster/middleware.selectXFFRightmost
+     0.05s 0.073% 13.43%      0.09s  0.13%  runtime.typePointers.next
+     0.05s 0.073% 13.51%      0.15s  0.22%  runtime.typedmemmove
+     0.05s 0.073% 13.58%      0.24s  0.35%  strconv.appendQuotedWith
+     0.04s 0.058% 13.64%      0.14s   0.2%  context.(*cancelCtx).Done
+     0.04s 0.058% 13.70%      0.09s  0.13%  context.(*cancelCtx).cancel
+     0.04s 0.058% 13.76%      4.76s  6.96%  github.com/FlavioCFOliveira/MuxMaster/middleware.ThrottlePerIPCapped.func2.1
+     0.04s 0.058% 13.81%      7.31s 10.69%  github.com/FlavioCFOliveira/MuxMaster/middleware.Timeout.func1.1
+     0.04s 0.058% 13.87%      0.16s  0.23%  main.findBookByID (inline)
+     0.04s 0.058% 13.93%      0.12s  0.18%  net/http.(*response).write
+     0.04s 0.058% 13.99%      0.58s  0.85%  os.(*File).Write
+     0.04s 0.058% 14.05%      0.12s  0.18%  reflect.(*rtype).ptrTo
+     0.04s 0.058% 14.11%      0.39s  0.57%  runtime.(*mcache).refill
+     0.04s 0.058% 14.16%      0.16s  0.23%  runtime.(*stkframe).getStackMap
+     0.04s 0.058% 14.22%      0.24s  0.35%  runtime.(*unwinder).resolveInternal
+     0.04s 0.058% 14.28%      0.26s  0.38%  runtime.wbBufFlush1
+     0.04s 0.058% 14.34%      0.14s   0.2%  time.Time.appendFormatRFC3339
+     0.03s 0.044% 14.38%      0.09s  0.13%  encoding/json/jsontext.(*encoderState).reset

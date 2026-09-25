@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"container/heap"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -67,10 +68,48 @@ type OAuth2Options struct {
 
 // oauth2Cache is an RWMutex-protected map keyed by sha256(token) to avoid
 // storing raw tokens in memory. Eviction is lazy: on cache-full writes.
+//
+// CH-09: eviction is backed by a min-heap ordered by expiry (heap), giving
+// O(log n) amortised insert/evict instead of the previous O(n) full-map
+// scan performed on every cache-full set() call — see evictOneLocked.
 type oauth2Cache struct {
 	mu      sync.RWMutex
 	entries map[[32]byte]*oauth2Entry
+	heap    oauth2ExpiryHeap
 	maxSize int
+}
+
+// oauth2ExpiryHeap is a container/heap min-heap of *oauth2Entry ordered by
+// expiry. Each entry tracks its own heap index (idx) so that heap.Fix can
+// reposition it in O(log n) when its expiry changes (a token re-cached with
+// a new expiry before the old entry was evicted), instead of requiring a
+// linear scan to find it.
+type oauth2ExpiryHeap []*oauth2Entry
+
+func (h oauth2ExpiryHeap) Len() int { return len(h) }
+
+func (h oauth2ExpiryHeap) Less(i, j int) bool { return h[i].expiry.Before(h[j].expiry) }
+
+func (h oauth2ExpiryHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+	h[i].idx = i
+	h[j].idx = j
+}
+
+func (h *oauth2ExpiryHeap) Push(x any) {
+	e, _ := x.(*oauth2Entry)
+	e.idx = len(*h)
+	*h = append(*h, e)
+}
+
+func (h *oauth2ExpiryHeap) Pop() any {
+	old := *h
+	n := len(old)
+	e := old[n-1]
+	old[n-1] = nil
+	e.idx = -1
+	*h = old[:n-1]
+	return e
 }
 
 // oauth2Inflight is an in-process singleflight group keyed by sha256(token).
@@ -125,72 +164,82 @@ func (g *oauth2Inflight) do(
 }
 
 type oauth2Entry struct {
+	key    [32]byte
 	resp   *IntrospectResponse
 	expiry time.Time
+	idx    int // position in the owning oauth2Cache.heap; maintained by heap.Fix/Push/Pop
 }
 
 func (c *oauth2Cache) get(key [32]byte) (*IntrospectResponse, bool) {
 	c.mu.RLock()
+	defer c.mu.RUnlock()
+	// e.resp/e.expiry MUST be read while still holding the read lock: set()
+	// now updates an EXISTING entry in place on a re-cache (heap.Fix reuses
+	// the object instead of allocating a new one — see set() below), so an
+	// entry is no longer immutable-after-construction the way it was
+	// before this rewrite. Reading these fields after releasing the lock
+	// (the previous code's shape) would race with that in-place write.
 	e, ok := c.entries[key]
-	c.mu.RUnlock()
 	if !ok || time.Now().After(e.expiry) {
 		return nil, false
 	}
 	return e.resp, true
 }
 
+// set inserts or refreshes the cache entry for key. When the cache is full,
+// exactly one entry — evictOneLocked's choice — is evicted first to make
+// room, keeping the write lock held for O(log n) instead of the O(n) full
+// map scan the previous implementation performed on every cache-full write
+// (CH-09).
 func (c *oauth2Cache) set(key [32]byte, resp *IntrospectResponse, expiry time.Time) {
 	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if e, ok := c.entries[key]; ok {
+		// Re-caching an already-present token (e.g. two concurrent
+		// singleflight leaders raced — see MSR-2026-0071): update in place
+		// and reposition the heap entry in O(log n) via heap.Fix, instead
+		// of removing and reinserting.
+		e.resp = resp
+		e.expiry = expiry
+		heap.Fix(&c.heap, e.idx)
+		return
+	}
+
 	if len(c.entries) >= c.maxSize {
-		c.evictExpiredLocked()
-		// DOS-2026-0005: when no expired entries are evictable, fall back to
-		// evicting the entry with the soonest expiry so the cache cannot be
-		// permanently filled with long-lived tokens. This is approximate LRU
-		// (oldest-by-expiry) but bounded and stdlib-only — a true LRU would
-		// require a doubly-linked list per access.
-		if len(c.entries) >= c.maxSize {
-			c.evictSoonestExpiryLocked()
-		}
-		// Defence in depth: if we still cannot make room (impossible with
-		// the eviction above unless maxSize is 0), bail out rather than
-		// growing unbounded.
-		if len(c.entries) >= c.maxSize {
-			c.mu.Unlock()
+		if !c.evictOneLocked() {
+			// Defence in depth: nothing to evict (only possible when
+			// maxSize <= 0) — bail out rather than growing unbounded.
 			return
 		}
 	}
-	c.entries[key] = &oauth2Entry{resp: resp, expiry: expiry}
-	c.mu.Unlock()
+
+	e := &oauth2Entry{key: key, resp: resp, expiry: expiry}
+	heap.Push(&c.heap, e)
+	c.entries[key] = e
 }
 
-// evictSoonestExpiryLocked removes the entry with the earliest expiry time —
-// the closest analogue to LRU we can compute without per-access timestamps.
-// Caller must hold c.mu.Lock().
-func (c *oauth2Cache) evictSoonestExpiryLocked() {
-	var (
-		victim    [32]byte
-		earliest  time.Time
-		hasVictim bool
-	)
-	for k, e := range c.entries {
-		if !hasVictim || e.expiry.Before(earliest) {
-			victim = k
-			earliest = e.expiry
-			hasVictim = true
-		}
+// evictOneLocked removes exactly one entry — the heap root, i.e. the entry
+// with the globally earliest expiry — and reports whether an entry was
+// evicted. Caller must hold c.mu.Lock().
+//
+// Because the heap root is always the minimum-expiry entry across the
+// WHOLE cache, this single O(log n) pop already implements both preserved
+// eviction properties from the previous O(n) two-phase scan:
+//   - if ANY entry is expired, the minimum-expiry entry is a fortiori also
+//     expired (expiry <= now implies every larger expiry could still be >
+//     now, but the minimum cannot be later than an already-expired entry),
+//     so the root IS an expired entry — "expired entries evicted first";
+//   - if NO entry is expired yet, the root is simply the soonest-to-expire
+//     live entry — the DOS-2026-0005 fallback that keeps the cache from
+//     being permanently filled with long-lived tokens.
+func (c *oauth2Cache) evictOneLocked() bool {
+	if c.heap.Len() == 0 {
+		return false
 	}
-	if hasVictim {
-		delete(c.entries, victim)
-	}
-}
-
-func (c *oauth2Cache) evictExpiredLocked() {
-	now := time.Now()
-	for k, e := range c.entries {
-		if now.After(e.expiry) {
-			delete(c.entries, k)
-		}
-	}
+	victim, _ := heap.Pop(&c.heap).(*oauth2Entry)
+	delete(c.entries, victim.key)
+	return true
 }
 
 // OAuth2Introspect validates Bearer tokens via RFC 7662 token introspection.

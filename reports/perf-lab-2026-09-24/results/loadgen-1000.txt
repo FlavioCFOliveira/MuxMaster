@@ -1,0 +1,4 @@
+ulimit -n (soft): 1048576
+=== loadgen client: conns=1000 duration=5s target=http://127.0.0.1:41853 ===
+requests=292584 errors=0 req/s=58517
+latency p50=11.413231ms p90=14.189451ms p99=32.141361ms p999=53.87794ms

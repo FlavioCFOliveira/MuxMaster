@@ -1,0 +1,26 @@
+scenario=rest-api conns=32 duration=5.013s
+requests=7010 req/s=1398 p50=13.165207ms p90=55.0284ms p99=103.34848ms
+  GET /health (fast)                       expect=200 got 200×304
+  GET /version                             expect=200 got 200×306
+  GET /books (handler redirect)            expect=301 got 301×306
+  GET /api/v1/books                        expect=200 got 200×308
+  GET /api/v1/books/:id                    expect=200 got 200×309
+  HEAD /api/v1/books/:id                   expect=200 got 200×310
+  PATCH /api/v1/books/:id                  expect=200 got 200×309
+  GET /api/v1/books/{id}/details           expect=200 got 200×305
+  GET /api/v1/books/:id/reviews            expect=200 got 200×307
+  GET /api/v1/books/:id/reviews/:rid (404 via ErrorHandler) expect=404 got 404×305
+  GET /api/v1/books/featured               expect=200 got 200×304
+  GET /api/v1/books/ping (ANY)             expect=200 got 200×303
+  GET /api/v1/categories                   expect=200 got 200×304
+  GET /api/v1/categories/:slug             expect=200 got 200×304
+  GET /api/v1/authors/:id/xml (CORS)       expect=200 got 200×304
+  GET /api/v1/admin/dashboard (BasicAuth)  expect=200 got 200×303
+  GET /metrics (fast)                      expect=200 got 200×304
+  POST /api/v1/fast/echo (fast)            expect=200 got 200×304
+  GET /legacy/api/books/:id (Mount)        expect=308 got 308×303
+  GET /api/v1/books/ (Pre CleanPath strips slash -> 200) expect=200 got 200×302
+  DELETE /api/v1/categories (405)          expect=405 got 405×302
+  OPTIONS /api/v1/books/1 (auto OPTIONS)   expect=204 got 204×302
+  GET /nope (404)                          expect=404 got 404×302
+STATUS-OK: every response matched its expected status

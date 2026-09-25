@@ -1,0 +1,93 @@
+### cpu
+owner share (nearest owning frame, leaf -> root):
+  net/http                  66.10%
+  runtime (no owner)        21.98%
+  MuxMaster/middleware       8.46%
+  MuxMaster/root             1.86%
+  example                    1.61%
+
+top MuxMaster owning functions (share of whole profile):
+    4.21%  middleware.Logger.func1.1
+    1.10%  muxmaster.JSON
+    0.59%  middleware.Timeout.func1.1
+    0.53%  middleware.RequestID.func1.1
+    0.48%  middleware.(*gzipResponseWriter).commit
+    0.40%  middleware.RealIP.func1.1
+    0.31%  middleware.SetHeader.func1.1
+    0.25%  middleware.Compress.func3.1
+    0.23%  middleware.Compress.func3.1.1
+    0.20%  muxmaster.(*Mux).dispatch
+    0.20%  middleware.CleanPath.func1.1
+    0.15%  middleware.NoCache.func1.1
+    0.15%  middleware.nextRandomID
+    0.13%  muxmaster.(*Mux).ServeHTTP
+    0.13%  muxmaster.Redirect
+    0.12%  middleware.CORS.func1.1
+    0.10%  middleware.selectXFFRightmost
+    0.09%  middleware.Compress.func2
+    0.09%  middleware.isAlreadyCompressedMIME
+    0.07%  muxmaster.prefixMatch
+    0.07%  middleware.(*gzipResponseWriter).Write
+    0.07%  middleware.appendSanitisedForLog
+    0.06%  middleware.(*throttleSem).release
+    0.06%  middleware.(*gzipResponseWriter).Header
+    0.06%  muxmaster.dispatchParams1
+
+### alloc_space
+owner share (nearest owning frame, leaf -> root):
+  net/http                  62.96%
+  MuxMaster/middleware      28.40%
+  example                    4.79%
+  MuxMaster/root             3.83%
+  runtime (no owner)         0.02%
+
+top MuxMaster owning functions (share of whole profile):
+   11.65%  middleware.RequestID.func1.1
+    5.94%  middleware.Compress.func2
+    2.20%  middleware.Timeout.func1.1
+    2.16%  middleware.CleanPath.func1.1
+    1.98%  muxmaster.JSON
+    1.85%  middleware.NoCache.func1.1
+    1.64%  middleware.(*gzipResponseWriter).commit
+    1.24%  middleware.SetHeader.func1.1
+    0.84%  middleware.Logger.func1.1
+    0.81%  muxmaster.dispatchParams1
+    0.72%  muxmaster.Redirect
+    0.31%  muxmaster.(*Group).ServeFiles.func1
+    0.29%  middleware.nextRandomID
+    0.27%  middleware.RealIP.func1.1
+    0.14%  middleware.Compress.func3.1.1
+    0.07%  middleware.newExhaustedRequestIDBuf
+    0.05%  middleware.Compress.func3.1
+    0.05%  middleware.CORS.func1.1
+    0.02%  middleware.init.func2
+
+### alloc_objects
+owner share (nearest owning frame, leaf -> root):
+  net/http                  66.98%
+  MuxMaster/middleware      23.10%
+  MuxMaster/root             6.42%
+  example                    3.50%
+  runtime (no owner)         0.00%
+
+top MuxMaster owning functions (share of whole profile):
+    8.77%  middleware.SetHeader.func1.1
+    5.27%  middleware.RequestID.func1.1
+    4.16%  muxmaster.JSON
+    2.13%  middleware.(*gzipResponseWriter).commit
+    1.91%  middleware.RealIP.func1.1
+    1.90%  middleware.Timeout.func1.1
+    1.77%  muxmaster.Redirect
+    1.23%  middleware.NoCache.func1.1
+    1.13%  middleware.CleanPath.func1.1
+    0.32%  middleware.CORS.func1.1
+    0.31%  middleware.Logger.func1.1
+    0.25%  muxmaster.(*Group).ServeFiles.func1
+    0.24%  muxmaster.dispatchParams1
+    0.07%  middleware.Compress.func2
+    0.03%  middleware.Compress.func3.1.1
+    0.01%  middleware.nextRandomID
+    0.01%  middleware.init.func2
+    0.00%  middleware.Compress.func3.1
+    0.00%  middleware.newExhaustedRequestIDBuf
+

@@ -1,0 +1,13 @@
+--- PASS: TestEquivAppendSanitised (0.09s)
+--- PASS: TestEquivAppendDuration (0.06s)
+--- PASS: TestEquivLoggerLine (0.00s)
+--- PASS: TestEquivSetHeader (0.00s)
+--- PASS: TestEquivText (0.00s)
+--- PASS: TestEquivRealIP (0.34s)
+--- PASS: TestEquivCompress (0.00s)
+--- PASS: TestEquivThrottle (0.11s)
+--- PASS: TestEquivMountVariants (0.00s)
+--- PASS: TestEquivFileServeLoggerRF (0.01s)
+--- PASS: TestEquivCleanPath (0.00s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench	0.619s

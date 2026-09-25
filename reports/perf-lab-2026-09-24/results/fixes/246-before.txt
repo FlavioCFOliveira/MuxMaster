@@ -1,0 +1,24 @@
+goos: linux
+goarch: amd64
+pkg: oauth2oldbench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkOAuth2CacheSetAtSaturation       	    1002	    248507 ns/op	      56 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	     984	    247609 ns/op	      56 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	     987	    247249 ns/op	      56 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	     966	    247800 ns/op	      56 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	     987	    246493 ns/op	      56 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	     978	    247892 ns/op	      56 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	     950	    252267 ns/op	      74 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	     958	    249945 ns/op	      67 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	     955	    259451 ns/op	      60 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	     979	    260510 ns/op	      56 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	     920	    258510 ns/op	      65 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	     968	    255914 ns/op	      56 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	     955	    255578 ns/op	      74 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	     972	    254731 ns/op	      73 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	     954	    258916 ns/op	      62 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	     954	    257402 ns/op	      62 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	     956	    260531 ns/op	      69 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	     963	    257300 ns/op	      67 B/op	       2 allocs/op
+PASS
+ok  	oauth2oldbench	4.930s

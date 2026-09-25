@@ -1,0 +1,15 @@
+--- a/main.go	2026-09-24 19:49:32.937908816 +0100
++++ b/main.go	2026-09-24 19:49:32.946908806 +0100
+@@ -60,7 +60,11 @@
+ 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
+ 
+ 	mux := mm.New()
+-	mux.PoolRequestBundle = true
++	// [waste-hunt crash patch] PoolRequestBundle=true crashes this gateway
++	// under load: net/http.Transport dials upstream connections in a goroutine
++	// that calls Value() on the request context AFTER the handler returned,
++	// i.e. on a recycled, zeroed reqBundle (nil deref in requestCtx1.Value).
++	mux.PoolRequestBundle = false
+ 	mux.Pre(mw.RequestID(), mw.RecovererWithLogger(log))
+ 
+ 	// Build proxies for two upstreams.

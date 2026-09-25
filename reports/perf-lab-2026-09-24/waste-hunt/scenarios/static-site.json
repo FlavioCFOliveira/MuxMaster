@@ -1,0 +1,105 @@
+{
+ "name": "static-site",
+ "requests": [
+  {
+   "name": "GET /health (fast)",
+   "method": "GET",
+   "path": "/health",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "HEAD /health (fast)",
+   "method": "HEAD",
+   "path": "/health",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/config",
+   "method": "GET",
+   "path": "/api/config",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET / (serveFile index.html)",
+   "method": "GET",
+   "path": "/",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /assets/*filepath (ServeFiles+CORS; example root maps /assets/X to static/X)",
+   "method": "GET",
+   "path": "/assets/assets/style.css",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Origin": "https://cdn.example"
+   }
+  },
+  {
+   "name": "GET /docs/v1/ (Mount -> sub-mux ServeFiles)",
+   "method": "GET",
+   "path": "/docs/v1/",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /docs/v2/ (Mount -> sub-mux ServeFiles)",
+   "method": "GET",
+   "path": "/docs/v2/",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /doc (handler redirect)",
+   "method": "GET",
+   "path": "/doc",
+   "expect": 301,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /nope (custom 404 page; 200 = Compress WriteHeader defect)",
+   "method": "GET",
+   "path": "/nope",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  }
+ ]
+}

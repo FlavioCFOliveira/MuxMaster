@@ -1,0 +1,49 @@
+File: server-side-render
+Build ID: c3ca743befbdd8b2107e50642a3b5b1fc76fc06d
+Type: cpu
+Time: 2026-09-25 12:38:37 WEST
+Duration: 10s, Total samples = 72.48s (724.73%)
+Showing nodes accounting for 51.54s, 71.11% of 72.48s total
+Dropped 805 nodes (cum <= 0.36s)
+Showing top 40 nodes out of 183
+      flat  flat%   sum%        cum   cum%
+    14.95s 20.63% 20.63%     14.95s 20.63%  internal/runtime/syscall/linux.Syscall6
+    14.63s 20.18% 40.81%     14.63s 20.18%  time.runtimeNow
+       10s 13.80% 54.61%        10s 13.80%  runtime.nanotime (inline)
+     2.14s  2.95% 57.56%      2.14s  2.95%  runtime.usleep
+     1.16s  1.60% 59.16%      1.16s  1.60%  runtime.futex
+     1.03s  1.42% 60.58%      4.07s  5.62%  reflect.Value.call
+     0.70s  0.97% 61.55%      0.70s  0.97%  runtime.memmove
+     0.59s  0.81% 62.36%      0.93s  1.28%  runtime.tryDeferToSpanScan
+     0.35s  0.48% 62.84%      0.82s  1.13%  runtime.scanObjectsSmall
+     0.35s  0.48% 63.33%      6.03s  8.32%  text/template.(*state).evalCall
+     0.33s  0.46% 63.78%     11.65s 16.07%  text/template.(*state).walk
+     0.30s  0.41% 64.20%      0.52s  0.72%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.28s  0.39% 64.58%         1s  1.38%  runtime.mapaccess2_faststr
+     0.28s  0.39% 64.97%      7.45s 10.28%  text/template.(*state).evalCommand
+     0.27s  0.37% 65.34%      2.60s  3.59%  runtime.mallocgc
+     0.25s  0.34% 65.69%      3.65s  5.04%  internal/poll.runtime_pollSetDeadline
+     0.23s  0.32% 66.00%      0.43s  0.59%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.23s  0.32% 66.32%      0.45s  0.62%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.22s   0.3% 66.63%      0.44s  0.61%  runtime.mallocgcSmallScanNoHeaderSC3
+     0.20s  0.28% 66.90%      0.81s  1.12%  runtime.lock2
+     0.20s  0.28% 67.18%     14.83s 20.46%  time.Now
+     0.19s  0.26% 67.44%      9.21s 12.71%  runtime.findRunnable
+     0.19s  0.26% 67.70%      7.65s 10.55%  text/template.(*state).evalPipeline
+     0.18s  0.25% 67.95%      3.13s  4.32%  net/http.(*chunkWriter).writeHeader
+     0.18s  0.25% 68.20%      0.77s  1.06%  runtime.mallocgcSmallScanSlowPath
+     0.18s  0.25% 68.45%      2.34s  3.23%  runtime.runqgrab
+     0.17s  0.23% 68.68%     57.98s 79.99%  net/http.(*conn).serve
+     0.17s  0.23% 68.92%     22.55s 31.11%  net/http.HandlerFunc.ServeHTTP
+     0.16s  0.22% 69.14%      0.43s  0.59%  reflect.funcLayout
+     0.16s  0.22% 69.36%      0.37s  0.51%  sync.(*Pool).Get
+     0.15s  0.21% 69.56%      0.40s  0.55%  time.Time.appendFormat
+     0.14s  0.19% 69.76%      8.34s 11.51%  internal/poll.setDeadlineImpl
+     0.14s  0.19% 69.95%      1.11s  1.53%  runtime.casgstatus
+     0.13s  0.18% 70.13%      0.61s  0.84%  net/http.Header.writeSubset
+     0.13s  0.18% 70.31%      2.65s  3.66%  runtime.stealWork
+     0.12s  0.17% 70.47%      3.57s  4.93%  internal/poll.(*FD).Read
+     0.12s  0.17% 70.64%      1.08s  1.49%  text/template.(*state).evalArg
+     0.12s  0.17% 70.81%      0.98s  1.35%  text/template.(*state).evalField
+     0.11s  0.15% 70.96%      1.55s  2.14%  net/textproto.readMIMEHeader
+     0.11s  0.15% 71.11%      0.46s  0.63%  reflect.(*structType).FieldByName

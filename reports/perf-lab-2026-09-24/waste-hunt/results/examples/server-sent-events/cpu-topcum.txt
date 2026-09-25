@@ -1,0 +1,79 @@
+File: server-sent-events
+Build ID: 5b38fcc1cbeba933325150893cc690acf68b9337
+Type: cpu
+Time: 2026-09-24 19:51:53 WEST
+Duration: 10s, Total samples = 94.40s (943.96%)
+Showing nodes accounting for 83.23s, 88.17% of 94.40s total
+Dropped 619 nodes (cum <= 0.47s)
+Showing top 70 nodes out of 77
+      flat  flat%   sum%        cum   cum%
+     0.01s 0.011% 0.011%     91.72s 97.16%  net/http.(*conn).serve
+     0.02s 0.021% 0.032%     80.42s 85.19%  net/http.serverHandler.ServeHTTP
+         0     0% 0.032%     80.40s 85.17%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.01s 0.011% 0.042%     80.40s 85.17%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+         0     0% 0.042%     80.40s 85.17%  net/http.HandlerFunc.ServeHTTP
+         0     0% 0.042%     80.21s 84.97%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 0.042%     80.20s 84.96%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+     0.01s 0.011% 0.053%     80.20s 84.96%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.14s  0.15%   0.2%     77.61s 82.21%  bufio.(*Writer).Flush
+         0     0%   0.2%     77.04s 81.61%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Pooled
+     0.20s  0.21%  0.41%     77.04s 81.61%  main.(*hub).stream
+     0.19s   0.2%  0.61%     74.90s 79.34%  net/http.checkConnErrorWriter.Write
+         0     0%  0.61%     74.81s 79.25%  internal/poll.ignoringEINTRIO (inline)
+     0.11s  0.12%  0.73%     74.69s 79.12%  net.(*conn).Write
+     0.12s  0.13%  0.86%     74.59s 79.01%  syscall.Syscall
+     0.08s 0.085%  0.94%     74.56s 78.98%  net.(*netFD).Write
+     0.10s  0.11%  1.05%     74.42s 78.83%  internal/poll.(*FD).Write
+     0.05s 0.053%  1.10%     73.92s 78.31%  syscall.Write (inline)
+     0.12s  0.13%  1.23%     73.87s 78.25%  syscall.write
+    73.81s 78.19% 79.42%     73.81s 78.19%  internal/runtime/syscall/linux.Syscall6
+     0.08s 0.085% 79.50%     73.69s 78.06%  syscall.RawSyscall6
+     0.08s 0.085% 79.59%     72.86s 77.18%  net/http.(*response).Flush
+     0.06s 0.064% 79.65%     72.78s 77.10%  net/http.(*response).FlushError
+     0.11s  0.12% 79.77%     71.59s 75.84%  net/http.(*chunkWriter).flush
+     0.02s 0.021% 79.79%      6.01s  6.37%  net/http.(*response).finishRequest
+     0.03s 0.032% 79.82%      3.63s  3.85%  time.Now
+     3.60s  3.81% 83.63%      3.60s  3.81%  time.runtimeNow
+     0.03s 0.032% 83.67%      3.11s  3.29%  main.(*hub).publish
+     0.04s 0.042% 83.71%      2.57s  2.72%  net/http.(*conn).readRequest
+     0.13s  0.14% 83.85%      2.56s  2.71%  net/http.(*chunkWriter).Write
+     0.12s  0.13% 83.97%      2.47s  2.62%  fmt.Fprintf
+     0.04s 0.042% 84.01%      1.86s  1.97%  runtime.mcall
+     0.03s 0.032% 84.05%      1.59s  1.68%  runtime.park_m
+     0.06s 0.064% 84.11%      1.52s  1.61%  runtime.schedule
+     0.02s 0.021% 84.13%      1.51s  1.60%  runtime.systemstack
+     0.18s  0.19% 84.32%      1.49s  1.58%  runtime.mallocgc
+     0.05s 0.053% 84.38%      1.45s  1.54%  net/http.(*chunkWriter).writeHeader
+     0.29s  0.31% 84.68%      1.42s  1.50%  fmt.(*pp).doPrintf
+     0.01s 0.011% 84.69%      1.40s  1.48%  net/http.(*conn).setState
+     1.34s  1.42% 86.11%      1.34s  1.42%  runtime.nanotime (inline)
+     0.60s  0.64% 86.75%      1.27s  1.35%  runtime.selectgo
+         0     0% 86.75%      1.21s  1.28%  net/http.readRequestLimit
+     0.05s 0.053% 86.80%      1.19s  1.26%  runtime.findRunnable
+     0.01s 0.011% 86.81%      1.13s  1.20%  net.(*conn).Read
+     0.01s 0.011% 86.82%      1.03s  1.09%  bufio.(*Reader).Peek
+     0.02s 0.021% 86.84%      1.02s  1.08%  bufio.(*Reader).fill
+         0     0% 86.84%      1.02s  1.08%  encoding/json.(*Encoder).Encode
+     0.02s 0.021% 86.86%      1.02s  1.08%  net.(*netFD).Read
+     0.05s 0.053% 86.92%         1s  1.06%  internal/poll.(*FD).Read
+         0     0% 86.92%         1s  1.06%  net/http.(*connReader).Read
+     0.01s 0.011% 86.93%      0.96s  1.02%  net/http.(*connReader).abortPendingRead
+     0.01s 0.011% 86.94%      0.95s  1.01%  net.(*conn).SetReadDeadline
+     0.01s 0.011% 86.95%      0.93s  0.99%  internal/poll.(*FD).SetReadDeadline (inline)
+         0     0% 86.95%      0.93s  0.99%  net.(*netFD).SetReadDeadline (inline)
+     0.21s  0.22% 87.17%      0.92s  0.97%  fmt.(*pp).printArg
+     0.03s 0.032% 87.20%      0.92s  0.97%  internal/poll.setDeadlineImpl
+     0.03s 0.032% 87.24%      0.90s  0.95%  main.(*hub).broadcast
+     0.02s 0.021% 87.26%      0.86s  0.91%  syscall.Read (inline)
+         0     0% 87.26%      0.84s  0.89%  syscall.read
+     0.03s 0.032% 87.29%      0.76s  0.81%  encoding/json/v2.MarshalEncode
+     0.05s 0.053% 87.34%      0.76s  0.81%  runtime.convTstring
+         0     0% 87.34%      0.74s  0.78%  time.Until
+         0     0% 87.34%      0.73s  0.77%  encoding/json/v2.marshalEncode
+     0.05s 0.053% 87.39%      0.66s   0.7%  encoding/json/v2.makeMapArshaler.func2
+     0.26s  0.28% 87.67%      0.66s   0.7%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.12s  0.13% 87.80%      0.65s  0.69%  runtime.casgstatus
+     0.02s 0.021% 87.82%      0.65s  0.69%  runtime.selectnbsend
+     0.32s  0.34% 88.16%      0.63s  0.67%  runtime.chansend
+     0.01s 0.011% 88.17%      0.62s  0.66%  encoding/json.Unmarshal (inline)
+         0     0% 88.17%      0.61s  0.65%  encoding/json/v2.Unmarshal

@@ -1,0 +1,49 @@
+File: jwt
+Build ID: 34d1b1315d2624ab5d3a5bc5ea6c85d446c4b854
+Type: alloc_space
+Time: 2026-09-25 12:37:16 WEST
+Duration: 10.01s, Total samples = 2052.26MB 
+Showing nodes accounting for 2007.61MB, 97.82% of 2052.26MB total
+Dropped 77 nodes (cum <= 10.26MB)
+Showing top 40 nodes out of 72
+      flat  flat%   sum%        cum   cum%
+  292.57MB 14.26% 14.26%   300.07MB 14.62%  net/textproto.readMIMEHeader
+  252.08MB 12.28% 26.54%   252.08MB 12.28%  net/http.(*Request).WithContext
+  207.56MB 10.11% 36.65%   207.56MB 10.11%  net/http.Header.Clone (inline)
+  174.05MB  8.48% 45.13%  1151.36MB 56.10%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  167.55MB  8.16% 53.30%   555.64MB 27.07%  net/http.readRequestLimit
+  143.03MB  6.97% 60.27%   769.72MB 37.51%  net/http.(*conn).readRequest
+   98.01MB  4.78% 65.04%   165.59MB  8.07%  github.com/FlavioCFOliveira/MuxMaster/middleware.parseAndValidateJWT
+   67.51MB  3.29% 68.33%    67.51MB  3.29%  net/url.parse
+   57.51MB  2.80% 71.13%   172.04MB  8.38%  main.main.func6
+   47.51MB  2.32% 73.45%   130.03MB  6.34%  main.main.func7
+   45.01MB  2.19% 75.64%    45.01MB  2.19%  bytes.Clone (inline)
+   44.50MB  2.17% 77.81%    44.50MB  2.17%  net.(*conn).Read
+   43.59MB  2.12% 79.94%    43.59MB  2.12%  sync.(*Pool).pinSlow
+   40.50MB  1.97% 81.91%    40.50MB  1.97%  reflect.unsafe_New
+      38MB  1.85% 83.76%       38MB  1.85%  context.withCancel (inline)
+   37.51MB  1.83% 85.59%    40.01MB  1.95%  net/textproto.MIMEHeader.Set (inline)
+      36MB  1.75% 87.34%       36MB  1.75%  encoding/base64.(*Encoding).DecodeString
+      25MB  1.22% 88.56%       25MB  1.22%  encoding/base64.(*Encoding).EncodeToString
+   23.50MB  1.15% 89.71%    23.50MB  1.15%  context.WithValue
+   22.04MB  1.07% 90.78%    22.04MB  1.07%  bufio.NewWriterSize (inline)
+   20.51MB     1% 91.78%   171.03MB  8.33%  main.main.func5
+      19MB  0.93% 92.70%   100.51MB  4.90%  main.signToken
+   18.50MB   0.9% 93.61%    18.50MB   0.9%  crypto/internal/fips140/sha256.New (inline)
+   18.50MB   0.9% 94.51%       37MB  1.80%  crypto/internal/fips140/hmac.New[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }]
+   13.06MB  0.64% 95.14%    13.06MB  0.64%  encoding/json/v2.makeStringArshaler.func2
+   12.50MB  0.61% 95.75%    12.50MB  0.61%  sync.(*poolChain).pushHead
+      12MB  0.58% 96.34%       12MB  0.58%  crypto/internal/fips140/sha256.(*Digest).Sum
+      12MB  0.58% 96.92%       12MB  0.58%  net/textproto.(*Reader).ReadLine (inline)
+    8.50MB  0.41% 97.34%    46.50MB  2.27%  context.WithCancel
+       8MB  0.39% 97.73%    41.01MB  2.00%  io.WriteString
+    1.50MB 0.073% 97.80%   233.06MB 11.36%  github.com/FlavioCFOliveira/MuxMaster.JSON
+    0.50MB 0.024% 97.82%    37.02MB  1.80%  net/http.Error
+         0     0% 97.82%       37MB  1.80%  crypto/hmac.New
+         0     0% 97.82%       12MB  0.58%  crypto/internal/fips140/hmac.(*HMAC).Sum
+         0     0% 97.82%    18.50MB   0.9%  crypto/internal/fips140hash.UnwrapNew[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }].func1
+         0     0% 97.82%    18.50MB   0.9%  crypto/sha256.New
+         0     0% 97.82%    96.52MB  4.70%  encoding/json.Marshal (inline)
+         0     0% 97.82%    17.57MB  0.86%  encoding/json.Unmarshal (inline)
+         0     0% 97.82%    96.52MB  4.70%  encoding/json/v2.Marshal
+         0     0% 97.82%    17.57MB  0.86%  encoding/json/v2.Unmarshal

@@ -1,0 +1,28 @@
+rmp #244 — ThrottlePerIPCapped sharded table + ThrottleBacklog lock-free fast path
+Machine: AMD Ryzen 9 5900HX, 16 logical CPUs, Linux 6.8.0-139-generic, go1.27.0 (module go 1.26)
+Before = git HEAD content (global sync.Mutex table; buffered-channel semaphore).
+After  = this change (64-way sharded table, hash/maphash per-instance seed, atomic
+         reserve-then-insert exact cap; ThrottleBacklog: atomic CAS fast path, channel
+         used only for the backlog-wait slow path). benchstat count=6, -cpu 1,4,16.
+
+== ThrottleBacklogParallel (sec/op) ==
+ThrottleBacklogParallel                             39.12n ± 1%   22.76n ± 1%  -41.81% (p=0.002 n=6)
+ThrottleBacklogParallel-4                           62.83n ± 2%   59.45n ± 2%   -5.37% (p=0.002 n=6)
+ThrottleBacklogParallel-16                          76.15n ± 2%   66.23n ± 5%  -13.02% (p=0.002 n=6)
+
+== ThrottlePerIPSingleKey (sec/op) — same key, worst case for the per-key channel; table sharding is orthogonal here ==
+ThrottlePerIPSingleKey                              4.120µ ± 1%   4.159µ ± 1%   +0.95% (p=0.026 n=6)
+ThrottlePerIPSingleKey-4                            881.2n ± 1%   882.2n ± 1%        ~ (p=0.485 n=6)
+ThrottlePerIPSingleKey-16                           657.1n ± 4%   629.6n ± 3%   -4.18% (p=0.015 n=6)
+
+== ThrottlePerIPManyKeys — isolates the (formerly global) TABLE mutex. ==
+   nil keyFn logs a one-time-per-construction slog.Warn that corrupts go test's
+   captured output for benchstat parsing; numbers below extracted directly.
+
+cpu=1    before=4135.7 ns/op   after=4179.2 ns/op   (~flat, expected: no lock contention at cpu=1)
+cpu=4    before=1472.8 ns/op   after= 984.6 ns/op   (1.50x faster)
+cpu=16   before=2114.2 ns/op   after= 451.3 ns/op   (4.68x faster)
+
+anti-scaling check (cpu16 vs cpu4):
+  before: cpu16=2114.2 > cpu4=1472.8   => ANTI-SCALES (this is CH-01)
+  after:  cpu16= 451.3 <= cpu4=984.6   => scales correctly (AC satisfied)

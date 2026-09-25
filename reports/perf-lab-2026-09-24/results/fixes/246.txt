@@ -1,0 +1,46 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/middleware
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                              │ 246-after.txt │
+                              │    sec/op     │
+OAuth2CacheSetAtSaturation        3.273µ ± 1%
+OAuth2CacheSetAtSaturation-4      1.526µ ± 5%
+OAuth2CacheSetAtSaturation-16     2.146µ ± 1%
+geomean                           2.204µ
+
+                              │ 246-after.txt │
+                              │     B/op      │
+OAuth2CacheSetAtSaturation         288.0 ± 0%
+OAuth2CacheSetAtSaturation-4       288.0 ± 0%
+OAuth2CacheSetAtSaturation-16      288.0 ± 0%
+geomean                            288.0
+
+                              │ 246-after.txt │
+                              │   allocs/op   │
+OAuth2CacheSetAtSaturation         2.000 ± 0%
+OAuth2CacheSetAtSaturation-4       2.000 ± 0%
+OAuth2CacheSetAtSaturation-16      2.000 ± 0%
+geomean                            2.000
+
+pkg: oauth2oldbench
+                              │ 246-before.txt │
+                              │     sec/op     │
+OAuth2CacheSetAtSaturation         247.7µ ± 0%
+OAuth2CacheSetAtSaturation-4       257.2µ ± 3%
+OAuth2CacheSetAtSaturation-16      257.4µ ± 1%
+geomean                            254.0µ
+
+                              │ 246-before.txt │
+                              │      B/op      │
+OAuth2CacheSetAtSaturation         56.00 ±  0%
+OAuth2CacheSetAtSaturation-4       62.50 ± 18%
+OAuth2CacheSetAtSaturation-16      68.00 ±  9%
+geomean                            61.97
+
+                              │ 246-before.txt │
+                              │   allocs/op    │
+OAuth2CacheSetAtSaturation          2.000 ± 0%
+OAuth2CacheSetAtSaturation-4        2.000 ± 0%
+OAuth2CacheSetAtSaturation-16       2.000 ± 0%
+geomean                             2.000

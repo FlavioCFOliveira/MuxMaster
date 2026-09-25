@@ -1,0 +1,37 @@
+# Out-of-scope defect evidence: middleware.Compress lets a later WriteHeader overwrite the first one
+# (net/http semantics: the first WriteHeader wins). Observed in the static-site example: its NotFound
+# handler writes 404, http.ServeContent then calls WriteHeader(200); with Accept-Encoding: gzip the client gets 200.
+# Reproduction (go test -v in a scratch module replacing MuxMaster with this repository):
+
+package cz
+
+import (
+	"compress/gzip"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	mw "github.com/FlavioCFOliveira/MuxMaster/middleware"
+)
+
+func TestCompressFirstWriteHeaderWins(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		w.WriteHeader(200) // what http.ServeContent does after a prior WriteHeader
+		_, _ = w.Write([]byte("not found page"))
+	})
+	for _, ae := range []string{"", "gzip"} {
+		rec := httptest.NewRecorder()
+		r := httptest.NewRequest("GET", "/", nil)
+		if ae != "" {
+			r.Header.Set("Accept-Encoding", ae)
+		}
+		mw.Compress(gzip.BestSpeed)(h).ServeHTTP(rec, r)
+		t.Logf("Accept-Encoding=%q -> status %d", ae, rec.Code)
+	}
+}
+
+# Output:
+    cz_test.go:25: Accept-Encoding="" -> status 404
+    cz_test.go:25: Accept-Encoding="gzip" -> status 200
+ok  	cz	0.003s

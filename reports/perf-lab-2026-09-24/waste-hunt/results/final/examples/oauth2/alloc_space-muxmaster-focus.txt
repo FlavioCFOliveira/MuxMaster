@@ -1,0 +1,49 @@
+File: oauth2
+Build ID: cde7259dbc232a4f228b97c86638cc845841cc3a
+Type: alloc_space
+Time: 2026-09-25 12:37:46 WEST
+Duration: 10s, Total samples = 1856.38MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 961.76MB, 51.81% of 1856.38MB total
+Dropped 17 nodes (cum <= 9.28MB)
+      flat  flat%   sum%        cum   cum%
+  230.57MB 12.42% 12.42%   230.57MB 12.42%  net/http.Header.Clone (inline)
+  206.57MB 11.13% 23.55%   508.14MB 27.37%  github.com/FlavioCFOliveira/MuxMaster.JSON
+  188.04MB 10.13% 33.68%   696.19MB 37.50%  main.main.func2
+  185.06MB  9.97% 43.65%   185.06MB  9.97%  net/http.(*Request).WithContext (inline)
+   48.50MB  2.61% 46.26%    48.50MB  2.61%  reflect.unsafe_New
+   29.50MB  1.59% 47.85%    29.50MB  1.59%  context.WithValue
+   23.50MB  1.27% 49.11%    23.50MB  1.27%  bytes.Clone (inline)
+   22.50MB  1.21% 50.33%    22.50MB  1.21%  net.SplitHostPort.func1 (inline)
+      13MB   0.7% 51.03%       13MB   0.7%  net/textproto.MIMEHeader.Set (inline)
+    7.52MB   0.4% 51.43%     7.52MB   0.4%  sync.(*Pool).pinSlow
+    6.50MB  0.35% 51.78%     6.50MB  0.35%  net/netip.Addr.String
+    0.50MB 0.027% 51.81%     6.01MB  0.32%  encoding/json/jsontext.getBufferedEncoder
+         0     0% 51.81%    79.51MB  4.28%  encoding/json.Marshal (inline)
+         0     0% 51.81%     6.01MB  0.32%  encoding/json/jsontext.export.GetBufferedEncoder (inline)
+         0     0% 51.81%    79.51MB  4.28%  encoding/json/v2.Marshal
+         0     0% 51.81%     7.50MB   0.4%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 51.81%       46MB  2.48%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 51.81%    49.50MB  2.67%  encoding/json/v2.marshalEncode
+         0     0% 51.81%    24.50MB  1.32%  encoding/json/v2.newAddressableValue
+         0     0% 51.81%   963.26MB 51.89%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 51.81%   969.76MB 52.24%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 51.81%   963.26MB 51.89%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 51.81%   935.76MB 50.41%  github.com/FlavioCFOliveira/MuxMaster/middleware.OAuth2Introspect.func2.1
+         0     0% 51.81%   969.76MB 52.24%  github.com/FlavioCFOliveira/MuxMaster/middleware.RealIP.func1.1
+         0     0% 51.81%    22.50MB  1.21%  github.com/FlavioCFOliveira/MuxMaster/middleware.ThrottlePerIPCapped.func1
+         0     0% 51.81%   963.26MB 51.89%  github.com/FlavioCFOliveira/MuxMaster/middleware.ThrottlePerIPCapped.func2.1
+         0     0% 51.81%    22.50MB  1.21%  net.SplitHostPort
+         0     0% 51.81%   969.76MB 52.24%  net/http.(*conn).serve
+         0     0% 51.81%   230.57MB 12.42%  net/http.(*response).WriteHeader
+         0     0% 51.81%    13.01MB   0.7%  net/http.Error
+         0     0% 51.81%   969.76MB 52.24%  net/http.HandlerFunc.ServeHTTP
+         0     0% 51.81%       13MB   0.7%  net/http.Header.Set (inline)
+         0     0% 51.81%   969.76MB 52.24%  net/http.serverHandler.ServeHTTP
+         0     0% 51.81%       28MB  1.51%  reflect.New
+         0     0% 51.81%    20.50MB  1.10%  reflect.Value.MapIndex
+         0     0% 51.81%    20.50MB  1.10%  reflect.copyVal
+         0     0% 51.81%     9.52MB  0.51%  sync.(*Pool).Get
+         0     0% 51.81%        5MB  0.27%  sync.(*Pool).Put
+         0     0% 51.81%     7.52MB   0.4%  sync.(*Pool).pin

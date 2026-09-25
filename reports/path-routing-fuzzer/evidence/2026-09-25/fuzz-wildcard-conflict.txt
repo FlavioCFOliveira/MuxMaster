@@ -1,0 +1,25 @@
+fuzz: elapsed: 0s, gathering baseline coverage: 0/8 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 8/8 completed, now fuzzing with 16 workers
+fuzz: elapsed: 3s, execs: 265486 (88492/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 6s, execs: 538050 (90841/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 9s, execs: 812769 (91576/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 12s, execs: 1085303 (90856/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 15s, execs: 1356100 (90263/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 18s, execs: 1625253 (89691/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 21s, execs: 1894977 (89931/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 24s, execs: 2165414 (90145/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 27s, execs: 2435766 (90116/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 30s, execs: 2706297 (90159/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 33s, execs: 2973608 (89121/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 36s, execs: 3238670 (88359/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 39s, execs: 3508755 (90011/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 42s, execs: 3777902 (89724/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 45s, execs: 4046573 (89557/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 48s, execs: 4314203 (89207/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 51s, execs: 4583669 (89770/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 54s, execs: 4853368 (89968/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 57s, execs: 5124180 (90271/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 1m0s, execs: 5392571 (89323/sec), new interesting: 1 (total: 9)
+fuzz: elapsed: 1m0s, execs: 5392571 (0/sec), new interesting: 1 (total: 9)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	60.101s

@@ -1,0 +1,49 @@
+File: rest-api
+Build ID: 1b584dc5870f6aeeead88a7efb8f16a72979bb3e
+Type: cpu
+Time: 2026-09-25 12:37:51 WEST
+Duration: 10s, Total samples = 67.88s (678.72%)
+Showing nodes accounting for 47.77s, 70.37% of 67.88s total
+Dropped 901 nodes (cum <= 0.34s)
+Showing top 40 nodes out of 197
+      flat  flat%   sum%        cum   cum%
+    13.96s 20.57% 20.57%     13.96s 20.57%  time.runtimeNow
+    12.11s 17.84% 38.41%     12.11s 17.84%  internal/runtime/syscall/linux.Syscall6
+    10.70s 15.76% 54.17%     10.70s 15.76%  runtime.nanotime (inline)
+     1.76s  2.59% 56.76%      1.76s  2.59%  runtime.futex
+     1.32s  1.94% 58.71%      1.32s  1.94%  runtime.usleep
+     1.01s  1.49% 60.19%      1.63s  2.40%  runtime.tryDeferToSpanScan
+     0.68s  1.00% 61.20%      1.29s  1.90%  runtime.scanObjectsSmall
+     0.54s   0.8% 61.99%      0.54s   0.8%  runtime.procyieldAsm
+     0.41s   0.6% 62.60%      0.41s   0.6%  runtime.osyield
+     0.31s  0.46% 63.05%      1.25s  1.84%  runtime.wbBufFlush1
+     0.30s  0.44% 63.49%      0.50s  0.74%  runtime.typePointers.next
+     0.24s  0.35% 63.85%      1.50s  2.21%  runtime.lock2
+     0.23s  0.34% 64.19%      3.35s  4.94%  runtime.mallocgc
+     0.22s  0.32% 64.51%      0.44s  0.65%  runtime.pcvalue
+     0.21s  0.31% 64.82%      0.41s   0.6%  internal/runtime/maps.(*Iter).Next
+     0.20s  0.29% 65.11%      3.39s  4.99%  internal/poll.runtime_pollSetDeadline
+     0.20s  0.29% 65.41%      1.32s  1.94%  runtime.mallocgcSmallScanSlowPath
+     0.20s  0.29% 65.70%      0.44s  0.65%  runtime.scanblock
+     0.19s  0.28% 65.98%      9.88s 14.56%  runtime.schedule
+     0.18s  0.27% 66.25%      1.52s  2.24%  runtime.runqgrab
+     0.18s  0.27% 66.51%      0.53s  0.78%  runtime.unlock2
+     0.18s  0.27% 66.78%      0.61s   0.9%  sync.(*Pool).Get
+     0.17s  0.25% 67.03%      0.38s  0.56%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.17s  0.25% 67.28%      0.58s  0.85%  runtime.bulkBarrierPreWrite
+     0.16s  0.24% 67.52%      1.84s  2.71%  runtime.stealWork
+     0.16s  0.24% 67.75%      0.39s  0.57%  time.Time.appendFormat
+     0.15s  0.22% 67.97%      0.41s   0.6%  runtime.findObject
+     0.15s  0.22% 68.19%      0.90s  1.33%  runtime.scanObject
+     0.14s  0.21% 68.40%      0.71s  1.05%  gcWriteBarrier
+     0.14s  0.21% 68.61%      0.59s  0.87%  runtime.mapaccess2_faststr
+     0.13s  0.19% 68.80%      0.67s  0.99%  encoding/json/v2.makeStructArshaler.func2
+     0.13s  0.19% 68.99%     50.78s 74.81%  net/http.(*conn).serve
+     0.13s  0.19% 69.18%     13.83s 20.37%  net/http.HandlerFunc.ServeHTTP
+     0.13s  0.19% 69.37%      1.12s  1.65%  net/http.Header.writeSubset
+     0.12s  0.18% 69.55%      3.67s  5.41%  net/http.(*chunkWriter).writeHeader
+     0.12s  0.18% 69.73%         9s 13.26%  runtime.findRunnable
+     0.12s  0.18% 69.90%     14.08s 20.74%  time.Now
+     0.11s  0.16% 70.06%      0.36s  0.53%  github.com/FlavioCFOliveira/MuxMaster.(*node).getValue
+     0.11s  0.16% 70.23%     11.58s 17.06%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.10s  0.15% 70.37%      0.94s  1.38%  encoding/json/v2.makeMapArshaler.func2

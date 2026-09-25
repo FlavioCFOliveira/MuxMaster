@@ -1,0 +1,61 @@
+{
+ "name": "jwt",
+ "setup": [
+  {
+   "method": "POST",
+   "path": "/auth/login",
+   "headers": {
+    "Content-Type": "application/json"
+   },
+   "body": "{\"username\":\"alice\",\"password\":\"secret\"}",
+   "capture_json": "token",
+   "as": "TOKEN"
+  }
+ ],
+ "requests": [
+  {
+   "name": "GET /health (fast)",
+   "method": "GET",
+   "path": "/health",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /api/me (JWT)",
+   "method": "GET",
+   "path": "/api/me",
+   "expect": 200,
+   "weight": 2,
+   "headers": {
+    "Authorization": "Bearer ${TOKEN}"
+   }
+  },
+  {
+   "name": "GET /api/secret (JWT)",
+   "method": "GET",
+   "path": "/api/secret",
+   "expect": 200,
+   "weight": 2,
+   "headers": {
+    "Authorization": "Bearer ${TOKEN}"
+   }
+  },
+  {
+   "name": "POST /auth/refresh (JWT)",
+   "method": "POST",
+   "path": "/auth/refresh",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "Authorization": "Bearer ${TOKEN}"
+   }
+  },
+  {
+   "name": "GET /api/me (no token -> 401)",
+   "method": "GET",
+   "path": "/api/me",
+   "expect": 401,
+   "weight": 1
+  }
+ ]
+}

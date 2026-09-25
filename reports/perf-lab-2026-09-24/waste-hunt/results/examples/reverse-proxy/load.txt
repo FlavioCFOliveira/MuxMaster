@@ -1,0 +1,8 @@
+scenario=reverse-proxy conns=32 duration=12.002s
+requests=257354 req/s=21443 p50=1.304371ms p90=2.770146ms p99=4.44922ms
+  GET /api/*path (round-robin)             expect=200 got 200×51473
+  POST /api/*path                          expect=200 got 200×51471
+  GET /static/*path                        expect=200 got 200×51469
+  GET /admin/*path (gated)                 expect=200 got 200×51471
+  GET /                                    expect=200 got 200×51470
+STATUS-OK: every response matched its expected status

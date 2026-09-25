@@ -214,52 +214,84 @@ func TestProp_ParamsFromContextRoundtrip(t *testing.T) {
 }
 
 // ============================================================
-// Property: I-08 — HandleFast vs Handle routing equivalence
-// For any route registered via both Handle and HandleFast at different paths,
-// each must route independently without cross-contamination.
-// Specifically tests hypothesis H-10 (silent unauthenticated when mixed).
+// Property: I-08 — HandleFast vs Handle isolation, and the CSA-2026-0054 /
+// FPE-2026-010 guard against silently mixing them.
+//
+// UPDATED (rmp #261, waste-hunt gate item 3): this test originally asserted
+// that registering a HandleFast route on a Mux that already has stdlib
+// Use() middleware must succeed silently, with the fast route simply
+// bypassing that middleware ("by design", per the removed comment below).
+// The security team later determined (FPE-2026-010, closed in commit
+// 825c623, cross-referenced as CSA-2026-0054) that this exact silent-bypass
+// shape IS hypothesis H-10 itself: an operator who adds
+// Use(authMiddleware) and later adds a HandleFast route (or the reverse
+// order) gets a route that silently serves unauthenticated traffic, with
+// no signal anything is wrong. The fix made Mux.HandleFast (and
+// Group.HandleFast) PANIC at registration time instead of silently
+// bypassing — see mux.go's HandleFast doc comment and CLAUDE.md's "Pre vs
+// Use × Handle vs HandleFast" policy matrix (CDX-S8-003), which is the
+// specified, current behaviour. This test was asserting the OLD
+// (pre-fix) expectation and was failing against both the current tree and
+// a clean worktree of commit d980583 (the sprint-18 starting point) —
+// confirmed the failure predates and is unrelated to sprint 18. The TEST
+// was wrong, not the policy; corrected here to verify the policy that is
+// actually specified: HandleFast-after-Use panics loudly, and the two safe
+// compositions (Handle+Use, HandleFast+UseFast) isolate correctly.
 // ============================================================
 
 func TestProp_HandleFastVsHandleIsolation(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
-		defer func() {
-			if r := recover(); r != nil {
-				t.Fatalf("PANIC in HandleFast/Handle isolation: %v\n%s", r, debug.Stack())
-			}
-		}()
-
 		n := rapid.IntRange(1, 5).Draw(t, "middlewareCount")
 
-		// Build an auth middleware that sets a header.
-		var authApplied int
 		authMW := func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				authApplied++
 				next.ServeHTTP(w, r)
 			})
 		}
 
-		mux := mm.New()
+		// Mixing stdlib Use() middleware with a HandleFast route on the SAME
+		// Mux must panic loudly (CSA-2026-0054 / FPE-2026-010) — this is the
+		// documented guard against a fast route silently bypassing
+		// authentication/authorisation/logging middleware.
+		func() {
+			mux := mm.New()
+			for range n {
+				mux.Use(authMW)
+			}
+			mux.GET("/stdlib", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+
+			defer func() {
+				r := recover()
+				if r == nil {
+					t.Fatalf("GETFast on a Mux with %d Use() middleware(s) did not panic — "+
+						"CSA-2026-0054/FPE-2026-010 guard regressed (silent unauthenticated fast route)", n)
+					return
+				}
+				msg, ok := r.(string)
+				if !ok || !strings.Contains(msg, "HandleFast") || !strings.Contains(msg, "stdlib middleware") {
+					t.Fatalf("panic value does not identify the stdlib-middleware/HandleFast conflict: %v\n%s", r, debug.Stack())
+				}
+			}()
+			mux.GETFast("/fast", func(w http.ResponseWriter, r *http.Request, ps mm.Params) { w.WriteHeader(http.StatusOK) })
+		}()
+
+		// The two SAFE compositions must isolate correctly and must NOT
+		// panic: (a) Handle + Use — stdlib middleware runs on the stdlib
+		// route; (b) HandleFast + UseFast on a mux with NO stdlib Use() —
+		// fast middleware runs on the fast route, and there is no stdlib
+		// middleware left to silently bypass.
+		var authApplied int
+		var stdlibHandlerCalled bool
+		stdlibMux := mm.New()
 		for range n {
-			mux.Use(authMW)
+			stdlibMux.Use(authMW2(&authApplied))
 		}
-
-		var stdlibHandlerCalled, fastHandlerCalled bool
-		authApplied = 0
-
-		mux.GET("/stdlib", func(w http.ResponseWriter, r *http.Request) {
+		stdlibMux.GET("/stdlib", func(w http.ResponseWriter, r *http.Request) {
 			stdlibHandlerCalled = true
 			w.WriteHeader(http.StatusOK)
 		})
-		mux.GETFast("/fast", func(w http.ResponseWriter, r *http.Request, ps mm.Params) {
-			fastHandlerCalled = true
-			w.WriteHeader(http.StatusOK)
-		})
-
-		// Request to stdlib route — auth middleware MUST run.
-		authApplied = 0
 		req1 := httptest.NewRequest(http.MethodGet, "/stdlib", nil)
-		mux.ServeHTTP(httptest.NewRecorder(), req1)
+		stdlibMux.ServeHTTP(httptest.NewRecorder(), req1)
 		if !stdlibHandlerCalled {
 			t.Fatal("stdlib handler not called")
 		}
@@ -267,21 +299,47 @@ func TestProp_HandleFastVsHandleIsolation(t *testing.T) {
 			t.Fatalf("auth middleware ran %d times on stdlib route, expected %d", authApplied, n)
 		}
 
-		// Request to fast route — stdlib auth middleware must NOT run.
-		// (HandleFast is documented as bypassing Use() middleware — this is by design.)
-		// The invariant here is that the fast handler IS called.
-		authApplied = 0
+		var fastMWApplied int
+		var fastHandlerCalled bool
+		fastMux := mm.New()
+		for range n {
+			fastMux.UseFast(fastAuthMW(&fastMWApplied))
+		}
+		fastMux.GETFast("/fast", func(w http.ResponseWriter, r *http.Request, ps mm.Params) {
+			fastHandlerCalled = true
+			w.WriteHeader(http.StatusOK)
+		})
 		req2 := httptest.NewRequest(http.MethodGet, "/fast", nil)
-		mux.ServeHTTP(httptest.NewRecorder(), req2)
+		fastMux.ServeHTTP(httptest.NewRecorder(), req2)
 		if !fastHandlerCalled {
 			t.Fatal("fast handler not called")
 		}
-		// Document the bypass: auth middleware ran 0 times on fast route.
-		// If it runs, that means the semantics changed — fail to signal the change.
-		if authApplied != 0 {
-			t.Logf("NOTE: stdlib middleware ran %d times on fast route (semantics changed)", authApplied)
+		if fastMWApplied != n {
+			t.Fatalf("UseFast middleware ran %d times on fast route, expected %d", fastMWApplied, n)
 		}
 	})
+}
+
+// authMW2 returns an http.Handler middleware that increments *applied on
+// every call, for the Handle+Use isolation check above.
+func authMW2(applied *int) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			*applied++
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// fastAuthMW returns a FastMiddleware that increments *applied on every
+// call, for the HandleFast+UseFast isolation check above.
+func fastAuthMW(applied *int) mm.FastMiddleware {
+	return func(next mm.FastHandler) mm.FastHandler {
+		return func(w http.ResponseWriter, r *http.Request, ps mm.Params) {
+			*applied++
+			next(w, r, ps)
+		}
+	}
 }
 
 // ============================================================

@@ -1,0 +1,2 @@
+# server stderr: 1 lines; first 40 shown
+2026/09/25 12:36:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".

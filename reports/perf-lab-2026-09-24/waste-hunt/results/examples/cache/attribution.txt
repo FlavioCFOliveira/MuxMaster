@@ -1,0 +1,81 @@
+### cpu
+owner share (nearest owning frame, leaf -> root):
+  net/http                  67.18%
+  runtime (no owner)        20.25%
+  MuxMaster/middleware       8.97%
+  MuxMaster/root             2.25%
+  example                    1.36%
+
+top MuxMaster owning functions (share of whole profile):
+    7.30%  middleware.Logger.func1.1
+    1.44%  muxmaster.JSON
+    0.72%  middleware.RequestID.func1.1
+    0.31%  middleware.sanitiseForLog
+    0.30%  muxmaster.(*Mux).serveRedirect.func1
+    0.22%  middleware.nextRandomID
+    0.16%  muxmaster.dispatchParams1
+    0.09%  middleware.(*statusRecorder).Header
+    0.09%  muxmaster.(*node).getValue
+    0.06%  middleware.validRequestID
+    0.06%  muxmaster.(*Mux).dispatch
+    0.05%  middleware.RequestID.func1
+    0.05%  middleware.RecovererWithLogger.func1
+    0.05%  middleware.RecovererWithLogger.func1.1.1
+    0.05%  muxmaster.(*Mux).ServeHTTP
+    0.05%  middleware.(*statusRecorder).Write
+    0.03%  middleware.RecovererWithLogger.func1.1
+    0.03%  muxmaster.prefixMatch
+    0.03%  muxmaster.(*Mux).serveRedirect
+    0.02%  muxmaster.(*paramsBuf).add
+    0.02%  muxmaster.Params.Get
+    0.02%  middleware.(*statusRecorder).WriteHeader
+    0.02%  muxmaster.routeCtxParams
+    0.02%  muxmaster.methodIdx
+    0.02%  muxmaster.wrapMiddleware
+
+### alloc_space
+owner share (nearest owning frame, leaf -> root):
+  net/http                  64.12%
+  MuxMaster/middleware      22.58%
+  MuxMaster/root             7.85%
+  example                    5.31%
+  runtime (no owner)         0.14%
+
+top MuxMaster owning functions (share of whole profile):
+   19.68%  middleware.RequestID.func1.1
+    4.27%  muxmaster.dispatchParams1
+    2.26%  muxmaster.JSON
+    1.26%  muxmaster.(*Mux).serveRedirect.func1
+    1.07%  middleware.sanitiseForLog
+    0.79%  middleware.Logger.func1.1
+    0.31%  middleware.nextRandomID
+    0.22%  middleware.Logger.func1
+    0.22%  middleware.RequestID.func1
+    0.16%  middleware.RecovererWithLogger.func1
+    0.09%  middleware.init.func2
+    0.06%  muxmaster.(*Mux).serveRedirect
+    0.03%  middleware.init.func1
+
+### alloc_objects
+owner share (nearest owning frame, leaf -> root):
+  net/http                  60.73%
+  MuxMaster/middleware      18.75%
+  example                   10.47%
+  MuxMaster/root            10.06%
+  runtime (no owner)         0.00%
+
+top MuxMaster owning functions (share of whole profile):
+    8.18%  middleware.RequestID.func1.1
+    6.94%  middleware.sanitiseForLog
+    5.86%  muxmaster.JSON
+    2.84%  muxmaster.(*Mux).serveRedirect.func1
+    1.37%  middleware.Logger.func1.1
+    1.16%  muxmaster.dispatchParams1
+    0.95%  middleware.RequestID.func1
+    0.51%  middleware.RecovererWithLogger.func1
+    0.48%  middleware.Logger.func1
+    0.20%  muxmaster.(*Mux).serveRedirect
+    0.17%  middleware.init.func2
+    0.14%  middleware.init.func1
+    0.01%  middleware.nextRandomID
+

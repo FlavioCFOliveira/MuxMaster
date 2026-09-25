@@ -1,0 +1,49 @@
+File: reverse-proxy
+Build ID: abfed2559a9f102901351053e0e2eac26d73a4cf
+Type: cpu
+Time: 2026-09-24 19:51:37 WEST
+Duration: 10s, Total samples = 68.45s (684.46%)
+Showing nodes accounting for 48.07s, 70.23% of 68.45s total
+Dropped 844 nodes (cum <= 0.34s)
+Showing top 40 nodes out of 287
+      flat  flat%   sum%        cum   cum%
+    20.63s 30.14% 30.14%     20.63s 30.14%  internal/runtime/syscall/linux.Syscall6
+     8.26s 12.07% 42.21%      8.26s 12.07%  runtime.nanotime (inline)
+     4.31s  6.30% 48.50%      4.31s  6.30%  time.runtimeNow
+     2.21s  3.23% 51.73%      2.21s  3.23%  runtime.futex
+     1.48s  2.16% 53.89%      2.57s  3.75%  runtime.tryDeferToSpanScan
+     1.07s  1.56% 55.46%      1.07s  1.56%  runtime.memclrNoHeapPointers
+     0.98s  1.43% 56.89%      1.97s  2.88%  runtime.scanObjectsSmall
+     0.72s  1.05% 57.94%      0.72s  1.05%  runtime.osyield
+     0.71s  1.04% 58.98%      0.71s  1.04%  runtime.spanClass.sizeclass (inline)
+     0.68s  0.99% 59.97%      0.68s  0.99%  runtime.procyieldAsm
+     0.68s  0.99% 60.96%      0.68s  0.99%  runtime.usleep
+     0.49s  0.72% 61.68%      1.16s  1.69%  runtime.pcvalue
+     0.43s  0.63% 62.31%      0.70s  1.02%  runtime.typePointers.next
+     0.40s  0.58% 62.89%      1.09s  1.59%  runtime.scanblock
+     0.40s  0.58% 63.48%      0.49s  0.72%  runtime.step
+     0.39s  0.57% 64.05%      0.39s  0.57%  runtime.madvise
+     0.32s  0.47% 64.51%      0.58s  0.85%  runtime.findObject
+     0.31s  0.45% 64.97%      0.90s  1.31%  runtime.selectgo
+     0.29s  0.42% 65.39%      1.58s  2.31%  runtime.scanObject
+     0.24s  0.35% 65.74%      0.45s  0.66%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.23s  0.34% 66.08%      1.91s  2.79%  runtime.lock2
+     0.20s  0.29% 66.37%      0.55s   0.8%  gcWriteBarrier
+     0.20s  0.29% 66.66%         3s  4.38%  runtime.mallocgcSmallScanSlowPath
+     0.19s  0.28% 66.94%      0.41s   0.6%  runtime.scanObjectSmall
+     0.18s  0.26% 67.20%      0.79s  1.15%  runtime.(*unwinder).resolveInternal
+     0.18s  0.26% 67.47%      1.32s  1.93%  runtime.wbBufFlush1
+     0.17s  0.25% 67.71%      8.05s 11.76%  runtime.mallocgc
+     0.16s  0.23% 67.95%      0.84s  1.23%  runtime.runqgrab
+     0.15s  0.22% 68.17%      0.66s  0.96%  runtime.mapaccess2_faststr
+     0.15s  0.22% 68.39%     10.52s 15.37%  runtime.schedule
+     0.14s   0.2% 68.59%      1.41s  2.06%  runtime.casgstatus
+     0.14s   0.2% 68.79%      9.23s 13.48%  runtime.findRunnable
+     0.14s   0.2% 69.00%      3.34s  4.88%  runtime.markroot
+     0.13s  0.19% 69.19%      0.70s  1.02%  runtime.(*stkframe).getStackMap
+     0.13s  0.19% 69.38%      2.60s  3.80%  runtime.scanSpan
+     0.13s  0.19% 69.57%      1.12s  1.64%  runtime.stealWork
+     0.12s  0.18% 69.74%      7.20s 10.52%  net/http.(*persistConn).readLoop
+     0.12s  0.18% 69.92%      0.51s  0.75%  runtime.(*sweepLocked).sweep
+     0.11s  0.16% 70.08%      0.55s   0.8%  runtime.unlock2
+     0.10s  0.15% 70.23%      0.79s  1.15%  net/http.Header.writeSubset

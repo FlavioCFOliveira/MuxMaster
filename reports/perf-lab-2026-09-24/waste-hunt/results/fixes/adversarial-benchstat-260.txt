@@ -1,0 +1,57 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                               │ /tmp/adversarial_final.txt │
+                               │           sec/op           │
+AdversarialBacktracking/1-16                    117.5n ± 0%
+AdversarialBacktracking/2-16                    151.2n ± 1%
+AdversarialBacktracking/4-16                    436.1n ± 0%
+AdversarialBacktracking/8-16                    973.8n ± 0%
+AdversarialBacktracking/16-16                   1.795µ ± 1%
+AdversarialBacktracking/32-16                   3.399µ ± 1%
+AdversarialBacktracking/64-16                   6.431µ ± 1%
+AdversarialBacktracking/128-16                  12.94µ ± 2%
+QuadraticBacktracking/2-16                      152.9n ± 1%
+QuadraticBacktracking/4-16                      443.8n ± 1%
+QuadraticBacktracking/8-16                      992.5n ± 1%
+QuadraticBacktracking/16-16                     1.901µ ± 6%
+QuadraticBacktracking/32-16                     3.709µ ± 1%
+QuadraticBacktracking/64-16                     7.989µ ± 1%
+geomean                                         1.211µ
+
+                               │ /tmp/adversarial_final.txt │
+                               │            B/op            │
+AdversarialBacktracking/1-16                     384.0 ± 0%
+AdversarialBacktracking/2-16                     416.0 ± 0%
+AdversarialBacktracking/4-16                     896.0 ± 0%
+AdversarialBacktracking/8-16                   2.031Ki ± 0%
+AdversarialBacktracking/16-16                  3.719Ki ± 0%
+AdversarialBacktracking/32-16                  7.469Ki ± 0%
+AdversarialBacktracking/64-16                  14.97Ki ± 0%
+AdversarialBacktracking/128-16                 30.72Ki ± 0%
+QuadraticBacktracking/2-16                       416.0 ± 0%
+QuadraticBacktracking/4-16                       896.0 ± 0%
+QuadraticBacktracking/8-16                     2.031Ki ± 0%
+QuadraticBacktracking/16-16                    3.719Ki ± 0%
+QuadraticBacktracking/32-16                    7.469Ki ± 0%
+QuadraticBacktracking/64-16                    14.97Ki ± 0%
+geomean                                        2.690Ki
+
+                               │ /tmp/adversarial_final.txt │
+                               │         allocs/op          │
+AdversarialBacktracking/1-16                     1.000 ± 0%
+AdversarialBacktracking/2-16                     1.000 ± 0%
+AdversarialBacktracking/4-16                     6.000 ± 0%
+AdversarialBacktracking/8-16                     11.00 ± 0%
+AdversarialBacktracking/16-16                    13.00 ± 0%
+AdversarialBacktracking/32-16                    15.00 ± 0%
+AdversarialBacktracking/64-16                    17.00 ± 0%
+AdversarialBacktracking/128-16                   19.00 ± 0%
+QuadraticBacktracking/2-16                       1.000 ± 0%
+QuadraticBacktracking/4-16                       6.000 ± 0%
+QuadraticBacktracking/8-16                       11.00 ± 0%
+QuadraticBacktracking/16-16                      13.00 ± 0%
+QuadraticBacktracking/32-16                      15.00 ± 0%
+QuadraticBacktracking/64-16                      17.00 ± 0%
+geomean                                          7.148

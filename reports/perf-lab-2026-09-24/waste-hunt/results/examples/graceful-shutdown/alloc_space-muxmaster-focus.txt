@@ -1,0 +1,46 @@
+File: graceful-shutdown
+Build ID: 3b879e2905e681b7bcfa7e43cf9b88d89b516135
+Type: alloc_space
+Time: 2026-09-24 19:50:32 WEST
+Duration: 10.01s, Total samples = 2049.19MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 1210.81MB, 59.09% of 2049.19MB total
+Dropped 8 nodes (cum <= 10.25MB)
+      flat  flat%   sum%        cum   cum%
+  350.11MB 17.09% 17.09%   350.11MB 17.09%  net/http.(*Request).WithContext
+  251.07MB 12.25% 29.34%  1222.31MB 59.65%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  240.57MB 11.74% 41.08%   240.57MB 11.74%  net/http.Header.Clone (inline)
+  131.02MB  6.39% 47.47%   196.53MB  9.59%  context.(*cancelCtx).propagateCancel
+   84.01MB  4.10% 51.57%   338.54MB 16.52%  context.WithDeadlineCause
+   65.51MB  3.20% 54.77%    65.51MB  3.20%  context.(*cancelCtx).Done
+   58.01MB  2.83% 57.60%    58.01MB  2.83%  time.newTimer
+       8MB  0.39% 57.99%        8MB  0.39%  net/textproto.MIMEHeader.Set (inline)
+    7.02MB  0.34% 58.33%     7.02MB  0.34%  sync.(*Pool).pinSlow
+    5.50MB  0.27% 58.60%     7.50MB  0.37%  strconv.appendQuotedWith
+    5.50MB  0.27% 58.87%       13MB  0.63%  strconv.quoteWith (inline)
+    4.50MB  0.22% 59.09%   137.54MB  6.71%  net/http.Error
+         0     0% 59.09%   338.54MB 16.52%  context.WithDeadline (inline)
+         0     0% 59.09%   338.54MB 16.52%  context.WithTimeout
+         0     0% 59.09%   118.54MB  5.78%  fmt.Fprintln
+         0     0% 59.09%   805.18MB 39.29%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 59.09%  1222.31MB 59.65%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 59.09%   805.18MB 39.29%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 59.09%   124.03MB  6.05%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 59.09%   280.08MB 13.67%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 59.09%  1222.31MB 59.65%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 59.09%   805.18MB 39.29%  github.com/FlavioCFOliveira/MuxMaster/middleware.Timeout.func1.1
+         0     0% 59.09%       13MB  0.63%  github.com/FlavioCFOliveira/MuxMaster/middleware.sanitiseForLog
+         0     0% 59.09%   117.54MB  5.74%  main.main.func1
+         0     0% 59.09%  1222.31MB 59.65%  net/http.(*conn).serve
+         0     0% 59.09%   116.53MB  5.69%  net/http.(*response).Write
+         0     0% 59.09%   240.57MB 11.74%  net/http.(*response).WriteHeader
+         0     0% 59.09%   116.53MB  5.69%  net/http.(*response).write
+         0     0% 59.09%  1222.31MB 59.65%  net/http.HandlerFunc.ServeHTTP
+         0     0% 59.09%        8MB  0.39%  net/http.Header.Set (inline)
+         0     0% 59.09%   137.54MB  6.71%  net/http.NotFound
+         0     0% 59.09%  1222.31MB 59.65%  net/http.serverHandler.ServeHTTP
+         0     0% 59.09%       13MB  0.63%  strconv.QuoteToASCII (inline)
+         0     0% 59.09%     7.01MB  0.34%  sync.(*Pool).Get
+         0     0% 59.09%     7.02MB  0.34%  sync.(*Pool).pin
+         0     0% 59.09%    58.01MB  2.83%  time.AfterFunc

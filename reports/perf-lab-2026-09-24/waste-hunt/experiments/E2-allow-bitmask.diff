@@ -1,0 +1,80 @@
+--- a/mux.go	2026-09-24 20:23:31.062820539 +0100
++++ b/mux.go	2026-09-24 20:23:31.072820518 +0100
+@@ -832,8 +832,9 @@
+ 	m.mu.RLock()
+ 	mw := m.middleware
+ 	m.mu.RUnlock()
++	allowVal := []string{allow} // [waste-hunt E2] built once per cache entry, as for 405
+ 	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		w.Header().Set("Allow", allow)
++		w.Header()["Allow"] = allowVal
+ 		if globalOPTS != nil {
+ 			globalOPTS.ServeHTTP(w, r)
+ 		} else {
+@@ -1246,6 +1247,31 @@
+ 	return http.StatusTemporaryRedirect
+ }
+ 
++// allowTable holds the Allow header value for every set of registered
++// methods, indexed by a bitmask over methodNames positions ([waste-hunt E2]).
++// Built once at init: allowed() then returns a constant string instead of
++// rebuilding it with a strings.Builder on every 405 / auto-OPTIONS request.
++var allowTable = func() (t [1 << methodCount]string) {
++	for mask := 1; mask < len(t); mask++ {
++		if mask&(1<<idxOPTIONS) != 0 || mask&(1<<idxWild) != 0 {
++			continue // never produced by allowed()
++		}
++		var b strings.Builder
++		for i := range methodCount {
++			if mask&(1<<i) != 0 {
++				if b.Len() > 0 {
++					b.WriteString(", ")
++				}
++				b.WriteString(methodNames[i])
++			}
++		}
++		b.WriteString(", ")
++		b.WriteString(http.MethodOptions)
++		t[mask] = b.String()
++	}
++	return t
++}()
++
+ // allowed returns a comma-separated Allow header value for urlPath.
+ // Returns "" when no other methods are registered at that path.
+ func (m *Mux) allowed(urlPath, reqMethod string) string {
+@@ -1253,29 +1279,19 @@
+ 	if trees == nil {
+ 		return ""
+ 	}
+-
+-	var b strings.Builder
++	var mask int
+ 	for i, root := range trees {
+-		if root == nil {
++		if root == nil || i == idxOPTIONS || i == idxWild {
+ 			continue
+ 		}
+-		method := methodNames[i]
+-		if method == reqMethod || method == http.MethodOptions || method == "*" {
++		if methodNames[i] == reqMethod {
+ 			continue
+ 		}
+ 		if root.hasHandler(urlPath) {
+-			if b.Len() > 0 {
+-				b.WriteString(", ")
+-			}
+-			b.WriteString(method)
++			mask |= 1 << i
+ 		}
+ 	}
+-	if b.Len() == 0 {
+-		return ""
+-	}
+-	b.WriteString(", ")
+-	b.WriteString(http.MethodOptions)
+-	return b.String()
++	return allowTable[mask]
+ }
+ 
+ // cleanedPath checks whether path.Clean(p) has a registered handler.

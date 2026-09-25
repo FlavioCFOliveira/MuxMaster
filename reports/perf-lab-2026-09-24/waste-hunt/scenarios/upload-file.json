@@ -1,0 +1,37 @@
+{
+ "name": "upload-file",
+ "requests": [
+  {
+   "name": "POST /upload (64 KiB)",
+   "method": "POST",
+   "path": "/upload",
+   "expect": 200,
+   "weight": 1,
+   "multipart_file_kb": 64
+  },
+  {
+   "name": "POST /multi (64 KiB)",
+   "method": "POST",
+   "path": "/multi",
+   "expect": 200,
+   "weight": 1,
+   "multipart_file_kb": 64,
+   "multipart_field": "files"
+  },
+  {
+   "name": "POST /async (64 KiB)",
+   "method": "POST",
+   "path": "/async",
+   "expect": 202,
+   "weight": 1,
+   "multipart_file_kb": 64
+  },
+  {
+   "name": "GET /",
+   "method": "GET",
+   "path": "/",
+   "expect": 200,
+   "weight": 1
+  }
+ ]
+}

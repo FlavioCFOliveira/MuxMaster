@@ -1,0 +1,71 @@
+File: jwt
+Build ID: 93299d6c1fa786cd14730e9e77d44b2bbb143955
+Type: cpu
+Time: 2026-09-24 19:50:37 WEST
+Duration: 10s, Total samples = 67.92s (679.18%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 9.34s, 13.75% of 67.92s total
+Dropped 351 nodes (cum <= 0.34s)
+Showing top 60 nodes out of 179
+      flat  flat%   sum%        cum   cum%
+     4.10s  6.04%  6.04%      4.10s  6.04%  time.runtimeNow
+     0.65s  0.96%  6.99%      0.65s  0.96%  runtime.nanotime (inline)
+     0.35s  0.52%  7.51%      0.35s  0.52%  internal/runtime/syscall/linux.Syscall6
+     0.21s  0.31%  7.82%      0.21s  0.31%  runtime.memmove
+     0.18s  0.27%  8.08%      1.23s  1.81%  encoding/json/v2.makeStructArshaler.func3
+     0.15s  0.22%  8.30%      0.15s  0.22%  internal/runtime/maps.memHashAES
+     0.14s  0.21%  8.51%      0.26s  0.38%  encoding/base64.(*Encoding).Decode
+     0.14s  0.21%  8.72%      0.15s  0.22%  encoding/json/internal/jsonwire.AppendQuote
+     0.14s  0.21%  8.92%      0.45s  0.66%  encoding/json/jsontext.(*decoderState).consumeValue
+     0.14s  0.21%  9.13%      0.29s  0.43%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.12s  0.18%  9.31%      0.29s  0.43%  encoding/json/jsontext.(*decoderState).consumeObject
+     0.12s  0.18%  9.48%      0.24s  0.35%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.12s  0.18%  9.66%      0.23s  0.34%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load
+     0.11s  0.16%  9.82%      0.20s  0.29%  runtime.tryDeferToSpanScan
+     0.10s  0.15%  9.97%      0.10s  0.15%  encoding/base64.(*Encoding).decodeQuantum
+     0.10s  0.15% 10.11%      0.17s  0.25%  encoding/json/jsontext.(*decoderState).PeekKind
+     0.10s  0.15% 10.26%      0.16s  0.24%  encoding/json/jsontext.(*decoderState).ReadToken
+     0.10s  0.15% 10.41%      0.31s  0.46%  encoding/json/jsontext.(*encoderState).WriteToken
+     0.10s  0.15% 10.56%      0.10s  0.15%  runtime.memclrNoHeapPointers
+     0.10s  0.15% 10.70%      0.10s  0.15%  runtime.nextFreeFast (inline)
+     0.09s  0.13% 10.84%      0.24s  0.35%  encoding/json/jsontext.(*decoderState).ReadValue
+     0.09s  0.13% 10.97%      1.27s  1.87%  encoding/json/v2.makeMapArshaler.func2
+     0.09s  0.13% 11.10%     13.25s 19.51%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.09s  0.13% 11.23%      1.56s  2.30%  runtime.mallocgc
+     0.08s  0.12% 11.35%      0.09s  0.13%  encoding/json/internal/jsonwire.ConsumeWhitespace (inline)
+     0.08s  0.12% 11.47%      0.15s  0.22%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+     0.07s   0.1% 11.57%      0.10s  0.15%  crypto/internal/fips140/hmac.(*HMAC).Reset
+     0.07s   0.1% 11.68%     13.96s 20.55%  net/http.HandlerFunc.ServeHTTP
+     0.07s   0.1% 11.78%      0.09s  0.13%  strconv.appendEscapedRune
+     0.07s   0.1% 11.88%      0.21s  0.31%  sync.(*Pool).Get
+     0.06s 0.088% 11.97%      0.19s  0.28%  crypto/internal/fips140/sha256.(*Digest).Write
+     0.06s 0.088% 12.06%      0.20s  0.29%  encoding/json/v2.makeStringArshaler.func2
+     0.06s 0.088% 12.15%      3.97s  5.85%  github.com/FlavioCFOliveira/MuxMaster/middleware.parseAndValidateJWT
+     0.06s 0.088% 12.23%      0.46s  0.68%  runtime.mallocgcSmallScanNoHeader
+     0.06s 0.088% 12.32%      0.11s  0.16%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.06s 0.088% 12.41%      0.13s  0.19%  runtime.mallocgcTinySC2
+     0.05s 0.074% 12.49%      0.43s  0.63%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*jwtHMACPool).verify
+     0.05s 0.074% 12.56%      0.26s  0.38%  runtime.mallocgcSmallScanSlowPath
+     0.05s 0.074% 12.63%      0.39s  0.57%  runtime.newobject
+     0.04s 0.059% 12.69%      0.11s  0.16%  crypto/internal/fips140/sha256.block
+     0.04s 0.059% 12.75%      2.15s  3.17%  encoding/json/v2.Unmarshal
+     0.04s 0.059% 12.81%      1.63s  2.40%  encoding/json/v2.marshalEncode
+     0.04s 0.059% 12.87%      1.90s  2.80%  encoding/json/v2.unmarshalDecode
+     0.04s 0.059% 12.93%     14.25s 20.98%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.04s 0.059% 12.99%      0.09s  0.13%  github.com/FlavioCFOliveira/MuxMaster.(*node).getValueStatic
+     0.04s 0.059% 13.04%      0.09s  0.13%  internal/runtime/maps.(*Iter).Next
+     0.04s 0.059% 13.10%      0.32s  0.47%  net/http.(*Request).WithContext
+     0.04s 0.059% 13.16%      0.09s  0.13%  reflect.Value.Set
+     0.04s 0.059% 13.22%      0.17s  0.25%  runtime.bulkBarrierPreWrite
+     0.04s 0.059% 13.28%      0.11s  0.16%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.04s 0.059% 13.34%      0.22s  0.32%  runtime.wbBufFlush1
+     0.04s 0.059% 13.40%      0.39s  0.57%  syscall.RawSyscall6
+     0.03s 0.044% 13.44%      0.08s  0.12%  encoding/json/jsontext.getBufferedEncoder
+     0.03s 0.044% 13.49%      0.24s  0.35%  encoding/json/v2.lookupArshaler
+     0.03s 0.044% 13.53%      0.14s  0.21%  encoding/json/v2.makeStringArshaler.func1
+     0.03s 0.044% 13.57%     14.28s 21.02%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.03s 0.044% 13.62%      0.12s  0.18%  net/http.(*response).Write
+     0.03s 0.044% 13.66%      0.61s   0.9%  net/http.(*response).WriteHeader
+     0.03s 0.044% 13.71%      0.18s  0.27%  net/http.(*response).write
+     0.03s 0.044% 13.75%      0.08s  0.12%  net/textproto.MIMEHeader.Get

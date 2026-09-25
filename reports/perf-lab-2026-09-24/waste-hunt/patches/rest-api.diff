@@ -1,0 +1,123 @@
+--- a/main.go	2026-09-24 19:38:30.391687524 +0100
++++ b/main.go	2026-09-24 19:45:28.667178506 +0100
+@@ -184,6 +184,27 @@
+ 	// be an alternative, but CleanPath is safer for REST APIs.
+ 	r.Pre(mw.CleanPath())
+ 
++	// [waste-hunt start-up patch] HandleFast routes moved above Use(): the
++	// unmodified example panics at registration (FPE-2026-010 guard). Fast
++	// routes are never wrapped by Use(), so the served behaviour is unchanged.
++	// FastHandler: bypasses context allocation — zero allocs for static routes.
++	// Ideal for health-check endpoints that are hit thousands of times per second.
++	r.GETFast("/health", func(w http.ResponseWriter, req *http.Request, _ mm.Params) {
++		w.Header().Set("Content-Type", "application/json")
++		_, _ = io.WriteString(w, `{"status":"ok"}`)
++	})
++	// ── Fast routes with FastMiddleware ──────────────────────────────────────
++
++	// UseFast registers middleware that applies only to HandleFast routes below.
++	r.UseFast(fastTimer)
++
++	// GETFast: metrics endpoint — no context allocation, direct Params argument.
++	r.GETFast("/metrics", metricsHandler)
++
++	// POSTFast via HandleFast: demonstrates HandleFast with explicit method.
++	r.HandleFast(http.MethodPost, "/api/v1/fast/echo", fastEcho)
++
++
+ 	// ── Global middleware (applied to every registered route below) ───────────
+ 
+ 	// Trusted proxy CIDRs for RealIP — localhost + RFC-1918 private ranges.
+@@ -217,12 +238,6 @@
+ 
+ 	// ── Public convenience routes ─────────────────────────────────────────────
+ 
+-	// FastHandler: bypasses context allocation — zero allocs for static routes.
+-	// Ideal for health-check endpoints that are hit thousands of times per second.
+-	r.GETFast("/health", func(w http.ResponseWriter, req *http.Request, _ mm.Params) {
+-		w.Header().Set("Content-Type", "application/json")
+-		_, _ = io.WriteString(w, `{"status":"ok"}`)
+-	})
+ 
+ 	// Standard HandlerFunc: version endpoint reads the injected app version.
+ 	r.GET("/version", func(w http.ResponseWriter, req *http.Request) {
+@@ -278,6 +293,26 @@
+ 
+ 	books := v1.Group("/books")
+ 
++	// [waste-hunt start-up patch] static siblings (featured, ping, files) moved
++	// above the ':id' wildcard routes: registered after them they panic with
++	// "conflicts with existing wildcard" (registration-order sensitivity).
++	// Match registers one handler for multiple methods (GET + HEAD share logic).
++	books.Match(
++		[]string{http.MethodGet, http.MethodHead},
++		"/featured",
++		http.HandlerFunc(store.featuredBooks),
++	)
++
++	// ANY registers a handler for every standard HTTP method.
++	books.ANY("/ping", func(w http.ResponseWriter, req *http.Request) {
++		_ = mm.Text(w, http.StatusOK, fmt.Sprintf("pong from %s /api/v1/books/ping", req.Method))
++	})
++
++	// ServeFiles from the local filesystem. The catch-all param is "filepath".
++	// HEAD requests are automatically registered alongside GET by ServeFiles.
++	books.ServeFiles("/files/*filepath", http.Dir("./static/books"))
++
++
+ 	// GET /api/v1/books — list with pagination.
+ 	books.GET("", store.listBooks)
+ 
+@@ -292,7 +327,10 @@
+ 
+ 	// GET /api/v1/books/{id:[0-9]+}/details — regex param: only numeric IDs.
+ 	// PathParam still returns the matched segment (e.g. "42") under key "id".
+-	books.GET("/{id:[0-9]+}/details", store.getBookDetails)
++	// [waste-hunt start-up patch] the regex form '/{id:[0-9]+}/details'
++	// panics at registration: it conflicts with the ':id' wildcard above
++	// (a regex param and a ':name' param cannot share a parent node).
++	books.GET("/:id/details", store.getBookDetails)
+ 
+ 	// PUT /api/v1/books/:id — full replacement; PUTE demo.
+ 	books.PUTE("/:id", store.replaceBook)
+@@ -312,22 +350,6 @@
+ 	// Demonstrates Params.Map() and RoutePattern().
+ 	books.GETE("/:id/reviews/:rid", store.getReview)
+ 
+-	// Match registers one handler for multiple methods (GET + HEAD share logic).
+-	books.Match(
+-		[]string{http.MethodGet, http.MethodHead},
+-		"/featured",
+-		http.HandlerFunc(store.featuredBooks),
+-	)
+-
+-	// ANY registers a handler for every standard HTTP method.
+-	books.ANY("/ping", func(w http.ResponseWriter, req *http.Request) {
+-		_ = mm.Text(w, http.StatusOK, fmt.Sprintf("pong from %s /api/v1/books/ping", req.Method))
+-	})
+-
+-	// ServeFiles from the local filesystem. The catch-all param is "filepath".
+-	// HEAD requests are automatically registered alongside GET by ServeFiles.
+-	books.ServeFiles("/files/*filepath", http.Dir("./static/books"))
+-
+ 	// ── Authors (With: scoped CORS + XML demo) ────────────────────────────────
+ 
+ 	// With() returns a new Group with extra middleware applied to its routes only.
+@@ -366,17 +388,6 @@
+ 		_ = mm.JSON(w, http.StatusOK, r.Routes())
+ 	})
+ 
+-	// ── Fast routes with FastMiddleware ──────────────────────────────────────
+-
+-	// UseFast registers middleware that applies only to HandleFast routes below.
+-	r.UseFast(fastTimer)
+-
+-	// GETFast: metrics endpoint — no context allocation, direct Params argument.
+-	r.GETFast("/metrics", metricsHandler)
+-
+-	// POSTFast via HandleFast: demonstrates HandleFast with explicit method.
+-	r.HandleFast(http.MethodPost, "/api/v1/fast/echo", fastEcho)
+-
+ 	// ── Mount: attach a sub-handler at a prefix ───────────────────────────────
+ 
+ 	// Mount strips the prefix before forwarding. legacyMux handles /legacy/* paths

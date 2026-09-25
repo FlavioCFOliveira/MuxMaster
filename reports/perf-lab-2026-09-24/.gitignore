@@ -1,0 +1,11 @@
+# Compiled test/load-harness binaries — never committed.
+*.test
+harness/harness.test
+loadgen/loadgen
+
+# Guard against accidentally-large trace/profile captures. Traces and
+# profiles produced by run.sh / driver.sh are kept only while they stay
+# under ~20MB (see contention-hunt.md "Reproduction"); anything larger
+# should be summarised in the report instead of committed raw.
+profiles/*.out
+!profiles/trace.out

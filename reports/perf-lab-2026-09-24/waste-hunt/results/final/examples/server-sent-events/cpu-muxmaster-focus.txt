@@ -1,0 +1,56 @@
+File: server-sent-events
+Build ID: d7643d2c55def99bf8e87728fc6853605b6bca17
+Type: cpu
+Time: 2026-09-25 12:38:22 WEST
+Duration: 10s, Total samples = 94.32s (943.14%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 74.08s, 78.54% of 94.32s total
+Dropped 347 nodes (cum <= 0.47s)
+      flat  flat%   sum%        cum   cum%
+    69.97s 74.18% 74.18%     69.97s 74.18%  internal/runtime/syscall/linux.Syscall6
+     0.47s   0.5% 74.68%      1.19s  1.26%  runtime.selectgo
+     0.36s  0.38% 75.06%      0.62s  0.66%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.35s  0.37% 75.43%      1.16s  1.23%  fmt.(*pp).doPrintf
+     0.30s  0.32% 75.75%     77.39s 82.05%  main.(*hub).stream
+     0.25s  0.27% 76.02%      0.70s  0.74%  fmt.(*pp).printArg
+     0.24s  0.25% 76.27%      0.51s  0.54%  runtime.chansend
+     0.22s  0.23% 76.51%     72.02s 76.36%  net/http.checkConnErrorWriter.Write
+     0.18s  0.19% 76.70%     73.23s 77.64%  bufio.(*Writer).Flush
+     0.17s  0.18% 76.88%      0.72s  0.76%  net/http.(*response).write
+     0.15s  0.16% 77.04%     71.61s 75.92%  internal/poll.(*FD).Write
+     0.13s  0.14% 77.17%      1.03s  1.09%  net/http.(*chunkWriter).Write
+     0.12s  0.13% 77.30%      1.07s  1.13%  runtime.mallocgc
+     0.12s  0.13% 77.43%     70.09s 74.31%  syscall.RawSyscall6
+     0.10s  0.11% 77.53%     71.79s 76.11%  net.(*conn).Write
+     0.10s  0.11% 77.64%     73.41s 77.83%  net/http.(*response).FlushError
+     0.09s 0.095% 77.74%     70.81s 75.07%  syscall.Syscall
+     0.08s 0.085% 77.82%     72.23s 76.58%  net/http.(*chunkWriter).flush
+     0.08s 0.085% 77.91%     73.49s 77.92%  net/http.(*response).Flush
+     0.08s 0.085% 77.99%     70.87s 75.14%  syscall.write
+     0.07s 0.074% 78.06%      2.32s  2.46%  fmt.Fprintf
+     0.07s 0.074% 78.14%     70.94s 75.21%  syscall.Write (inline)
+     0.05s 0.053% 78.19%     71.69s 76.01%  net.(*netFD).Write
+     0.04s 0.042% 78.23%      0.86s  0.91%  main.(*hub).broadcast
+     0.04s 0.042% 78.28%     80.77s 85.63%  net/http.HandlerFunc.ServeHTTP
+     0.03s 0.032% 78.31%      0.69s  0.73%  encoding/json/v2.makeMapArshaler.func2
+     0.03s 0.032% 78.34%      0.49s  0.52%  encoding/json/v2.unmarshalDecode
+     0.03s 0.032% 78.37%     70.97s 75.24%  internal/poll.ignoringEINTRIO (inline)
+     0.03s 0.032% 78.40%      0.74s  0.78%  net/http.(*response).Write
+     0.02s 0.021% 78.42%     80.39s 85.23%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.02s 0.021% 78.45%     80.42s 85.26%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+     0.02s 0.021% 78.47%      2.90s  3.07%  main.(*hub).publish
+     0.02s 0.021% 78.49%      0.69s  0.73%  runtime.convTstring
+     0.02s 0.021% 78.51%      0.53s  0.56%  runtime.selectnbsend
+     0.01s 0.011% 78.52%      0.73s  0.77%  encoding/json/v2.marshalEncode
+     0.01s 0.011% 78.53%     80.40s 85.24%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+     0.01s 0.011% 78.54%     80.78s 85.64%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 78.54%         1s  1.06%  encoding/json.(*Encoder).Encode
+         0     0% 78.54%      0.55s  0.58%  encoding/json.Unmarshal (inline)
+         0     0% 78.54%      0.73s  0.77%  encoding/json/v2.MarshalEncode
+         0     0% 78.54%      0.55s  0.58%  encoding/json/v2.Unmarshal
+         0     0% 78.54%     77.39s 82.05%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Pooled
+         0     0% 78.54%     80.76s 85.62%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+         0     0% 78.54%     80.78s 85.64%  net/http.(*conn).serve
+         0     0% 78.54%     80.78s 85.64%  net/http.serverHandler.ServeHTTP
+         0     0% 78.54%      0.75s   0.8%  runtime.systemstack

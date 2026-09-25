@@ -1,0 +1,64 @@
+### cpu
+owner share (nearest owning frame, leaf -> root):
+  net/http                  64.05%
+  runtime (no owner)        19.78%
+  MuxMaster/middleware      15.54%
+  MuxMaster/root             0.47%
+  example                    0.15%
+
+top MuxMaster owning functions (share of whole profile):
+    7.37%  middleware.Logger.func1.1
+    6.72%  middleware.Timeout.func1.1
+    0.77%  middleware.RequestID.func1.1
+    0.21%  middleware.nextRandomID
+    0.18%  muxmaster.(*Mux).dispatch
+    0.10%  muxmaster.(*Mux).allowed
+    0.09%  middleware.formatLogDuration
+    0.07%  middleware.(*requestIDCtx).Done
+    0.06%  middleware.(*statusRecorder).Write
+    0.06%  middleware.RecovererWithLogger.func1.1
+    0.06%  muxmaster.(*Mux).config
+    0.04%  muxmaster.(*node).getValueStatic
+    0.04%  middleware.RecovererWithLogger.func1.1.1
+    0.03%  middleware.appendLogDuration
+    0.03%  middleware.(*statusRecorder).WriteHeader
+    0.03%  middleware.init.func2
+    0.03%  muxmaster.(*Mux).lazyNotFound
+    0.03%  middleware.appendSanitisedForLog
+    0.01%  muxmaster.foldEq
+    0.01%  muxmaster.methodIdx
+    0.01%  middleware.fmtFracLogDuration
+    0.01%  muxmaster.(*Mux).ServeHTTP
+    0.01%  muxmaster.(*Mux).Pre.func1
+    0.01%  middleware.fmtIntLogDuration
+
+### alloc_space
+owner share (nearest owning frame, leaf -> root):
+  net/http                  52.40%
+  MuxMaster/middleware      47.52%
+  example                    0.07%
+
+top MuxMaster owning functions (share of whole profile):
+   25.70%  middleware.Timeout.func1.1
+   20.33%  middleware.RequestID.func1.1
+    1.19%  middleware.Logger.func1.1
+    0.15%  middleware.nextRandomID
+    0.07%  middleware.init.func2
+    0.05%  middleware.newExhaustedRequestIDBuf
+    0.03%  middleware.init.func1
+
+### alloc_objects
+owner share (nearest owning frame, leaf -> root):
+  net/http                  58.07%
+  MuxMaster/middleware      41.92%
+  example                    0.00%
+
+top MuxMaster owning functions (share of whole profile):
+   26.67%  middleware.Timeout.func1.1
+    9.88%  middleware.RequestID.func1.1
+    5.22%  middleware.Logger.func1.1
+    0.09%  middleware.init.func1
+    0.05%  middleware.init.func2
+    0.01%  middleware.nextRandomID
+    0.00%  middleware.newExhaustedRequestIDBuf
+

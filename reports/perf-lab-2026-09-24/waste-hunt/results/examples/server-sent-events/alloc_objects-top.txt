@@ -1,0 +1,49 @@
+File: server-sent-events
+Build ID: 5b38fcc1cbeba933325150893cc690acf68b9337
+Type: alloc_objects
+Time: 2026-09-24 19:52:03 WEST
+Duration: 10.01s, Total samples = 14518054 
+Showing nodes accounting for 14486530, 99.78% of 14518054 total
+Dropped 48 nodes (cum <= 72590)
+Showing top 40 nodes out of 43
+      flat  flat%   sum%        cum   cum%
+   5963868 41.08% 41.08%    5967075 41.10%  main.(*hub).stream
+   1468474 10.11% 51.19%    1468474 10.11%  net/textproto.readMIMEHeader
+   1146897  7.90% 59.09%    1146897  7.90%  reflect.unsafe_New
+    981301  6.76% 65.85%    3475486 23.94%  main.(*hub).publish
+    723480  4.98% 70.84%     723480  4.98%  net/http.Header.Clone (inline)
+    495962  3.42% 74.25%    3754369 25.86%  net/http.(*conn).readRequest
+    446333  3.07% 77.33%   10166516 70.03%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    415072  2.86% 80.19%     415072  2.86%  io.LimitReader (inline)
+    393222  2.71% 82.89%     609508  4.20%  context.WithCancel
+    327685  2.26% 85.15%   14281966 98.37%  net/http.(*conn).serve
+    294916  2.03% 87.18%     294916  2.03%  net/http.(*connReader).startBackgroundRead
+    247615  1.71% 88.89%     247615  1.71%  net/url.parse
+    243960  1.68% 90.57%    2647616 18.24%  net/http.readRequestLimit
+    235948  1.63% 92.19%     235948  1.63%  net.(*conn).Read
+    229381  1.58% 93.77%     229381  1.58%  net/textproto.(*Reader).ReadLine (inline)
+    224529  1.55% 95.32%     224529  1.55%  net/http.(*Request).WithContext
+    216286  1.49% 96.81%     216286  1.49%  context.withCancel (inline)
+    216285  1.49% 98.30%     434744  2.99%  net/http.readTransfer
+    215316  1.48% 99.78%     477464  3.29%  io.ReadAll
+         0     0% 99.78%    1819834 12.53%  encoding/json.(*Encoder).Encode
+         0     0% 99.78%    1147125  7.90%  encoding/json/v2.MarshalEncode
+         0     0% 99.78%     327685  2.26%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 99.78%    1081588  7.45%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 99.78%    1147125  7.90%  encoding/json/v2.marshalEncode
+         0     0% 99.78%     786444  5.42%  encoding/json/v2.newAddressableValue
+         0     0% 99.78%    9495198 65.40%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 99.78%   10166516 70.03%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 99.78%    9495198 65.40%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 99.78%    5967075 41.10%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Pooled
+         0     0% 99.78%    9495198 65.40%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 99.78%     262148  1.81%  io.(*LimitedReader).Read
+         0     0% 99.78%     262148  1.81%  net/http.(*body).Read
+         0     0% 99.78%     262148  1.81%  net/http.(*body).readLocked
+         0     0% 99.78%     235948  1.63%  net/http.(*connReader).backgroundRead
+         0     0% 99.78%     670843  4.62%  net/http.(*response).Write
+         0     0% 99.78%     723480  4.98%  net/http.(*response).WriteHeader
+         0     0% 99.78%     723480  4.98%  net/http.(*response).write
+         0     0% 99.78%   10166688 70.03%  net/http.HandlerFunc.ServeHTTP
+         0     0% 99.78%   10166688 70.03%  net/http.serverHandler.ServeHTTP
+         0     0% 99.78%     247615  1.71%  net/url.ParseRequestURI

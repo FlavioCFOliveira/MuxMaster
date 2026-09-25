@@ -1,0 +1,49 @@
+File: static-site
+Build ID: 81f0f8db5675d45ba15ba4253fbefea2b0138db7
+Type: cpu
+Time: 2026-09-25 12:38:52 WEST
+Duration: 10s, Total samples = 68.39s (683.81%)
+Showing nodes accounting for 48.96s, 71.59% of 68.39s total
+Dropped 804 nodes (cum <= 0.34s)
+Showing top 40 nodes out of 233
+      flat  flat%   sum%        cum   cum%
+    15.57s 22.77% 22.77%     15.57s 22.77%  internal/runtime/syscall/linux.Syscall6
+    12.17s 17.79% 40.56%     12.17s 17.79%  time.runtimeNow
+     9.45s 13.82% 54.38%      9.45s 13.82%  runtime.nanotime (inline)
+     1.62s  2.37% 56.75%      1.62s  2.37%  runtime.futex
+     1.37s  2.00% 58.75%      1.37s  2.00%  runtime.usleep
+     1.18s  1.73% 60.48%      1.93s  2.82%  runtime.tryDeferToSpanScan
+     0.96s  1.40% 61.88%      1.97s  2.88%  runtime.scanObjectsSmall
+     0.45s  0.66% 62.54%      0.45s  0.66%  runtime.procyieldAsm
+     0.42s  0.61% 63.15%      0.50s  0.73%  runtime.typePointers.next
+     0.37s  0.54% 63.69%      0.37s  0.54%  runtime.memmove
+     0.35s  0.51% 64.21%      0.35s  0.51%  runtime.osyield
+     0.35s  0.51% 64.72%      0.35s  0.51%  runtime.spanClass.sizeclass (inline)
+     0.32s  0.47% 65.18%      0.63s  0.92%  internal/runtime/maps.(*Iter).Next
+     0.28s  0.41% 65.59%      0.46s  0.67%  runtime.findObject
+     0.28s  0.41% 66.00%      0.78s  1.14%  slices.insertionSortCmpFunc[go.shape.struct { net/http.key string; net/http.values []string }] (inline)
+     0.23s  0.34% 66.34%      0.46s  0.67%  time.Time.appendFormat
+     0.21s  0.31% 66.65%      0.89s  1.30%  runtime.scanObject
+     0.20s  0.29% 66.94%      4.18s  6.11%  net/http.(*chunkWriter).writeHeader
+     0.19s  0.28% 67.22%      8.43s 12.33%  runtime.findRunnable
+     0.19s  0.28% 67.50%      1.07s  1.56%  runtime.mallocgcSmallScanSlowPath
+     0.19s  0.28% 67.77%      1.23s  1.80%  runtime.wbBufFlush1
+     0.18s  0.26% 68.04%      1.36s  1.99%  runtime.lock2
+     0.18s  0.26% 68.30%      0.56s  0.82%  runtime.mapaccess2_faststr
+     0.17s  0.25% 68.55%      0.38s  0.56%  net/textproto.CanonicalMIMEHeaderKey
+     0.17s  0.25% 68.80%      0.40s  0.58%  runtime.pcvalue
+     0.17s  0.25% 69.05%      1.85s  2.71%  runtime.stealWork
+     0.15s  0.22% 69.26%      1.80s  2.63%  net/http.Header.writeSubset
+     0.15s  0.22% 69.48%      3.42s  5.00%  runtime.mallocgc
+     0.14s   0.2% 69.69%      3.13s  4.58%  internal/poll.runtime_pollSetDeadline
+     0.14s   0.2% 69.89%      1.61s  2.35%  net/textproto.readMIMEHeader
+     0.14s   0.2% 70.10%      0.67s  0.98%  runtime.bulkBarrierPreWrite
+     0.13s  0.19% 70.29%      1.24s  1.81%  runtime.mapassign_faststr
+     0.12s  0.18% 70.46%      9.63s 14.08%  net/http.(*conn).readRequest
+     0.12s  0.18% 70.64%      0.45s  0.66%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.12s  0.18% 70.81%      0.47s  0.69%  runtime.reentersyscall
+     0.12s  0.18% 70.99%      0.46s  0.67%  sync.(*Pool).Get
+     0.11s  0.16% 71.15%     14.65s 21.42%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.10s  0.15% 71.30%      0.72s  1.05%  gcWriteBarrier
+     0.10s  0.15% 71.44%      7.38s 10.79%  internal/poll.setDeadlineImpl
+     0.10s  0.15% 71.59%     14.81s 21.66%  net/http.HandlerFunc.ServeHTTP

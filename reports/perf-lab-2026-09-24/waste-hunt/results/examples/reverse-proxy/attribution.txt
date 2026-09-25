@@ -1,0 +1,59 @@
+### cpu
+owner share (nearest owning frame, leaf -> root):
+  net/http                  66.25%
+  runtime (no owner)        26.48%
+  example                    3.71%
+  MuxMaster/root             2.06%
+  MuxMaster/middleware       1.49%
+
+top MuxMaster owning functions (share of whole profile):
+    1.62%  muxmaster.dispatchParams1
+    0.72%  middleware.nextRandomID
+    0.41%  middleware.RequestID.func1.1
+    0.18%  middleware.(*requestIDCtx).Value
+    0.09%  muxmaster.(*node).getValue
+    0.09%  muxmaster.(*Mux).dispatch
+    0.07%  middleware.newExhaustedRequestIDBuf
+    0.06%  muxmaster.Params.Get
+    0.04%  middleware.(*requestIDCtx).Done
+    0.03%  muxmaster.(*Mux).ServeHTTP
+    0.03%  muxmaster.(*Mux).Pre.func1
+    0.03%  middleware.RecovererWithLogger.func1.1
+    0.03%  muxmaster.(*requestCtx1).Value
+    0.03%  muxmaster.PathParam
+    0.03%  muxmaster.prefixMatch
+    0.03%  middleware.RecovererWithLogger.func1.1.1
+    0.01%  muxmaster.(*requestCtx1).Done
+    0.01%  muxmaster.(*Mux).config
+    0.01%  muxmaster.methodIdx
+    0.01%  middleware.validRequestID
+    0.01%  muxmaster.routeCtxParams
+
+### alloc_space
+owner share (nearest owning frame, leaf -> root):
+  example                   46.97%
+  net/http                  33.67%
+  MuxMaster/root            16.05%
+  MuxMaster/middleware       3.29%
+  runtime (no owner)         0.02%
+
+top MuxMaster owning functions (share of whole profile):
+   16.05%  muxmaster.dispatchParams1
+    1.72%  middleware.RequestID.func1.1
+    1.45%  middleware.newExhaustedRequestIDBuf
+    0.12%  middleware.nextRandomID
+
+### alloc_objects
+owner share (nearest owning frame, leaf -> root):
+  net/http                  76.76%
+  example                   15.44%
+  MuxMaster/root             4.72%
+  MuxMaster/middleware       3.08%
+  runtime (no owner)         0.00%
+
+top MuxMaster owning functions (share of whole profile):
+    4.72%  muxmaster.dispatchParams1
+    2.92%  middleware.RequestID.func1.1
+    0.14%  middleware.newExhaustedRequestIDBuf
+    0.02%  middleware.nextRandomID
+

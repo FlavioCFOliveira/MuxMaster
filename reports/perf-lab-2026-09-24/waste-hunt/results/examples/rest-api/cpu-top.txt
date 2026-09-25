@@ -1,0 +1,49 @@
+File: rest-api
+Build ID: 4b8baa8639964aa2c48adae079ae129e2d4dd77e
+Type: cpu
+Time: 2026-09-24 19:53:57 WEST
+Duration: 10s, Total samples = 68.41s (684.06%)
+Showing nodes accounting for 47.69s, 69.71% of 68.41s total
+Dropped 910 nodes (cum <= 0.34s)
+Showing top 40 nodes out of 213
+      flat  flat%   sum%        cum   cum%
+    13.45s 19.66% 19.66%     13.45s 19.66%  time.runtimeNow
+    11.95s 17.47% 37.13%     11.95s 17.47%  runtime.nanotime (inline)
+    11.93s 17.44% 54.57%     11.93s 17.44%  internal/runtime/syscall/linux.Syscall6
+     1.51s  2.21% 56.78%      1.51s  2.21%  runtime.futex
+     1.47s  2.15% 58.92%      1.47s  2.15%  runtime.usleep
+     0.98s  1.43% 60.36%      1.61s  2.35%  runtime.tryDeferToSpanScan
+     0.71s  1.04% 61.39%      1.29s  1.89%  runtime.scanObjectsSmall
+     0.54s  0.79% 62.18%      0.54s  0.79%  runtime.procyieldAsm
+     0.37s  0.54% 62.72%      0.55s   0.8%  runtime.typePointers.next
+     0.28s  0.41% 63.13%      1.48s  2.16%  runtime.lock2
+     0.28s  0.41% 63.54%      1.17s  1.71%  runtime.scanObject
+     0.27s  0.39% 63.94%      0.63s  0.92%  runtime.pcvalue
+     0.24s  0.35% 64.29%      0.63s  0.92%  runtime.scanblock
+     0.21s  0.31% 64.60%      0.53s  0.77%  runtime.unlock2
+     0.20s  0.29% 64.89%     51.53s 75.33%  net/http.(*conn).serve
+     0.20s  0.29% 65.18%      1.20s  1.75%  runtime.casgstatus
+     0.19s  0.28% 65.46%      0.45s  0.66%  time.Time.appendFormat
+     0.18s  0.26% 65.72%      0.42s  0.61%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.18s  0.26% 65.98%      3.38s  4.94%  runtime.mallocgc
+     0.17s  0.25% 66.23%         9s 13.16%  runtime.findRunnable
+     0.17s  0.25% 66.48%      1.28s  1.87%  runtime.mallocgcSmallScanSlowPath
+     0.17s  0.25% 66.73%      0.75s  1.10%  runtime.wbBufFlush1
+     0.15s  0.22% 66.95%      3.38s  4.94%  internal/poll.runtime_pollSetDeadline
+     0.14s   0.2% 67.15%      0.66s  0.96%  runtime.mapaccess2_faststr
+     0.14s   0.2% 67.36%      1.62s  2.37%  runtime.runqgrab
+     0.13s  0.19% 67.55%      0.42s  0.61%  runtime.bulkBarrierPreWrite
+     0.13s  0.19% 67.74%      1.99s  2.91%  runtime.stealWork
+     0.12s  0.18% 67.91%      9.90s 14.47%  net/http.(*conn).readRequest
+     0.12s  0.18% 68.09%      2.90s  4.24%  runtime.(*timers).check
+     0.11s  0.16% 68.25%      0.67s  0.98%  net/http.Header.writeSubset
+     0.11s  0.16% 68.41%      0.71s  1.04%  runtime.mapassign_faststr
+     0.11s  0.16% 68.57%      1.57s  2.29%  runtime.newobject
+     0.11s  0.16% 68.73%      9.80s 14.33%  runtime.schedule
+     0.10s  0.15% 68.88%      0.75s  1.10%  encoding/json/v2.makeStructArshaler.func2
+     0.10s  0.15% 69.02%      3.32s  4.85%  net/http.(*chunkWriter).writeHeader
+     0.10s  0.15% 69.17%      3.40s  4.97%  net/http.readRequestLimit
+     0.10s  0.15% 69.32%      0.40s  0.58%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.09s  0.13% 69.45%     15.61s 22.82%  net/http.HandlerFunc.ServeHTTP
+     0.09s  0.13% 69.58%      1.50s  2.19%  net/textproto.readMIMEHeader
+     0.09s  0.13% 69.71%      0.42s  0.61%  runtime.(*timer).modify

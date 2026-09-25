@@ -1,0 +1,49 @@
+File: max-performance
+Build ID: 80541f5b6e341bc03814fb3fdbbdae6838456c2e
+Type: alloc_objects
+Time: 2026-09-24 19:53:52 WEST
+Duration: 10.01s, Total samples = 17897228 
+Showing nodes accounting for 17296738, 96.64% of 17897228 total
+Dropped 94 nodes (cum <= 89486)
+Showing top 40 nodes out of 91
+      flat  flat%   sum%        cum   cum%
+   2677058 14.96% 14.96%    2677058 14.96%  net/textproto.readMIMEHeader
+   2555938 14.28% 29.24%    2555938 14.28%  reflect.unsafe_New
+   1750841  9.78% 39.02%    1750841  9.78%  net/http.Header.Clone (inline)
+   1109855  6.20% 45.22%    9781720 54.65%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    965712  5.40% 50.62%    6639162 37.10%  net/http.(*conn).readRequest
+    688138  3.84% 54.46%     688138  3.84%  net/http.(*connReader).startBackgroundRead
+    622611  3.48% 57.94%     622611  3.48%  net/textproto.(*Reader).ReadLine (inline)
+    602978  3.37% 61.31%     602978  3.37%  context.withCancel (inline)
+    602977  3.37% 64.68%     602977  3.37%  net.(*conn).Read
+    576893  3.22% 67.90%    4556272 25.46%  net/http.readRequestLimit
+    576183  3.22% 71.12%     707257  3.95%  strconv.quoteWith (inline)
+    575340  3.21% 74.34%     575340  3.21%  net/url.parse
+    557226  3.11% 77.45%     557226  3.11%  net/http.(*Request).WithContext
+    491528  2.75% 80.20%    1094506  6.12%  context.WithCancel
+    262147  1.46% 81.66%     262147  1.46%  net/http.(*routingNode).matchPath
+    254881  1.42% 83.09%     581277  3.25%  main.getRepoIssue
+    196610  1.10% 84.19%     196610  1.10%  time.Duration.String
+    184810  1.03% 85.22%    1311718  7.33%  main.configHandler
+    182063  1.02% 86.24%     966154  5.40%  main.getUser
+    163842  0.92% 87.15%   17171524 95.95%  net/http.(*conn).serve
+    163841  0.92% 88.07%     551892  3.08%  main.createUser
+    148832  0.83% 88.90%     148832  0.83%  sync.(*poolChain).pushHead
+    147459  0.82% 89.72%     147459  0.82%  slices.AppendSeq[go.shape.[]go.shape.string,go.shape.string] (inline)
+    131074  0.73% 90.45%     131074  0.73%  strconv.appendQuotedWith
+    131073  0.73% 91.19%     546097  3.05%  main.fastTimer.func1.1
+    118342  0.66% 91.85%     567962  3.17%  main.getUserOrder
+    105598  0.59% 92.44%     714255  3.99%  main.getUserProfile
+     98307  0.55% 92.99%     267130  1.49%  main.listStaticFile
+     98305  0.55% 93.54%     122678  0.69%  main.postEvent.func1
+     98305  0.55% 94.09%      98305  0.55%  net/textproto.MIMEHeader.Set (inline)
+     65539  0.37% 94.45%     384137  2.15%  main.postEvent
+     65537  0.37% 94.82%     305093  1.70%  net/http.Error
+     58731  0.33% 95.15%    1114165  6.23%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+     43697  0.24% 95.39%    1055434  5.90%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).mountAt.func1
+     43692  0.24% 95.63%      91220  0.51%  encoding/json.NewDecoder
+     43137  0.24% 95.88%     141442  0.79%  io.ReadAll
+     39333  0.22% 96.10%     242425  1.35%  net/http.(*Request).Clone
+     32769  0.18% 96.28%      98306  0.55%  encoding/json/jsontext.(*decoderState).fetch
+     32768  0.18% 96.46%     223364  1.25%  main.metricsFast
+     32768  0.18% 96.64%     431451  2.41%  net/http.(*ServeMux).matchingMethods

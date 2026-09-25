@@ -197,6 +197,10 @@ Called for every auto-handled OPTIONS request. The `Allow` header is already set
 
 Only active when `HandleOPTIONS` is `true`.
 
+**Middleware wrapping:**
+
+The automatic OPTIONS response is wrapped by any global middleware registered via `Use()`. The wrapper is applied dynamically: if you call `Use()` after assigning `GlobalOPTIONS`, the OPTIONS handler will be re-wrapped with the new middleware chain. This ensures that authentication, rate-limiting, logging, and other policies apply to OPTIONS responses.
+
 ---
 
 ### PanicHandler

@@ -1,0 +1,134 @@
+2026/09/24 17:54:47 WARN muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md "UseRawPath traversal" (PRF-2026-0002).
+2026/09/24 17:54:47 WARN muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md "UseRawPath traversal" (PRF-2026-0002).
+2026/09/24 17:54:47 WARN muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md "UseRawPath traversal" (PRF-2026-0002).
+2026/09/24 17:54:47 WARN muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md "UseRawPath traversal" (PRF-2026-0002).
+2026/09/24 17:54:47 WARN muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md "UseRawPath traversal" (PRF-2026-0002).
+2026/09/24 17:54:47 WARN muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md "UseRawPath traversal" (PRF-2026-0002).
+2026/09/24 17:54:47 WARN muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md "UseRawPath traversal" (PRF-2026-0002).
+2026/09/24 17:54:47 WARN muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md "UseRawPath traversal" (PRF-2026-0002).
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkStaticRoute-16            	48071736	        24.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	48858715	        24.64 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	48906696	        24.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	48818319	        24.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	48730950	        24.75 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	49147035	        24.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	49400257	        24.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16            	49493752	        24.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute1-16            	 9820630	       112.7 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16            	10540804	       115.0 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16            	10496596	       114.0 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16            	10437328	       114.7 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16            	10349187	       114.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16            	10608648	       113.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16            	10379133	       115.2 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16            	10173078	       113.9 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute2-16            	 8781004	       132.8 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16            	 9061518	       133.4 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16            	 8984386	       134.6 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16            	 8817351	       133.0 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16            	 9000535	       132.7 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16            	 8972034	       135.7 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16            	 8970675	       134.0 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16            	 8931861	       133.7 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute3-16            	 8042362	       153.3 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16            	 7836558	       152.4 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16            	 7799776	       152.5 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16            	 7864947	       155.3 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16            	 7829124	       152.3 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16            	 7580925	       151.8 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16            	 7842714	       154.8 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16            	 7700415	       150.7 ns/op	     480 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16          	10654897	       114.4 ns/op	     384 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16          	10358746	       114.7 ns/op	     384 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16          	10227360	       113.6 ns/op	     384 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16          	10524038	       114.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16          	10327018	       114.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16          	10434723	       112.8 ns/op	     384 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16          	10413915	       117.0 ns/op	     384 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16          	10705264	       113.9 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNotFound-16               	 5066304	       225.5 ns/op	     100 B/op	       3 allocs/op
+BenchmarkNotFound-16               	 5972637	       215.7 ns/op	      92 B/op	       3 allocs/op
+BenchmarkNotFound-16               	 5976157	       218.4 ns/op	      92 B/op	       3 allocs/op
+BenchmarkNotFound-16               	 6004796	       214.4 ns/op	      92 B/op	       3 allocs/op
+BenchmarkNotFound-16               	 6010150	       217.3 ns/op	      92 B/op	       3 allocs/op
+BenchmarkNotFound-16               	 6043369	       231.3 ns/op	      92 B/op	       3 allocs/op
+BenchmarkNotFound-16               	 5250096	       241.9 ns/op	      99 B/op	       3 allocs/op
+BenchmarkNotFound-16               	 5588527	       221.8 ns/op	      96 B/op	       3 allocs/op
+BenchmarkParallelStaticRoute-16    	331675414	         3.687 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	325031106	         3.728 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	321082855	         3.756 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	320492734	         3.769 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	318111321	         3.787 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	315485918	         3.800 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	314488015	         3.814 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16    	314457337	         3.847 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16        	44998766	        27.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16        	46694230	        26.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16        	48397808	        25.96 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16        	48249666	        25.54 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16        	48166209	        25.46 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16        	47082318	        25.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16        	47170862	        25.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16        	48096232	        25.46 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastParamRoute1-16        	26716231	        43.39 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16        	26596258	        43.52 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16        	26327812	        43.28 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16        	26424261	        43.50 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16        	26676204	        43.44 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16        	26051174	        43.44 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16        	26255595	        43.83 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16        	26526414	        43.74 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16        	19030351	        62.49 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16        	18289845	        62.19 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16        	18799143	        62.94 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16        	18881532	        62.37 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16        	18926166	        61.92 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16        	19001329	        61.96 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16        	19243664	        61.85 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16        	18957448	        61.88 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16        	13704252	        85.50 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16        	13777150	        85.34 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16        	13938746	        85.23 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16        	13784070	        85.03 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16        	13877276	        85.54 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16        	13852684	        85.45 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16        	14057924	        85.62 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16        	13928497	        86.26 ns/op	      96 B/op	       1 allocs/op
+BenchmarkPooledParamRoute1-16      	28730011	        42.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16      	29571511	        42.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16      	29554724	        42.98 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16      	29800624	        42.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16      	28643989	        42.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16      	29511576	        42.72 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16      	29157448	        42.32 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16      	28564321	        42.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16      	22115230	        54.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16      	22120668	        54.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16      	22887970	        54.40 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16      	22575152	        54.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16      	22104134	        55.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16      	22607114	        54.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16      	22617856	        54.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16      	22137541	        54.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16      	20752542	        59.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16      	21076713	        60.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16      	20044132	        58.81 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16      	20427693	        60.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16      	20626232	        58.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16      	20356875	        60.22 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16      	20387118	        59.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16      	20614848	        60.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16    	30143335	        41.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16    	29241262	        41.14 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16    	29191383	        44.90 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16    	28828302	        41.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16    	29997085	        41.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16    	29579912	        41.25 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16    	30521535	        41.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16    	29119251	        41.19 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	157.950s

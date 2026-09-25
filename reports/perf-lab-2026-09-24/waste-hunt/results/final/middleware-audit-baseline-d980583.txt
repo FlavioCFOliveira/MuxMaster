@@ -1,0 +1,666 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkNotFoundClean-16                        	 5228612	       217.4 ns/op	      99 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                        	 6149914	       212.7 ns/op	      91 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                        	 6109548	       213.6 ns/op	      91 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                        	 5688404	       214.0 ns/op	      95 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                        	 5738059	       214.0 ns/op	      94 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                        	 5731394	       215.1 ns/op	      94 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                        	 5715471	       214.7 ns/op	      94 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                        	 5729876	       216.6 ns/op	      94 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                        	 5762058	       213.7 ns/op	      94 B/op	       3 allocs/op
+BenchmarkNotFoundClean-16                        	 5788910	       214.1 ns/op	      94 B/op	       3 allocs/op
+BenchmarkNotFoundCustomHandler-16                	73631258	        16.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16                	74498692	        16.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16                	72815869	        16.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16                	74808788	        16.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16                	74568856	        16.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16                	75129357	        16.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16                	73756742	        16.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16                	73946889	        16.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16                	73223948	        16.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundCustomHandler-16                	73070113	        16.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 4800202	       244.4 ns/op	     103 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 5134498	       242.4 ns/op	     100 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 5208038	       241.9 ns/op	      99 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 5141188	       241.6 ns/op	     100 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 5124732	       242.6 ns/op	     100 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 5137436	       241.8 ns/op	     100 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 5171504	       242.1 ns/op	      99 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 5140965	       242.1 ns/op	     100 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 5140232	       241.8 ns/op	     100 B/op	       3 allocs/op
+BenchmarkNotFoundWithMethodAllowedLookup-16      	 5206218	       243.0 ns/op	      99 B/op	       3 allocs/op
+BenchmarkMethodNotAllowed-16                     	 9062683	       155.5 ns/op	      83 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                     	 8913535	       151.8 ns/op	      84 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                     	 9048108	       152.2 ns/op	      83 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                     	 9063452	       151.9 ns/op	      83 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                     	 9031632	       149.4 ns/op	      83 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                     	 8903844	       153.2 ns/op	      84 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                     	 9127785	       151.3 ns/op	      82 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                     	 8975295	       152.4 ns/op	      83 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                     	 9261642	       150.1 ns/op	      81 B/op	       2 allocs/op
+BenchmarkMethodNotAllowed-16                     	 9125647	       151.6 ns/op	      82 B/op	       2 allocs/op
+BenchmarkOPTIONSAuto-16                          	10247688	       116.0 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                          	10152961	       116.5 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                          	10207118	       115.4 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                          	10261960	       115.6 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                          	10385322	       115.8 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                          	10361048	       114.8 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                          	10290091	       115.8 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                          	10276526	       116.0 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                          	10152769	       115.6 ns/op	      40 B/op	       3 allocs/op
+BenchmarkOPTIONSAuto-16                          	10119164	       116.6 ns/op	      40 B/op	       3 allocs/op
+BenchmarkGroupDispatch-16                        	12601374	        95.35 ns/op	     384 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                        	12209818	        95.30 ns/op	     384 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                        	12476133	        95.47 ns/op	     384 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                        	12683467	        95.93 ns/op	     384 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                        	12537466	        95.82 ns/op	     384 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                        	12470918	        95.42 ns/op	     384 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                        	12666439	        96.41 ns/op	     384 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                        	12331052	        96.35 ns/op	     384 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                        	12090688	        96.65 ns/op	     384 B/op	       1 allocs/op
+BenchmarkGroupDispatch-16                        	12459894	        95.29 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12460011	        95.57 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12380259	        95.44 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12090030	        96.67 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12593170	        95.10 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12434005	        96.26 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12223014	        95.97 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12686629	        95.88 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12226570	        95.74 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12660846	        97.10 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNestedGroupDispatch-16                  	12510944	        96.14 ns/op	     384 B/op	       1 allocs/op
+BenchmarkRedirectTSL-16                          	 1411062	       841.3 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                          	 1433943	       846.9 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                          	 1337055	       899.6 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                          	 1326214	       841.6 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                          	 1418917	       846.0 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                          	 1419254	       847.0 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                          	 1417519	       848.7 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                          	 1423324	       844.7 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                          	 1424349	       848.3 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkRedirectTSL-16                          	 1420129	       841.6 ns/op	    1248 B/op	      13 allocs/op
+BenchmarkPathParamLookup-16                      	11107078	       113.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                      	10485680	       108.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                      	11341202	       107.1 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                      	11255060	       107.0 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                      	11036773	       106.6 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                      	10982684	       106.1 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                      	11218946	       107.2 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                      	11047765	       109.9 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                      	10769016	       106.4 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamLookup-16                      	11284449	       107.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	32722924	        34.78 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	33335648	        34.76 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	33041654	        34.74 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	33497671	        35.08 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	33926277	        34.87 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	33121782	        34.72 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	33225028	        34.89 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	33482394	        34.64 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	32907428	        34.76 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPathParamFast-16                        	32895016	        35.13 ns/op	      32 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	10311972	       118.5 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	10427791	       117.5 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	10135832	       118.3 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	10128256	       118.7 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	10087452	       118.9 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	 9993739	       118.1 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	10220068	       118.9 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	10018358	       118.6 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	10089318	       119.3 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamsFromContext-16                    	10018293	       119.0 ns/op	     416 B/op	       1 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2653302	       453.1 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2667572	       451.6 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2605228	       462.5 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2646567	       453.9 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2652034	       453.1 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2656314	       453.2 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2668462	       451.9 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2662260	       451.1 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2664877	       453.5 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Hit-16                	 2645337	       452.3 ns/op	     448 B/op	       7 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2830954	       422.1 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2818004	       426.4 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2840916	       427.5 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2809743	       426.3 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2827081	       424.4 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2810256	       421.8 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2791752	       433.7 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2818858	       425.7 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2796994	       433.3 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_APIKey_Miss-16               	 2818108	       423.2 ns/op	      96 B/op	       6 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 6079677	       194.6 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 5984656	       195.3 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 6070550	       194.3 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 6142882	       193.9 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 6142600	       196.3 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 6069847	       195.1 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 6072739	       194.9 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 6120550	       195.2 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 6001228	       195.3 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Hit-16             	 6158294	       195.6 ns/op	      48 B/op	       2 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2215122	       539.5 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2220046	       536.3 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2210816	       538.1 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2231492	       534.5 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2236569	       536.9 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2230174	       537.8 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2199271	       543.6 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2221576	       538.9 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2216619	       542.0 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_BasicAuth_Miss-16            	 2218480	       537.3 ns/op	     152 B/op	       8 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	60898798	        20.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	60780955	        20.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	60370062	        20.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	61207070	        20.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	60373876	        20.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	61311902	        20.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	58812775	        20.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	60715227	        20.41 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	58379935	        20.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Clean-16           	59014376	        20.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4328552	       279.0 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4234281	       284.2 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4283812	       278.5 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4302686	       278.4 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4211770	       281.9 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4239500	       278.8 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4332132	       279.5 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4210884	       283.1 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4337335	       280.1 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_CleanPath_Dirty-16           	 4329752	       279.1 ns/op	     552 B/op	       5 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	33108721	        37.28 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	31909447	        37.46 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	32407794	        37.58 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	32120679	        37.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	33439213	        37.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	32212454	        37.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	32263990	        37.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	31693837	        37.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	31453172	        37.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_NoGzip-16           	31456743	        37.21 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 3050929	       388.6 ns/op	     680 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 2983153	       408.2 ns/op	     682 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 2781538	       403.6 ns/op	     689 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 2898675	       405.7 ns/op	     685 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 2996136	       406.1 ns/op	     682 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 2870517	       396.9 ns/op	     686 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 2884706	       396.0 ns/op	     685 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 2974194	       392.3 ns/op	     682 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 2953452	       394.9 ns/op	     683 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_SmallBody-16        	 2900977	       397.0 ns/op	     685 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1559146	       770.5 ns/op	    2857 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1547739	       780.7 ns/op	    2857 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1492236	       770.6 ns/op	    2861 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1537648	       802.5 ns/op	    2858 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1529589	       768.0 ns/op	    2858 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1499214	       780.0 ns/op	    2860 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1538394	       762.6 ns/op	    2858 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1537663	       762.4 ns/op	    2858 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1599429	       787.0 ns/op	    2854 B/op	       2 allocs/op
+BenchmarkMiddleware_Compress_LargeBody-16        	 1544382	       759.3 ns/op	    2858 B/op	       2 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	44395054	        26.66 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	44932476	        26.46 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	45423908	        26.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	45728318	        26.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	46039425	        26.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	48103838	        26.48 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	46534324	        26.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	45880218	        26.50 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	45027026	        26.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_NoOrigin-16             	45463449	        26.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 6047382	       197.6 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 5899941	       199.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 5961373	       198.5 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 5855856	       201.5 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 5914838	       199.4 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 6043050	       198.5 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 5908466	       201.9 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 6033738	       198.8 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 6061977	       198.5 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_AllowedOrigin-16        	 6002980	       198.2 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5411632	       219.7 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5378878	       218.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5461016	       220.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5514453	       219.3 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5473368	       219.8 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5434120	       221.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5373408	       220.1 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5383960	       222.5 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5455970	       219.5 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_CORS_Preflight-16            	 5389620	       219.9 ns/op	     416 B/op	       3 allocs/op
+2026/09/25 11:54:42 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:42 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:42 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:42 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  254920	      4617 ns/op	     866 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:44 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:44 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:44 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:44 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  255622	      4608 ns/op	     866 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:45 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:45 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:45 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:45 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  254544	      4612 ns/op	     866 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:46 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:46 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:46 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:46 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  256254	      4601 ns/op	     866 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:47 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:47 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:47 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:47 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  257083	      4590 ns/op	     866 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:49 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:49 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:49 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:49 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  251757	      4598 ns/op	     866 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:50 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:50 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:50 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:50 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  252111	      4594 ns/op	     866 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:51 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:51 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:51 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:51 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  252596	      4616 ns/op	     866 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:52 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:52 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:52 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:52 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  255307	      4598 ns/op	     866 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Hit-16         	2026/09/25 11:54:53 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:53 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:53 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:53 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  257246	      4609 ns/op	     866 B/op	      10 allocs/op
+2026/09/25 11:54:55 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:54:55 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:55 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:55 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  912242	      1235 ns/op	     305 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:54:56 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:56 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:56 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:56 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  921824	      1231 ns/op	     305 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:54:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:57 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  937196	      1231 ns/op	     305 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:54:58 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:58 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:58 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:58 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  926632	      1226 ns/op	     305 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:54:59 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:59 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:59 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:54:59 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  930970	      1224 ns/op	     305 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:55:00 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:00 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:00 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:00 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  914864	      1231 ns/op	     305 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:55:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  918572	      1226 ns/op	     305 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:55:03 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:03 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:03 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:03 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  905181	      1228 ns/op	     305 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:55:04 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:04 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:04 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:04 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  900310	      1221 ns/op	     305 B/op	      10 allocs/op
+BenchmarkMiddleware_JWTAuth_HS256_Miss-16        	2026/09/25 11:55:05 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:05 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:05 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:05 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  888858	      1227 ns/op	     305 B/op	      10 allocs/op
+2026/09/25 11:55:06 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:06 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:06 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:07 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18685	     64086 ns/op	    2052 B/op	      29 allocs/op
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:08 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:08 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:08 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:09 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18788	     64026 ns/op	    2051 B/op	      29 allocs/op
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:10 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:10 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:10 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:10 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18754	     63955 ns/op	    2052 B/op	      29 allocs/op
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:12 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:12 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:12 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:12 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18712	     63941 ns/op	    2052 B/op	      29 allocs/op
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:13 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:13 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:13 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:14 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18729	     64139 ns/op	    2053 B/op	      29 allocs/op
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:15 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:15 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:15 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:16 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18662	     64109 ns/op	    2052 B/op	      29 allocs/op
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:17 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:17 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:17 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:18 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18758	     64186 ns/op	    2051 B/op	      29 allocs/op
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:19 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:19 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:19 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:20 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18706	     64147 ns/op	    2051 B/op	      29 allocs/op
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:21 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:21 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:21 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:21 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18726	     63911 ns/op	    2052 B/op	      29 allocs/op
+BenchmarkMiddleware_JWTAuth_ES256_Hit-16         	2026/09/25 11:55:23 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:23 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:23 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:55:23 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   18715	     64010 ns/op	    2051 B/op	      29 allocs/op
+BenchmarkMiddleware_Logger-16                    	  162660	      7281 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16                    	  164289	      7287 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16                    	  164566	      7287 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16                    	  164593	      7287 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16                    	  163575	      7276 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16                    	  164866	      7273 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16                    	  164589	      7279 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16                    	  163723	      7287 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16                    	  164518	      7287 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_Logger-16                    	  164126	      7281 ns/op	      40 B/op	       4 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7478911	       163.2 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7281945	       161.9 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7367322	       161.5 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7429532	       163.7 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7403236	       161.5 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7317895	       161.9 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7494498	       162.3 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7064578	       163.8 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7145281	       166.2 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_NoCache-16                   	 7235070	       163.5 ns/op	     400 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10376371	       113.6 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10478220	       113.7 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10453312	       113.7 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10482253	       114.5 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10360190	       113.9 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10496116	       114.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10291143	       114.9 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10418103	       113.5 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10437411	       113.6 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_NoHeader-16           	10404633	       113.9 ns/op	      16 B/op	       1 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24624913	        49.16 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24394822	        47.78 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24791376	        47.77 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24257265	        48.86 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24406327	        47.95 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24779575	        48.39 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24491456	        48.07 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24510008	        47.99 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24164232	        48.37 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_RealIP_XFF-16                	24451687	        47.86 ns/op	      80 B/op	       2 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	184880952	         6.487 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	186170565	         6.624 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	186962962	         6.460 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	186264571	         6.594 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	187156286	         6.400 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	181284927	         6.515 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	188430181	         6.556 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	182111305	         6.634 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	187767517	         6.566 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_Recoverer_NoPanic-16         	182834073	         6.572 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4222534	       284.6 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4187144	       286.3 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4188550	       286.0 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4188596	       285.0 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4189201	       287.3 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4227492	       285.4 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4201808	       284.0 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4185010	       287.8 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4196376	       285.0 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Generate-16        	 4123879	       287.5 ns/op	     801 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4843716	       246.2 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4800009	       246.3 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4875093	       244.8 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4544984	       244.3 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4836457	       246.5 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4791373	       248.5 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4848500	       247.3 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4814121	       246.9 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4887398	       257.7 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_RequestID_Propagate-16       	 4596794	       266.0 ns/op	     800 B/op	       4 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 7871787	       152.2 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 7682091	       154.0 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 7861789	       151.7 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 7947877	       151.2 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 7684306	       151.4 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 8041644	       152.2 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 7701270	       154.7 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 7813263	       152.6 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 7982200	       153.3 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_SetHeader-16                 	 7574485	       155.2 ns/op	     416 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	313401044	         3.764 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	313247454	         3.769 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	320855164	         3.746 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	315892756	         3.793 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	320495160	         3.790 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	322437667	         3.741 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	321682338	         3.746 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	321537436	         3.780 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	318222117	         3.740 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Clean-16        	319302033	         3.741 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6794607	       176.8 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6794804	       176.4 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6598400	       177.3 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6685023	       178.4 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6445290	       183.0 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6567348	       178.2 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6601528	       182.5 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6821629	       176.5 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6632112	       182.8 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_StripSlashes_Dirty-16        	 6710078	       178.3 ns/op	     512 B/op	       3 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.33 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.31 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.23 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.24 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.21 ns/op	       0 B/op	       0 allocs/op
+BenchmarkMiddleware_ThrottleBacklog_NoWait-16    	100000000	        10.23 ns/op	       0 B/op	       0 allocs/op
+2026/09/25 11:57:59 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:57:59 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:57:59 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:57:59 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  259399	      4452 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:58:00 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:00 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:00 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:00 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  260858	      4468 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:58:01 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:01 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:01 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:01 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  262045	      4448 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:58:03 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:03 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:03 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:03 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  260804	      4458 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:58:04 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:04 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:04 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:04 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  261686	      4456 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:58:05 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:05 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:05 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:05 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  260348	      4446 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:58:06 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:06 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:06 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:06 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  253063	      4453 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:58:07 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:07 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:07 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:07 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  265664	      4449 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:58:09 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:09 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:09 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:09 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  262345	      4452 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_ThrottlePerIP_Hit-16         	2026/09/25 11:58:10 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:10 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:10 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/25 11:58:10 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  262059	      4443 ns/op	     376 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  197144	      5988 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  198194	      5994 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  196340	      6014 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  198409	      6002 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  195676	      6002 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  195819	      6006 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  197108	      5990 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  196983	      5999 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  198765	      6015 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_Timeout-16                   	  197256	      5994 ns/op	     592 B/op	       5 allocs/op
+BenchmarkMiddleware_WithValue-16                 	12096081	        99.65 ns/op	     368 B/op	       2 allocs/op
+BenchmarkMiddleware_WithValue-16                 	11646745	       100.9 ns/op	     368 B/op	       2 allocs/op
+BenchmarkMiddleware_WithValue-16                 	11887132	       100.8 ns/op	     368 B/op	       2 allocs/op
+BenchmarkMiddleware_WithValue-16                 	11881592	       101.6 ns/op	     368 B/op	       2 allocs/op
+BenchmarkMiddleware_WithValue-16                 	11873791	       102.0 ns/op	     368 B/op	       2 allocs/op
+BenchmarkMiddleware_WithValue-16                 	11395072	       102.0 ns/op	     368 B/op	       2 allocs/op
+BenchmarkMiddleware_WithValue-16                 	11795163	       102.0 ns/op	     368 B/op	       2 allocs/op
+BenchmarkMiddleware_WithValue-16                 	11935653	       102.1 ns/op	     368 B/op	       2 allocs/op
+BenchmarkMiddleware_WithValue-16                 	11625482	       101.8 ns/op	     368 B/op	       2 allocs/op
+BenchmarkMiddleware_WithValue-16                 	11947722	       103.0 ns/op	     368 B/op	       2 allocs/op
+BenchmarkChain_Production-16                     	  146094	      8120 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_Production-16                     	  146620	      8100 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_Production-16                     	  146254	      8092 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_Production-16                     	  144198	      8108 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_Production-16                     	  145617	      8104 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_Production-16                     	  144876	      8116 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_Production-16                     	  146425	      8107 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_Production-16                     	  146764	      8110 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_Production-16                     	  145234	      8111 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_Production-16                     	  145206	      8123 ns/op	     939 B/op	      11 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6102674	       195.3 ns/op	      32 B/op	       2 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6102229	       194.9 ns/op	      32 B/op	       2 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6092840	       194.4 ns/op	      32 B/op	       2 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6061501	       194.4 ns/op	      32 B/op	       2 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6109555	       194.9 ns/op	      32 B/op	       2 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6131781	       194.3 ns/op	      32 B/op	       2 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6145724	       194.8 ns/op	      32 B/op	       2 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6080623	       194.8 ns/op	      32 B/op	       2 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6048169	       195.6 ns/op	      32 B/op	       2 allocs/op
+BenchmarkChain_AuthBasic-16                      	 6114072	       195.3 ns/op	      32 B/op	       2 allocs/op
+2026/09/25 11:59:03 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:03 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:03 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:03 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  226306	      5163 ns/op	    1672 B/op	      14 allocs/op
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:04 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:04 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:04 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:04 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  229304	      5148 ns/op	    1673 B/op	      14 allocs/op
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:06 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:06 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:06 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:06 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  228780	      5135 ns/op	    1673 B/op	      14 allocs/op
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:07 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:07 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:07 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:07 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  227533	      5125 ns/op	    1672 B/op	      14 allocs/op
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:08 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:08 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:08 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:08 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  227028	      5113 ns/op	    1673 B/op	      14 allocs/op
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:09 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:09 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:09 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:09 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  230433	      5107 ns/op	    1672 B/op	      14 allocs/op
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:11 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:11 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:11 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:11 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  227870	      5102 ns/op	    1672 B/op	      14 allocs/op
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:12 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:12 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:12 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:12 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  226932	      5120 ns/op	    1673 B/op	      14 allocs/op
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:13 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:13 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:13 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:13 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  227976	      5102 ns/op	    1673 B/op	      14 allocs/op
+BenchmarkChain_AuthJWT-16                        	2026/09/25 11:59:14 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:14 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:14 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/25 11:59:14 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  230618	      5135 ns/op	    1672 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  897454	      1206 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  879087	      1206 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  850359	      1216 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  920731	      1215 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  914342	      1207 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  992481	      1219 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  876674	      1209 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  849678	      1207 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  899598	      1207 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Security-16                       	  906211	      1209 ns/op	    1624 B/op	      14 allocs/op
+BenchmarkChain_Heavy-16                          	  130364	      8977 ns/op	    1726 B/op	      17 allocs/op
+BenchmarkChain_Heavy-16                          	  131868	      9016 ns/op	    1726 B/op	      17 allocs/op
+BenchmarkChain_Heavy-16                          	  131479	      8983 ns/op	    1725 B/op	      17 allocs/op
+BenchmarkChain_Heavy-16                          	  131752	      9059 ns/op	    1726 B/op	      17 allocs/op
+BenchmarkChain_Heavy-16                          	  128466	      9010 ns/op	    1726 B/op	      17 allocs/op
+BenchmarkChain_Heavy-16                          	  131538	      9035 ns/op	    1726 B/op	      17 allocs/op
+BenchmarkChain_Heavy-16                          	  129985	      9034 ns/op	    1726 B/op	      17 allocs/op
+BenchmarkChain_Heavy-16                          	  130358	      9060 ns/op	    1726 B/op	      17 allocs/op
+BenchmarkChain_Heavy-16                          	  131388	      8990 ns/op	    1726 B/op	      17 allocs/op
+BenchmarkChain_Heavy-16                          	  130419	      9060 ns/op	    1726 B/op	      17 allocs/op
+BenchmarkChain_Minimal-16                        	189789819	         6.568 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Minimal-16                        	182379667	         6.533 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Minimal-16                        	187811932	         6.519 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Minimal-16                        	186997516	         6.541 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Minimal-16                        	182652318	         6.612 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Minimal-16                        	189338666	         6.490 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Minimal-16                        	183059328	         6.558 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Minimal-16                        	189872548	         6.381 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Minimal-16                        	191128507	         6.542 ns/op	       0 B/op	       0 allocs/op
+BenchmarkChain_Minimal-16                        	189641200	         6.543 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12	651.885s

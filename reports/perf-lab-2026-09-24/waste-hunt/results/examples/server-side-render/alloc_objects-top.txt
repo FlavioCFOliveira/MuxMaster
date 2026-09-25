@@ -1,0 +1,49 @@
+File: server-side-render
+Build ID: d9827cd5156412e6ee7ac09211b247c8c7787dbd
+Type: alloc_objects
+Time: 2026-09-24 19:52:19 WEST
+Duration: 10.01s, Total samples = 45537373 
+Showing nodes accounting for 44189710, 97.04% of 45537373 total
+Dropped 78 nodes (cum <= 227686)
+Showing top 40 nodes out of 91
+      flat  flat%   sum%        cum   cum%
+   7536760 16.55% 16.55%    7536760 16.55%  reflect.unsafe_New
+   4969989 10.91% 27.46%   21955063 48.21%  reflect.Value.call
+   3637311  7.99% 35.45%    3637311  7.99%  reflect.unsafe_NewArray
+   3582711  7.87% 43.32%    7220022 15.86%  reflect.MakeSlice
+   2853634  6.27% 49.59%    2853634  6.27%  net/textproto.readMIMEHeader
+   2228292  4.89% 54.48%    2228292  4.89%  html/template.htmlReplacer
+   1791355  3.93% 58.41%    1791355  3.93%  text/template.(*state).validateType
+   1651290  3.63% 62.04%    1651290  3.63%  net/http.Header.Clone (inline)
+   1535818  3.37% 65.41%   28073515 61.65%  text/template.(*state).walkTemplate
+   1321700  2.90% 68.32%   27209000 59.75%  text/template.(*state).evalCall
+   1092291  2.40% 70.71%    4314540  9.47%  text/template.(*state).evalArg
+   1048591  2.30% 73.02%    1048591  2.30%  text/template.(*state).evalEmptyInterface
+    968642  2.13% 75.14%   38331331 84.18%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    919822  2.02% 77.16%    6230625 13.68%  net/http.(*conn).readRequest
+    834540  1.83% 79.00%   30980996 68.03%  text/template.(*Template).execute
+    622601  1.37% 80.36%     851980  1.87%  strconv.quoteWith (inline)
+    622598  1.37% 81.73%     622598  1.37%  net/textproto.MIMEHeader.Set (inline)
+    595298  1.31% 83.04%     595298  1.31%  net/textproto.(*Reader).ReadLine (inline)
+    524449  1.15% 84.19%     524449  1.15%  net/http.(*Request).WithContext
+    491559  1.08% 85.27%     491559  1.08%  net.(*conn).Read
+    476920  1.05% 86.32%    4494494  9.87%  net/http.readRequestLimit
+    465342  1.02% 87.34%     465342  1.02%  context.withCancel (inline)
+    458815  1.01% 88.35%     458815  1.01%  net/url.parse
+    393232  0.86% 89.21%     779055  1.71%  net/url.ParseQuery (inline)
+    393221  0.86% 90.07%     394361  0.87%  net/http.(*chunkWriter).Write
+    393221  0.86% 90.94%     393221  0.86%  net/http.(*connReader).startBackgroundRead
+    385823  0.85% 91.78%     385823  0.85%  net/url.parseQuery
+    353919  0.78% 92.56%   31564285 69.32%  main.(*Templates).render
+    329206  0.72% 93.28%     329206  0.72%  net/http.copyValues (inline)
+    327685  0.72% 94.00%     793027  1.74%  context.WithCancel
+    233051  0.51% 94.52%     233051  0.51%  main.validateGuestbook
+    229379   0.5% 95.02%     229379   0.5%  strconv.appendQuotedWith
+    191179  0.42% 95.44%   17663800 38.79%  main.main.func5
+    163842  0.36% 95.80%     944768  2.07%  net/http.parsePostForm
+    131075  0.29% 96.09%    6886880 15.12%  text/template.(*state).walkRange
+     98305  0.22% 96.30%   27307305 59.97%  text/template.(*state).evalCommand
+     91779   0.2% 96.50%     391199  0.86%  net/http.(*Request).Clone
+     87385  0.19% 96.70%    1437821  3.16%  net/http.(*Request).ParseForm
+     79218  0.17% 96.87%    1763667  3.87%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+     77862  0.17% 97.04%     241704  0.53%  io.ReadAll

@@ -28,6 +28,7 @@ import (
 	"net/netip"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -184,6 +185,35 @@ func main() {
 	// be an alternative, but CleanPath is safer for REST APIs.
 	r.Pre(mw.CleanPath())
 
+	// ── Fast routes ────────────────────────────────────────────────────────────
+	//
+	// HandleFast (via GETFast/HandleFast) and UseFast must be registered
+	// before Use(): stdlib middleware (registered below with Use) never
+	// wraps the FastHandler path (see the Pre vs Use vs UseFast policy
+	// matrix in README.md), so MuxMaster panics at registration if a fast
+	// route is added after Use() has already been called — this catches the
+	// mistake of assuming Use() protects it. None of the fast routes below
+	// need authentication or rate limiting by design: /health is a public
+	// probe, /metrics is an unauthenticated demo endpoint (as it was before
+	// this reorder — Use()'s middleware never wrapped it either way), and
+	// the fast echo endpoint only reflects back its own request.
+
+	// FastHandler: bypasses context allocation — zero allocs for static routes.
+	// Ideal for health-check endpoints that are hit thousands of times per second.
+	r.GETFast("/health", func(w http.ResponseWriter, req *http.Request, _ mm.Params) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"status":"ok"}`)
+	})
+
+	// UseFast registers middleware that applies only to HandleFast routes below.
+	r.UseFast(fastTimer)
+
+	// GETFast: metrics endpoint — no context allocation, direct Params argument.
+	r.GETFast("/metrics", metricsHandler)
+
+	// POSTFast via HandleFast: demonstrates HandleFast with explicit method.
+	r.HandleFast(http.MethodPost, "/api/v1/fast/echo", fastEcho)
+
 	// ── Global middleware (applied to every registered route below) ───────────
 
 	// Trusted proxy CIDRs for RealIP — localhost + RFC-1918 private ranges.
@@ -216,13 +246,6 @@ func main() {
 	)
 
 	// ── Public convenience routes ─────────────────────────────────────────────
-
-	// FastHandler: bypasses context allocation — zero allocs for static routes.
-	// Ideal for health-check endpoints that are hit thousands of times per second.
-	r.GETFast("/health", func(w http.ResponseWriter, req *http.Request, _ mm.Params) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"status":"ok"}`)
-	})
 
 	// Standard HandlerFunc: version endpoint reads the injected app version.
 	r.GET("/version", func(w http.ResponseWriter, req *http.Request) {
@@ -284,33 +307,46 @@ func main() {
 	// POST /api/v1/books — create; uses POSTE (error-returning handler).
 	books.POSTE("", store.createBook)
 
-	// HEAD /api/v1/books/:id — check existence without transferring the body.
-	books.HEAD("/:id", store.headBook)
+	// Book IDs are always numeric (Store hands them out via a sequential
+	// counter), so every "/books/{id}..." route below uses the regex
+	// parameter {id:[0-9]+} instead of the plain named parameter :id.
+	//
+	// This is not just style: a regex parameter and a plain named parameter
+	// cannot share the same tree position (specification/routing.md §71 — a
+	// wildcard conflicts with an already-registered wildcard at the same
+	// position). Mixing ":id" here with "{id:[0-9]+}" on the sibling
+	// "/details" route below panics at registration. Using the regex form
+	// consistently also rejects non-numeric ids at the router, before they
+	// ever reach a handler. PathParam(r, "id") is unaffected: a regex
+	// parameter's captured value is still stored under its name, "id".
 
-	// GET /api/v1/books/:id — get by id; PathParam demo.
-	books.GETE("/:id", store.getBook)
+	// HEAD /api/v1/books/{id:[0-9]+} — check existence without transferring the body.
+	books.HEAD("/{id:[0-9]+}", store.headBook)
+
+	// GET /api/v1/books/{id:[0-9]+} — get by id; PathParam demo.
+	books.GETE("/{id:[0-9]+}", store.getBook)
 
 	// GET /api/v1/books/{id:[0-9]+}/details — regex param: only numeric IDs.
 	// PathParam still returns the matched segment (e.g. "42") under key "id".
 	books.GET("/{id:[0-9]+}/details", store.getBookDetails)
 
-	// PUT /api/v1/books/:id — full replacement; PUTE demo.
-	books.PUTE("/:id", store.replaceBook)
+	// PUT /api/v1/books/{id:[0-9]+} — full replacement; PUTE demo.
+	books.PUTE("/{id:[0-9]+}", store.replaceBook)
 
-	// PATCH /api/v1/books/:id — partial update.
-	books.PATCH("/:id", store.patchBook)
+	// PATCH /api/v1/books/{id:[0-9]+} — partial update.
+	books.PATCH("/{id:[0-9]+}", store.patchBook)
 
-	// DELETE /api/v1/books/:id — delete; DELETEE demo.
-	books.DELETEE("/:id", store.deleteBook)
+	// DELETE /api/v1/books/{id:[0-9]+} — delete; DELETEE demo.
+	books.DELETEE("/{id:[0-9]+}", store.deleteBook)
 
-	// Nested resource: /api/v1/books/:id/reviews
+	// Nested resource: /api/v1/books/{id:[0-9]+}/reviews
 	// Two path parameters in a single route — uses ParamsFromContext.
-	books.GET("/:id/reviews", store.listReviews)
-	books.POSTE("/:id/reviews", store.createReview)
+	books.GET("/{id:[0-9]+}/reviews", store.listReviews)
+	books.POSTE("/{id:[0-9]+}/reviews", store.createReview)
 
 	// Three path parameters: book → reviews → review.
 	// Demonstrates Params.Map() and RoutePattern().
-	books.GETE("/:id/reviews/:rid", store.getReview)
+	books.GETE("/{id:[0-9]+}/reviews/:rid", store.getReview)
 
 	// Match registers one handler for multiple methods (GET + HEAD share logic).
 	books.Match(
@@ -365,17 +401,6 @@ func main() {
 	admin.GET("/routes", func(w http.ResponseWriter, req *http.Request) {
 		_ = mm.JSON(w, http.StatusOK, r.Routes())
 	})
-
-	// ── Fast routes with FastMiddleware ──────────────────────────────────────
-
-	// UseFast registers middleware that applies only to HandleFast routes below.
-	r.UseFast(fastTimer)
-
-	// GETFast: metrics endpoint — no context allocation, direct Params argument.
-	r.GETFast("/metrics", metricsHandler)
-
-	// POSTFast via HandleFast: demonstrates HandleFast with explicit method.
-	r.HandleFast(http.MethodPost, "/api/v1/fast/echo", fastEcho)
 
 	// ── Mount: attach a sub-handler at a prefix ───────────────────────────────
 
@@ -434,6 +459,15 @@ func main() {
 // FastMiddleware wraps FastHandler the same way stdlib middleware wraps http.Handler.
 func fastTimer(next mm.FastHandler) mm.FastHandler {
 	return func(w http.ResponseWriter, r *http.Request, ps mm.Params) {
+		// slog.Debug uses the package-level default logger, whose level is
+		// Info here (the example's own *slog.Logger at Debug level is never
+		// installed via slog.SetDefault). Reading the clock and boxing the
+		// log arguments on every fast request only to have them dropped is
+		// pure waste — skip both when Debug is not enabled.
+		if !slog.Default().Enabled(r.Context(), slog.LevelDebug) {
+			next(w, r, ps)
+			return
+		}
 		start := time.Now()
 		next(w, r, ps)
 		slog.Debug("fast", "path", r.URL.Path, "elapsed", time.Since(start))
@@ -764,20 +798,25 @@ func buildLegacyMux() http.Handler {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// findBookByID looks up a book by its string id. books is keyed by int, so
+// the id is parsed once and used as a direct map key — O(1) instead of a
+// linear scan that re-formats every book's ID with fmt.Sprint on each call.
 func findBookByID(s *Store, id string) (*Book, bool) {
-	for _, b := range s.books {
-		if fmt.Sprint(b.ID) == id {
-			return b, true
-		}
+	n, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, false
 	}
-	return nil, false
+	b, ok := s.books[n]
+	return b, ok
 }
 
+// findAuthorByID mirrors findBookByID: a direct map lookup instead of a
+// linear scan with per-element fmt.Sprint formatting.
 func findAuthorByID(s *Store, id string) (*Author, bool) {
-	for _, a := range s.authors {
-		if fmt.Sprint(a.ID) == id {
-			return a, true
-		}
+	n, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, false
 	}
-	return nil, false
+	a, ok := s.authors[n]
+	return a, ok
 }

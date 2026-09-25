@@ -1,0 +1,7 @@
+scenario=server-sent-events conns=32 duration=12.001s
+requests=292116 req/s=24341 p50=528.495µs p90=3.129763ms p99=11.540915ms
+stream_bytes=185963349
+  POST /publish                            expect=200 got 200×259658
+  GET /                                    expect=200 got 200×32458
+  stream /events/news                      expect=0 got 200×64
+STATUS-OK: every response matched its expected status

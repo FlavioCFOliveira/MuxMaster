@@ -1,0 +1,12 @@
+scenario=static-site conns=32 duration=2.001s
+requests=62620 req/s=31294 p50=858.987µs p90=1.925546ms p99=3.110208ms
+  GET /health (fast)                       expect=200 got 200×6957
+  HEAD /health (fast)                      expect=200 got 200×6960
+  GET /api/config                          expect=200 got 200×6958
+  GET / (serveFile index.html)             expect=200 got 200×6959
+  GET /assets/*filepath (ServeFiles+CORS; example root maps /assets/X to static/X) expect=200 got 200×6961
+  GET /docs/v1/ (Mount -> sub-mux ServeFiles) expect=200 got 200×6958
+  GET /docs/v2/ (Mount -> sub-mux ServeFiles) expect=200 got 200×6958
+  GET /doc (handler redirect)              expect=301 got 301×6955
+  GET /nope (custom 404 page; 200 = Compress WriteHeader defect) expect=200 got 200×6954
+STATUS-OK: every response matched its expected status

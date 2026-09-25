@@ -12,21 +12,72 @@ const (
 	sniffBufSize    = 8192
 )
 
+// gzipResponseWriter accumulates up to sniffBufSize bytes in arr — a fixed
+// array that is part of THIS struct's own allocation — before deciding
+// whether to compress. buf is a slice into arr; it never grows beyond arr's
+// capacity, so accumulating the sniff buffer never reallocates.
+//
+// WH-03: the writer itself, together with arr, is recycled through a
+// sync.Pool (Compress's rwPool, below) instead of being allocated fresh
+// (`&gzipResponseWriter{...}`, escaping to the heap) on every
+// gzip-accepting request. Pooling a
+// ResponseWriter wrapper is safe under the same contract statusRecorder
+// (logger.go) already relies on: net/http guarantees a ResponseWriter is
+// never used after the handler that received it returns, and this
+// middleware only returns the pooled value to the pool from its own
+// deferred cleanup, which runs after next.ServeHTTP(grw, r) has returned.
 type gzipResponseWriter struct {
 	http.ResponseWriter
-	pool    *sync.Pool
-	gz      *gzip.Writer // non-nil once compression is committed
-	buf     []byte       // bounded sniff buffer (at most sniffBufSize bytes)
-	status  int
-	decided bool // true once compress/skip decision is made
-	skip    bool // true = pass through uncompressed
+	pool        *sync.Pool   // *gzip.Writer pool, shared across requests
+	gz          *gzip.Writer // non-nil once compression is committed
+	arr         [sniffBufSize]byte
+	buf         []byte // bounded sniff buffer, backed by arr (at most sniffBufSize bytes)
+	status      int
+	decided     bool // true once compress/skip decision is made
+	skip        bool // true = pass through uncompressed
+	wroteHeader bool // true once the status has been fixed by WriteHeader or Write
 }
 
+// WriteHeader records the response status. As in net/http, the FIRST call
+// wins: a later WriteHeader call (e.g. a handler that writes an error page
+// after already writing its real status) is a no-op, matching what a bare
+// http.ResponseWriter does. Without this guard, a handler such as
+// http.ServeContent — which calls WriteHeader(200) internally after a
+// NotFound handler already wrote WriteHeader(404) — would let the second
+// call silently overwrite the first, serving 200 to a gzip-accepting
+// client while every other client correctly saw 404 (MM-2026-0254).
+//
+// 1xx informational codes (RFC 8297 Early Hints, 100 Continue) are exempt
+// from the first-wins lock, exactly like net/http's own *response.WriteHeader
+// (net/http/server.go: "if code >= 100 && code <= 199 && code !=
+// StatusSwitchingProtocols"). Without this exemption, a handler emitting a
+// 103 Early Hints response before its real final status (e.g. 401, 403)
+// would have that final status silently discarded: commit() only ever
+// forwards ONE status to the wrapped ResponseWriter, so the real status
+// would never reach it and the response would fall back to an implicit 200
+// OK once bytes are written — an access-control result downgraded to
+// success purely because the client advertised gzip support
+// (MID-COMPRESS-1).
 func (g *gzipResponseWriter) WriteHeader(code int) {
+	if code >= 100 && code <= 199 && code != http.StatusSwitchingProtocols {
+		return
+	}
+	if g.wroteHeader {
+		return
+	}
+	g.wroteHeader = true
 	g.status = code
 }
 
 func (g *gzipResponseWriter) Write(b []byte) (int, error) {
+	// A Write with no prior WriteHeader implicitly sends 200, exactly like a
+	// bare http.ResponseWriter — and, per the same first-wins rule as
+	// WriteHeader itself, fixes the status so a WriteHeader call arriving
+	// after bytes have already started flowing is a no-op too.
+	if !g.wroteHeader {
+		g.wroteHeader = true
+		g.status = http.StatusOK
+	}
 	if g.decided {
 		if g.skip {
 			return g.ResponseWriter.Write(b)
@@ -51,6 +102,46 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 	}
 	n, err := g.gz.Write(rest)
 	return room + n, err
+}
+
+// Flush implements http.Flusher so streaming responses (e.g. Server-Sent
+// Events) written through Compress can reach the client without waiting for
+// the handler to return. Without this method, http.ResponseController's
+// Flush walks past Unwrap all the way to the real connection and flushes
+// RAW, unbuffered bytes from a compressor that has not written its own
+// framing yet — or, worse, bypasses gzip entirely, corrupting the stream
+// for a client that already saw Content-Encoding: gzip.
+//
+// If the compress/skip decision has not been made yet (the sniff buffer has
+// not filled), Flush forces it now using whatever has been written so far —
+// a stalled SSE stream cannot wait for sniffBufSize bytes to accumulate
+// before its first event reaches the client. This picks the same headers
+// commit always would (Vary, and Content-Encoding/Content-Length only when
+// the accumulated bytes already clear minCompressSize); a stream whose
+// first flush happens before 1024 bytes have been written is served
+// uncompressed for its entire remaining lifetime, exactly as a short
+// non-streamed response would be — gzip framing cannot be switched on
+// retroactively once bytes have reached the client.
+func (g *gzipResponseWriter) Flush() {
+	if !g.decided {
+		_ = g.commit()
+	}
+	if !g.skip && g.gz != nil {
+		_ = g.gz.Flush()
+	}
+	if f, ok := g.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap returns the wrapped ResponseWriter so http.ResponseController (and
+// any other Unwrap-aware caller) can reach optional interfaces this wrapper
+// does not itself implement (http.Hijacker, http.Pusher). Flush is
+// implemented directly above rather than left to Unwrap alone, because
+// compressed output must be flushed through the gzip.Writer — not the raw
+// connection — to reach the client uncorrupted.
+func (g *gzipResponseWriter) Unwrap() http.ResponseWriter {
+	return g.ResponseWriter
 }
 
 // commit flushes the sniff buffer and sets decided=true.
@@ -183,14 +274,37 @@ func Compress(level int) func(http.Handler) http.Handler {
 	// Validate level eagerly.
 	_ = pool.Get().(*gzip.Writer) //nolint:forcetypeassert // pool.New always returns *gzip.Writer; errcheck not applicable to discarded value
 
+	// WH-03: rwPool recycles *gzipResponseWriter values — including their
+	// embedded 8 KiB sniff array — across requests, so a gzip-accepting
+	// request no longer allocates a fresh wrapper (it previously escaped
+	// to the heap on every call) nor grows its sniff buffer by repeated
+	// append-from-nil reallocation.
+	rwPool := &sync.Pool{
+		New: func() any { return new(gzipResponseWriter) },
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 				next.ServeHTTP(w, r)
 				return
 			}
-			grw := &gzipResponseWriter{ResponseWriter: w, pool: pool}
-			defer grw.close()
+			grw := rwPool.Get().(*gzipResponseWriter) //nolint:forcetypeassert // pool.New always returns *gzipResponseWriter
+			grw.ResponseWriter = w
+			grw.pool = pool
+			grw.buf = grw.arr[:0]
+			defer func() {
+				grw.close()
+				// Reset every field — including re-zeroing the 8 KiB
+				// array — before returning to the pool, so no header,
+				// writer or body byte from this request is reachable
+				// from the next one that gets this value (pool hygiene).
+				// This runs even if the handler panicked: the defer
+				// still fires while the panic unwinds this frame, before
+				// any Recoverer further up the chain regains control.
+				*grw = gzipResponseWriter{}
+				rwPool.Put(grw)
+			}()
 			next.ServeHTTP(grw, r)
 		})
 	}

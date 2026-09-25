@@ -1,0 +1,49 @@
+File: oauth2
+Build ID: 7dd73c75fb2a94c3182df7a0e45653fda4add4d0
+Type: alloc_objects
+Time: 2026-09-24 19:51:17 WEST
+Duration: 10s, Total samples = 23070170 
+Showing nodes accounting for 22956575, 99.51% of 23070170 total
+Dropped 49 nodes (cum <= 115350)
+Showing top 40 nodes out of 51
+      flat  flat%   sum%        cum   cum%
+   4419510 19.16% 19.16%    5107649 22.14%  net/textproto.readMIMEHeader
+   3244077 14.06% 33.22%    3244077 14.06%  reflect.unsafe_New
+   1619260  7.02% 40.24%    1619260  7.02%  net/http.Header.Clone (inline)
+   1383915  6.00% 46.24%    1383915  6.00%  net/textproto.MIMEHeader.Set (inline)
+   1285393  5.57% 51.81%    7806733 33.84%  main.main.func2
+   1189077  5.15% 56.96%    1849189  8.02%  time.NewTimer
+   1090240  4.73% 61.69%    9066205 39.30%  net/http.(*conn).readRequest
+    786444  3.41% 65.10%     786444  3.41%  net/netip.Addr.String
+    688139  2.98% 68.08%     688139  2.98%  net/textproto.canonicalMIMEHeaderKey
+    660112  2.86% 70.94%     660112  2.86%  time.newTimer
+    633528  2.75% 73.69%     633528  2.75%  net/textproto.(*Reader).ReadLine (inline)
+    626319  2.71% 76.40%     626319  2.71%  net/url.parse
+    612948  2.66% 79.06%    6985908 30.28%  net/http.readRequestLimit
+    606226  2.63% 81.69%     606226  2.63%  net.SplitHostPort.func1 (inline)
+    530882  2.30% 83.99%     530882  2.30%  context.withCancel (inline)
+    526087  2.28% 86.27%     526087  2.28%  net/http.(*Request).WithContext (inline)
+    524296  2.27% 88.54%     524296  2.27%  net/http.(*connReader).startBackgroundRead
+    513389  2.23% 90.77%     513389  2.23%  context.WithValue
+    509346  2.21% 92.97%     509346  2.21%  net.(*conn).Read
+    491542  2.13% 95.10%     491542  2.13%  bytes.Clone (inline)
+    425991  1.85% 96.95%     956873  4.15%  context.WithCancel
+    294938  1.28% 98.23%     294938  1.28%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*throttleTable).acquire
+    262148  1.14% 99.37%     262148  1.14%  strings.genSplit
+     32768  0.14% 99.51%     254094  1.10%  net/http.Error
+         0     0% 99.51%    3754513 16.27%  encoding/json.Marshal (inline)
+         0     0% 99.51%    3754513 16.27%  encoding/json/v2.Marshal
+         0     0% 99.51%     622600  2.70%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 99.51%    2860647 12.40%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 99.51%    3253866 14.10%  encoding/json/v2.marshalEncode
+         0     0% 99.51%    1540118  6.68%  encoding/json/v2.newAddressableValue
+         0     0% 99.51%   11908753 51.62%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 99.51%   12957345 56.16%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 99.51%   11908753 51.62%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 99.51%    6521340 28.27%  github.com/FlavioCFOliveira/MuxMaster.JSON
+         0     0% 99.51%    9158400 39.70%  github.com/FlavioCFOliveira/MuxMaster/middleware.OAuth2Introspect.func2.1
+         0     0% 99.51%   12957345 56.16%  github.com/FlavioCFOliveira/MuxMaster/middleware.RealIP.func1.1
+         0     0% 99.51%     606226  2.63%  github.com/FlavioCFOliveira/MuxMaster/middleware.ThrottlePerIPCapped.func1
+         0     0% 99.51%   11908753 51.62%  github.com/FlavioCFOliveira/MuxMaster/middleware.ThrottlePerIPCapped.func2.1
+         0     0% 99.51%     262148  1.14%  github.com/FlavioCFOliveira/MuxMaster/middleware.selectXFFRightmost
+         0     0% 99.51%     606226  2.63%  net.SplitHostPort

@@ -1,15 +1,26 @@
 // Package main demonstrates reverse-proxy routing through MuxMaster using
 // the stdlib `httputil.ReverseProxy`. Path-based and round-robin patterns
-// are both shown, with maximum-performance pool configuration.
+// are both shown.
 //
-// Why this is pool-safe:
+// Why PoolRequestBundle is NOT enabled here:
 //
-//   - httputil.ReverseProxy synchronously forwards the request and waits
-//     for the upstream response before returning. The proxy never spawns
-//     a goroutine that survives ServeHTTP, so r is not captured past return.
+//   - httputil.ReverseProxy's RoundTrip does return before ServeHTTP exits,
+//     but the *http.Transport underneath it does not: under concurrent
+//     load, Transport.startDialConnForLocked can start a background dial
+//     goroutine that keeps calling ctx.Value() on the ORIGINAL request's
+//     context after RoundTrip — and therefore ServeHTTP — has returned.
+//   - With PoolRequestBundle=true, that context belongs to a recycled,
+//     zeroed reqBundle by the time the dial goroutine reads it, producing
+//     a nil-pointer dereference in requestCtx1.Value (params.go) — a
+//     remotely triggerable process crash under load, reproduced in
+//     reports/perf-lab-2026-09-24/waste-hunt/results/defects/reverse-proxy-pool-crash.txt.
+//   - This is a general hazard for ANY reverse proxy built on
+//     net/http.Transport, not specific to this example's code, so pooling
+//     stays off for the whole gateway. See docs/max-performance.md
+//     "Lifetime contract" and examples/README.md's pool-safety table.
 //
 //   - The Director function rewrites the request's URL to point at the
-//     upstream. The rewrite happens inline within ServeHTTP — pool-safe.
+//     upstream. The rewrite happens inline within ServeHTTP.
 //
 //   - The handler signature is plain http.Handler, so it can be used in
 //     either pool-mode or default-mode without changes.
@@ -60,7 +71,12 @@ func main() {
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	mux := mm.New()
-	mux.PoolRequestBundle = true
+	// PoolRequestBundle stays OFF: net/http.Transport (used internally by
+	// httputil.ReverseProxy) can start a background dial goroutine that
+	// reads the request context after this handler returns — see the
+	// package doc comment above for the full explanation and the crash
+	// evidence. Enabling pooling here is a use-after-free under load.
+	mux.PoolRequestBundle = false
 	mux.Pre(mw.RequestID(), mw.RecovererWithLogger(log))
 
 	// Build proxies for two upstreams.
@@ -72,7 +88,6 @@ func main() {
 	apiBalanced := newRoundRobin("api", log, upstream1, upstream2)
 
 	// /api/* is a catch-all that fans out across upstreams round-robin.
-	// catch-all routes are 0-alloc with PoolRequestBundle.
 	mux.GET("/api/*path", apiBalanced)
 	mux.POST("/api/*path", apiBalanced)
 	mux.PUT("/api/*path", apiBalanced)
@@ -110,8 +125,8 @@ func main() {
 // ─── Proxy construction ──────────────────────────────────────────────────────
 
 // newProxy returns an http.HandlerFunc that proxies to the given target.
-// It rewrites the URL host inline (pool-safe) and strips the gateway path
-// prefix that MuxMaster captured via a *catch-all wildcard.
+// It rewrites the URL host inline and strips the gateway path prefix that
+// MuxMaster captured via a *catch-all wildcard.
 func newProxy(name string, log *slog.Logger, target *url.URL) http.HandlerFunc {
 	rp := &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
@@ -169,6 +184,10 @@ func adminAuth(next http.Handler) http.Handler {
 func runBackend(port string) {
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	mux := mm.New()
+	// Unlike the gateway above, this backend only reads its own request and
+	// writes its own response — it never proxies through net/http.Transport,
+	// so it has none of the background-dial-goroutine hazard. Pooling is
+	// genuinely safe here.
 	mux.PoolRequestBundle = true
 	mux.GET("/*path", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintf(w, "backend :%s reached path=%s headers=%v\n",
@@ -210,6 +229,7 @@ Then send some traffic through the gateway:
   curl http://localhost:8080/static/x.png
   curl -H 'X-Admin-Token: letmein' http://localhost:8080/admin/dashboard
 
-Pool-safe: httputil.ReverseProxy returns before ServeHTTP exits, so r is
-never captured by a goroutine that outlives the handler.`)
+PoolRequestBundle is OFF on this gateway: net/http.Transport can spawn a
+background dial goroutine that outlives ServeHTTP under load, which would
+use-after-free a recycled request bundle.`)
 }

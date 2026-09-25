@@ -150,13 +150,14 @@ This file does not cover middleware application order (see [middleware.md](middl
 ### 4.3 Priority Within Named Parameters
 
 50. Within the named parameter category, routes are matched in the order they were registered. Priority counters in the tree cause more frequently matched routes to be checked first. This is an internal optimization and does not change observable matching behavior when patterns are distinct.
-51. Regex parameters are evaluated before non-regex named parameters at the same position. If a regex parameter does not match, the router falls through to the non-regex named parameter at the same position.
+51. A regex parameter and a plain named parameter can never occupy the same position in the tree at the same time. The router holds exactly one wildcard child per node; registering the second of the two panics at registration time (rule 71). There is consequently no fall-through from a non-matching regex parameter to a plain named parameter at that position: whichever of the two was registered is the only one that can ever be reached there.
 
 ### 4.4 Trailing Slash Redirect (TSR)
 
 52. When `RedirectTrailingSlash` is true and no handler matches the exact path:
     - If the path ends with `/` and a handler exists at the path without the trailing `/`, the router issues a redirect to the path without the trailing `/`.
     - If the path does not end with `/` and a handler exists at the path with a trailing `/`, the router issues a redirect to the path with a trailing `/`.
+    - This applies equally when the trailing-slash form is reached only through a catch-all parameter (for example, `/assets` against a registered `/assets/*filepath`) or through a route registered via `Mount` (see [groups.md](groups.md) requirement 28): the trailing-slash form counts as "a handler exists" for this rule exactly like any other registered route.
 53. For GET and HEAD requests, the redirect uses status code 301 (Moved Permanently). For all other methods, status code 307 (Temporary Redirect) is used.
 54. TSR does not apply to the root path `/`.
 55. TSR does not apply to CONNECT requests.
@@ -191,4 +192,29 @@ The following conditions cause a call to the built-in `panic` function at route 
 68. A catch-all parameter conflicts with an existing handler at the path root segment.
 69. A pattern segment contains more than one wildcard token.
 70. A regex parameter contains an invalid Go regular expression.
-71. A wildcard conflicts with an already-registered wildcard at the same position.
+71. A wildcard conflicts with an already-registered wildcard at the same position. This includes a regex parameter registered at the same position as an existing plain named parameter, and a plain named parameter registered at the same position as an existing regex parameter: the tree holds exactly one wildcard child per node, so the second of the two always panics, regardless of which kind was registered first.
+
+---
+
+## 6. Lookup Fallback
+
+72. When a static branch is chosen over an available wildcard sibling (a named parameter, a regex parameter, or a catch-all) at the same tree position, and that static branch does not ultimately lead to a match, the router does not fail the lookup immediately: it falls back to the wildcard sibling and continues matching from there.
+73. Example: with `/users/list` and `/users/:id` both registered, `GET /users/listx` and `GET /users/lis` do not match the static route `/users/list` (rule 49 describes precedence, not equality of the strings). The router falls back to `/users/:id`, so both requests match the named parameter route, capturing `id = "listx"` and `id = "lis"` respectively.
+74. This fallback can occur at any depth in the tree, and repeats independently at every fork encountered on the way to a match, not only at the first one encountered. There is no limit on how many times a single lookup may fall back.
+75. The total work performed by one lookup, counting every branch it tries and abandons, is bounded by the total number of nodes in the registered tree for the requested method. It is never bounded or amplified by the content of the request path itself.
+76. This fallback does not change the matching precedence stated in rule 48: a static child is always tried before an available wildcard sibling at each position. The fallback only determines what happens when that static branch fails to produce a match further down the path.
+77. A trailing-slash-redirect opportunity (section 4.4) discovered on a static branch that is later abandoned through this fallback is not lost: if the wildcard branch that the router falls back to also fails to match, the redirect opportunity reported by the higher-precedence static branch is the one used.
+
+---
+
+## 7. Static and Wildcard Sibling Registration
+
+78. A static route and a named parameter or regex parameter route may share the same parent position in the tree. Registering the static route before the wildcard route, or the wildcard route before the static route, both succeed and produce an equivalent tree: this registration is legal and order-independent. Rule 48 already establishes that the static route always outranks the wildcard one at match time; this requirement governs registration, not matching.
+79. A catch-all route and a static route cannot share the same parent position: registering the catch-all after a conflicting static sibling causes the panic described in rule 68, and registering a static sibling after an existing catch-all at that position causes the panic described in rule 71. This conflict is order-independent: whichever of the two is registered second panics.
+
+---
+
+## 8. Redirect Target Encoding
+
+80. When the router builds the `Location` header value for a trailing-slash redirect (section 4.4) or a fixed-path redirect (section 4.5), any ASCII control byte (0x00-0x1F) or DEL (0x7F) present in the computed target — for example, one that reached the request path through percent-decoding — is percent-encoded before being written to the `Location` header and, for GET requests, into the generated HTML redirect body's link target. Every other byte, including the rest of the path and the query string, is left unchanged. RFC 9110 section 5.5 prohibits raw control bytes in HTTP field values.
+81. Aside from this control-byte encoding, the redirect response — status line, headers, and body — is byte-identical to what `net/http.Redirect` produces for the same target and status code.

@@ -138,6 +138,27 @@ mux.GETFast("/users/:id", func(w http.ResponseWriter, r *http.Request, ps muxmas
 
 The pool is independent of `PoolRequestBundle` — you can enable either, both, or neither.
 
+### High-concurrency scaling
+
+Pooling becomes progressively more beneficial as CPU core count increases, due to allocation-driven GC and runtime lock pressure (see the contention-hunt report for detailed profiling).
+
+Measured on an AMD Ryzen 9 5900HX (16 logical CPUs, Go 1.27.0):
+
+| Route type | CPU=1 | CPU=4 | CPU=16 | Pooled benefit |
+|---|---:|---:|---:|---:|
+| **1-param `Handle` (default)** | 143.2 ns | 94.7 ns | 104.4 ns | — |
+| **1-param `Handle` + `PoolRequestBundle`** | 41.5 ns | 11.0 ns | **7.3 ns** | **14.3× at cpu=16** |
+| **1-param `FastHandler` (default)** | 49.0 ns | 13.2 ns | 16.0 ns | — |
+| **1-param `FastHandler` + `PoolFastParams`** | 39.3 ns | 10.3 ns | **5.0 ns** | **3.2× at cpu=16** |
+
+**Recommendation:**
+
+The benefit grows measurably with core count. At the tested points (1, 4, 16 cores), pooling delivers measurable gains at all levels. Consider enabling `PoolRequestBundle` and/or `PoolFastParams` if your deployment has multiple cores and your application can meet the lifetime contract.
+
+**Audit the lifetime contract first:** Verify that no handler retains `*http.Request` or `Params` past return. Violating this contract results in use-after-free against recycled pool storage. See [Lifetime contract — what you must not do](#lifetime-contract--what-you-must-not-do) below.
+
+**Default configuration:** `PoolRequestBundle` and `PoolFastParams` default to `false` for maximum safety. Handlers may retain the request object freely in default mode, incurring a single allocation per request instead.
+
 ---
 
 ## `HandleFast` vs `Handle` — when to use each
@@ -249,6 +270,17 @@ mux.POST("/uploads/:id", func(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusAccepted)
 })
 ```
+
+### Special case: libraries that spawn background goroutines
+
+Some standard library handlers and third-party middleware spawn goroutines that outlive `ServeHTTP`. The most common case is `net/http.Transport` (used by `httputil.ReverseProxy` and HTTP clients): under concurrent load, `Transport.startDialConnForLocked` can start a background dial goroutine that continues calling `ctx.Value()` on the request's context **after** your handler returns.
+
+**❌ Do NOT enable `PoolRequestBundle` if:**
+- Your handler calls `httputil.ReverseProxy.ServeHTTP`
+- Your handler calls an HTTP client that uses `net/http.Transport` and reuses the request object
+- Any middleware in the chain spawns long-lived goroutines that read the request or its context
+
+If you need pooling with a reverse-proxy gateway, keep `PoolRequestBundle = false` on the gateway handler and enable it only on handlers that remain pool-safe (e.g., the backend services being proxied to).
 
 ---
 

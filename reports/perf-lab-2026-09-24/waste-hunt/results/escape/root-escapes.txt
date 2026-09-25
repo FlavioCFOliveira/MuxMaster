@@ -1,0 +1,487 @@
+./group.go:108:62: func literal escapes to heap
+./group.go:108:62: func literal escapes to heap in (*Group).GETE:
+./group.go:112:63: func literal escapes to heap
+./group.go:112:63: func literal escapes to heap in (*Group).HEADE:
+./group.go:116:63: func literal escapes to heap
+./group.go:116:63: func literal escapes to heap in (*Group).POSTE:
+./group.go:120:62: func literal escapes to heap
+./group.go:120:62: func literal escapes to heap in (*Group).PUTE:
+./group.go:124:64: func literal escapes to heap
+./group.go:124:64: func literal escapes to heap in (*Group).PATCHE:
+./group.go:128:65: func literal escapes to heap
+./group.go:128:65: func literal escapes to heap in (*Group).DELETEE:
+./group.go:132:66: func literal escapes to heap
+./group.go:132:66: func literal escapes to heap in (*Group).OPTIONSE:
+./group.go:150:16: make([]func(http.Handler) http.Handler, len(g.middleware) + len(mw)) escapes to heap
+./group.go:150:16: make([]func(http.Handler) http.Handler, len(g.middleware) + len(mw)) escapes to heap in (*Group).With:
+./group.go:153:16: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap
+./group.go:153:16: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap in (*Group).With:
+./group.go:155:9: &Group{...} escapes to heap
+./group.go:155:9: &Group{...} escapes to heap in (*Group).With:
+./group.go:161:12: make([]func(http.Handler) http.Handler, len(g.middleware)) escapes to heap
+./group.go:161:12: make([]func(http.Handler) http.Handler, len(g.middleware)) escapes to heap in (*Group).Group:
+./group.go:163:12: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap
+./group.go:163:12: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap in (*Group).Group:
+./group.go:165:9: &Group{...} escapes to heap
+./group.go:165:9: &Group{...} escapes to heap in (*Group).Group:
+./group.go:167:28: g.prefix + prefix escapes to heap
+./group.go:167:28: g.prefix + prefix escapes to heap in (*Group).Group:
+./group.go:175:16: &Group{...} escapes to heap
+./group.go:175:16: &Group{...} escapes to heap in (*Group).Route:
+./group.go:175:16: g.prefix + prefix escapes to heap
+./group.go:175:16: g.prefix + prefix escapes to heap in (*Group).Route:
+./group.go:175:16: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap
+./group.go:175:16: make([]FastMiddleware, len(g.fastMiddleware)) escapes to heap in (*Group).Route:
+./group.go:175:16: make([]func(http.Handler) http.Handler, len(g.middleware)) escapes to heap
+./group.go:175:16: make([]func(http.Handler) http.Handler, len(g.middleware)) escapes to heap in (*Group).Route:
+./group.go:185:24: g.prefix + prefix escapes to heap
+./group.go:185:24: g.prefix + prefix escapes to heap in (*Group).Mount:
+./group.go:192:9: "muxmaster: nil root passed to ServeFiles" escapes to heap
+./group.go:192:9: "muxmaster: nil root passed to ServeFiles" escapes to heap in (*Group).ServeFiles:
+./group.go:194:25: g.prefix + prefix escapes to heap
+./group.go:194:25: g.prefix + prefix escapes to heap in (*Group).ServeFiles:
+./group.go:197:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap
+./group.go:197:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap in (*Group).ServeFiles:
+./group.go:201:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap
+./group.go:201:65: "muxmaster: ServeFiles prefix must end with '/*name': " + fullPrefix escapes to heap in (*Group).ServeFiles:
+./group.go:203:23: &http.fileHandler{...} escapes to heap
+./group.go:203:23: &http.fileHandler{...} escapes to heap in (*Group).ServeFiles:
+./group.go:204:24: func literal escapes to heap
+./group.go:204:24: func literal escapes to heap in (*Group).ServeFiles:
+./group.go:205:26: context.backgroundCtx{} escapes to heap
+./group.go:205:26: context.backgroundCtx{} escapes to heap in (*Group).ServeFiles.func1:
+./group.go:206:15: new(url.URL) escapes to heap
+./group.go:206:15: new(url.URL) escapes to heap in (*Group).ServeFiles.func1:
+./group.go:21:23: append escapes to heap
+./group.go:21:23: append(g.middleware, middleware...) escapes to heap in (*Group).Use:
+./group.go:27:27: append escapes to heap
+./group.go:27:27: append(g.fastMiddleware, mw...) escapes to heap in (*Group).UseFast:
+./group.go:33:31: g.prefix + path escapes to heap
+./group.go:33:31: g.prefix + path escapes to heap in (*Group).Handle:
+./group.go:46:42: func literal escapes to heap
+./group.go:46:42: func literal escapes to heap in (*Group).HandleE:
+./group.go:69:63: "muxmaster: HandleFast route registered on a Group with stdlib middle... escapes to heap
+./group.go:69:63: "muxmaster: HandleFast route registered on a Group with stdlib middle... escapes to heap in (*Group).HandleFast:
+./group.go:72:35: g.prefix + path escapes to heap
+./group.go:72:35: g.prefix + path escapes to heap in (*Group).HandleFast:
+./handler.go:27:9: "muxmaster: Error called with nil error" escapes to heap
+./handler.go:27:9: "muxmaster: Error called with nil error" escapes to heap in Error:
+./handler.go:29:9: &httpError{...} escapes to heap
+./handler.go:29:9: &httpError{...} escapes to heap in Error:
+./introspection.go:46:16: make(Params, pb.count) escapes to heap
+./introspection.go:46:16: make(Params, pb.count) escapes to heap in (*Mux).Lookup:
+./introspection.go:74:18: append escapes to heap
+./introspection.go:74:18: append(infos, RouteInfo{...}) escapes to heap in (*Mux).Routes.func1:
+./mux.go:1091:24: urlPath + "/" escapes to heap
+./mux.go:1091:24: urlPath + "/" escapes to heap in (*Mux).dispatch:
+./mux.go:1098:46: newPath + "?" + rawQuery escapes to heap
+./mux.go:1098:46: newPath + "?" + rawQuery escapes to heap in (*Mux).dispatch:
+./mux.go:1105:47: newPath + "?" + rawQuery escapes to heap
+./mux.go:1105:47: newPath + "?" + rawQuery escapes to heap in (*Mux).dispatch:
+./mux.go:1132:18: make(Params, ps2.count) escapes to heap
+./mux.go:1132:18: make(Params, ps2.count) escapes to heap in (*Mux).dispatch:
+./mux.go:1204:23: newPath + "?" + rawQuery escapes to heap
+./mux.go:1204:23: newPath + "?" + rawQuery escapes to heap in buildRedirectTarget:
+./mux.go:1226:34: func literal escapes to heap
+./mux.go:1226:34: func literal escapes to heap in (*Mux).serveRedirect:
+./mux.go:1268:18: "strings: illegal use of non-zero Builder copied by value" escapes to heap
+./mux.go:1268:18: "strings: illegal use of non-zero Builder copied by value" escapes to heap in (*Mux).allowed:
+./mux.go:1268:18: append escapes to heap
+./mux.go:1268:18: append(strings.b.buf, strings.s...) escapes to heap in (*Mux).allowed:
+./mux.go:1270:17: "strings: illegal use of non-zero Builder copied by value" escapes to heap
+./mux.go:1270:17: "strings: illegal use of non-zero Builder copied by value" escapes to heap in (*Mux).allowed:
+./mux.go:1270:17: append escapes to heap
+./mux.go:1270:17: append(strings.b.buf, strings.s...) escapes to heap in (*Mux).allowed:
+./mux.go:1276:15: "strings: illegal use of non-zero Builder copied by value" escapes to heap
+./mux.go:1276:15: "strings: illegal use of non-zero Builder copied by value" escapes to heap in (*Mux).allowed:
+./mux.go:1276:15: append escapes to heap
+./mux.go:1276:15: append(strings.b.buf, strings.s...) escapes to heap in (*Mux).allowed:
+./mux.go:1277:15: "strings: illegal use of non-zero Builder copied by value" escapes to heap
+./mux.go:1277:15: "strings: illegal use of non-zero Builder copied by value" escapes to heap in (*Mux).allowed:
+./mux.go:1277:15: append escapes to heap
+./mux.go:1277:15: append(strings.b.buf, strings.s...) escapes to heap in (*Mux).allowed:
+./mux.go:313:12: context.backgroundCtx{} escapes to heap
+./mux.go:313:12: context.backgroundCtx{} escapes to heap in (*Mux).warnRawPathDecodeIfEnabled.func1:
+./mux.go:319:9: &Mux{...} escapes to heap
+./mux.go:319:9: &Mux{...} escapes to heap in New:
+./mux.go:341:23: append escapes to heap
+./mux.go:341:23: append(m.middleware, middleware...) escapes to heap in (*Mux).Use:
+./mux.go:354:16: append escapes to heap
+./mux.go:354:16: append(([]func(http.Handler) http.Handler)(nil), m.middleware...) escapes to heap in (*Mux).Use:
+./mux.go:354:2: moved to heap: snap
+./mux.go:354:2: snap escapes to heap in (*Mux).Use:
+./mux.go:369:16: append escapes to heap
+./mux.go:369:16: append(m.pre, mw...) escapes to heap in (*Mux).Pre:
+./mux.go:370:2: h escapes to heap in (*Mux).Pre:
+./mux.go:370:2: moved to heap: h
+./mux.go:370:39: func literal escapes to heap
+./mux.go:370:39: func literal escapes to heap in (*Mux).Pre:
+./mux.go:386:9: "muxmaster: HTTP method must not be empty" escapes to heap
+./mux.go:386:9: "muxmaster: HTTP method must not be empty" escapes to heap in (*Mux).Handle:
+./mux.go:388:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap
+./mux.go:388:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap in (*Mux).Handle:
+./mux.go:390:9: "muxmaster: handler must not be nil" escapes to heap
+./mux.go:390:9: "muxmaster: handler must not be nil" escapes to heap in (*Mux).Handle:
+./mux.go:400:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap
+./mux.go:400:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap in (*Mux).Handle:
+./mux.go:408:6: moved to heap: trees
+./mux.go:408:6: trees escapes to heap in (*Mux).Handle:
+./mux.go:418:13: new(node) escapes to heap
+./mux.go:418:13: new(node) escapes to heap in (*Mux).Handle:
+./mux.go:436:45: func literal escapes to heap
+./mux.go:436:45: func literal escapes to heap in (*Mux).HandleE:
+./mux.go:459:27: append escapes to heap
+./mux.go:459:27: append(m.fastMiddleware, mw...) escapes to heap in (*Mux).UseFast:
+./mux.go:480:9: "muxmaster: HTTP method must not be empty" escapes to heap
+./mux.go:480:9: "muxmaster: HTTP method must not be empty" escapes to heap in (*Mux).HandleFast:
+./mux.go:482:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap
+./mux.go:482:62: "muxmaster: path must begin with '/' in '" + pattern + "'" escapes to heap in (*Mux).HandleFast:
+./mux.go:484:9: "muxmaster: handler must not be nil" escapes to heap
+./mux.go:484:9: "muxmaster: handler must not be nil" escapes to heap in (*Mux).HandleFast:
+./mux.go:500:63: "muxmaster: HandleFast route registered on a Mux with stdlib middlewa... escapes to heap
+./mux.go:500:63: "muxmaster: HandleFast route registered on a Mux with stdlib middlewa... escapes to heap in (*Mux).HandleFast:
+./mux.go:506:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap
+./mux.go:506:57: "muxmaster: unsupported HTTP method '" + method + "'" escapes to heap in (*Mux).HandleFast:
+./mux.go:510:6: moved to heap: trees
+./mux.go:510:6: trees escapes to heap in (*Mux).HandleFast:
+./mux.go:520:13: new(node) escapes to heap
+./mux.go:520:13: new(node) escapes to heap in (*Mux).HandleFast:
+./mux.go:595:63: func literal escapes to heap
+./mux.go:595:63: func literal escapes to heap in (*Mux).GETE:
+./mux.go:599:64: func literal escapes to heap
+./mux.go:599:64: func literal escapes to heap in (*Mux).HEADE:
+./mux.go:603:64: func literal escapes to heap
+./mux.go:603:64: func literal escapes to heap in (*Mux).POSTE:
+./mux.go:607:63: func literal escapes to heap
+./mux.go:607:63: func literal escapes to heap in (*Mux).PUTE:
+./mux.go:611:65: func literal escapes to heap
+./mux.go:611:65: func literal escapes to heap in (*Mux).PATCHE:
+./mux.go:615:66: func literal escapes to heap
+./mux.go:615:66: func literal escapes to heap in (*Mux).DELETEE:
+./mux.go:619:67: func literal escapes to heap
+./mux.go:619:67: func literal escapes to heap in (*Mux).OPTIONSE:
+./mux.go:637:9: &Group{...} escapes to heap
+./mux.go:637:9: &Group{...} escapes to heap in (*Mux).Group:
+./mux.go:642:9: &Group{...} escapes to heap
+./mux.go:642:9: &Group{...} escapes to heap in (*Mux).With:
+./mux.go:645:21: append escapes to heap
+./mux.go:645:21: append([]func(http.Handler) http.Handler{}, mw...) escapes to heap in (*Mux).With:
+./mux.go:645:55: []func(http.Handler) http.Handler{} escapes to heap
+./mux.go:645:55: []func(http.Handler) http.Handler{} escapes to heap in (*Mux).With:
+./mux.go:651:14: &Group{...} escapes to heap
+./mux.go:651:14: &Group{...} escapes to heap in (*Mux).Route:
+./mux.go:664:9: "muxmaster: nil handler passed to Mount" escapes to heap
+./mux.go:664:9: "muxmaster: nil handler passed to Mount" escapes to heap in (*Mux).mountAt:
+./mux.go:667:9: "muxmaster: Mount prefix must begin with '/'" escapes to heap
+./mux.go:667:9: "muxmaster: Mount prefix must begin with '/'" escapes to heap in (*Mux).mountAt:
+./mux.go:672:9: "muxmaster: Mount prefix contains invalid UTF-8" escapes to heap
+./mux.go:672:9: "muxmaster: Mount prefix contains invalid UTF-8" escapes to heap in (*Mux).mountAt:
+./mux.go:676:29: func literal escapes to heap
+./mux.go:676:29: func literal escapes to heap in (*Mux).mountAt:
+./mux.go:681:26: context.backgroundCtx{} escapes to heap
+./mux.go:681:26: context.backgroundCtx{} escapes to heap in (*Mux).mountAt.func1:
+./mux.go:682:15: new(url.URL) escapes to heap
+./mux.go:682:15: new(url.URL) escapes to heap in (*Mux).mountAt.func1:
+./mux.go:705:22: prefix + "/*mux_mount" escapes to heap
+./mux.go:705:22: prefix + "/*mux_mount" escapes to heap in (*Mux).mountAt:
+./mux.go:723:9: "muxmaster: nil root passed to ServeFiles" escapes to heap
+./mux.go:723:9: "muxmaster: nil root passed to ServeFiles" escapes to heap in (*Mux).ServeFiles:
+./mux.go:729:79: "muxmaster: ServeFiles refuses to register with UseRawPath=true AND U... escapes to heap
+./mux.go:729:79: "muxmaster: ServeFiles refuses to register with UseRawPath=true AND U... escapes to heap in (*Mux).ServeFiles:
+./mux.go:734:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap
+./mux.go:734:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap in (*Mux).ServeFiles:
+./mux.go:738:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap
+./mux.go:738:65: "muxmaster: ServeFiles prefix must end with '/*name': " + prefix escapes to heap in (*Mux).ServeFiles:
+./mux.go:740:23: &http.fileHandler{...} escapes to heap
+./mux.go:740:23: &http.fileHandler{...} escapes to heap in (*Mux).ServeFiles:
+./mux.go:741:24: func literal escapes to heap
+./mux.go:741:24: func literal escapes to heap in (*Mux).ServeFiles:
+./mux.go:742:26: context.backgroundCtx{} escapes to heap
+./mux.go:742:26: context.backgroundCtx{} escapes to heap in (*Mux).ServeFiles.func1:
+./mux.go:743:15: new(url.URL) escapes to heap
+./mux.go:743:15: new(url.URL) escapes to heap in (*Mux).ServeFiles.func1:
+./mux.go:770:2: h escapes to heap in (*Mux).lazyNotFound:
+./mux.go:770:2: moved to heap: h
+./mux.go:779:83: ([]byte)(http.StatusText(405) + "\n") escapes to heap
+./mux.go:779:83: ([]byte)(http.StatusText(405) + "\n") escapes to heap in init:
+./mux.go:798:22: []string{...} escapes to heap
+./mux.go:798:22: []string{...} escapes to heap in (*Mux).lazyMethodNotAllowed:
+./mux.go:802:11: func literal escapes to heap
+./mux.go:802:11: func literal escapes to heap in (*Mux).lazyMethodNotAllowed:
+./mux.go:810:11: func literal escapes to heap
+./mux.go:810:11: func literal escapes to heap in (*Mux).lazyMethodNotAllowed:
+./mux.go:820:32: allow escapes to heap
+./mux.go:820:32: allow escapes to heap in (*Mux).lazyMethodNotAllowed:
+./mux.go:835:39: func literal escapes to heap
+./mux.go:835:39: func literal escapes to heap in (*Mux).lazyOPTIONS:
+./mux.go:836:17: []string{...} escapes to heap
+./mux.go:836:17: []string{...} escapes to heap in (*Mux).lazyOPTIONS.func1:
+./mux.go:843:23: allow escapes to heap
+./mux.go:843:23: allow escapes to heap in (*Mux).lazyOPTIONS:
+./mux.go:868:7: &muxConfig{...} escapes to heap
+./mux.go:868:7: &muxConfig{...} escapes to heap in (*Mux).frozenConfigSlow:
+./mux.go:997:17: make(Params, ps.count) escapes to heap
+./mux.go:997:17: make(Params, ps.count) escapes to heap in (*Mux).dispatch:
+./params.go:263:57: new(reqBundle1) escapes to heap
+./params.go:263:57: new(reqBundle1) escapes to heap in init.func1:
+./params.go:264:57: new(reqBundle2) escapes to heap
+./params.go:264:57: new(reqBundle2) escapes to heap in init.func2:
+./params.go:265:57: new(reqBundle) escapes to heap
+./params.go:265:57: new(reqBundle) escapes to heap in init.func3:
+./params.go:284:58: new([1]Param) escapes to heap
+./params.go:284:58: new([1]Param) escapes to heap in init.func4:
+./params.go:285:58: new([2]Param) escapes to heap
+./params.go:285:58: new([2]Param) escapes to heap in init.func5:
+./params.go:286:58: new([3]Param) escapes to heap
+./params.go:286:58: new([3]Param) escapes to heap in init.func6:
+./params.go:305:14: make(Params, n) escapes to heap
+./params.go:305:14: make(Params, n) escapes to heap in getFastParams:
+./params.go:344:8: &reqBundle1{} escapes to heap
+./params.go:344:8: &reqBundle1{} escapes to heap in dispatchParams1:
+./params.go:354:39: context.backgroundCtx{} escapes to heap
+./params.go:354:39: context.backgroundCtx{} escapes to heap in dispatchParams1:
+./params.go:354:8: &requestCtx1{...} escapes to heap
+./params.go:354:8: &requestCtx1{...} escapes to heap in dispatchParams1:
+./params.go:356:30: "nil context" escapes to heap
+./params.go:356:30: "nil context" escapes to heap in dispatchParams1:
+./params.go:356:30: new(http.Request) escapes to heap
+./params.go:356:30: new(http.Request) escapes to heap in dispatchParams1:
+./params.go:366:8: &reqBundle2{} escapes to heap
+./params.go:366:8: &reqBundle2{} escapes to heap in dispatchParams2:
+./params.go:376:39: context.backgroundCtx{} escapes to heap
+./params.go:376:39: context.backgroundCtx{} escapes to heap in dispatchParams2:
+./params.go:376:8: &requestCtx2{...} escapes to heap
+./params.go:376:8: &requestCtx2{...} escapes to heap in dispatchParams2:
+./params.go:379:30: "nil context" escapes to heap
+./params.go:379:30: "nil context" escapes to heap in dispatchParams2:
+./params.go:379:30: new(http.Request) escapes to heap
+./params.go:379:30: new(http.Request) escapes to heap in dispatchParams2:
+./params.go:443:19: make(Params, n) escapes to heap
+./params.go:443:19: make(Params, n) escapes to heap in dispatchParamsNPooled:
+./params.go:474:14: &reqBundle{} escapes to heap
+./params.go:474:14: &reqBundle{} escapes to heap in dispatchWithParams:
+./params.go:483:21: make(Params, n) escapes to heap
+./params.go:483:21: make(Params, n) escapes to heap in dispatchWithParams:
+./params.go:491:10: &requestCtx{...} escapes to heap
+./params.go:491:10: &requestCtx{...} escapes to heap in dispatchWithParams:
+./params.go:491:40: context.backgroundCtx{} escapes to heap
+./params.go:491:40: context.backgroundCtx{} escapes to heap in dispatchWithParams:
+./params.go:498:21: make(Params, n) escapes to heap
+./params.go:498:21: make(Params, n) escapes to heap in dispatchWithParams:
+./params.go:502:38: "nil context" escapes to heap
+./params.go:502:38: "nil context" escapes to heap in dispatchWithParams:
+./params.go:502:38: new(http.Request) escapes to heap
+./params.go:502:38: new(http.Request) escapes to heap in dispatchWithParams:
+./params.go:534:30: contextKey{} escapes to heap
+./params.go:534:30: contextKey{} escapes to heap in routeCtxParams:
+./params.go:557:30: contextKey{} escapes to heap
+./params.go:557:30: contextKey{} escapes to heap in routeCtxPattern:
+./params.go:572:33: context.backgroundCtx{} escapes to heap
+./params.go:572:33: context.backgroundCtx{} escapes to heap in PathParam:
+./params.go:583:34: context.backgroundCtx{} escapes to heap
+./params.go:583:34: context.backgroundCtx{} escapes to heap in RoutePattern:
+./params.go:90:11: make(map[string]string, len(ps)) escapes to heap
+./params.go:90:11: make(map[string]string, len(ps)) escapes to heap in Params.Map:
+./response.go:19:16: []string{...} escapes to heap
+./response.go:19:16: []string{...} escapes to heap in JSON:
+./response.go:35:16: []string{...} escapes to heap
+./response.go:35:16: []string{...} escapes to heap in XML:
+./response.go:46:16: []string{...} escapes to heap
+./response.go:46:16: []string{...} escapes to heap in Text:
+./response.go:48:24: ([]byte)(s) escapes to heap
+./response.go:48:24: ([]byte)(s) escapes to heap in Text:
+./tree.go:122:7: &node{...} escapes to heap
+./tree.go:122:7: &node{...} escapes to heap in cloneTree:
+./tree.go:136:20: make([]*node, len(n.children)) escapes to heap
+./tree.go:136:20: make([]*node, len(n.children)) escapes to heap in cloneTree:
+./tree.go:171:78: "muxmaster: pattern '" + path + "' has " + ~r0 + " optional segments; the maximum is " + ~r0 + " to prevent exponential addRoute time complexity (DoS)." escapes to heap
+./tree.go:171:78: "muxmaster: pattern '" + path + "' has " + ~r0 + " optional segments; the maximum is " + ~r0 + " to prevent exponential addRoute time complexity (DoS)." escapes to heap in (*node).addRouteInternal:
+./tree.go:184:52: "muxmaster: path contains invalid UTF-8: " + ~r0 escapes to heap
+./tree.go:184:52: "muxmaster: path contains invalid UTF-8: " + ~r0 escapes to heap in (*node).addRouteInternal:
+./tree.go:207:13: &node{...} escapes to heap
+./tree.go:207:13: &node{...} escapes to heap in (*node).addRouteInternal:
+./tree.go:219:24: []*node{...} escapes to heap
+./tree.go:219:24: []*node{...} escapes to heap in (*node).addRouteInternal:
+./tree.go:225:29: string([]byte{...}) escapes to heap
+./tree.go:225:29: string([]byte{...}) escapes to heap in (*node).addRouteInternal:
+./tree.go:256:52: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap
+./tree.go:256:52: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap in (*node).addRouteInternal:
+./tree.go:258:31: string([]byte{...}) escapes to heap
+./tree.go:258:31: string([]byte{...}) escapes to heap in (*node).addRouteInternal:
+./tree.go:259:14: &node{} escapes to heap
+./tree.go:259:14: &node{} escapes to heap in (*node).addRouteInternal:
+./tree.go:260:24: append escapes to heap
+./tree.go:260:24: append(n.children, child) escapes to heap in (*node).addRouteInternal:
+./tree.go:277:51: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap
+./tree.go:277:51: "muxmaster: '" + seg + "' in path '" + fullPath + "' conflicts with existing wildcard '" + pfx + "'" escapes to heap in (*node).addRouteInternal:
+./tree.go:285:77: "muxmaster: a handler is already registered for path '" + fullPath + "'" escapes to heap
+./tree.go:285:77: "muxmaster: a handler is already registered for path '" + fullPath + "'" escapes to heap in (*node).addRouteInternal:
+./tree.go:308:26: n.indices[:newPos] + n.indices[pos:pos + 1] + n.indices[newPos:pos] + n.indices[pos + 1:] escapes to heap
+./tree.go:308:26: n.indices[:newPos] + n.indices[pos:pos + 1] + n.indices[newPos:pos] + n.indices[pos + 1:] escapes to heap in (*node).incrementChildPrio:
+./tree.go:321:85: "muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'" escapes to heap
+./tree.go:321:85: "muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:324:68: "muxmaster: wildcards must be named in path '" + fullPath + "'" escapes to heap
+./tree.go:324:68: "muxmaster: wildcards must be named in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:332:13: &node{...} escapes to heap
+./tree.go:332:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:335:23: append escapes to heap
+./tree.go:335:23: append(n.children, child) escapes to heap in (*node).insertChild:
+./tree.go:342:13: &node{...} escapes to heap
+./tree.go:342:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:343:25: []*node{...} escapes to heap
+./tree.go:343:25: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:357:83: "muxmaster: regex param must have the form {name:expr} in '" + fullPath + "'" escapes to heap
+./tree.go:357:83: "muxmaster: regex param must have the form {name:expr} in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:35:23: append escapes to heap
+./tree.go:35:23: append(pb.overflow, Param{...}) escapes to heap in (*paramsBuf).add:
+./tree.go:360:44: "^(?:" + expr + ")$" escapes to heap
+./tree.go:360:44: "^(?:" + expr + ")$" escapes to heap in (*node).insertChild:
+./tree.go:362:68: "muxmaster: invalid regexp in path '" + fullPath + "': " + err.Error() escapes to heap
+./tree.go:362:68: "muxmaster: invalid regexp in path '" + fullPath + "': " + err.Error() escapes to heap in (*node).insertChild:
+./tree.go:375:83: "muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'" escapes to heap
+./tree.go:375:83: "muxmaster: regex param name must be at most 254 bytes in '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:377:13: &node{...} escapes to heap
+./tree.go:377:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:379:23: append escapes to heap
+./tree.go:379:23: append(n.children, child) escapes to heap in (*node).insertChild:
+./tree.go:386:13: &node{...} escapes to heap
+./tree.go:386:13: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:387:25: []*node{...} escapes to heap
+./tree.go:387:25: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:399:96: "muxmaster: catch-all routes are only allowed at the end of the path ... + fullPath + "'" escapes to heap
+./tree.go:399:96: "muxmaster: catch-all routes are only allowed at the end of the path ... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:402:99: "muxmaster: catch-all conflicts with existing handler for the path ro... + fullPath + "'" escapes to heap
+./tree.go:402:99: "muxmaster: catch-all conflicts with existing handler for the path ro... + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:407:76: "muxmaster: catch-all requires a '/' prefix in path '" + fullPath + "'" escapes to heap
+./tree.go:407:76: "muxmaster: catch-all requires a '/' prefix in path '" + fullPath + "'" escapes to heap in (*node).insertChild:
+./tree.go:412:15: &node{...} escapes to heap
+./tree.go:412:15: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:413:23: []*node{...} escapes to heap
+./tree.go:413:23: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:418:11: &node{...} escapes to heap
+./tree.go:418:11: &node{...} escapes to heap in (*node).insertChild:
+./tree.go:426:23: []*node{...} escapes to heap
+./tree.go:426:23: []*node{...} escapes to heap in (*node).insertChild:
+./tree.go:485:16: append escapes to heap
+./tree.go:485:16: append(pb.overflow, Param{...}) escapes to heap in (*node).getValue:
+./tree.go:521:16: append escapes to heap
+./tree.go:521:16: append(pb.overflow, Param{...}) escapes to heap in (*node).getValue:
+./tree.go:53:13: make(Params, pb.count) escapes to heap
+./tree.go:53:13: make(Params, pb.count) escapes to heap in (*paramsBuf).params:
+./tree.go:543:16: append escapes to heap
+./tree.go:543:16: append(pb.overflow, Param{...}) escapes to heap in (*node).getValue:
+./tree.go:551:11: "muxmaster: invalid node type" escapes to heap
+./tree.go:551:11: "muxmaster: invalid node type" escapes to heap in (*node).getValue:
+./tree.go:798:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap
+./tree.go:798:50: "muxmaster: unclosed { in path '" + path + "'" escapes to heap in expandOptional:
+./tree.go:806:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap
+./tree.go:806:69: "muxmaster: consecutive optional segments not supported in path '" + path + "' — separate optional segments with a literal segment, e.g. " + "/users{/:id}/posts{/:post}" escapes to heap in expandOptional:
+./tree.go:813:22: path[:i] + path[j + 1:] escapes to heap
+./tree.go:813:22: path[:i] + path[j + 1:] escapes to heap in expandOptional:
+./tree.go:833:41: path[:i] + "/" + paramToken + path[j + 1:] escapes to heap
+./tree.go:833:41: path[:i] + "/" + paramToken + path[j + 1:] escapes to heap in expandOptional:
+./tree.go:834:17: []string{...} escapes to heap
+./tree.go:834:17: []string{...} escapes to heap in expandOptional:
+/usr/local/go/src/internal/sync/hashtriemap.go:114:24: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:114:24: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:120:18: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:120:18: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:123:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:123:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:145:21: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:145:21: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:151:26: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:151:26: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore:
+/usr/local/go/src/internal/sync/hashtriemap.go:177:32: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:177:32: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).expand:
+/usr/local/go/src/internal/sync/hashtriemap.go:181:10: "internal/sync.HashTrieMap: ran out of hash bits while inserting (inc... escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:181:10: "internal/sync.HashTrieMap: ran out of hash bits while inserting (inc... escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).expand:
+/usr/local/go/src/internal/sync/hashtriemap.go:191:34: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:191:34: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).expand:
+/usr/local/go/src/internal/sync/hashtriemap.go:228:18: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:228:18: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:231:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:231:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:255:21: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:255:21: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:263:26: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:263:26: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:283:9: "called CompareAndSwap when value is not of comparable type" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:283:9: "called CompareAndSwap when value is not of comparable type" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndSwap:
+/usr/local/go/src/internal/sync/hashtriemap.go:297:23: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:297:23: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndSwap:
+/usr/local/go/src/internal/sync/hashtriemap.go:323:25: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:323:25: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:342:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:342:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:371:9: "called CompareAndDelete when value is not of comparable type" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:371:9: "called CompareAndDelete when value is not of comparable type" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:385:23: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:385:23: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:404:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:404:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).CompareAndDelete:
+/usr/local/go/src/internal/sync/hashtriemap.go:444:24: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:444:24: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).find:
+/usr/local/go/src/internal/sync/hashtriemap.go:454:18: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:454:18: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).find:
+/usr/local/go/src/internal/sync/hashtriemap.go:457:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:457:10: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).find:
+/usr/local/go/src/internal/sync/hashtriemap.go:483:9: func literal escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:483:9: func literal escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).All:
+/usr/local/go/src/internal/sync/hashtriemap.go:505:26: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:505:26: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).iter:
+/usr/local/go/src/internal/sync/hashtriemap.go:50:37: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:50:37: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).initSlow:
+/usr/local/go/src/internal/sync/hashtriemap.go:510:15: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:510:15: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).iter:
+/usr/local/go/src/internal/sync/hashtriemap.go:527:37: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:527:37: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Clear:
+/usr/local/go/src/internal/sync/hashtriemap.go:550:9: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:550:9: &sync.indirect[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in newIndirectNode[go.shape.interface {},go.shape.interface {}]:
+/usr/local/go/src/internal/sync/hashtriemap.go:572:9: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:572:9: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in newEntryNode[go.shape.interface {},go.shape.interface {}]:
+/usr/local/go/src/internal/sync/hashtriemap.go:606:20: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:606:20: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:616:24: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:616:24: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).swap:
+/usr/local/go/src/internal/sync/hashtriemap.go:635:20: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:635:20: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).compareAndSwap:
+/usr/local/go/src/internal/sync/hashtriemap.go:645:24: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:645:24: &sync.entry[go.shape.interface {},go.shape.interface {}]{...} escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).compareAndSwap:
+/usr/local/go/src/internal/sync/hashtriemap.go:706:6: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:706:6: "called entry on non-entry node" escapes to heap in (*node[interface {},interface {}]).entry:
+/usr/local/go/src/internal/sync/hashtriemap.go:708:9: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:708:9: "called entry on non-entry node" escapes to heap in (*node[go.shape.interface {},go.shape.interface {}]).entry:
+/usr/local/go/src/internal/sync/hashtriemap.go:713:6: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:713:6: "called indirect on entry node" escapes to heap in (*node[interface {},interface {}]).indirect:
+/usr/local/go/src/internal/sync/hashtriemap.go:715:9: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:715:9: "called indirect on entry node" escapes to heap in (*node[go.shape.interface {},go.shape.interface {}]).indirect:
+/usr/local/go/src/internal/sync/hashtriemap.go:78:18: "called entry on non-entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:78:18: "called entry on non-entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load:
+/usr/local/go/src/internal/sync/hashtriemap.go:80:17: "called indirect on entry node" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:80:17: "called indirect on entry node" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load:
+/usr/local/go/src/internal/sync/hashtriemap.go:82:8: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap
+/usr/local/go/src/internal/sync/hashtriemap.go:82:8: "internal/sync.HashTrieMap: ran out of hash bits while iterating" escapes to heap in (*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*entry[interface {},interface {}]).entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*indirect[go.shape.interface {},go.shape.interface {}]).entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*indirect[interface {},interface {}]).entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }).internal/sync.entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }).internal/sync.entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[interface {},interface {}]; internal/sync.children [16]sync/atomic.Pointer[internal/sync.node[interface {},interface {}]] }).internal/sync.entry:
+<autogenerated>:1: "called entry on non-entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[interface {},interface {}]]; internal/sync.key interface {}; internal/sync.value interface {} }).internal/sync.entry:
+<autogenerated>:1: "called indirect on entry node" escapes to heap
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*entry[go.shape.interface {},go.shape.interface {}]).indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*entry[interface {},interface {}]).indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*indirect[go.shape.interface {},go.shape.interface {}]).indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*indirect[interface {},interface {}]).indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[go.shape.interface {},go.shape.interface {}]; internal/sync.children [16]sync/atomic.Pointer[go.shape.struct { internal/sync.isEntry bool }] }).internal/sync.indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[go.shape.interface {},go.shape.interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[go.shape.interface {},go.shape.interface {}]]; internal/sync.key go.shape.interface {}; internal/sync.value go.shape.interface {} }).internal/sync.indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.dead sync/atomic.Bool; internal/sync.mu internal/sync.Mutex; internal/sync.parent *internal/sync.indirect[interface {},interface {}]; internal/sync.children [16]sync/atomic.Pointer[internal/sync.node[interface {},interface {}]] }).internal/sync.indirect:
+<autogenerated>:1: "called indirect on entry node" escapes to heap in (*struct { internal/sync.node = internal/sync.node[interface {},interface {}]; internal/sync.overflow sync/atomic.Pointer[internal/sync.entry[interface {},interface {}]]; internal/sync.key interface {}; internal/sync.value interface {} }).internal/sync.indirect:
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap in (*struct { reflect.typ_ *internal/abi.Type; reflect.ptr unsafe.Pointer; reflect.flag }).reflect.mustBe:
+<autogenerated>:1: &reflect.ValueError{...} escapes to heap in struct { reflect.typ_ *internal/abi.Type; reflect.ptr unsafe.Pointer; reflect.flag }.reflect.mustBe:
+<autogenerated>:1: make(map[string]string, len(ps)) escapes to heap
+<autogenerated>:1: make(map[string]string, len(ps)) escapes to heap in (*Params).Map:

@@ -1,0 +1,30 @@
+--- a/main.go	2026-09-24 19:38:30.388687528 +0100
++++ b/main.go	2026-09-24 19:38:30.388687528 +0100
+@@ -153,6 +153,15 @@
+ 
+ 	r := mm.New()
+ 
++	// [waste-hunt start-up patch] HandleFast routes moved above Use(): the
++	// unmodified example panics at registration (FPE-2026-010 guard). Fast
++	// routes are never wrapped by Use(), so the served behaviour is unchanged.
++	// FastHandler: static route — zero allocations per request.
++	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
++		w.Header().Set("Content-Type", "application/json")
++		_, _ = io.WriteString(w, `{"status":"ok"}`)
++	})
++
+ 	// ── Global middleware ─────────────────────────────────────────────────────
+ 	r.Use(
+ 		mw.RequestID(),
+@@ -175,11 +184,6 @@
+ 
+ 	// ── Public routes ─────────────────────────────────────────────────────────
+ 
+-	// FastHandler: static route — zero allocations per request.
+-	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
+-		w.Header().Set("Content-Type", "application/json")
+-		_, _ = io.WriteString(w, `{"status":"ok"}`)
+-	})
+ 
+ 	// POST /auth/login — validate credentials and return a signed JWT.
+ 	r.POSTE("/auth/login", func(w http.ResponseWriter, r *http.Request) error {

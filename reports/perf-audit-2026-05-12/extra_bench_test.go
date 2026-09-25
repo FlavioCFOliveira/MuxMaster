@@ -155,6 +155,59 @@ func BenchmarkRedirectTSL(b *testing.B) {
 	}
 }
 
+// RedirectTrailingSlash with a Use()-registered middleware chain —
+// exercises the lazyRedirect cache ([waste-hunt WH-10]) instead of the
+// no-middleware fast path BenchmarkRedirectTSL measures.
+func BenchmarkRedirectTSLWithMiddleware(b *testing.B) {
+	m := muxmaster.New()
+	m.RedirectTrailingSlash = true
+	for i := 0; i < 5; i++ {
+		m.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				next.ServeHTTP(w, r)
+			})
+		})
+	}
+	m.GET("/users", func(w http.ResponseWriter, r *http.Request) {})
+
+	r := httptest.NewRequest(http.MethodGet, "/users/", nil)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		w := httptest.NewRecorder()
+		m.ServeHTTP(w, r)
+	}
+}
+
+// ParallelRedirectTrailingSlash stresses the lock-free redirectMWPtr read +
+// lazyRedirect cache ([waste-hunt WH-10]) under concurrent load, with a
+// Use()-registered middleware chain so every redirect exercises the cached
+// handler path rather than the middleware-free fast path.
+func BenchmarkParallelRedirectTrailingSlash(b *testing.B) {
+	m := muxmaster.New()
+	m.RedirectTrailingSlash = true
+	for i := 0; i < 5; i++ {
+		m.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				next.ServeHTTP(w, r)
+			})
+		})
+	}
+	m.GET("/users", func(w http.ResponseWriter, r *http.Request) {})
+
+	r := httptest.NewRequest(http.MethodGet, "/users/", nil)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		w := httptest.NewRecorder()
+		for pb.Next() {
+			m.ServeHTTP(w, r)
+		}
+	})
+}
+
 // PathParam lookup cost.
 func BenchmarkPathParamLookup(b *testing.B) {
 	m := muxmaster.New()

@@ -1,0 +1,10 @@
+scenario=authn conns=32 duration=2.001s
+requests=84441 req/s=42199 p50=589.118µs p90=1.559504ms p99=2.599732ms
+  GET /health (fast)                       expect=200 got 200×12060
+  GET /                                    expect=200 got 200×12064
+  GET /admin/dashboard (BasicAuth ok)      expect=200 got 200×12065
+  DELETE /admin/users/:id (BasicAuth ok)   expect=204 got 204×12062
+  GET /api/profile (APIKey ok)             expect=200 got 200×12064
+  GET /api/items/:id (APIKey ok)           expect=200 got 200×12064
+  GET /api/profile (APIKey bad -> 401)     expect=401 got 401×12062
+STATUS-OK: every response matched its expected status

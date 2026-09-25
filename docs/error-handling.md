@@ -215,6 +215,10 @@ mux.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 })
 ```
 
+**Middleware wrapping:**
+
+The `NotFound` handler is wrapped by any global middleware registered via `Use()`. The wrapper is applied dynamically: if you call `Use()` after assigning `NotFound`, the existing 404 handler will be re-wrapped with the new middleware chain. This ensures that logging, authentication, and other cross-cutting concerns apply to 404 responses.
+
 ### Method Not Allowed (405)
 
 Called when the path is registered for at least one method, but not the requested method. MuxMaster sets the `Allow` header automatically:
@@ -230,6 +234,10 @@ mux.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Requ
 ```
 
 To enable 405 responses, `HandleMethodNotAllowed` must be `true` (the default).
+
+**Middleware wrapping:**
+
+Like `NotFound`, the `MethodNotAllowed` handler is wrapped by global middleware registered via `Use()`. The wrapper is applied dynamically, so adding middleware after assigning `MethodNotAllowed` will cause existing 405 responses to be re-wrapped with the new chain. This ensures that rate-limiting, logging, authentication, and other policies apply uniformly to 405 errors.
 
 ---
 

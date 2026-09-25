@@ -50,6 +50,17 @@ See [[task_kg2026001_fastpath_spec]] for the 2026-07-14 change that added the Fa
 - "Fixed path" = path.Clean result that differs from original but has a handler.
 - "Request bundle" = the single fused allocation (context wrapper + `*http.Request` copy) for parameterized `Handle` routes. Tiered by param count: `reqBundle1`/`reqBundle2`/`reqBundle` (384/416/480 B GC size classes).
 - "Configuration snapshot" = one-time immutable copy of Mux config fields taken on first `ServeHTTP`/first need; reset via `Rebuild()`.
+- "Shallow request copy" (added 2026-09-24, [[task_rmp250_253_perflab_spec]]) = a new `*http.Request` struct-copy with a fresh `*url.URL` (net/http.StripPrefix technique); shares header map and context with the original; original never mutated. Used by Mount, ServeFiles/Group.ServeFiles, StripSlashes, CleanPath — always cross-reference the README glossary entry rather than re-describing the mechanism inline. Distinct from "request bundle."
+
+## Current highest requirement number per file (updated 2026-09-25, see [[task_rmp258_sprint18_reconciliation]])
+
+Grep `^[0-9]\+\.` before appending to any of these — do not trust an older number from memory:
+
+- routing.md: 81 (added §6 Lookup Fallback, §7 Sibling Registration, §8 Redirect Target Encoding)
+- middleware-stdlib.md: 70 (fully renumbered 2026-09-25 — old rule numbers before that date are stale)
+- middleware.md: 43
+- groups.md: 30
+- performance.md: 45
 
 ## Structural conventions
 

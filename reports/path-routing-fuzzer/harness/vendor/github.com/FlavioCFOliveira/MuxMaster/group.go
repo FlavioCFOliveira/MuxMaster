@@ -187,6 +187,10 @@ func (g *Group) Mount(prefix string, h http.Handler) {
 
 // ServeFiles serves static files from root under the given prefix pattern.
 // prefix must end with "/*name" (relative to the group prefix).
+//
+// http.FileServer receives a shallow copy of the request (see the
+// Terminology section in README.md): a new *http.Request with a new URL,
+// but sharing the original's header map and context.
 func (g *Group) ServeFiles(prefix string, root http.FileSystem) {
 	if root == nil {
 		panic("muxmaster: nil root passed to ServeFiles")
@@ -202,7 +206,11 @@ func (g *Group) ServeFiles(prefix string, root http.FileSystem) {
 	}
 	fs := http.FileServer(root)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r2 := r.Clone(r.Context())
+		// [waste-hunt WH-04] Shallow request copy (see specification/README.md
+		// Terminology) instead of r.Clone's deep copy — see mux.go's
+		// (*Mux).ServeFiles for the full rationale.
+		r2 := new(http.Request)
+		*r2 = *r
 		r2.URL = new(url.URL)
 		*r2.URL = *r.URL
 		r2.URL.Path = PathParam(r, paramName)

@@ -1,0 +1,71 @@
+File: max-performance
+Build ID: 80541f5b6e341bc03814fb3fdbbdae6838456c2e
+Type: alloc_space
+Time: 2026-09-24 19:53:52 WEST
+Duration: 10.01s, Total samples = 1929.41MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 1034.26MB, 53.60% of 1929.41MB total
+Dropped 57 nodes (cum <= 9.65MB)
+Showing top 60 nodes out of 75
+      flat  flat%   sum%        cum   cum%
+  238.57MB 12.36% 12.36%   238.57MB 12.36%  net/http.Header.Clone (inline)
+  211.06MB 10.94% 23.30%  1073.77MB 55.65%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  170.05MB  8.81% 32.12%   170.05MB  8.81%  net/http.(*Request).WithContext
+   88.41MB  4.58% 36.70%    88.41MB  4.58%  encoding/json/v2.makeStringArshaler.func2
+   45.10MB  2.34% 39.04%    45.10MB  2.34%  sync.(*Pool).pinSlow
+      38MB  1.97% 41.01%       38MB  1.97%  reflect.unsafe_New
+   35.52MB  1.84% 42.85%    69.03MB  3.58%  main.configHandler
+   21.51MB  1.11% 43.96%   102.03MB  5.29%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   21.01MB  1.09% 45.05%    22.51MB  1.17%  io.ReadAll
+   18.50MB  0.96% 46.01%    39.01MB  2.02%  main.getRepoIssue
+      18MB  0.93% 46.94%    52.01MB  2.70%  main.getUser
+      16MB  0.83% 47.77%       18MB  0.93%  strconv.quoteWith (inline)
+   14.50MB  0.75% 48.52%    14.50MB  0.75%  encoding/json/jsontext.NewDecoder (inline)
+      14MB  0.73% 49.25%    39.51MB  2.05%  main.getUserOrder
+      13MB  0.67% 49.92%    42.01MB  2.18%  main.getUserProfile
+      12MB  0.62% 50.55%    42.01MB  2.18%  net/http.(*Request).Clone
+   11.01MB  0.57% 51.12%    11.01MB  0.57%  github.com/FlavioCFOliveira/MuxMaster.init.func3
+    7.50MB  0.39% 51.51%     7.50MB  0.39%  net/url.(*URL).Clone (inline)
+       7MB  0.36% 51.87%        7MB  0.36%  encoding/json/jsontext.init.func4
+       6MB  0.31% 52.18%    80.52MB  4.17%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).mountAt.func1
+       6MB  0.31% 52.49%        6MB  0.31%  sync.(*poolChain).pushHead
+    5.50MB  0.29% 52.78%     5.50MB  0.29%  github.com/FlavioCFOliveira/MuxMaster.init.func2
+       4MB  0.21% 52.98%    46.52MB  2.41%  main.postEvent
+       3MB  0.16% 53.14%    22.01MB  1.14%  main.listStaticFile
+    2.50MB  0.13% 53.27%   143.43MB  7.43%  main.createUser
+       2MB   0.1% 53.37%    16.50MB  0.86%  encoding/json.NewDecoder
+       2MB   0.1% 53.48%    51.02MB  2.64%  main.fastTimer.func1.1
+       1MB 0.052% 53.53%    24.01MB  1.24%  net/http.Error
+    0.50MB 0.026% 53.55%    19.01MB  0.99%  io.WriteString
+    0.50MB 0.026% 53.58%    31.01MB  1.61%  main.metricsFast
+    0.50MB 0.026% 53.60%        8MB  0.41%  net/http.(*ServeMux).matchingMethods
+         0     0% 53.60%   102.42MB  5.31%  encoding/json.(*Decoder).Decode
+         0     0% 53.60%   142.54MB  7.39%  encoding/json.(*Encoder).Encode
+         0     0% 53.60%     9.01MB  0.47%  encoding/json/jsontext.export.GetBufferedDecoder (inline)
+         0     0% 53.60%     9.01MB  0.47%  encoding/json/jsontext.getBufferedDecoder
+         0     0% 53.60%    45.01MB  2.33%  encoding/json/v2.MarshalEncode
+         0     0% 53.60%    99.42MB  5.15%  encoding/json/v2.Unmarshal
+         0     0% 53.60%       10MB  0.52%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 53.60%    44.01MB  2.28%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 53.60%    88.91MB  4.61%  encoding/json/v2.makeStructArshaler.func3
+         0     0% 53.60%    45.01MB  2.33%  encoding/json/v2.marshalEncode
+         0     0% 53.60%       20MB  1.04%  encoding/json/v2.newAddressableValue
+         0     0% 53.60%    88.91MB  4.61%  encoding/json/v2.unmarshalDecode
+         0     0% 53.60%    30.01MB  1.56%  fmt.Fprintf
+         0     0% 53.60%     6.01MB  0.31%  fmt.newPrinter
+         0     0% 53.60%   687.14MB 35.61%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 53.60%  1073.77MB 55.65%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 53.60%   687.14MB 35.61%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 53.60%   140.55MB  7.28%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1Pooled
+         0     0% 53.60%    49.52MB  2.57%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams2Pooled
+         0     0% 53.60%    65.03MB  3.37%  github.com/FlavioCFOliveira/MuxMaster.dispatchParamsNPooled
+         0     0% 53.60%   102.03MB  5.29%  github.com/FlavioCFOliveira/MuxMaster.dispatchWithParams
+         0     0% 53.60%    41.51MB  2.15%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 53.60%   424.02MB 21.98%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 53.60%   687.14MB 35.61%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 53.60%     5.52MB  0.29%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+         0     0% 53.60%       18MB  0.93%  github.com/FlavioCFOliveira/MuxMaster/middleware.sanitiseForLog
+         0     0% 53.60%       18MB  0.93%  main.healthFast
+         0     0% 53.60%    32.51MB  1.68%  net/http.(*ServeMux).ServeHTTP
+         0     0% 53.60%     8.50MB  0.44%  net/http.(*ServeMux).findHandler

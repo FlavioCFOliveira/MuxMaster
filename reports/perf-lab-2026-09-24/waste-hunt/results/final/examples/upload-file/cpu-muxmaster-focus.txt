@@ -1,0 +1,71 @@
+File: upload-file
+Build ID: b577b88df8b62e651989ea469b17bd5506848be3
+Type: cpu
+Time: 2026-09-25 12:39:07 WEST
+Duration: 10s, Total samples = 75.55s (755.45%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 46.34s, 61.34% of 75.55s total
+Dropped 422 nodes (cum <= 0.38s)
+Showing top 60 nodes out of 120
+      flat  flat%   sum%        cum   cum%
+    25.24s 33.41% 33.41%     25.24s 33.41%  internal/runtime/syscall/linux.Syscall6
+     6.69s  8.86% 42.26%      6.69s  8.86%  runtime.memclrNoHeapPointers
+     4.22s  5.59% 47.85%      4.22s  5.59%  internal/bytealg.LastIndexByte (inline)
+     3.22s  4.26% 52.11%      3.22s  4.26%  runtime.memmove
+     3.19s  4.22% 56.33%      3.19s  4.22%  crypto/internal/fips140/sha256.blockSHANI
+     0.31s  0.41% 56.74%      0.31s  0.41%  indexbytebody
+     0.26s  0.34% 57.09%      0.26s  0.34%  runtime.nextFreeFast (inline)
+     0.19s  0.25% 57.34%      0.26s  0.34%  runtime.step
+     0.14s  0.19% 57.52%      0.33s  0.44%  runtime.(*unwinder).resolveInternal
+     0.13s  0.17% 57.70%      8.16s 10.80%  net/http.(*maxBytesReader).Read
+     0.12s  0.16% 57.86%     10.75s 14.23%  bytes.growSlice
+     0.12s  0.16% 58.01%     37.80s 50.03%  io.copyBuffer
+     0.11s  0.15% 58.16%      7.98s 10.56%  bufio.(*Reader).Read
+     0.11s  0.15% 58.31%     24.51s 32.44%  bytes.(*Buffer).ReadFrom
+     0.11s  0.15% 58.45%      1.20s  1.59%  runtime.(*mheap).allocSpan
+     0.11s  0.15% 58.60%      0.44s  0.58%  runtime.pcvalue
+     0.10s  0.13% 58.73%      0.43s  0.57%  runtime.(*mheap).initSpan
+     0.09s  0.12% 58.85%      8.25s 10.92%  mime/multipart.(*stickyErrorReader).Read
+     0.09s  0.12% 58.97%     13.29s 17.59%  mime/multipart.partReader.Read
+     0.09s  0.12% 59.09%      3.83s  5.07%  runtime.mallocgc
+     0.08s  0.11% 59.19%     13.40s 17.74%  io.(*LimitedReader).Read
+     0.08s  0.11% 59.30%      2.68s  3.55%  runtime.growslice
+     0.08s  0.11% 59.40%      0.60s  0.79%  runtime.tracebackPCs
+     0.07s 0.093% 59.50%      8.32s 11.01%  bufio.(*Reader).fill
+     0.07s 0.093% 59.59%      0.75s  0.99%  runtime.(*mcache).refill
+     0.07s 0.093% 59.68%      0.38s   0.5%  runtime.mallocgcSmallScanNoHeader
+     0.06s 0.079% 59.76%     10.81s 14.31%  bytes.(*Buffer).grow
+     0.06s 0.079% 59.84%      7.31s  9.68%  net.(*netFD).Read
+     0.06s 0.079% 59.92%      7.98s 10.56%  net/http.(*body).readLocked
+     0.06s 0.079% 60.00%      7.48s  9.90%  net/http.(*connReader).Read
+     0.06s 0.079% 60.08%     25.24s 33.41%  syscall.RawSyscall6
+     0.05s 0.066% 60.15%     51.70s 68.43%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.05s 0.066% 60.21%      7.25s  9.60%  internal/poll.(*FD).Read
+     0.05s 0.066% 60.28%     11.53s 15.26%  main.asyncProcessUpload
+     0.05s 0.066% 60.34%     23.30s 30.84%  net/http.(*Request).ParseMultipartForm
+     0.05s 0.066% 60.41%      8.03s 10.63%  net/http.(*body).Read
+     0.04s 0.053% 60.46%      8.27s 10.95%  bufio.(*Reader).Peek
+     0.04s 0.053% 60.52%      0.56s  0.74%  encoding/json/v2.makeMapArshaler.func2
+     0.04s 0.053% 60.57%     12.03s 15.92%  io.(*multiWriter).Write
+     0.04s 0.053% 60.62%      7.35s  9.73%  net.(*conn).Read
+     0.04s 0.053% 60.68%      1.30s  1.72%  runtime.(*mheap).alloc
+     0.04s 0.053% 60.73%      7.04s  9.32%  syscall.read
+     0.03s  0.04% 60.77%     51.99s 68.82%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.03s  0.04% 60.81%      0.96s  1.27%  io.(*SectionReader).Read
+     0.03s  0.04% 60.85%      0.43s  0.57%  mime.ParseMediaType
+     0.03s  0.04% 60.89%      0.26s  0.34%  net/http.(*response).WriteHeader
+     0.03s  0.04% 60.93%      8.78s 11.62%  os.(*File).Write
+     0.03s  0.04% 60.97%      0.93s  1.23%  runtime.(*mcache).allocLarge
+     0.03s  0.04% 61.01%      0.43s  0.57%  runtime.mapassign_faststr
+     0.03s  0.04% 61.05%      2.43s  3.22%  runtime.systemstack
+     0.03s  0.04% 61.09%      7.07s  9.36%  syscall.Read (inline)
+     0.03s  0.04% 61.13%     18.65s 24.69%  syscall.Syscall
+     0.02s 0.026% 61.15%      0.36s  0.48%  bytes.IndexByte (inline)
+     0.02s 0.026% 61.18%      3.21s  4.25%  crypto/internal/fips140/sha256.(*Digest).Write
+     0.02s 0.026% 61.20%     51.74s 68.48%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+     0.02s 0.026% 61.23%      0.33s  0.44%  internal/runtime/maps.(*Map).growToSmall
+     0.02s 0.026% 61.26%     21.56s 28.54%  io.CopyN
+     0.02s 0.026% 61.28%     19.98s 26.45%  main.multiUpload
+     0.02s 0.026% 61.31%     23.76s 31.45%  main.saveFile
+     0.02s 0.026% 61.34%      0.58s  0.77%  mime/multipart.(*Reader).nextPart

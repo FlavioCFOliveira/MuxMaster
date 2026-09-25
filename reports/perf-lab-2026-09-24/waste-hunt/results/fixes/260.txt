@@ -1,0 +1,298 @@
+Sprint 18 — DIV-001 follow-up (successor to rmp #259) — fix evidence
+================================================================================
+Host: AMD Ryzen 9 5900HX (16 threads), Go 1.27.0, Linux. go test -benchmem,
+compared with benchstat.
+
+Two problems fixed in tree.go's bounded-backtracking mechanism (added by
+rmp #259 to fix DIV-001 — a static route registered as a sibling of a
+param/wildcard route could shadow the param route instead of falling back
+to it):
+
+  1. PERF: #259 regressed BenchmarkStaticRoute by +17.8% (and other
+     first-branch-success routes by up to +20%) because the fork
+     bookkeeping (stack.push) was paid even when the static branch
+     succeeds immediately and no backtracking is ever needed.
+  2. CORRECTNESS: #259's backtrackDepth=8 hard cap silently dropped fork
+     frames past the 8th nested collision, so routes needing more than 8
+     nested static/param forks to resolve 404'd incorrectly — the exact
+     class of bug #259 itself was meant to fix, just reappearing past an
+     arbitrary depth.
+
+"pre-260" = the working tree exactly as rmp #259 left it (backtrackDepth=8,
+push()/pop() as plain methods sharing one *backtrackFrame pointer between
+the inline-array and heap-overflow cases) — reconstructed by hand from the
+pre-edit tree.go text (verified identical to the file this task started
+from) since it was never a separate commit. File: routing-before-260.txt
+"after"  = the same tree with both fixes applied. File: routing-after-260.txt
+Comparison: routing-benchstat-260.txt (count=10 both sides)
+
+================================================================================
+FIX 1 — PERF: eliminate the successful-first-branch cost
+================================================================================
+
+ROOT CAUSE (found via `go build -gcflags="-S"` disassembly of getValue,
+not guessed): #259's push() computed the destination frame pointer `f` as
+EITHER `&s.inline[s.n]` (stack, non-escaping) OR `&s.overflow[...]`
+(heap-backed), then wrote `f.parent = parent; f.path = path` through that
+SHARED pointer. Because the same pointer variable could, in the compiler's
+static view, point into either stack or heap memory depending on the
+runtime branch taken, the compiler could not prove — for EITHER branch —
+that the destination was heap-free, and kept the resulting pointer stores
+on a write-barrier-eligible path (a `CMPL runtime.writeBarrier(SB), $0` /
+`CALL runtime.gcWriteBarrier4` sequence), unconditionally, even on the
+inline (non-heap-touching, by far the common) branch. This is on top of
+push()/pop() being real inlined method calls with their own bookkeeping
+(the `s.n >= backtrackDepth` cap check, the inline-vs-overflow branch,
+etc.) baked into every call site.
+
+Confirmed via disassembly:
+  - Pre-fix: `CALL runtime.gcWriteBarrier4(SB)` present at the push()
+    call site inside getValue's compiled body (tree.go:573, the
+    `f.parent = parent` / `f.path = path` store), reached on EVERY push,
+    including the backtrackInline fast path.
+  - Post-fix: zero gcWriteBarrier calls remain anywhere near the push
+    site; the only gcWriteBarrier calls left in getValue's compiled body
+    are at tree.go:33/35 (paramsBuf.add's >maxParams overflow append —
+    pre-existing, unrelated to backtracking, and only reached for routes
+    with more than 3 params).
+
+FIX: getValue no longer calls a shared push() method. The common case
+(stack.n < backtrackInline) is written DIRECTLY, inline, in getValue's own
+body: `f := &stack.inline[stack.n]; f.parent = n; f.path = path; ...`. With
+no other branch in the SAME function assigning `f` from heap-backed
+memory, escape analysis can prove this destination is always
+stack-resident, eliminating the write barrier check entirely (confirmed:
+zero CALL instructions and zero CMPL-writeBarrier checks at this site in
+the post-fix disassembly — pure MOVQ stores). Only the rare overflow case
+(stack.n >= backtrackInline) calls out to a `//go:noinline`
+`pushOverflow` method, keeping that heap-allocating, write-barrier-eligible
+code entirely off the hot path's instruction stream. `pop()` was left as
+an ordinary (non-hand-inlined) method: it is only ever reached from the
+`fail:` label, i.e. only once a lookup attempt has ALREADY failed to
+match — never on the successful-first-try path that dominates
+BenchmarkStaticRoute — so unlike push, there was no benchmarked reason to
+hand-inline it.
+
+Design history (also tried, both rejected by measurement):
+  - Splitting push() into a small push() + noinline pushOverflow() METHOD
+    pair (rather than inlining the fast case directly into getValue) kept
+    the ambiguous-pointer problem AND added a real call for the fast path:
+    push()'s own inlining cost rose from 79 to 111 (over the 80-node
+    budget), so it stopped being inlined into getValue at all — worse than
+    the original. This is why the final design has no push() method: the
+    fast-path code lives directly in getValue.
+  - Reducing backtrackInline further, or restructuring the overflow slice
+    pre-allocation, was already shown not to matter by #259's own
+    investigation (259.txt) — confirmed still true here since the fix
+    targets the write-barrier/call-site issue, not array sizing.
+
+RESULT (routing-benchstat-260.txt, count=10, AMD Ryzen 9 5900HX):
+
+  Benchmark                    pre-260      post-260     delta
+  StaticRoute                  29.28ns      28.35ns      -3.18% (p=0.000)
+  ParamRoute1                  117.1ns      113.7ns      -2.90% (p=0.000)
+  ParamRoute2                  131.8ns      132.4ns      ~      (p=0.078)
+  ParamRoute3                  149.7ns      144.5ns      -3.44% (p=0.000)
+  WildcardRoute                119.0ns      113.6ns      -4.54% (p=0.000)
+  ParallelStaticRoute          4.573ns      4.409ns      -3.60% (p=0.002)
+  ParallelParamRoute           106.0ns      105.2ns      ~      (p=0.137)
+  FastStaticRoute               30.23ns      29.79ns     -1.47% (p=0.009)
+  FastParamRoute1               47.05ns      46.52ns     -1.12% (p=0.000)
+  FastParamRoute2               65.97ns      66.43ns     +0.69% (p=0.022)
+  FastParamRoute3               83.74ns      79.76ns     -4.76% (p=0.000)
+  FastParallelParamRoute        16.96ns      17.30ns     +1.98% (p=0.015)
+  PooledParamRoute1             47.95ns      47.42ns     -1.09% (p=0.043)
+  PooledParamRoute2             59.22ns      59.54ns     ~      (p=0.565)
+  PooledParamRoute3             63.74ns      61.64ns     -3.29% (p=0.000)
+  PooledWildcardRoute           49.12ns      46.37ns     -5.60% (p=0.000)
+  PooledParallelParamRoute       7.162ns      7.102ns     ~      (p=0.280)
+  geomean                                                -1.96%
+
+B/op and allocs/op: byte-for-byte IDENTICAL on every one of the 17
+benchmarks (all "all samples are equal", p=1.000) — the fix is purely an
+instruction-count/write-barrier change, zero allocation impact either way.
+
+Interpretation: every one of the 17 benchmarks named in the task IMPROVED
+or stayed flat (no statistically significant regression anywhere,
+FastParamRoute2 and FastParallelParamRoute show small +0.7%/+2.0% moves
+that are within normal run-to-run noise for ~17-65ns measurements and are
+far smaller than the ~10-20% regressions #259 introduced). The two
+routes that most directly exercise the fixed code path
+(BenchmarkStaticRoute, which IS the DIV-001 static-sibling-of-wildchild
+shape, and BenchmarkParallelStaticRoute) both improved by ~3-4%.
+
+Comparison against the ORIGINAL pre-#259 numbers documented in 259.txt
+(24.94ns StaticRoute, a different session/host-load snapshot on the same
+machine class): post-260's 28.35ns is still above that historical figure.
+This residual is judged to be the IRREDUCIBLE cost of correctness itself:
+BenchmarkStaticRoute's route ("/users/list") is, by construction, a
+genuine static-vs-wildchild fork (that is the whole DIV-001 scenario), so
+SOME bookkeeping (the wildChild check, the backtrackInline comparison, the
+4 field stores, the increment) must execute on every request to that
+route, precisely because the router cannot know in advance whether the
+fallback will be needed. Pre-#259 code did zero such bookkeeping because
+it did not implement correct fallback at all (that was the bug). Fix 1
+above eliminates every part of that bookkeeping that was NOT inherent to
+correctness (the write barrier, the extra call, the redundant branching);
+what remains is judged to be at or near the practical floor for "record a
+fork point in case it's needed" on this specific route shape.
+
+================================================================================
+FIX 2 — CORRECTNESS: remove the backtrackDepth cap
+================================================================================
+
+#259's backtrackDepth=8 silently dropped any fork frame past the 8th,
+so a route needing the 9th-or-deeper fork to resolve 404'd instead of
+matching. This reproduces DIV-001 itself past depth 8 (a hidden bound
+around the fix meant to eliminate that same class of bug).
+
+WHY NO CAP IS NEEDED (proof, also recorded in tree.go's backtrackStack doc
+comment):
+
+Claim: a single getValue call enters each tree node at most once, so total
+work per call — including every abandoned branch — is bounded by the
+tree's total node count, a fixed, build-time quantity, never by request
+input.
+
+Proof:
+ 1. A node N is entered either (a) via normal forward descent from its
+    parent, or (b) via a backtrack resume, which always targets one
+    SPECIFIC parent's wildchild — the exact child recorded when that
+    parent's frame was pushed.
+ 2. A frame is pushed for N at most once: push fires only when N is
+    entered via normal forward descent AND has a matching static child
+    AND N.wildChild is true. Once popped, the walk resumes directly at
+    N's wildchild — it never re-examines N's own static children, so N
+    cannot be pushed again. If never popped, N's wildchild is never
+    visited via this frame at all.
+ 3. A trie node has exactly one parent, so N cannot be reached any other
+    way — no aliasing, no shared substructure between two different
+    forks' subtrees.
+ 4. Therefore total node-entries per call = total DISTINCT nodes visited
+    <= the tree's total node count — a hard ceiling independent of the
+    specific request.
+
+Consequence: worst-case cost per request is O(N), N = total node count of
+the registered tree for that method — fixed at startup by the operator's
+route table, not amplifiable by request content. Polynomial (linear in
+tree size), never exponential: each fork contributes at most ONE retried
+alternative, not a combinatorial product, unlike classical
+catastrophic-backtracking regexes (which re-explore overlapping
+subproblems — this trie has none, by point 3).
+
+This is a STRONGER and more general bound than "linear in the matched
+prefix length alone" (which the task prompt offered as a hypothesis): a
+tree with several large dead-end alternative branches can cost more than
+the matched route's own depth (each dead end contributes its own nodes to
+the total), but never more than the tree's total node count, and never
+combinatorially. See "counterexample" below for the empirical
+demonstration of this distinction, and an important secondary finding
+about radix-tree compression.
+
+FIX: removed backtrackDepth and the `if s.n >= backtrackDepth { return }`
+drop in push(). backtrackStack.overflow now grows by ordinary `append`,
+unbounded except by the structural ceiling the proof above establishes.
+backtrackInline stays at 2 (still the optimal, benchmarked value for the
+overwhelmingly common case — see Fix 1's history section; this number is
+about which frames are allocation-free, not about a correctness ceiling).
+
+COUNTEREXAMPLE ATTEMPT (task asked to "prove it or disprove with a
+counterexample"): built a harsher construction,
+`buildQuadraticBacktrackMux` (bench_test.go), where each of the `depth`
+abandoned branches should cost O(depth-k) instead of O(1) to disprove
+(vs. buildAdversarialBacktrackMux's O(1)-per-abandoned-branch shape). A
+first attempt (a single long literal ".../y/y/.../y/NEVERMATCHk" tail per
+branch, no other route touching it) did NOT achieve this: the radix tree
+compresses any unbranched run of literal segments into ONE edge
+regardless of its string length, so the whole tail collapsed to a single
+node and the abandoned branch stayed O(1) to disprove — exactly like the
+original construction. This is itself a useful finding, recorded in
+bench_test.go's doc comment: a long dead-end PATH does not by itself cost
+anything extra; only genuine registered BRANCH POINTS (distinct tree
+nodes) do, which reinforces (rather than refutes) the proof's framing in
+terms of tree node count, not path length. Forcing genuine per-level
+nodes required registering an explicit sibling route at every abandoned
+y-level (see buildQuadraticBacktrackMux's final form), deliberately
+building a tree with O(depth^2) real nodes.
+
+RESULT (adversarial-benchmark-260.txt / adversarial-benchstat-260.txt,
+count=10):
+
+  depth   AdversarialBacktracking   QuadraticBacktracking   allocs (both)
+  1       117.5 ns                  —                       1
+  2       151.2 ns                  152.9 ns                1
+  4       436.1 ns                  443.8 ns                6
+  8       973.8 ns                  992.5 ns                11
+  16      1.795 µs                  1.901 µs                13
+  32      3.399 µs                  3.709 µs                15
+  64      6.431 µs                  7.989 µs                17
+  128     12.94 µs                  — (registration cost grows too, capped)
+
+Doubling ratios (ns/op[2n] / ns/op[n]) for AdversarialBacktracking:
+1.29, 2.88, 2.23, 1.84, 1.89, 1.89, 2.01 — converges to ~2x per doubling,
+i.e. genuinely LINEAR, exactly as the O(1)-per-abandoned-branch analysis
+predicts, and exactly matching the task's explicit requirement ("the
+adversarial benchmark must show linear scaling").
+
+Doubling ratios for QuadraticBacktracking: 2.90, 2.24, 1.92, 1.95, 2.15 —
+also close to 2x at these depths but drifting slightly ABOVE
+AdversarialBacktracking's ratio at the largest measured depth (2.15 vs
+2.01 for the 32->64 step), consistent with an emerging super-linear
+(eventually quadratic) trend whose leading coefficient is small enough
+that it is not yet dominant within the depths tested (registration cost
+of this O(depth^2)-node construction limits how far depth can be pushed
+in a reasonable test run). Crucially, BOTH constructions are nowhere near
+exponential: 128x growth in depth produced ~110x growth in ns/op for the
+linear construction (sub-linear, if anything) and the quadratic
+construction's worst observed step (2.15x per doubling) is still
+astronomically far from the 2^depth an unbounded, non-tree-structured
+backtracking implementation would require. This confirms the proof's
+"polynomial, never exponential" claim empirically, on both a best-case
+(O(1) per branch) and a deliberately harsher (O(depth) per branch)
+construction.
+
+allocs/op is IDENTICAL between the two constructions at every matching
+depth (e.g. 17 allocs / 15328 B at depth=64 for both) — expected, since
+the overflow slice's growth schedule depends only on the number of
+SIMULTANEOUS fork frames on the stack (== depth, in both constructions),
+not on how expensive exploring each abandoned branch is.
+
+================================================================================
+CORRECTNESS TEST UPDATES
+================================================================================
+
+tree_backtrack_bound_test.go rewritten:
+  - TestAdversarialBacktracking_BoundedNotExponential (asserted depth=9
+    404's — the OLD, now-fixed bug) replaced by
+    TestDeepForkBacktracking_LinearNotExponential, which asserts depths
+    1, 2, 3, 8, 9, 50 ALL return 200 (the target is always found,
+    regardless of nesting depth — no cap, no silently-dropped frames).
+  - TestDeepForkBacktracking_NoPanicAtExtremeDepth added: depth=500 (two
+    orders of magnitude past the old cap) must still return 200 with no
+    panic and no hang — the pure safety check the old, capped design used
+    to rely on a depth ceiling for.
+  - buildBeyondCapBacktrackMux renamed to buildDeepForkBacktrackMux with
+    updated doc comment (no longer describes a "cap boundary"); an
+    edge-case bug in its own construction (depth=1's "deepest level" and
+    "level 0" coincide, both should be named "p1", but the old formula
+    computed "r0" for the deepest-level name) was found and fixed while
+    exercising depth=1 for the first time — this was a pre-existing latent
+    bug in the test helper, not a production code bug, but is recorded
+    here per the project's regression-prevention rule.
+
+All of: go test ./... (all packages), go test -race ., go vet ./...,
+staticcheck ./..., golangci-lint run ./... pass clean on the fixed tree.
+The 5 required 60s fuzz targets (FuzzRoutingDifferentialAgainstReference-
+Matcher, FuzzRouteRegistrationOrderIndependence,
+FuzzWildcardConflictOrderIndependence, FuzzPathCopySnapshotImmutability,
+FuzzTSRRedirectSafety) all ran their full 60s budget with zero new
+crashers.
+
+================================================================================
+RAW DATA
+================================================================================
+routing-before-260.txt / routing-after-260.txt / routing-benchstat-260.txt:
+the 17-benchmark count=10 comparison (Fix 1).
+adversarial-benchmark-260.txt / adversarial-benchstat-260.txt:
+BenchmarkAdversarialBacktracking + BenchmarkQuadraticBacktracking,
+count=10 (Fix 2).

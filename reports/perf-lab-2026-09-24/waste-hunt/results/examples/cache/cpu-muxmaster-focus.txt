@@ -1,0 +1,71 @@
+File: cache
+Build ID: c5c3dadfa55bdb555cc0934e6f026230d3c42097
+Type: cpu
+Time: 2026-09-24 19:54:12 WEST
+Duration: 10s, Total samples = 64.14s (641.39%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 6.66s, 10.38% of 64.14s total
+Dropped 248 nodes (cum <= 0.32s)
+Showing top 60 nodes out of 145
+      flat  flat%   sum%        cum   cum%
+     3.11s  4.85%  4.85%      3.11s  4.85%  time.runtimeNow
+     0.80s  1.25%  6.10%      0.80s  1.25%  runtime.nanotime (inline)
+     0.37s  0.58%  6.67%      0.37s  0.58%  internal/runtime/syscall/linux.Syscall6
+     0.13s   0.2%  6.88%      0.13s   0.2%  runtime.memmove
+     0.12s  0.19%  7.06%      0.12s  0.19%  runtime.memclrNoHeapPointers
+     0.09s  0.14%  7.20%      0.10s  0.16%  internal/runtime/maps.(*Iter).Next
+     0.09s  0.14%  7.34%      0.79s  1.23%  runtime.mallocgc
+     0.07s  0.11%  7.45%      8.15s 12.71%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+     0.07s  0.11%  7.56%      0.11s  0.17%  runtime.mallocgcTinySC2
+     0.07s  0.11%  7.67%      0.16s  0.25%  sync.(*Pool).Get
+     0.06s 0.094%  7.76%      0.09s  0.14%  github.com/FlavioCFOliveira/MuxMaster.(*node).getValue
+     0.06s 0.094%  7.86%      0.06s 0.094%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).Header
+     0.06s 0.094%  7.95%      7.51s 11.71%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.06s 0.094%  8.04%      8.18s 12.75%  net/http.HandlerFunc.ServeHTTP
+     0.06s 0.094%  8.14%      0.19s   0.3%  strconv.appendQuotedWith
+     0.05s 0.078%  8.22%      0.05s 0.078%  fmt.(*fmt).fmtInteger
+     0.05s 0.078%  8.29%      0.13s   0.2%  net/http.(*Request).WithContext
+     0.05s 0.078%  8.37%      0.63s  0.98%  os.(*File).Write
+     0.05s 0.078%  8.45%      0.06s 0.094%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.05s 0.078%  8.53%      0.06s 0.094%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.05s 0.078%  8.61%      0.50s  0.78%  syscall.Syscall
+     0.05s 0.078%  8.68%      0.11s  0.17%  time.Time.appendFormatRFC3339
+     0.04s 0.062%  8.75%      0.09s  0.14%  encoding/json/jsontext.(*encoderState).WriteToken
+     0.04s 0.062%  8.81%      0.34s  0.53%  encoding/json/v2.makeStructArshaler.func2
+     0.04s 0.062%  8.87%      0.19s   0.3%  fmt.(*pp).printArg
+     0.04s 0.062%  8.93%      3.44s  5.36%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+     0.04s 0.062%  9.00%      0.05s 0.078%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.04s 0.062%  9.06%      0.21s  0.33%  main.main.func1
+     0.04s 0.062%  9.12%      0.05s 0.078%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.04s 0.062%  9.18%      0.05s 0.078%  runtime.mallocgcSmallScanNoHeaderSC3
+     0.04s 0.062%  9.25%      0.35s  0.55%  runtime.mapassign_faststr
+     0.04s 0.062%  9.31%      0.16s  0.25%  runtime.slicebytetostring
+     0.04s 0.062%  9.37%      0.09s  0.14%  strconv.appendEscapedRune
+     0.03s 0.047%  9.42%      0.08s  0.12%  encoding/json/v2.makeIntArshaler.func1
+     0.03s 0.047%  9.46%      0.26s  0.41%  encoding/json/v2.makePointerArshaler.func2
+     0.03s 0.047%  9.51%      0.31s  0.48%  encoding/json/v2.makeSliceArshaler.func2
+     0.03s 0.047%  9.56%      8.74s 13.63%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.03s 0.047%  9.60%      8.70s 13.56%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.03s 0.047%  9.65%      0.09s  0.14%  internal/strconv.AppendInt
+     0.03s 0.047%  9.70%      0.47s  0.73%  net/http.Header.Clone (inline)
+     0.03s 0.047%  9.74%      0.06s 0.094%  runtime.(*mspan).writeHeapBitsSmall
+     0.03s 0.047%  9.79%      0.06s 0.094%  runtime.reentersyscall
+     0.03s 0.047%  9.84%      0.08s  0.12%  sync.(*Pool).pin
+     0.03s 0.047%  9.88%      0.11s  0.17%  time.Duration.String
+     0.02s 0.031%  9.92%      0.13s   0.2%  encoding/json/v2.makeMapArshaler.func2
+     0.02s 0.031%  9.95%      0.10s  0.16%  encoding/json/v2.makeStringArshaler.func1
+     0.02s 0.031%  9.98%      0.74s  1.15%  encoding/json/v2.marshalEncode
+     0.02s 0.031% 10.01%      0.14s  0.22%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+     0.02s 0.031% 10.04%      0.58s   0.9%  internal/poll.(*FD).Write
+     0.02s 0.031% 10.07%      0.05s 0.078%  internal/runtime/maps.(*Iter).Init
+     0.02s 0.031% 10.10%      0.24s  0.37%  internal/runtime/maps.newarray
+     0.02s 0.031% 10.13%      0.06s 0.094%  internal/strconv.AppendUint
+     0.02s 0.031% 10.17%      0.14s  0.22%  io.WriteString
+     0.02s 0.031% 10.20%      0.12s  0.19%  net/http.(*response).WriteString
+     0.02s 0.031% 10.23%      0.05s 0.078%  net/http.Header.get (inline)
+     0.02s 0.031% 10.26%      0.36s  0.56%  net/http.Redirect
+     0.02s 0.031% 10.29%      0.05s 0.078%  net/textproto.MIMEHeader.Get
+     0.02s 0.031% 10.32%      0.05s 0.078%  runtime.concatstrings
+     0.02s 0.031% 10.35%      0.11s  0.17%  runtime.makeslice
+     0.02s 0.031% 10.38%      0.07s  0.11%  runtime.mapaccess2_faststr

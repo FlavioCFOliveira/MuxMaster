@@ -1,0 +1,14 @@
+scenario=max-performance conns=32 duration=2.001s
+requests=70128 req/s=35052 p50=752.9µs p90=1.854871ms p99=3.096386ms
+  GET /v1/users/:id                        expect=200 got 200×6378
+  GET /v1/users/:id/orders/:orderID        expect=200 got 200×6376
+  GET /v1/orgs/:org/repos/:repo/issues/:num expect=200 got 200×6376
+  GET /v1/static/*filepath                 expect=200 got 200×6376
+  GET /v1/profiles/{id:[0-9]+}             expect=200 got 200×6373
+  POST /v1/users                           expect=201 got 201×6372
+  POST /v1/events                          expect=202 got 202×6373
+  GET /v1/health (fast)                    expect=200 got 200×6374
+  GET /v1/metrics/:metric (fast)           expect=200 got 200×6376
+  GET /config                              expect=200 got 200×6377
+  GET /debug/pprof/cmdline (Mount; 404 = example defect, prefix stripped) expect=404 got 200×6377
+STATUS-MISMATCH: at least one request returned an unexpected status or error

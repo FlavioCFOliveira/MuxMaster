@@ -1,0 +1,71 @@
+File: server-side-render
+Build ID: d9827cd5156412e6ee7ac09211b247c8c7787dbd
+Type: alloc_space
+Time: 2026-09-24 19:52:19 WEST
+Duration: 10.01s, Total samples = 2775.03MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 2025.11MB, 72.98% of 2775.03MB total
+Dropped 43 nodes (cum <= 13.88MB)
+Showing top 60 nodes out of 79
+      flat  flat%   sum%        cum   cum%
+  270.29MB  9.74%  9.74%   270.79MB  9.76%  io.copyBuffer
+  233.07MB  8.40% 18.14%   233.07MB  8.40%  net/http.Header.Clone (inline)
+  201.06MB  7.25% 25.38%  2038.60MB 73.46%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  181.01MB  6.52% 31.91%   518.01MB 18.67%  reflect.Value.call
+  160.05MB  5.77% 37.67%   160.05MB  5.77%  net/http.(*Request).WithContext
+     122MB  4.40% 42.07%      122MB  4.40%  reflect.unsafe_New
+   92.51MB  3.33% 45.40%   738.53MB 26.61%  text/template.(*state).walkTemplate
+      82MB  2.95% 48.36%      147MB  5.30%  reflect.MakeSlice
+      68MB  2.45% 50.81%       68MB  2.45%  html/template.htmlReplacer
+      65MB  2.34% 53.15%       65MB  2.34%  reflect.unsafe_NewArray
+   60.50MB  2.18% 55.33%   660.52MB 23.80%  text/template.(*state).evalCall
+   56.02MB  2.02% 57.35%    56.02MB  2.02%  net/url.parseQuery
+      52MB  1.87% 59.22%   953.57MB 34.36%  text/template.(*Template).execute
+      41MB  1.48% 60.70%       41MB  1.48%  text/template.(*state).validateType
+   38.02MB  1.37% 62.07%    40.52MB  1.46%  io.ReadAll
+   37.01MB  1.33% 63.41%    37.01MB  1.33%  net/http.copyValues (inline)
+   34.01MB  1.23% 64.63%    34.01MB  1.23%  main.validateGuestbook
+   32.51MB  1.17% 65.80%   632.08MB 22.78%  main.main.func5
+   29.01MB  1.05% 66.85%   483.35MB 17.42%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   28.01MB  1.01% 67.86%    68.52MB  2.47%  net/http.(*Request).Clone
+      27MB  0.97% 68.83%   976.07MB 35.17%  main.(*Templates).render
+      25MB   0.9% 69.73%    92.50MB  3.33%  text/template.(*state).evalArg
+      18MB  0.65% 70.38%    74.02MB  2.67%  net/url.ParseQuery (inline)
+      16MB  0.58% 70.96%       16MB  0.58%  text/template.(*state).evalEmptyInterface
+   12.03MB  0.43% 71.39%    12.03MB  0.43%  sync.(*Pool).pinSlow
+      12MB  0.43% 71.82%       12MB  0.43%  net/url.(*URL).Clone (inline)
+      10MB  0.36% 72.18%   386.82MB 13.94%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeFiles.func1
+      10MB  0.36% 72.54%    13.50MB  0.49%  strconv.quoteWith (inline)
+       4MB  0.14% 72.69%   129.54MB  4.67%  net/http.(*Request).ParseForm
+       4MB  0.14% 72.83%   138.50MB  4.99%  text/template.(*state).walkRange
+    2.50MB  0.09% 72.92%    85.03MB  3.06%  net/http.parsePostForm
+    1.50MB 0.054% 72.98%   662.02MB 23.86%  text/template.(*state).evalCommand
+         0     0% 72.98%  2067.61MB 74.51%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 72.98%  2067.61MB 74.51%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 72.98%  2067.61MB 74.51%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 72.98%    68.52MB  2.47%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 72.98%  2067.61MB 74.51%  github.com/FlavioCFOliveira/MuxMaster/middleware.CleanPath.func1.1
+         0     0% 72.98%  1674.99MB 60.36%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 72.98%  1646.47MB 59.33%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 72.98%    13.50MB  0.49%  github.com/FlavioCFOliveira/MuxMaster/middleware.sanitiseForLog
+         0     0% 72.98%    10.50MB  0.38%  html/template.(*Template).Execute
+         0     0% 72.98%   943.07MB 33.98%  html/template.(*Template).ExecuteTemplate
+         0     0% 72.98%       55MB  1.98%  html/template.htmlEscaper
+         0     0% 72.98%   270.79MB  9.76%  io.Copy (inline)
+         0     0% 72.98%   272.29MB  9.81%  io.CopyN
+         0     0% 72.98%    51.01MB  1.84%  main.(*Templates).renderNotFound
+         0     0% 72.98%    51.01MB  1.84%  main.main.func1
+         0     0% 72.98%    98.02MB  3.53%  main.main.func2
+         0     0% 72.98%    72.01MB  2.60%  main.main.func3
+         0     0% 72.98%   406.53MB 14.65%  main.main.func4
+         0     0% 72.98%  2067.61MB 74.51%  net/http.(*conn).serve
+         0     0% 72.98%   308.30MB 11.11%  net/http.(*fileHandler).ServeHTTP
+         0     0% 72.98%   142.04MB  5.12%  net/http.(*response).Write
+         0     0% 72.98%   204.56MB  7.37%  net/http.(*response).WriteHeader
+         0     0% 72.98%   142.04MB  5.12%  net/http.(*response).write
+         0     0% 72.98%  2067.61MB 74.51%  net/http.HandlerFunc.ServeHTTP
+         0     0% 72.98%       12MB  0.43%  net/http.cloneURL (inline)
+         0     0% 72.98%   303.80MB 10.95%  net/http.serveContent
+         0     0% 72.98%   308.30MB 11.11%  net/http.serveFile
+         0     0% 72.98%  2067.61MB 74.51%  net/http.serverHandler.ServeHTTP

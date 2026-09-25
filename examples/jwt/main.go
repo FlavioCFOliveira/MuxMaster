@@ -153,6 +153,20 @@ func main() {
 
 	r := mm.New()
 
+	// ── Fast routes ────────────────────────────────────────────────────────────
+	//
+	// HandleFast (via GETFast) must be registered before Use(): stdlib
+	// middleware never wraps the FastHandler path (see the Pre vs Use vs
+	// UseFast policy matrix in README.md), so MuxMaster panics at
+	// registration if a fast route is added after Use() has already been
+	// called. /health is intentionally public, so no auth is dropped here.
+	//
+	// FastHandler: static route — zero allocations per request.
+	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"status":"ok"}`)
+	})
+
 	// ── Global middleware ─────────────────────────────────────────────────────
 	r.Use(
 		mw.RequestID(),
@@ -174,12 +188,6 @@ func main() {
 	}
 
 	// ── Public routes ─────────────────────────────────────────────────────────
-
-	// FastHandler: static route — zero allocations per request.
-	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"status":"ok"}`)
-	})
 
 	// POST /auth/login — validate credentials and return a signed JWT.
 	r.POSTE("/auth/login", func(w http.ResponseWriter, r *http.Request) error {

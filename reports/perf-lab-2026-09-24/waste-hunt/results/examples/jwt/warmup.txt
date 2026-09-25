@@ -1,0 +1,8 @@
+scenario=jwt conns=32 duration=2.001s
+requests=71565 req/s=35764 p50=645.41µs p90=1.867368ms p99=3.073401ms
+  GET /health (fast)                       expect=200 got 200×10224
+  GET /api/me (JWT)                        expect=200 got 200×20447
+  GET /api/secret (JWT)                    expect=200 got 200×20445
+  POST /auth/refresh (JWT)                 expect=200 got 200×10224
+  GET /api/me (no token -> 401)            expect=401 got 401×10225
+STATUS-OK: every response matched its expected status

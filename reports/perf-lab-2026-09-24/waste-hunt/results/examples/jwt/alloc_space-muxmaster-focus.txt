@@ -1,0 +1,71 @@
+File: jwt
+Build ID: 93299d6c1fa786cd14730e9e77d44b2bbb143955
+Type: alloc_space
+Time: 2026-09-24 19:50:47 WEST
+Duration: 10.01s, Total samples = 2119.28MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 1248.44MB, 58.91% of 2119.28MB total
+Dropped 33 nodes (cum <= 10.60MB)
+Showing top 60 nodes out of 67
+      flat  flat%   sum%        cum   cum%
+  244.57MB 11.54% 11.54%   244.57MB 11.54%  net/http.(*Request).WithContext (partial-inline)
+  198.56MB  9.37% 20.91%   198.56MB  9.37%  net/http.Header.Clone (inline)
+  180.55MB  8.52% 29.43%  1235.94MB 58.32%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  136.52MB  6.44% 35.87%   223.64MB 10.55%  github.com/FlavioCFOliveira/MuxMaster/middleware.parseAndValidateJWT
+   48.51MB  2.29% 38.16%   155.04MB  7.32%  main.main.func6
+   47.01MB  2.22% 40.38%    47.01MB  2.22%  bytes.Clone (inline)
+   45.50MB  2.15% 42.52%    45.50MB  2.15%  encoding/base64.(*Encoding).DecodeString
+   42.01MB  1.98% 44.51%   140.04MB  6.61%  main.main.func7
+   40.59MB  1.92% 46.42%    40.59MB  1.92%  sync.(*Pool).pinSlow
+   40.50MB  1.91% 48.33%    40.50MB  1.91%  reflect.unsafe_New
+   30.50MB  1.44% 49.77%   124.52MB  5.88%  main.signToken
+   29.51MB  1.39% 51.16%    31.01MB  1.46%  net/textproto.MIMEHeader.Set (inline)
+   26.50MB  1.25% 52.42%    26.50MB  1.25%  crypto/internal/fips140/sha256.New (inline)
+   26.50MB  1.25% 53.67%    26.50MB  1.25%  encoding/base64.(*Encoding).EncodeToString
+   23.01MB  1.09% 54.75%   194.53MB  9.18%  main.main.func5
+   22.10MB  1.04% 55.79%    22.10MB  1.04%  encoding/json/v2.makeStringArshaler.func2
+      21MB  0.99% 56.79%       21MB  0.99%  context.WithValue
+   16.50MB  0.78% 57.56%       43MB  2.03%  crypto/internal/fips140/hmac.New[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }]
+   11.50MB  0.54% 58.11%    11.50MB  0.54%  crypto/internal/fips140/sha256.(*Digest).Sum
+       7MB  0.33% 58.44%    33.01MB  1.56%  io.WriteString
+    6.50MB  0.31% 58.74%        9MB  0.42%  strconv.quoteWith (inline)
+    2.50MB  0.12% 58.86%    40.02MB  1.89%  net/http.Error
+       1MB 0.047% 58.91%     7.51MB  0.35%  encoding/json/jsontext.getBufferedEncoder
+         0     0% 58.91%       43MB  2.03%  crypto/hmac.New
+         0     0% 58.91%    11.50MB  0.54%  crypto/internal/fips140/hmac.(*HMAC).Sum
+         0     0% 58.91%    26.50MB  1.25%  crypto/internal/fips140hash.UnwrapNew[go.shape.interface { BlockSize int; Reset; Size int; Sum []uint8; Write  }].func1
+         0     0% 58.91%    26.50MB  1.25%  crypto/sha256.New
+         0     0% 58.91%   102.03MB  4.81%  encoding/json.Marshal (inline)
+         0     0% 58.91%    28.61MB  1.35%  encoding/json.Unmarshal (inline)
+         0     0% 58.91%     7.51MB  0.35%  encoding/json/jsontext.export.GetBufferedEncoder (inline)
+         0     0% 58.91%   102.03MB  4.81%  encoding/json/v2.Marshal
+         0     0% 58.91%    28.61MB  1.35%  encoding/json/v2.Unmarshal
+         0     0% 58.91%        8MB  0.38%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 58.91%    41.01MB  1.94%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 58.91%    22.10MB  1.04%  encoding/json/v2.makeStructArshaler.func3
+         0     0% 58.91%    46.01MB  2.17%  encoding/json/v2.marshalEncode
+         0     0% 58.91%       23MB  1.09%  encoding/json/v2.newAddressableValue
+         0     0% 58.91%    22.10MB  1.04%  encoding/json/v2.unmarshalDecode
+         0     0% 58.91%    12.02MB  0.57%  fmt.Fprintln
+         0     0% 58.91%    10.52MB   0.5%  fmt.newPrinter
+         0     0% 58.91%  1282.95MB 60.54%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 58.91%  1282.95MB 60.54%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 58.91%   241.07MB 11.37%  github.com/FlavioCFOliveira/MuxMaster.JSON
+         0     0% 58.91%    13.01MB  0.61%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*jwtHMACPool).verify
+         0     0% 58.91%   172.55MB  8.14%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 58.91%    13.01MB  0.61%  github.com/FlavioCFOliveira/MuxMaster/middleware.JWTAuth.func1
+         0     0% 58.91%   894.31MB 42.20%  github.com/FlavioCFOliveira/MuxMaster/middleware.JWTAuth.func2.1
+         0     0% 58.91%   920.33MB 43.43%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 58.91%   894.31MB 42.20%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 58.91%     7.52MB  0.35%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+         0     0% 58.91%        9MB  0.42%  github.com/FlavioCFOliveira/MuxMaster/middleware.sanitiseForLog
+         0     0% 58.91%   124.52MB  5.88%  main.issueToken
+         0     0% 58.91%    47.01MB  2.22%  main.main.func1
+         0     0% 58.91%  1282.95MB 60.54%  net/http.(*conn).serve
+         0     0% 58.91%   198.56MB  9.37%  net/http.(*response).WriteHeader
+         0     0% 58.91%    26.01MB  1.23%  net/http.(*response).WriteString
+         0     0% 58.91%    26.01MB  1.23%  net/http.(*response).write
+         0     0% 58.91%  1235.94MB 58.32%  net/http.HandlerFunc.ServeHTTP
+         0     0% 58.91%    31.01MB  1.46%  net/http.Header.Set (inline)
+         0     0% 58.91%  1282.95MB 60.54%  net/http.serverHandler.ServeHTTP

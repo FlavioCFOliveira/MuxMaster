@@ -1,0 +1,79 @@
+File: upload-file
+Build ID: 76671e74dc807238a9e4c7b770f63a5cd009d415
+Type: cpu
+Time: 2026-09-24 19:52:39 WEST
+Duration: 10.01s, Total samples = 71.80s (717.61%)
+Showing nodes accounting for 50.58s, 70.45% of 71.80s total
+Dropped 730 nodes (cum <= 0.36s)
+Showing top 70 nodes out of 156
+      flat  flat%   sum%        cum   cum%
+     0.04s 0.056% 0.056%     64.62s 90.00%  net/http.(*conn).serve
+     0.03s 0.042% 0.097%     49.47s 68.90%  net/http.serverHandler.ServeHTTP
+     0.01s 0.014%  0.11%     49.44s 68.86%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.03s 0.042%  0.15%     49.43s 68.84%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+     0.02s 0.028%  0.18%     49.43s 68.84%  net/http.HandlerFunc.ServeHTTP
+         0     0%  0.18%     49.22s 68.55%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0%  0.18%     49.20s 68.52%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+     0.03s 0.042%  0.22%     49.20s 68.52%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0%  0.22%     36.34s 50.61%  io.Copy (inline)
+     0.06s 0.084%  0.31%     36.34s 50.61%  io.copyBuffer
+    28.68s 39.94% 40.25%     28.68s 39.94%  internal/runtime/syscall/linux.Syscall6
+     0.08s  0.11% 40.36%     28.50s 39.69%  syscall.RawSyscall6
+     0.04s 0.056% 40.42%     24.07s 33.52%  bytes.(*Buffer).ReadFrom
+     0.01s 0.014% 40.43%     23.01s 32.05%  net/http.(*Request).ParseMultipartForm
+     0.07s 0.097% 40.53%     22.93s 31.94%  syscall.Syscall
+         0     0% 40.53%     22.18s 30.89%  mime/multipart.(*Reader).ReadForm (inline)
+     0.05s  0.07% 40.60%     22.18s 30.89%  mime/multipart.(*Reader).readForm
+     0.02s 0.028% 40.63%     21.42s 29.83%  main.saveFile
+         0     0% 40.63%     21.06s 29.33%  io.CopyN
+         0     0% 40.63%     20.59s 28.68%  internal/poll.ignoringEINTRIO (inline)
+     0.01s 0.014% 40.64%     18.94s 26.38%  main.singleUpload
+         0     0% 40.64%     18.75s 26.11%  main.multiUpload
+     0.02s 0.028% 40.67%     13.05s 18.18%  io.(*LimitedReader).Read
+     0.01s 0.014% 40.68%     12.99s 18.09%  mime/multipart.(*Part).Read
+     0.19s  0.26% 40.95%     12.98s 18.08%  mime/multipart.partReader.Read
+     0.03s 0.042% 40.99%     11.56s 16.10%  internal/poll.(*FD).Write
+         0     0% 40.99%     11.50s 16.02%  syscall.Write (inline)
+         0     0% 40.99%     11.50s 16.02%  syscall.write
+     0.03s 0.042% 41.03%     11.38s 15.85%  main.asyncProcessUpload
+     0.01s 0.014% 41.04%     11.08s 15.43%  io.(*multiWriter).Write
+     0.06s 0.084% 41.13%     10.79s 15.03%  bytes.(*Buffer).grow
+     0.06s 0.084% 41.21%     10.73s 14.94%  bytes.growSlice
+     0.12s  0.17% 41.38%     10.17s 14.16%  bufio.(*Reader).Peek
+     0.07s 0.097% 41.48%     10.13s 14.11%  bufio.(*Reader).fill
+     0.05s  0.07% 41.55%      9.54s 13.29%  net.(*conn).Read
+     0.03s 0.042% 41.59%      9.46s 13.18%  net/http.(*connReader).Read
+     0.02s 0.028% 41.62%      9.41s 13.11%  net.(*netFD).Read
+     0.08s  0.11% 41.73%      9.37s 13.05%  internal/poll.(*FD).Read
+     0.04s 0.056% 41.78%      9.07s 12.63%  syscall.Read (inline)
+     0.02s 0.028% 41.81%      9.03s 12.58%  syscall.read
+     0.01s 0.014% 41.82%      8.20s 11.42%  os.(*File).Write
+         0     0% 41.82%      8.19s 11.41%  os.(*File).write (inline)
+     0.05s  0.07% 41.89%      7.74s 10.78%  mime/multipart.(*stickyErrorReader).Read
+     0.12s  0.17% 42.06%      7.73s 10.77%  bufio.(*Reader).Read
+     0.04s 0.056% 42.12%      7.68s 10.70%  net/http.(*maxBytesReader).Read
+     0.04s 0.056% 42.17%      7.63s 10.63%  net/http.(*body).Read
+     0.04s 0.056% 42.23%      7.58s 10.56%  net/http.(*body).readLocked
+     6.93s  9.65% 51.88%      6.93s  9.65%  runtime.memclrNoHeapPointers
+         0     0% 51.88%      6.61s  9.21%  os.Create (inline)
+         0     0% 51.88%      6.61s  9.21%  os.OpenFile
+     0.01s 0.014% 51.89%      6.61s  9.21%  os.openFileNolog
+         0     0% 51.89%      6.14s  8.55%  os.ignoringEINTR (inline)
+         0     0% 51.89%      6.14s  8.55%  os.open
+         0     0% 51.89%      6.14s  8.55%  os.openFileNolog.func1 (inline)
+         0     0% 51.89%      6.14s  8.55%  syscall.Open (inline)
+         0     0% 51.89%      6.14s  8.55%  syscall.openat
+     0.01s 0.014% 51.91%      6.11s  8.51%  syscall.Syscall6
+     0.03s 0.042% 51.95%      6.05s  8.43%  net/http.(*response).finishRequest
+     0.01s 0.014% 51.96%      5.10s  7.10%  bufio.(*Writer).Flush
+     0.03s 0.042% 52.01%      4.71s  6.56%  crypto/internal/fips140/sha256.(*Digest).Write
+         0     0% 52.01%      4.68s  6.52%  crypto/internal/fips140/sha256.block
+     4.68s  6.52% 58.52%      4.68s  6.52%  crypto/internal/fips140/sha256.blockSHANI
+     0.05s  0.07% 58.59%      4.56s  6.35%  mime/multipart.scanUntilBoundary
+     0.11s  0.15% 58.75%      4.53s  6.31%  runtime.mallocgc
+         0     0% 58.75%      4.26s  5.93%  bytes.LastIndexByte (inline)
+     4.26s  5.93% 64.68%      4.26s  5.93%  internal/bytealg.LastIndexByte (inline)
+     0.09s  0.13% 64.81%      4.10s  5.71%  runtime.systemstack
+     0.05s  0.07% 64.87%      4.04s  5.63%  time.Now
+     3.99s  5.56% 70.43%      3.99s  5.56%  time.runtimeNow
+     0.01s 0.014% 70.45%      3.39s  4.72%  net/http.checkConnErrorWriter.Write

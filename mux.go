@@ -22,10 +22,13 @@
 package muxmaster
 
 import (
+	"context"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -277,6 +280,37 @@ type Mux struct {
 	// first use. Invalidated by Use() to pick up new middleware.
 	lazyNotFoundPtr atomic.Pointer[http.Handler]
 
+	// redirectMWPtr is a lock-free snapshot of m.middleware, refreshed by
+	// Use() (CH-06). serveRedirect reads it directly instead of taking
+	// m.mu.RLock() on every redirect — the last unconditional RWMutex
+	// operation remaining in the request-dispatch path. A nil pointer (the
+	// initial state, before any Use() call) means "no middleware". Each
+	// snapshot carries a strictly increasing generation number (assigned
+	// under m.mu by Use()) so that lazyRedirect's cache (below) can be
+	// published with a CAS that always converges to the newest generation,
+	// never an ABA-stale one, under concurrent Use() calls.
+	redirectMWPtr atomic.Pointer[mwSnapshot]
+
+	// redirectGen is the last generation number assigned to a redirectMWPtr
+	// snapshot. Mutated only under m.mu (inside Use()), so plain increment
+	// is safe; readers only ever see it embedded, already-published, inside
+	// an *mwSnapshot.
+	redirectGen uint64
+
+	// lazyRedirectPtr caches the middleware-wrapped redirect handler after
+	// first use, mirroring lazyNotFoundPtr ([waste-hunt WH-10]). Without this
+	// cache, serveRedirect re-ran wrapMiddleware — re-instantiating one
+	// closure per registered middleware plus the redirect closure itself —
+	// on every single redirect. The cached entry is tagged with the
+	// mwSnapshot generation it was built from; lazyRedirect uses that tag
+	// (not Store-order) to decide whether to publish, so a build that started
+	// against a stale, superseded snapshot can never clobber a fresher one
+	// published by a concurrent Use() + redirect race. The per-request
+	// redirect target/code are carried to the cached handler via the request
+	// context (redirectCtxKey) rather than closed over, since the handler is
+	// built once and reused.
+	lazyRedirectPtr atomic.Pointer[lazyRedirectEntry]
+
 	// methodNotAllowedCache caches wrapped 405 handlers keyed by Allow value.
 	// The Allow string is determined per-path so we key by it. Invalidated by Use().
 	methodNotAllowedCache sync.Map
@@ -342,6 +376,17 @@ func (m *Mux) Use(middleware ...func(http.Handler) http.Handler) {
 		m.optionsCache.Delete(k)
 		return true
 	})
+	// Refresh the lock-free redirect-middleware snapshot (CH-06) so
+	// serveRedirect observes the new chain without ever taking m.mu. The
+	// generation number is assigned here, under m.mu, so it is strictly
+	// increasing in real Use() call order — lazyRedirect's cache (WH-10)
+	// uses it to invalidate itself without a Store(nil) race window: see
+	// the lazyRedirectPtr field comment.
+	m.redirectGen++
+	m.redirectMWPtr.Store(&mwSnapshot{
+		gen: m.redirectGen,
+		mw:  append([]func(http.Handler) http.Handler(nil), m.middleware...),
+	})
 }
 
 // Pre registers middleware that runs before dispatch (e.g. before routing).
@@ -389,17 +434,19 @@ func (m *Mux) Handle(method, pattern string, handler http.Handler) {
 		panic("muxmaster: unsupported HTTP method '" + method + "'")
 	}
 
-	// Two-phase copy-on-write (MM-2026-0033): deep-clone the affected tree
-	// root into a new methodTrees array, mutate the clone, then publish via
-	// atomic.Pointer.Store. If addRoute panics mid-mutation, the clone is
-	// discarded and the previous live tree remains intact — eliminating the
-	// "tree corruption after registration panic" class of bugs.
+	// Two-phase copy-on-write (MM-2026-0033): copy only the nodes on the
+	// insertion path into a new methodTrees array, mutate the copies, then
+	// publish via atomic.Pointer.Store. If addRoute panics mid-mutation, the
+	// copied nodes are discarded and the previous live tree remains intact —
+	// eliminating the "tree corruption after registration panic" class of
+	// bugs, at O(depth) copies per registration instead of O(tree size)
+	// (performance.md §36-37, [waste-hunt WH-08]).
 	var trees methodTrees
 	if old := m.treesPtr.Load(); old != nil {
 		trees = *old
 	}
 	if trees[idx] != nil {
-		trees[idx] = cloneTree(trees[idx])
+		trees[idx] = copyNode(trees[idx])
 	}
 
 	root := trees[idx]
@@ -495,13 +542,13 @@ func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
 		panic("muxmaster: unsupported HTTP method '" + method + "'")
 	}
 
-	// Two-phase copy-on-write (MM-2026-0033) — see Handle for rationale.
+	// Two-phase copy-on-write (MM-2026-0033) — path copying, see Handle.
 	var trees methodTrees
 	if old := m.treesPtr.Load(); old != nil {
 		trees = *old
 	}
 	if trees[idx] != nil {
-		trees[idx] = cloneTree(trees[idx])
+		trees[idx] = copyNode(trees[idx])
 	}
 
 	root := trees[idx]
@@ -643,6 +690,13 @@ func (m *Mux) Route(prefix string, fn func(*Group)) {
 
 // Mount attaches h at prefix, stripping the prefix before forwarding the request.
 // The catch-all parameter is named "mux_mount".
+//
+// h receives a shallow copy of the request (see the Terminology section in
+// README.md): a new *http.Request with a new URL, but sharing the original's
+// header map, Trailer, Form and context. h may read the original request's
+// headers, but must not mutate them in place — such a mutation would be
+// visible to the caller's original request and to any outer middleware that
+// runs after Mount returns.
 func (m *Mux) Mount(prefix string, h http.Handler) {
 	m.mountAt(prefix, h)
 }
@@ -667,7 +721,15 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 		if p == "" {
 			p = "/"
 		}
-		r2 := r.Clone(r.Context())
+		// [waste-hunt WH-04] Shallow request copy (see specification/README.md
+		// Terminology): net/http.StripPrefix's strategy — a shallow struct
+		// copy plus a fresh *url.URL — instead of r.Clone, which deep-copies
+		// the header map, Trailer, Form and TransferEncoding even though
+		// only URL.Path (and possibly URL.RawPath) changes below. r2 shares
+		// the original's header map and context; the original request is
+		// never mutated.
+		r2 := new(http.Request)
+		*r2 = *r
 		r2.URL = new(url.URL)
 		*r2.URL = *r.URL
 		r2.URL.Path = p
@@ -696,6 +758,10 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 
 // ServeFiles serves static files from root under the given prefix pattern.
 // prefix must end with "/*name" (e.g. "/static/*filepath").
+//
+// http.FileServer receives a shallow copy of the request (see the
+// Terminology section in README.md): a new *http.Request with a new URL,
+// but sharing the original's header map and context.
 //
 // SECURITY (CDX-S8-002): http.FileServer applies path.Clean internally,
 // so a request like /static/../etc/passwd cannot escape root. However,
@@ -728,7 +794,9 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 	}
 	fs := http.FileServer(root)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r2 := r.Clone(r.Context())
+		// [waste-hunt WH-04] Shallow request copy — see mountAt above.
+		r2 := new(http.Request)
+		*r2 = *r
 		r2.URL = new(url.URL)
 		*r2.URL = *r.URL
 		r2.URL.Path = PathParam(r, paramName)
@@ -764,10 +832,23 @@ func (m *Mux) lazyNotFound(cfg *muxConfig) http.Handler {
 // Opt M1: pre-built response constants used by the default lazyMethodNotAllowed
 // handler so that 405 responses skip http.Error's per-call Header().Set +
 // fmt.Fprintln overhead.
+//
+// MID-405OPTIONS-1 (sprint 18 waste-hunt, same class as MID-SETHEADER-1 in
+// middleware/set_header.go): method405ContentType and method405XContentOption
+// hold only the STRING value here — never the header's []string slice.
+// An earlier version hoisted the slices themselves into these package-level
+// variables, so every 405 response from EVERY Mux instance in the process
+// shared the exact same slice for Content-Type and X-Content-Type-Options.
+// Any downstream code indexing directly into the slice
+// (w.Header()["Content-Type"][0] = ...) corrupted that header for every
+// other 405 response process-wide until restart. Each request must get a
+// freshly allocated one-element slice; see lazyMethodNotAllowed and
+// lazyOPTIONS below for the same fix applied to the per-Allow-key cached
+// "Allow" value.
 var (
-	method405Body              = []byte(http.StatusText(http.StatusMethodNotAllowed) + "\n")
-	method405ContentTypeVal    = []string{"text/plain; charset=utf-8"}
-	method405XContentOptionVal = []string{"nosniff"}
+	method405Body           = []byte(http.StatusText(http.StatusMethodNotAllowed) + "\n")
+	method405ContentType    = "text/plain; charset=utf-8"
+	method405XContentOption = "nosniff"
 )
 
 // lazyMethodNotAllowed returns the middleware-wrapped 405 handler for the
@@ -782,25 +863,39 @@ func (m *Mux) lazyMethodNotAllowed(cfg *muxConfig, allow string) http.Handler {
 	mw := m.middleware
 	m.mu.RUnlock()
 
-	// Opt M1: pre-allocate the per-cache-entry Allow value slice once so the
-	// handler does direct map assignment (zero allocs per request).
-	allowVal := []string{allow}
-
+	// MID-405OPTIONS-1 fix: `allow` (the string) is safe to capture in the
+	// closure — it never changes for this cache entry — but the header
+	// value's []string MUST be allocated fresh on every request. A slice
+	// hoisted here, like the one previously hoisted, would be installed into
+	// every request's Header map simultaneously; any downstream code
+	// indexing into it directly (w.Header()["Allow"][0] = ...) would mutate
+	// the shared backing array in place, corrupting the Allow header for
+	// every other request through this cache entry until process restart.
 	var inner http.HandlerFunc
 	if methodNotAllowed != nil {
 		inner = func(w http.ResponseWriter, r *http.Request) {
-			w.Header()["Allow"] = allowVal
+			w.Header()["Allow"] = []string{allow}
 			methodNotAllowed.ServeHTTP(w, r)
 		}
 	} else {
 		// Default branch: emit the plain-text 405 response with the same byte
-		// sequence as net/http's http.Error would, but without rebuilding
-		// header slices or fmt-formatting the body.
+		// sequence as net/http's http.Error would, but without paying
+		// Header().Set's canonicalisation cost (the keys are already
+		// canonical compile-time constants).
+		//
+		// MID-405OPTIONS-2 (waste-hunt gate follow-up): the 3 header values
+		// share ONE freshly allocated [3]string backing array per request
+		// instead of 3 separate one-element slices — 1 allocation, not 3.
+		// Each header's slice is the full slice expression vals[i:i+1:i+1],
+		// capped at length 1, so appending to any one of the 3 (e.g. a
+		// later Header().Add on the same key) grows into a fresh backing
+		// array rather than overwriting an adjacent header's slot.
 		inner = func(w http.ResponseWriter, r *http.Request) {
 			h := w.Header()
-			h["Allow"] = allowVal
-			h["Content-Type"] = method405ContentTypeVal
-			h["X-Content-Type-Options"] = method405XContentOptionVal
+			vals := &[3]string{allow, method405ContentType, method405XContentOption}
+			h["Allow"] = vals[0:1:1]
+			h["Content-Type"] = vals[1:2:2]
+			h["X-Content-Type-Options"] = vals[2:3:3]
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			_, _ = w.Write(method405Body)
 		}
@@ -821,8 +916,13 @@ func (m *Mux) lazyOPTIONS(cfg *muxConfig, allow string) http.Handler {
 	m.mu.RLock()
 	mw := m.middleware
 	m.mu.RUnlock()
+	// [waste-hunt WH-09] `allow` is captured once per cache entry — it never
+	// changes — so direct map assignment skips Header().Set's per-request
+	// canonicalisation. MID-405OPTIONS-1 fix: the []string header VALUE
+	// itself must still be allocated fresh per request (see
+	// lazyMethodNotAllowed above for why a shared slice here is unsafe).
 	h := wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Allow", allow)
+		w.Header()["Allow"] = []string{allow}
 		if globalOPTS != nil {
 			globalOPTS.ServeHTTP(w, r)
 		} else {
@@ -886,16 +986,18 @@ func (m *Mux) frozenConfigSlow() *muxConfig {
 }
 
 // Rebuild resets the frozen configuration snapshot and the lazy NotFound /
-// MethodNotAllowed / OPTIONS handler caches so the next ServeHTTP call
-// re-reads every configuration field and rebuilds the wrapped handlers.
+// MethodNotAllowed / OPTIONS / redirect handler caches so the next ServeHTTP
+// call re-reads every configuration field and rebuilds the wrapped handlers.
 //
 // Safe to call concurrently with ServeHTTP: every reset is a single atomic
 // operation, and the next config() / lazyNotFound() / lazyMethodNotAllowed()
-// / lazyOPTIONS() call re-initialises via CompareAndSwap or sync.Map
-// re-population. Intended for tests and dynamic reconfiguration scenarios.
+// / lazyOPTIONS() / lazyRedirect() call re-initialises via CompareAndSwap or
+// sync.Map re-population. Intended for tests and dynamic reconfiguration
+// scenarios.
 func (m *Mux) Rebuild() {
 	m.cfg.Store(nil)
 	m.lazyNotFoundPtr.Store(nil)
+	m.lazyRedirectPtr.Store(nil)
 	m.methodNotAllowedCache.Range(func(k, _ any) bool {
 		m.methodNotAllowedCache.Delete(k)
 		return true
@@ -966,7 +1068,11 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 			// Opt O1: when the entire subtree is static (no param/regex/wildcard),
 			// dispatch through the dedicated getValueStatic that omits the param
 			// switch, the params buffer dereferences, and the wildchild branches.
-			// Also skips zeroing the 128B `ps` stack slot (never written).
+			// [waste-hunt WH-13] `ps` is still zeroed above regardless of this
+			// branch — the compiler emits the zeroing unconditionally at the
+			// `var ps paramsBuf` declaration, since it cannot prove getValueStatic
+			// never receives a pointer to it. This branch's saving is the params
+			// switch/wildchild logic it skips, not the zeroing.
 			handler, fast, pattern, tsr = root.getValueStatic(urlPath, cfg.caseInsensitive)
 		} else {
 			handler, fast, pattern, tsr = root.getValue(urlPath, &ps, cfg.caseInsensitive)
@@ -1109,7 +1215,7 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 		if starRoot.maxParams > 0 {
 			ps2Buf = &ps2
 		}
-		h2, f2, pat2, _ := starRoot.getValue(urlPath, ps2Buf, cfg.caseInsensitive)
+		h2, f2, pat2, tsr2 := starRoot.getValue(urlPath, ps2Buf, cfg.caseInsensitive)
 		if h2 != nil || f2 != nil {
 			if ps2.count > 0 {
 				if f2 != nil {
@@ -1157,6 +1263,24 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 			}
 			return
 		}
+
+		// TSR for Mount's internal catch-all (specification/groups.md §28: a
+		// mount at "/v2" handles "/v2", "/v2/", and "/v2/anything"). Without
+		// this, a request for the bare mount prefix — no further segment and
+		// no trailing slash — fell straight through to 404 instead of
+		// redirecting to the trailing-slash form, unlike every other route
+		// type. Mirrors the primary-tree TSR block above.
+		if tsr2 && cfg.redirectTrailingSlash && r.Method != http.MethodConnect && urlPath != "/" {
+			code := m.resolveRedirectCode(cfg, r.Method)
+			var newPath string
+			if len(urlPath) > 1 && urlPath[len(urlPath)-1] == '/' {
+				newPath = urlPath[:len(urlPath)-1]
+			} else {
+				newPath = urlPath + "/"
+			}
+			m.serveRedirect(w, r, buildRedirectTarget(newPath, r.URL.RawQuery), code)
+			return
+		}
 	}
 
 	if r.Method == http.MethodOptions && cfg.handleOPTIONS {
@@ -1193,22 +1317,383 @@ func buildRedirectTarget(newPath, rawQuery string) string {
 	return newPath + "?" + rawQuery
 }
 
-// serveRedirect emits a redirect response. Opt R1: when no Use()-registered
-// middleware wraps the redirect (the common case), we skip wrapMiddleware
-// entirely — http.Redirect is invoked directly, avoiding the closure escape
-// + middleware-chain rebuild that the previous code paid on every request.
-// With middleware present, the previous behaviour is preserved.
-func (m *Mux) serveRedirect(w http.ResponseWriter, r *http.Request, target string, code int) {
-	m.mu.RLock()
-	mw := m.middleware
-	m.mu.RUnlock()
-	if len(mw) == 0 {
-		http.Redirect(w, r, target, code) // #nosec G710 — target is path-only (HPS-2026-0005)
+// redirectHTMLReplacer mirrors net/http's private htmlReplacer, used to
+// escape the redirect target into the HTML body net/http.Redirect writes for
+// GET requests. Duplicated here because that symbol is unexported.
+var redirectHTMLReplacer = strings.NewReplacer(
+	"&", "&amp;",
+	"<", "&lt;",
+	">", "&gt;",
+	// "&#34;" is shorter than "&quot;".
+	`"`, "&#34;",
+	// "&#39;" is shorter than "&apos;" and apos was not in HTML until HTML5.
+	"'", "&#39;",
+)
+
+// isRedirectControlByte reports whether b is an ASCII control byte (0x00-
+// 0x1F) or DEL (0x7F). RFC 9110 §5.5 forbids raw CTL bytes in HTTP field
+// values; a percent-decoded control byte in the request path (e.g. a %00 in
+// r.URL.Path) must never reach the Location header, or the HTML redirect
+// body's href, unescaped (rmp #260 / CSA-2026-00xx).
+func isRedirectControlByte(b byte) bool {
+	return b < 0x20 || b == 0x7f
+}
+
+// percentEncodeControlBytes percent-encodes every ASCII control byte and DEL
+// in s, leaving every other byte — including non-ASCII bytes, which
+// hexEscapeNonASCII handles separately for the Location header — untouched.
+// Returns s unchanged (no allocation) when it contains no such byte, so
+// output for a control-byte-free target stays byte-identical to
+// net/http.Redirect (TestWriteRedirect_ByteIdenticalToNetHTTPRedirect).
+func percentEncodeControlBytes(s string) string {
+	needsEscape := false
+	for i := 0; i < len(s); i++ {
+		if isRedirectControlByte(s[i]) {
+			needsEscape = true
+			break
+		}
+	}
+	if !needsEscape {
+		return s
+	}
+	const hexDigits = "0123456789ABCDEF"
+	b := make([]byte, 0, len(s)+8)
+	var pos int
+	for i := 0; i < len(s); i++ {
+		if isRedirectControlByte(s[i]) {
+			if pos < i {
+				b = append(b, s[pos:i]...)
+			}
+			c := s[i]
+			b = append(b, '%', hexDigits[c>>4], hexDigits[c&0xf])
+			pos = i + 1
+		}
+	}
+	if pos < len(s) {
+		b = append(b, s[pos:]...)
+	}
+	return string(b)
+}
+
+// hexEscapeNonASCII mirrors net/http's private helper of the same name, used
+// by net/http.Redirect to escape the Location header value. Duplicated here
+// because that symbol is unexported.
+func hexEscapeNonASCII(s string) string {
+	newLen := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] >= utf8.RuneSelf {
+			newLen += 3
+		} else {
+			newLen++
+		}
+	}
+	if newLen == len(s) {
+		return s
+	}
+	b := make([]byte, 0, newLen)
+	var pos int
+	for i := 0; i < len(s); i++ {
+		if s[i] >= utf8.RuneSelf {
+			if pos < i {
+				b = append(b, s[pos:i]...)
+			}
+			b = append(b, '%')
+			b = strconv.AppendInt(b, int64(s[i]), 16)
+			pos = i + 1
+		}
+	}
+	if pos < len(s) {
+		b = append(b, s[pos:]...)
+	}
+	return string(b)
+}
+
+// writeRedirect emits an HTTP redirect response byte-identical to
+// net/http.Redirect(w, r, target, code) — rmp #248 — for every method and
+// redirect code, specialised for MuxMaster's own redirect targets:
+// buildRedirectTarget's trailing-slash toggle and (*Mux).cleanedPath's
+// path.Clean result, both always a path-only, already-clean value
+// (HPS-2026-0005). This skips net/http.Redirect's url.Parse and
+// fmt.Fprintln allocations on the hot redirect path while producing the
+// exact same headers and body — including the extra trailing newline
+// fmt.Fprintln appends after a body that already ends in "\n".
+//
+// Correctness does not rely on "already clean" as an unchecked assumption:
+// the same Clean-and-restore-trailing-slash step net/http.Redirect performs
+// is still applied below. It costs nothing extra for an input that is
+// already clean — path.Clean returns its argument unchanged, with no
+// allocation, when nothing needs rewriting.
+//
+// The one thing this function does not re-derive is net/http.Redirect's
+// scheme/host detection: it requires target to start with exactly one '/'
+// (never "//", which url.Parse would read as a network-path reference with
+// a non-empty Host — the classic protocol-relative open-redirect shape).
+// Every caller in this package satisfies that. The guard below falls back
+// to net/http.Redirect itself for anything that doesn't, so the output
+// stays byte-identical regardless.
+//
+// rmp #260: net/http.Redirect's own hexEscapeNonASCII only escapes bytes
+// >= 0x80 — a percent-decoded ASCII control byte (e.g. a %00 in
+// r.URL.Path) reaches the Location header and the HTML body's href
+// unescaped, violating RFC 9110 §5.5. Both this fast path and the
+// http.Redirect fallback above now percent-encode CTL/DEL bytes in the
+// target before use; percentEncodeControlBytes is a no-op (returns its
+// input unchanged) for any target without one, so output stays
+// byte-identical to net/http.Redirect for every control-free target.
+func writeRedirect(w http.ResponseWriter, r *http.Request, target string, code int) {
+	if len(target) == 0 || target[0] != '/' || (len(target) > 1 && target[1] == '/') {
+		http.Redirect(w, r, percentEncodeControlBytes(target), code) // #nosec G710 — see callers' HPS-2026-0005 guarantees
 		return
 	}
-	wrapMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, target, code) // #nosec G710 — target is path-only (HPS-2026-0005)
-	}), mw).ServeHTTP(w, r)
+
+	loc := target
+	var query string
+	if i := strings.IndexByte(loc, '?'); i != -1 {
+		loc, query = loc[:i], loc[i:]
+	}
+	trailing := strings.HasSuffix(loc, "/")
+	cleaned := path.Clean(loc)
+	if trailing && !strings.HasSuffix(cleaned, "/") {
+		cleaned += "/"
+	}
+	loc = percentEncodeControlBytes(cleaned + query)
+
+	// [perf-lab-2026-09-24] Opt R5: direct map assignment instead of
+	// Header.Set, mirroring the WH-09 pattern already used for the Allow
+	// header (lazyMethodNotAllowed/lazyOPTIONS) — "Location" and
+	// "Content-Type" are compile-time-constant, already-canonical keys, so
+	// textproto.MIMEHeader.Set's CanonicalMIMEHeaderKey lookup on every call
+	// is pure overhead. Semantics are identical to Set for an
+	// already-canonical key.
+	//
+	// MID-REDIRECT-1 (waste-hunt gate follow-up): when both Location and
+	// Content-Type are set this call, they share ONE freshly allocated
+	// [2]string backing array — 1 allocation instead of 2 — via the full
+	// slice expression vals[i:i+1:i+1], capped at length 1 so appending to
+	// either header cannot overwrite the other's slot. When Content-Type
+	// is not set here (a caller already set it, or the method is neither
+	// GET nor HEAD), Location alone keeps its own single-element slice —
+	// no [2]string is allocated for a header that will not be used.
+	h := w.Header()
+	_, hadCT := h["Content-Type"]
+	locVal := hexEscapeNonASCII(loc)
+	method := r.Method
+	if !hadCT && (method == http.MethodGet || method == http.MethodHead) {
+		vals := &[2]string{locVal, "text/html; charset=utf-8"}
+		h["Location"] = vals[0:1:1]
+		h["Content-Type"] = vals[1:2:2]
+	} else {
+		h["Location"] = []string{locVal}
+	}
+	w.WriteHeader(code)
+
+	if !hadCT && method == http.MethodGet {
+		// fmt.Fprintln(w, body) in net/http.Redirect appends its own "\n"
+		// unconditionally, on top of the one already in body — reproduced
+		// here so the byte stream matches exactly. [perf-lab-2026-09-24]
+		// Opt R3: a single string-concatenation expression (one
+		// runtime.concatstrings call, one allocation) replaces the previous
+		// two-step `body := ...; body+"\n"`, which allocated the
+		// intermediate string and then the final one.
+		body := "<a href=\"" + redirectHTMLReplacer.Replace(loc) + "\">" + http.StatusText(code) + "</a>.\n\n"
+		_, _ = io.WriteString(w, body)
+	}
+}
+
+// mwSnapshot pairs a middleware slice snapshot with a strictly increasing
+// generation number, both assigned together by Use() under m.mu ([waste-hunt
+// WH-10]). The generation lets lazyRedirect's cache publish with a CAS that
+// always converges toward the newest snapshot, so a cache build that started
+// against an already-superseded snapshot (raced by a concurrent Use() call)
+// can never clobber a fresher one — see lazyRedirect.
+type mwSnapshot struct {
+	gen uint64
+	mw  []func(http.Handler) http.Handler
+}
+
+// lazyRedirectEntry is the cached, middleware-wrapped redirect handler,
+// tagged with the mwSnapshot generation it was built from.
+type lazyRedirectEntry struct {
+	gen uint64
+	h   http.Handler
+}
+
+// redirectTarget carries a redirect's per-request target and status code to
+// the cached handler built by lazyRedirect, via the request context
+// ([waste-hunt WH-10]).
+type redirectTarget struct {
+	target string
+	code   int
+}
+
+type redirectCtxKey struct{}
+
+// redirectCtx IS the context that carries a redirect's per-request target and
+// status code to the cached, middleware-wrapped handler built by lazyRedirect
+// ([perf-lab-2026-09-24] fix for the rmp #248/#250 parallel regression).
+// Modeled on requestCtx1/requestCtx2 (params.go): a fixed-shape type
+// embedding the parent context.Context and intercepting exactly one key.
+//
+// This replaces the previous context.WithValue(r.Context(), redirectCtxKey{},
+// redirectTarget{...}) call, which cost TWO allocations under Go's
+// interface-boxing rules: one for the *context.valueCtx node itself, and a
+// second to box the 24-byte redirectTarget value into that node's `val any`
+// field (a value that size does not fit in an interface's single data word,
+// so the runtime must heap-copy it). redirectCtx stores rt as a plain,
+// unboxed struct field — reading it back is a direct field load, not an
+// interface unwrap.
+type redirectCtx struct {
+	context.Context
+	rt redirectTarget
+}
+
+// Value intercepts redirectCtxKey (used only by the rare fallback path in
+// redirectTargetFrom, when a Use()-registered middleware has wrapped the
+// context with a further layer before the cached handler runs); every other
+// key is forwarded to the parent. This existed purely for that slow-path
+// correctness — the hot path never calls Value(): see redirectTargetFrom.
+func (c *redirectCtx) Value(key any) any {
+	if _, ok := key.(redirectCtxKey); ok {
+		return c.rt
+	}
+	return c.Context.Value(key)
+}
+
+// redirectBundle fuses redirectCtx and a shallow copy of *http.Request into a
+// single heap allocation, mirroring reqBundle1/reqBundle2 (params.go). It
+// replaces serveRedirect's previous pair of allocations — context.WithValue
+// (2 allocations: see redirectCtx) plus r.WithContext (a separate cloned
+// Request) — with exactly one.
+//
+// Safe for the same reasons as reqBundle1/reqBundle2: the bundle is freshly
+// allocated and no goroutine holds a reference to it before ServeHTTP is
+// called; the setReqCtxUnsafe write happens-before any goroutine the handler
+// may spawn (Go memory model §goroutine creation); the original r is never
+// mutated. Unlike the Opt O13 reqBundle pools, this bundle is NEVER pooled —
+// a redirect is a low-traffic path (documented as ~0.33% of CPU in the
+// waste-hunt report) and imposing PoolRequestBundle's "handlers/middleware
+// must not retain r past return" contract here for a negligible additional
+// gain is not worth the risk of a silent use-after-free for operators who
+// have Use()-registered middleware that logs or forwards the redirect
+// request asynchronously.
+type redirectBundle struct {
+	ctx redirectCtx
+	req http.Request
+}
+
+// redirectTargetFrom extracts the redirect target/code carried via
+// redirectCtx (serveRedirect). Mirrors routeCtxParams's fast/slow-path split
+// (params.go): a direct type assertion when the context is exactly
+// *redirectCtx — the common case, a type-descriptor compare with no
+// allocation — falling back to the generic ctx.Value(redirectCtxKey{})
+// traversal when a Use()-registered middleware has wrapped the context with
+// its own layer (e.g. context.WithTimeout) before the redirect handler runs.
+func redirectTargetFrom(ctx context.Context) redirectTarget {
+	if rc, ok := ctx.(*redirectCtx); ok {
+		return rc.rt
+	}
+	if v := ctx.Value(redirectCtxKey{}); v != nil {
+		if rt, ok := v.(redirectTarget); ok {
+			return rt
+		}
+	}
+	return redirectTarget{}
+}
+
+// lazyRedirect returns the middleware-wrapped redirect handler for snap,
+// building and caching it on first use ([waste-hunt WH-10]). Without this
+// cache, serveRedirect called wrapMiddleware — re-instantiating one closure
+// per registered middleware plus the redirect closure itself — on every
+// single redirect.
+//
+// Publication is a CAS loop keyed on snap.gen rather than a plain Store,
+// specifically to avoid an ABA race: serveRedirect reads redirectMWPtr
+// without a lock, so a goroutine can read an old snapshot, get descheduled,
+// and only reach this function after several concurrent Use() calls have
+// already published newer snapshots and rebuilt the cache for them. A plain
+// Store from that goroutine would silently overwrite the newer, correct
+// cache entry with a stale one built from fewer middleware. Comparing
+// generations (strictly increasing, assigned under m.mu by Use()) instead
+// of relying on call-completion order makes that impossible: this function
+// only ever publishes a strictly newer generation than what is currently
+// cached, and returns a locally-built handler without publishing it when a
+// fresher generation already won the race.
+func (m *Mux) lazyRedirect(snap *mwSnapshot) http.Handler {
+	if e := m.lazyRedirectPtr.Load(); e != nil && e.gen == snap.gen {
+		return e.h
+	}
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rt := redirectTargetFrom(r.Context())
+		writeRedirect(w, r, rt.target, rt.code)
+	})
+	h := wrapMiddleware(inner, snap.mw)
+	entry := &lazyRedirectEntry{gen: snap.gen, h: h}
+	for {
+		cur := m.lazyRedirectPtr.Load()
+		if cur != nil {
+			if cur.gen == snap.gen {
+				return cur.h // another goroutine already published this exact generation
+			}
+			if cur.gen > snap.gen {
+				return h // a newer generation already won; use ours locally, don't publish
+			}
+		}
+		if m.lazyRedirectPtr.CompareAndSwap(cur, entry) {
+			return h
+		}
+	}
+}
+
+// serveRedirect emits a redirect response. Opt R1: when no Use()-registered
+// middleware wraps the redirect (the common case), writeRedirect is invoked
+// directly — no middleware chain, no context allocation.
+//
+// Opt R2 (CH-06): reads the lock-free redirectMWPtr snapshot (refreshed by
+// Use()) instead of m.mu.RLock() — the last unconditional RWMutex operation
+// on the request-dispatch path, mirroring the lazyNotFound/lazyMethodNotAllowed
+// / lazyOPTIONS pattern already used elsewhere in this file.
+//
+// [waste-hunt WH-10] When middleware IS present, the wrapped handler is
+// built once per middleware generation (lazyRedirect) instead of on every
+// redirect. The target and code are carried to it via the request context,
+// on a shallow copy of r — middleware sees the same request (option b in the
+// waste-hunt report: semantics unchanged), and the original *http.Request is
+// never mutated.
+//
+// [perf-lab-2026-09-24] Opt R4: the shallow copy + context are fused into a
+// single redirectBundle allocation (see its doc comment) instead of the
+// previous context.WithValue(...) + r.WithContext(...) pair, which cost 3
+// allocations (2 for context.WithValue's node + boxed value, 1 for the
+// cloned Request) versus this path's 1. This fixes a measured regression:
+// BenchmarkParallelRedirectTrailingSlash's ns/op and B/op got WORSE under
+// the WH-10 cache (despite fewer allocs/op than the pre-cache baseline)
+// because the two extra, separately-boxed heap objects it replaced were
+// individually small (closures) while context.WithValue's valueCtx node,
+// its boxed 24-byte redirectTarget, and the cloned ~200+-byte Request are
+// each large enough that 3 separate mallocgc calls (with their own size-class
+// lookups and GC scanning) cost more wall-clock time under high parallel
+// allocation churn than the fixed cost saved by not rebuilding N middleware
+// closures. Fusing them into one allocation keeps the byte-count-reduction
+// while cutting the per-redirect allocation *count* further still.
+func (m *Mux) serveRedirect(w http.ResponseWriter, r *http.Request, target string, code int) {
+	snap := m.redirectMWPtr.Load()
+	if snap == nil || len(snap.mw) == 0 {
+		writeRedirect(w, r, target, code)
+		return
+	}
+	rt := redirectTarget{target: target, code: code}
+	if hasReqCtxField {
+		b := &redirectBundle{}
+		b.ctx.Context = getReqCtxUnsafe(r) // skip r.Context() method call (Opt O5a)
+		b.ctx.rt = rt
+		b.req = *r
+		setReqCtxUnsafe(&b.req, &b.ctx)
+		m.lazyRedirect(snap).ServeHTTP(w, &b.req)
+		return
+	}
+	// Safe fallback for hypothetical future Go versions that rename `ctx`.
+	ctx := context.WithValue(r.Context(), redirectCtxKey{}, rt)
+	m.lazyRedirect(snap).ServeHTTP(w, r.WithContext(ctx))
 }
 
 func (m *Mux) recoverPanic(cfg *muxConfig, w http.ResponseWriter, r *http.Request) {
@@ -1229,6 +1714,33 @@ func (m *Mux) resolveRedirectCode(cfg *muxConfig, method string) int {
 	return http.StatusTemporaryRedirect
 }
 
+// allowTable holds the Allow header value for every possible set of
+// registered methods, indexed by a bitmask over methodNames positions
+// ([waste-hunt WH-09]). Built once at init: allowed() then returns a
+// constant string instead of rebuilding it with a strings.Builder on every
+// 405 / auto-OPTIONS request. Output and method order are unchanged from
+// the previous per-request construction.
+var allowTable = func() (t [1 << methodCount]string) {
+	for mask := 1; mask < len(t); mask++ {
+		if mask&(1<<idxOPTIONS) != 0 || mask&(1<<idxWild) != 0 {
+			continue // never produced by allowed() — OPTIONS/"*" are always excluded
+		}
+		var b strings.Builder
+		for i := range methodCount {
+			if mask&(1<<i) != 0 {
+				if b.Len() > 0 {
+					b.WriteString(", ")
+				}
+				b.WriteString(methodNames[i])
+			}
+		}
+		b.WriteString(", ")
+		b.WriteString(http.MethodOptions)
+		t[mask] = b.String()
+	}
+	return t
+}()
+
 // allowed returns a comma-separated Allow header value for urlPath.
 // Returns "" when no other methods are registered at that path.
 func (m *Mux) allowed(urlPath, reqMethod string) string {
@@ -1237,28 +1749,19 @@ func (m *Mux) allowed(urlPath, reqMethod string) string {
 		return ""
 	}
 
-	var b strings.Builder
+	var mask int
 	for i, root := range trees {
-		if root == nil {
+		if root == nil || i == idxOPTIONS || i == idxWild {
 			continue
 		}
-		method := methodNames[i]
-		if method == reqMethod || method == http.MethodOptions || method == "*" {
+		if methodNames[i] == reqMethod {
 			continue
 		}
 		if root.hasHandler(urlPath) {
-			if b.Len() > 0 {
-				b.WriteString(", ")
-			}
-			b.WriteString(method)
+			mask |= 1 << i
 		}
 	}
-	if b.Len() == 0 {
-		return ""
-	}
-	b.WriteString(", ")
-	b.WriteString(http.MethodOptions)
-	return b.String()
+	return allowTable[mask]
 }
 
 // cleanedPath checks whether path.Clean(p) has a registered handler.

@@ -1,0 +1,71 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                                              │     base     │               patched               │
+                                              │    sec/op    │   sec/op     vs base                │
+Mount/current-16                                1010.0n ± 1%   239.8n ± 1%  -76.25% (p=0.000 n=10)
+Mount/no-redundant-url-16                        953.3n ± 2%   962.8n ± 1%        ~ (p=0.325 n=10)
+Mount/shallow-copy-16                            236.0n ± 1%   238.0n ± 1%        ~ (p=0.383 n=10)
+Mount/dispatch-only-16                           106.1n ± 2%   107.3n ± 1%        ~ (p=0.271 n=10)
+CleanPathChanged/current-16                      820.1n ± 1%   132.7n ± 1%  -83.83% (p=0.000 n=10)
+CleanPathChanged/shallow-copy-16                 131.7n ± 2%   132.8n ± 1%        ~ (p=0.288 n=10)
+FileServe/no-logger/small.css-16                 135.2µ ± 1%   135.4µ ± 0%        ~ (p=0.353 n=10)
+FileServe/no-logger/16k.js-16                    140.8µ ± 1%   140.8µ ± 0%        ~ (p=0.644 n=10)
+FileServe/no-logger/128k.js-16                   183.6µ ± 1%   183.3µ ± 0%        ~ (p=0.565 n=10)
+FileServe/no-logger/large.bin-16                 607.6µ ± 1%   608.9µ ± 1%        ~ (p=0.436 n=10)
+FileServe/Logger-current/small.css-16            133.1µ ± 1%   131.7µ ± 1%   -1.05% (p=0.007 n=10)
+FileServe/Logger-current/16k.js-16               151.0µ ± 0%   150.7µ ± 1%        ~ (p=0.315 n=10)
+FileServe/Logger-current/128k.js-16              206.3µ ± 0%   205.9µ ± 0%   -0.18% (p=0.043 n=10)
+FileServe/Logger-current/large.bin-16            658.4µ ± 1%   660.0µ ± 1%        ~ (p=0.481 n=10)
+FileServe/Logger-with-ReaderFrom/small.css-16    140.2µ ± 1%   139.7µ ± 0%        ~ (p=0.105 n=10)
+FileServe/Logger-with-ReaderFrom/16k.js-16       146.8µ ± 0%   145.2µ ± 1%   -1.04% (p=0.004 n=10)
+FileServe/Logger-with-ReaderFrom/128k.js-16      186.2µ ± 0%   185.8µ ± 0%        ~ (p=0.105 n=10)
+FileServe/Logger-with-ReaderFrom/large.bin-16    611.6µ ± 1%   611.4µ ± 1%        ~ (p=0.853 n=10)
+geomean                                          26.26µ        21.93µ       -16.51%
+
+                                              │     base     │                patched                 │
+                                              │     B/op     │     B/op      vs base                  │
+Mount/current-16                                 1928.0 ± 0%     848.0 ± 0%  -56.02% (p=0.000 n=10)
+Mount/no-redundant-url-16                       1.742Ki ± 0%   1.742Ki ± 0%        ~ (p=1.000 n=10) ¹
+Mount/shallow-copy-16                             848.0 ± 0%     848.0 ± 0%        ~ (p=1.000 n=10) ¹
+Mount/dispatch-only-16                            384.0 ± 0%     384.0 ± 0%        ~ (p=1.000 n=10) ¹
+CleanPathChanged/current-16                      1400.0 ± 0%     464.0 ± 0%  -66.86% (p=0.000 n=10)
+CleanPathChanged/shallow-copy-16                  464.0 ± 0%     464.0 ± 0%        ~ (p=1.000 n=10) ¹
+FileServe/no-logger/small.css-16                9.142Ki ± 0%   8.215Ki ± 0%  -10.14% (p=0.000 n=10)
+FileServe/no-logger/16k.js-16                   9.110Ki ± 1%   8.218Ki ± 0%   -9.79% (p=0.000 n=10)
+FileServe/no-logger/128k.js-16                  9.142Ki ± 1%   8.232Ki ± 1%   -9.95% (p=0.000 n=10)
+FileServe/no-logger/large.bin-16                9.189Ki ± 2%   8.272Ki ± 1%   -9.97% (p=0.000 n=10)
+FileServe/Logger-current/small.css-16           9.600Ki ± 0%   8.727Ki ± 0%   -9.10% (p=0.000 n=10)
+FileServe/Logger-current/16k.js-16              24.96Ki ± 0%   24.08Ki ± 0%   -3.53% (p=0.000 n=10)
+FileServe/Logger-current/128k.js-16             41.40Ki ± 0%   40.52Ki ± 0%   -2.12% (p=0.000 n=10)
+FileServe/Logger-current/large.bin-16           41.26Ki ± 0%   40.40Ki ± 0%   -2.09% (p=0.000 n=10)
+FileServe/Logger-with-ReaderFrom/small.css-16   9.334Ki ± 1%   8.362Ki ± 1%  -10.42% (p=0.000 n=10)
+FileServe/Logger-with-ReaderFrom/16k.js-16      9.255Ki ± 0%   8.342Ki ± 1%   -9.87% (p=0.000 n=10)
+FileServe/Logger-with-ReaderFrom/128k.js-16     9.332Ki ± 1%   8.357Ki ± 1%  -10.44% (p=0.000 n=10)
+FileServe/Logger-with-ReaderFrom/large.bin-16   9.210Ki ± 1%   8.414Ki ± 1%   -8.65% (p=0.000 n=10)
+geomean                                         5.362Ki        4.555Ki       -15.04%
+¹ all samples are equal
+
+                                              │    base     │               patched                │
+                                              │  allocs/op  │ allocs/op   vs base                  │
+Mount/current-16                                 9.000 ± 0%   3.000 ± 0%  -66.67% (p=0.000 n=10)
+Mount/no-redundant-url-16                        8.000 ± 0%   8.000 ± 0%        ~ (p=1.000 n=10) ¹
+Mount/shallow-copy-16                            3.000 ± 0%   3.000 ± 0%        ~ (p=1.000 n=10) ¹
+Mount/dispatch-only-16                           1.000 ± 0%   1.000 ± 0%        ~ (p=1.000 n=10) ¹
+CleanPathChanged/current-16                      7.000 ± 0%   2.000 ± 0%  -71.43% (p=0.000 n=10)
+CleanPathChanged/shallow-copy-16                 2.000 ± 0%   2.000 ± 0%        ~ (p=1.000 n=10) ¹
+FileServe/no-logger/small.css-16                103.00 ± 0%   98.00 ± 0%   -4.85% (p=0.000 n=10)
+FileServe/no-logger/16k.js-16                   103.00 ± 0%   98.00 ± 0%   -4.85% (p=0.000 n=10)
+FileServe/no-logger/128k.js-16                  103.00 ± 0%   98.00 ± 0%   -4.85% (p=0.000 n=10)
+FileServe/no-logger/large.bin-16                103.00 ± 0%   98.00 ± 0%   -4.85% (p=0.000 n=10)
+FileServe/Logger-current/small.css-16           101.00 ± 0%   96.00 ± 0%   -4.95% (p=0.000 n=10)
+FileServe/Logger-current/16k.js-16              101.00 ± 0%   96.00 ± 0%   -4.95% (p=0.000 n=10)
+FileServe/Logger-current/128k.js-16             102.00 ± 0%   97.00 ± 0%   -4.90% (p=0.000 n=10)
+FileServe/Logger-current/large.bin-16           102.00 ± 0%   97.00 ± 1%   -4.90% (p=0.000 n=10)
+FileServe/Logger-with-ReaderFrom/small.css-16    107.0 ± 0%   102.0 ± 0%   -4.67% (p=0.000 n=10)
+FileServe/Logger-with-ReaderFrom/16k.js-16       107.0 ± 0%   102.0 ± 0%   -4.67% (p=0.000 n=10)
+FileServe/Logger-with-ReaderFrom/128k.js-16      107.0 ± 0%   102.0 ± 0%   -4.67% (p=0.000 n=10)
+FileServe/Logger-with-ReaderFrom/large.bin-16    107.0 ± 0%   102.0 ± 0%   -4.67% (p=0.000 n=10)
+geomean                                          34.48        29.27       -15.09%
+¹ all samples are equal

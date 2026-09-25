@@ -1,0 +1,49 @@
+File: reverse-proxy
+Build ID: abfed2559a9f102901351053e0e2eac26d73a4cf
+Type: alloc_space
+Time: 2026-09-24 19:51:47 WEST
+Duration: 10.01s, Total samples = 9423.93MB 
+Showing nodes accounting for 9125.02MB, 96.83% of 9423.93MB total
+Dropped 125 nodes (cum <= 47.12MB)
+Showing top 40 nodes out of 72
+      flat  flat%   sum%        cum   cum%
+ 5579.79MB 59.21% 59.21%  5579.79MB 59.21%  net/http/httputil.(*ReverseProxy).copyBuffer
+  891.28MB  9.46% 68.67%   891.28MB  9.46%  net/http.init.func2
+  381.37MB  4.05% 72.71%   381.37MB  4.05%  bufio.NewWriterSize (inline)
+  336.78MB  3.57% 76.29%   336.78MB  3.57%  bufio.NewReaderSize (inline)
+  216.68MB  2.30% 78.59%   216.68MB  2.30%  io.init.func1
+  185.55MB  1.97% 80.56%   186.05MB  1.97%  net/textproto.readMIMEHeader
+  171.55MB  1.82% 82.38%   171.55MB  1.82%  net/http.Header.Clone (inline)
+  134.62MB  1.43% 83.80%   134.62MB  1.43%  github.com/FlavioCFOliveira/MuxMaster/middleware.newExhaustedRequestIDBuf (inline)
+  128.54MB  1.36% 85.17%   128.54MB  1.36%  net/http.(*Request).WithContext (partial-inline)
+   90.03MB  0.96% 86.12%  6744.18MB 71.56%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+   86.01MB  0.91% 87.04%    94.52MB  1.00%  context.(*cancelCtx).propagateCancel
+   75.51MB   0.8% 87.84%   901.09MB  9.56%  net/http.(*Transport).dialConn
+   72.02MB  0.76% 88.60%   230.08MB  2.44%  net/http.readRequestLimit
+   71.66MB  0.76% 89.36%    71.66MB  0.76%  sync.(*Pool).pinSlow
+   67.02MB  0.71% 90.07%    67.02MB  0.71%  net/textproto.MIMEHeader.Set (inline)
+   65.01MB  0.69% 90.76%   126.52MB  1.34%  net/http.(*persistConn).roundTrip
+   63.52MB  0.67% 91.44%  6404.96MB 67.96%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   62.01MB  0.66% 92.09%    62.01MB  0.66%  mime.ParseMediaType
+   59.01MB  0.63% 92.72%    59.01MB  0.63%  context.(*cancelCtx).Done
+   58.51MB  0.62% 93.34%   358.69MB  3.81%  net/http.(*conn).readRequest
+      53MB  0.56% 93.90%   184.53MB  1.96%  net/http.(*persistConn).readLoop
+   52.01MB  0.55% 94.46%    84.51MB   0.9%  net/http.(*Transport).getConn
+   50.52MB  0.54% 94.99%   147.04MB  1.56%  net/http.(*Request).Clone
+      43MB  0.46% 95.45%    85.51MB  0.91%  context.withCancel (inline)
+   37.50MB   0.4% 95.85%  6341.44MB 67.29%  net/http/httputil.(*ReverseProxy).ServeHTTP
+      26MB  0.28% 96.12%   123.53MB  1.31%  net/http.ReadResponse
+      19MB   0.2% 96.32%   153.02MB  1.62%  net.(*Dialer).DialContext
+   16.50MB  0.18% 96.50%    59.01MB  0.63%  context.WithDeadlineCause
+   12.50MB  0.13% 96.63%   326.05MB  3.46%  net/http.(*Transport).roundTrip
+      12MB  0.13% 96.76%  1187.54MB 12.60%  net/http.(*Request).write
+    3.50MB 0.037% 96.80%    57.51MB  0.61%  context.WithCancelCause
+    1.50MB 0.016% 96.81%    60.51MB  0.64%  net.(*Dialer).dialCtx
+       1MB 0.011% 96.82%  7126.05MB 75.62%  net/http.(*conn).serve
+    0.50MB 0.0053% 96.83%   231.21MB  2.45%  io.copyBuffer
+         0     0% 96.83%    59.01MB  0.63%  context.WithDeadline (inline)
+         0     0% 96.83%  6438.99MB 68.33%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 96.83%  6744.18MB 71.56%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 96.83%  6438.99MB 68.33%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 96.83%  6438.99MB 68.33%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 96.83%   134.62MB  1.43%  github.com/FlavioCFOliveira/MuxMaster/middleware.init.func3

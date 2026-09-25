@@ -1,0 +1,47 @@
+{
+ "name": "reverse-proxy",
+ "requests": [
+  {
+   "name": "GET /api/*path (round-robin)",
+   "method": "GET",
+   "path": "/api/users",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "POST /api/*path",
+   "method": "POST",
+   "path": "/api/items",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "Content-Type": "application/json"
+   },
+   "body": "{\"n\":1}"
+  },
+  {
+   "name": "GET /static/*path",
+   "method": "GET",
+   "path": "/static/css/app.css",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /admin/*path (gated)",
+   "method": "GET",
+   "path": "/admin/dashboard",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Admin-Token": "letmein"
+   }
+  },
+  {
+   "name": "GET /",
+   "method": "GET",
+   "path": "/",
+   "expect": 200,
+   "weight": 1
+  }
+ ]
+}
