@@ -303,7 +303,7 @@ mux.RedirectTrailingSlash = false
 To use pre-routing path cleaning instead of a redirect (useful when you want the clean path without a round-trip), add the middleware:
 
 ```go
-mux.Pre(middleware.CleanPath)
+mux.Pre(middleware.CleanPath())
 ```
 
 `CleanPath` modifies the request in-place before the router sees it, so no redirect is issued.

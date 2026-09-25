@@ -64,7 +64,7 @@ mux.GET("/path", handler)
 ```go
 mux := muxmaster.New()
 mux.Use(middleware.Logger(os.Stdout))
-mux.Use(middleware.Recoverer)
+mux.Use(middleware.Recoverer())
 
 mux.GET("/api/users", listUsers) // wrapped by Logger and Recoverer
 ```
@@ -76,8 +76,8 @@ mux.GET("/api/users", listUsers) // wrapped by Logger and Recoverer
 `Pre` registers middleware that runs **before** the router matches the request. Use it to rewrite or normalize the URL before the radix tree sees it.
 
 ```go
-mux.Pre(middleware.CleanPath)
-mux.Pre(middleware.StripSlashes)
+mux.Pre(middleware.CleanPath())
+mux.Pre(middleware.StripSlashes())
 ```
 
 Pre-routing middleware cannot access path parameters because routing has not happened yet. It is useful for path normalization, request ID injection, and real IP extraction.
@@ -228,7 +228,7 @@ Logger implements `http.Flusher` (delegating to the underlying response writer) 
 Catches panics in downstream handlers and resumes normal request processing. Without this middleware a panic crashes the entire server. The panic value and stack trace are always logged; the panic value itself is never written to the response body.
 
 ```go
-mux.Use(middleware.Recoverer)
+mux.Use(middleware.Recoverer())
 ```
 
 **Response behavior:** Recoverer writes a plain 500 response only if the handler has not already committed its own response — that is, only if the handler panicked before calling `WriteHeader` or `Write`. If the handler already sent a status or wrote body bytes before panicking, Recoverer leaves the response exactly as the handler left it and does not append anything; this is a handler bug independent of Recoverer, not something Recoverer can safely correct after the fact.
@@ -587,7 +587,8 @@ id := middleware.GetRequestID(r.Context())
 Extracts the real client IP address from `X-Forwarded-For` or `X-Real-IP` headers set by a reverse proxy, and sets `r.RemoteAddr` to that value.
 
 ```go
-mux.Use(middleware.RealIP)
+trustedProxy := netip.MustParsePrefix("10.0.0.0/8")
+mux.Use(middleware.RealIP(&trustedProxy))
 ```
 
 For `X-Forwarded-For` (a comma-separated list of IPs in proxy chain order), RealIP searches from right-to-left for the rightmost untrusted proxy in the chain. It respects a 30-hop limit to defend against unbounded list sizes.
@@ -606,7 +607,7 @@ Redirects URLs with redundant components to their canonical form:
 - `/a/./users` → `/a/users`
 
 ```go
-mux.Pre(middleware.CleanPath)  // run before routing to avoid a redirect
+mux.Pre(middleware.CleanPath())// run before routing to avoid a redirect
 ```
 
 ---
@@ -616,7 +617,7 @@ mux.Pre(middleware.CleanPath)  // run before routing to avoid a redirect
 Removes trailing slashes from the URL path before routing. Unlike `RedirectTrailingSlash`, this modifies the request in-place without issuing a redirect.
 
 ```go
-mux.Pre(middleware.StripSlashes)
+mux.Pre(middleware.StripSlashes())
 ```
 
 ---
@@ -626,7 +627,7 @@ mux.Pre(middleware.StripSlashes)
 Sets headers that instruct browsers and intermediaries not to cache the response.
 
 ```go
-mux.Use(middleware.NoCache)
+mux.Use(middleware.NoCache())
 ```
 
 Headers set: `Cache-Control: no-cache, no-store, no-transform, must-revalidate, private, max-age=0`, `Pragma: no-cache`, `Expires: 0`.

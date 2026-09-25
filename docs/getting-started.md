@@ -94,7 +94,7 @@ import (
 
 mux := muxmaster.New()
 mux.Use(middleware.Logger(os.Stdout))
-mux.Use(middleware.Recoverer)
+mux.Use(middleware.Recoverer())
 ```
 
 After restarting, every request prints a log line:
@@ -204,7 +204,7 @@ var users = map[int]User{
 func main() {
     mux := muxmaster.New()
     mux.Use(middleware.Logger(os.Stdout))
-    mux.Use(middleware.Recoverer)
+    mux.Use(middleware.Recoverer())
 
     mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
         code := http.StatusInternalServerError

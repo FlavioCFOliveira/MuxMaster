@@ -86,7 +86,7 @@ func main() {
 
     // Global middleware — applied to every route registered below.
     mux.Use(middleware.Logger(os.Stdout))
-    mux.Use(middleware.Recoverer)
+    mux.Use(middleware.Recoverer())
 
     mux.GET("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintln(w, "Hello, World!")
@@ -277,7 +277,7 @@ Middleware is a function with the signature `func(http.Handler) http.Handler`. M
 ```go
 mux := muxmaster.New()
 mux.Use(middleware.Logger(os.Stdout))   // outermost
-mux.Use(middleware.Recoverer)           // innermost before the handler
+mux.Use(middleware.Recoverer())         // innermost before the handler
 
 mux.GET("/users", listUsers)             // wrapped by both Logger and Recoverer
 ```
@@ -287,8 +287,8 @@ mux.GET("/users", listUsers)             // wrapped by both Logger and Recoverer
 Pre-routing middleware runs **before** route matching. This is useful for path rewriting, cleaning, or stripping prefixes before the router sees the URL.
 
 ```go
-mux.Pre(middleware.CleanPath)
-mux.Pre(middleware.StripSlashes)
+mux.Pre(middleware.CleanPath())
+mux.Pre(middleware.StripSlashes())
 ```
 
 ### Per-route middleware with `With`
@@ -759,7 +759,7 @@ import "github.com/FlavioCFOliveira/MuxMaster/middleware"
 mux.Use(middleware.Logger(os.Stdout))
 
 // Panic recovery
-mux.Use(middleware.Recoverer)
+mux.Use(middleware.Recoverer())
 
 // CORS for a single-page application
 mux.Use(middleware.CORS(middleware.CORSOptions{
@@ -785,7 +785,7 @@ mux.Use(middleware.ThrottleBacklog(100, 50, 30*time.Second))
 mux.Use(middleware.Timeout(10 * time.Second))
 
 // Attach a unique X-Request-Id header to every request
-mux.Use(middleware.RequestID)
+mux.Use(middleware.RequestID())
 
 // Trust X-Forwarded-For / X-Real-IP only from a known reverse proxy.
 // SECURITY: never call middleware.RealIP() without trusted CIDRs in

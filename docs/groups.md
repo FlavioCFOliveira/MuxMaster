@@ -152,7 +152,7 @@ Before forwarding to the mounted handler, MuxMaster creates a shallow request co
 func main() {
     mux := muxmaster.New()
     mux.Use(middleware.Logger(os.Stdout))
-    mux.Use(middleware.Recoverer)
+    mux.Use(middleware.Recoverer())
 
     mux.Mount("/api/v1", newV1Router())
     mux.Mount("/api/v2", newV2Router())
@@ -243,8 +243,9 @@ Mount independent services behind a reverse proxy router:
 
 ```go
 mux := muxmaster.New()
-mux.Use(middleware.RealIP)
-mux.Use(middleware.RequestID)
+trustedProxy := netip.MustParsePrefix("10.0.0.0/8")
+mux.Use(middleware.RealIP(&trustedProxy))
+mux.Use(middleware.RequestID())
 
 mux.Mount("/auth",    authService)
 mux.Mount("/catalog", catalogService)

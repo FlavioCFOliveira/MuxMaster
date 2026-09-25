@@ -246,7 +246,7 @@ Like `NotFound`, the `MethodNotAllowed` handler is wrapped by global middleware 
 MuxMaster does not automatically recover from panics. Use `middleware.Recoverer` to catch panics before they crash the server:
 
 ```go
-mux.Use(middleware.Recoverer)
+mux.Use(middleware.Recoverer())
 ```
 
 For custom panic handling, set `mux.PanicHandler`:

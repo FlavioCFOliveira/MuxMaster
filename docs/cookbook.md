@@ -28,8 +28,8 @@ This page collects ready-to-use patterns for common production scenarios.
 func main() {
     mux := muxmaster.New()
     mux.Use(middleware.Logger(os.Stdout))
-    mux.Use(middleware.Recoverer)
-    mux.Use(middleware.RequestID)
+    mux.Use(middleware.Recoverer())
+    mux.Use(middleware.RequestID())
 
     mux.Mount("/api/v1", v1Router())
     mux.Mount("/api/v2", v2Router())
