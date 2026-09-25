@@ -1,0 +1,38 @@
+=== RUN   FuzzDifferentialSecurity
+fuzz: elapsed: 0s, gathering baseline coverage: 0/209 completed
+fuzz: elapsed: 1s, gathering baseline coverage: 209/209 completed, now fuzzing with 16 workers
+fuzz: elapsed: 3s, execs: 84129 (28042/sec), new interesting: 26 (total: 235)
+fuzz: elapsed: 6s, execs: 122414 (12760/sec), new interesting: 54 (total: 263)
+fuzz: elapsed: 9s, execs: 167793 (15128/sec), new interesting: 56 (total: 265)
+fuzz: elapsed: 12s, execs: 221461 (17884/sec), new interesting: 57 (total: 266)
+fuzz: elapsed: 15s, execs: 233600 (4047/sec), new interesting: 61 (total: 270)
+fuzz: elapsed: 18s, execs: 241239 (2546/sec), new interesting: 62 (total: 271)
+fuzz: elapsed: 21s, execs: 241239 (0/sec), new interesting: 62 (total: 271)
+fuzz: elapsed: 24s, execs: 315741 (24854/sec), new interesting: 63 (total: 272)
+fuzz: elapsed: 27s, execs: 466772 (50337/sec), new interesting: 67 (total: 276)
+fuzz: elapsed: 30s, execs: 485001 (6078/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 33s, execs: 485001 (0/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 36s, execs: 485001 (0/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 39s, execs: 485001 (0/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 42s, execs: 632081 (49043/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 45s, execs: 632081 (0/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 48s, execs: 632081 (0/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 51s, execs: 632081 (0/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 54s, execs: 632081 (0/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 57s, execs: 632081 (0/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 1m0s, execs: 632081 (0/sec), new interesting: 70 (total: 279)
+fuzz: elapsed: 1m3s, execs: 672553 (13500/sec), new interesting: 76 (total: 285)
+fuzz: elapsed: 1m6s, execs: 759750 (29067/sec), new interesting: 88 (total: 297)
+fuzz: elapsed: 1m9s, execs: 875915 (38728/sec), new interesting: 98 (total: 307)
+fuzz: elapsed: 1m12s, execs: 927767 (17274/sec), new interesting: 110 (total: 319)
+fuzz: elapsed: 1m15s, execs: 1001001 (24421/sec), new interesting: 118 (total: 327)
+fuzz: elapsed: 1m18s, execs: 1058751 (19251/sec), new interesting: 120 (total: 329)
+fuzz: elapsed: 1m21s, execs: 1118878 (20041/sec), new interesting: 136 (total: 345)
+fuzz: elapsed: 1m24s, execs: 1180524 (20545/sec), new interesting: 139 (total: 348)
+fuzz: elapsed: 1m27s, execs: 1257454 (25651/sec), new interesting: 142 (total: 351)
+fuzz: elapsed: 1m30s, execs: 1331938 (24805/sec), new interesting: 148 (total: 357)
+fuzz: elapsed: 1m31s, execs: 1331938 (0/sec), new interesting: 148 (total: 357)
+--- PASS: FuzzDifferentialSecurity (91.03s)
+=== NAME  
+PASS
+ok  	prf/harness	91.105s
