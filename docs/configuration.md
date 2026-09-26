@@ -177,7 +177,7 @@ With `UseRawPath = true`, parameters are captured from the raw path, still perce
 | `true` | `false` | `name = "a%2Fb"` |
 | `true` | `true` | `name = "a/b"` |
 
-**Security:** with both options `true`, a captured value can contain a real `/` (and `..`). Clean and confine it before using it as a file or URL path. MuxMaster logs a warning when a route is registered with this combination, and `Mux.ServeFiles` panics rather than register under it. See [SECURITY.md](../SECURITY.md).
+**Security:** with both options `true`, a captured value can contain a real `/` (and `..`). Clean and confine it before using it as a file or URL path. MuxMaster logs a warning when a route is registered with this combination, and both `Mux.ServeFiles` and `Group.ServeFiles` panic rather than register under it. See [SECURITY.md](../SECURITY.md).
 
 ---
 

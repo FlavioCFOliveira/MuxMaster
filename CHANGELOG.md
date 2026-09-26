@@ -7,6 +7,49 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-26
+
+Minor release. It raises the minimum Go version to 1.27.1, fixes
+ephemeral-port exhaustion in the default `OAuth2Introspect` client, applies
+the `ServeFiles` raw-path guard to `Group.ServeFiles`, and repairs the CI,
+commitlint and release workflows. The exported API is identical to v1.2.0
+(`apidiff`: no changes in the root or `middleware` package). Read the upgrade
+notes in
+[`release-notes/v1.3.0-20260926.md`](https://github.com/FlavioCFOliveira/MuxMaster/blob/v1.3.0/release-notes/v1.3.0-20260926.md#upgrade-notes)
+before upgrading.
+
+### Changed
+
+- **Minimum Go version raised from 1.26 to 1.27.1** (rmp #306): every module now declares `go 1.27.1`. Under [COMPATIBILITY.md](COMPATIBILITY.md#go-version-policy), raising the minimum Go version is a MINOR change, hence v1.3.0. Programs built with Go 1.26 or Go 1.27.0 must upgrade their toolchain. With the default `GOTOOLCHAIN=auto` (Go 1.21 or later), the `go` command switches to Go 1.27.1 or newer automatically, downloading it when no matching toolchain is in `PATH`; with `GOTOOLCHAIN=local`, the build fails with an error stating that the module requires `go >= 1.27.1`.
+
+### Fixed
+
+- **`OAuth2Introspect`: the default introspection client no longer exhausts ephemeral ports under load** (rmp #300): when `HTTPClient` is nil, the default introspection client now uses its own transport. It copies `http.DefaultTransport`'s settings once, at construction, without modifying or initialising `http.DefaultTransport`. It keeps connections alive and allows at most 100 connections to the introspection host (exact for HTTP/1.1; HTTP/2 may open more). Calls beyond that limit wait for a free connection within the 10 s timeout. This fixes ephemeral-port exhaustion under concurrent load, which rejected valid tokens with 401 (notably on Windows). Later changes to `http.DefaultTransport` no longer affect the middleware, so construct the middleware at startup. Set `HTTPClient` to use other settings. Regression tests: `TestOAuth2Introspect_DefaultClient_BoundsConnectionsUnderConcurrency` (`middleware/oauth2_concurrency_test.go`), `middleware/oauth2_transport_test.go`, and `middleware/oauth2_transport_internal_test.go`, whose reflection test fails when a Go release adds an `http.Transport` field that the copy does not classify.
+
+- **gosec findings resolved without behaviour change** (rmp #301): the three findings that failed CI were false positives. `tree.go` saturates `maxParams` with an explicit `math.MaxUint8` check (registration time only; `TestMaxParamsSaturatesAtUint8Max`); the redirect body in `mux.go` escapes its target with `html.EscapeString`, which applies the same mapping as `net/http`'s private replacer, so the body stays byte-identical to `net/http.Redirect` (`TestWriteRedirect_ByteIdenticalToNetHTTPRedirect`); the intentional `int64`-to-`uint64` conversion in `Logger`'s duration formatting carries a scoped justification.
+
+- **Test suite: skips replaced by assertions** (rmp #303): no test outside `reports/` and `competitor/` calls `t.Skip`. `FuzzTSRRedirectSafety` now checks empty, oversized, and `http.NewRequest`-rejected paths; the differential, order-independence, and `reqBundle` tests assert instead of skipping. This also fixes a latent integer-negation overflow in the order-independence test.
+
+### Security
+
+- **`Group.ServeFiles` now applies the raw-path guard** (CDX-S8-002 / PRF-2026-0002, rmp #302): `Mux.ServeFiles` refuses to register, with a panic, when the `Mux` has both `UseRawPath` and `UnescapePathValues` enabled, because the captured path could then contain decoded `/` characters that `http.FileServer` treats as separators. `Group.ServeFiles` skipped that check, although the specification states that both variants are equivalent. Both now call one shared check. Regression test: `TestGroupServeFiles_RawPathUnescapeGuard` (`group_servefiles_test.go`), covering option order, sub-groups, and the configurations that must not panic.
+
+### CI and Build
+
+- **`ci.yml`** (rmp #304): runs on pushes to `main`, `develop`, `release/**`, and `hotfix/**`, as well as on pull requests against `main`. The `CHANGELOG.md updated` gate no longer fails with `SIGPIPE` under `pipefail`, and now also runs on push. `apidiff` runs on every push as an advisory check and still blocks pull requests. gosec v2.29.0 is installed with the `go.mod` toolchain, because the gosec action images cannot load a Go 1.27.1 module. The test matrix covers Go 1.27.1 and `stable`; the linux/arm64 job uses the `golang:1.27.1` image.
+- **`commitlint.yml`**: also validates the commits of pushed ranges, and exempts merge commits by parent count.
+- **`release.yml`**: extracts the release notes inside the release job and passes them by file, because GitHub masked the job output and left the v1.2.0 release body empty; tests the requested tag on manual runs; drops the unused `id-token` permission.
+- **Actions updated**: `actions/checkout` v7.0.1, `actions/setup-go` v7.0.0, `golangci/golangci-lint-action` v9.3.0.
+- **golangci-lint v2.14.0** in CI and in the pre-push hook, as required by the new `go` directive.
+- **`dependabot.yml`**: drops entries without third-party dependencies, covers the three security-harness modules that have them, and uses commit prefixes that pass commitlint.
+- **Auxiliary modules** (not part of the published module, which still has zero external dependencies): `golang.org/x/net` v0.59.0 and `golang.org/x/text` v0.42.0 in the HTTP/2 harness; `github.com/go-chi/chi/v5` v5.3.2 and `github.com/stretchr/testify` v1.12.1 in the routing-fuzzer harness and `competitor/`, which was re-vendored so it builds and benchmarks the current code. Three examples (`max-performance`, `reverse-proxy`, `upload-file`) were reformatted with `gofmt`.
+
+### Documentation
+
+- **Specification** (rmp #305): `routing.md` §16 (rules 110–114) specifies the remaining registration panics — an unclosed `{/:`, an invalid UTF-8 pattern, a `{name}` token without `:`, a `*` not preceded by `/` — and that a panicking registration leaves the route tree unchanged. `groups.md` rule 6 no longer claims that `Group` panics on a prefix without a leading `/`, and rule 45 specifies the panic for an invalid UTF-8 `Mount` prefix. `static-files.md` item 11 states that both `ServeFiles` variants panic with `UseRawPath` and `UnescapePathValues` set. `compatibility.md` specifies the Go 1.27.1 minimum and the toolchain-switching behaviour. `middleware-stdlib.md` specifies the `OAuth2Introspect` default HTTP client.
+- **GoDoc, `api.md`, and `docs/middleware.md`**: `OAuth2Options.HTTPClient` and `OAuth2Introspect` document the default transport and the requirement to construct the middleware at startup; `Group.ServeFiles` documents the CDX-S8-002 panic.
+- **Guides**: README, CONTRIBUTING, COMPATIBILITY, the guides under `docs/`, and the bug-report issue template state the Go 1.27.1 minimum; `.github/branch-protection.md` drops the rules that are incompatible with direct gitflow merges and states what branch protection can enforce.
+
 ## [1.2.0] - 2026-09-26
 
 Minor release. It adds first-class support for the HTTP QUERY method
@@ -445,7 +488,8 @@ discussed in a GitHub issue before landing.
 - **Configuration snapshot** — Mux flags are frozen into a `muxConfig` snapshot on the first `ServeHTTP` call; subsequent requests use a single atomic pointer load instead of 6–8 struct field reads
 - **FastHandler footprint** — `FastHandler` struct reduced to 32 B (from 128 B) via exact `Params` slice allocation bounded by `maxParams = 3`
 
-[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.0...v1.0.1

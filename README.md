@@ -32,7 +32,15 @@ Static routes allocate **zero bytes**. By default, a route with path parameters 
 - **21 middleware constructors** in the `middleware` package — logging, panic recovery, CORS, Basic Auth, API keys, JWT, OAuth 2.0 introspection, compression, throttling, timeouts, request IDs, and more
 - **Route introspection** — `Lookup`, `Routes`, `Walk`, and `WalkFast`
 
-## What's new in v1.2.0
+## What's new in v1.3.0
+
+v1.3.0 (2026-09-26) is a maintenance release with no API changes; the full list is in [CHANGELOG.md](CHANGELOG.md#130---2026-09-26), and the upgrade notes are in [release-notes/v1.3.0-20260926.md](release-notes/v1.3.0-20260926.md#upgrade-notes).
+
+- **Go 1.27.1 required** — the minimum Go version rises from 1.26 to 1.27.1. With the default `GOTOOLCHAIN=auto`, the `go` command switches to the required toolchain automatically and downloads it when necessary.
+- **`OAuth2Introspect` default client** — when `HTTPClient` is nil, the middleware uses its own keep-alive transport, capped at 100 connections to the introspection host, which fixes ephemeral-port exhaustion (and valid tokens rejected with 401) under concurrent load. Construct the middleware at startup: it copies `http.DefaultTransport`'s settings once, at construction.
+- **`Group.ServeFiles` security guard** — like `Mux.ServeFiles`, it now panics at registration when `UseRawPath` and `UnescapePathValues` are both `true` (CDX-S8-002).
+
+### Previously, in v1.2.0
 
 These changes shipped in v1.2.0 (2026-09-26); the full list, with rationale and tests, is in [CHANGELOG.md](CHANGELOG.md#120---2026-09-26), and the upgrade notes are in [release-notes/v1.2.0-20260926.md](release-notes/v1.2.0-20260926.md#upgrade-notes).
 
@@ -540,7 +548,7 @@ var publicFS embed.FS
 mux.ServeFiles("/assets/*filepath", http.FS(publicFS))
 ```
 
-`ServeFiles` delegates to `http.FileServer`, which cleans the path before opening files. `Mux.ServeFiles` panics at registration when `UseRawPath` and `UnescapePathValues` are both `true`, because the decoded catch-all value could then contain `/` separators. `Group.ServeFiles` provides the same routing with the group prefix and middleware.
+`ServeFiles` delegates to `http.FileServer`, which cleans the path before opening files. `Mux.ServeFiles` and `Group.ServeFiles` panic at registration when `UseRawPath` and `UnescapePathValues` are both `true`, because the decoded catch-all value could then contain `/` separators. `Group.ServeFiles` provides the same routing with the group prefix and middleware.
 
 ---
 

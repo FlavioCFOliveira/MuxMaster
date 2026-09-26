@@ -87,9 +87,10 @@ before merging.
 | `commitlint.yml`     | `Validate commit messages`                        |
 
 `ci.yml` `Go tip (canary)` is advisory (`continue-on-error`).
-`ci.yml` `API breaking-change check (apidiff)`, `bench.yml` and
-`codeql.yml` run on pull requests against `main`; CodeQL also runs on
-pushes to `main` and weekly.
+`ci.yml` `API breaking-change check (apidiff)` runs on every push as an
+advisory check (it reports incompatible changes but never fails) and
+blocks on pull requests. `bench.yml` and `codeql.yml` run on pull
+requests against `main`; CodeQL also runs on pushes to `main` and weekly.
 
 ## Apply via the GitHub UI
 
