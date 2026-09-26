@@ -79,7 +79,7 @@ These principles are non-negotiable. They constrain all implementation decisions
 | [groups.md](groups.md) | `Group`, `Route` (inline group), `Mount`, and sub-groups |
 | [error-handling.md](error-handling.md) | `NotFound`, `MethodNotAllowed`, `PanicHandler`, `GlobalOPTIONS`, `HandlerFuncE`, `HTTPError`, and `ErrorHandler` |
 | [configuration.md](configuration.md) | All `Mux` fields, their default values, and their behavior when toggled |
-| [introspection.md](introspection.md) | `Lookup`, `Routes`, `Walk`, and `RoutePattern` |
+| [introspection.md](introspection.md) | `Lookup`, `Routes`, `Walk`, `WalkFast`, and `RoutePattern` |
 | [static-files.md](static-files.md) | `ServeFiles` behavior and constraints |
 | [response-helpers.md](response-helpers.md) | `JSON`, `XML`, `Text`, `Redirect`, and `NoContent` |
 | [middleware-stdlib.md](middleware-stdlib.md) | Each middleware in the `muxmaster/middleware` sub-package |
@@ -109,6 +109,8 @@ muxmaster/
 ├── group.go        # Group, Route (inline), Mount, With
 ├── handler.go      # HandlerFuncE, HTTPError, error adapters
 ├── response.go     # JSON, XML, Text, Redirect, NoContent
+├── introspection.go # Lookup, Routes, Walk, WalkFast
+├── doc.go          # package-level GoDoc
 ├── middleware/
 │   ├── logger.go
 │   ├── recoverer.go
@@ -117,13 +119,17 @@ muxmaster/
 │   ├── timeout.go
 │   ├── compress.go
 │   ├── basic_auth.go
+│   ├── api_key.go
+│   ├── jwt_auth.go
+│   ├── oauth2.go
 │   ├── cors.go
 │   ├── throttle.go
 │   ├── no_cache.go
 │   ├── strip_slashes.go
 │   ├── clean_path.go
 │   ├── set_header.go
-│   └── with_value.go
+│   ├── with_value.go
+│   └── doc.go
 ├── mux_test.go
 ├── bench_test.go
 ├── go.mod

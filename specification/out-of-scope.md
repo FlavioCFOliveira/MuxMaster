@@ -54,7 +54,7 @@ MuxMaster will not provide session management. Session state is application stat
 
 ### 2.6 Authentication and Authorization Logic
 
-MuxMaster will not provide full authentication or authorization engines: session management, RBAC, and policy evaluation remain out of scope. Three middleware in the `muxmaster/middleware` sub-package are narrow, low-level exceptions that validate a credential or a bearer token for a single request and stop there — they do not issue tokens, manage sessions, or make authorization decisions: `BasicAuth` (documented in [middleware-stdlib.md](middleware-stdlib.md)), `JWTAuth`, and `OAuth2Introspect` (both implemented in `middleware/jwt_auth.go` and `middleware/oauth2.go`, but not yet covered by a middleware-stdlib.md section).
+MuxMaster will not provide full authentication or authorization engines: session management, RBAC, and policy evaluation remain out of scope. Four middleware in the `muxmaster/middleware` sub-package are narrow, low-level exceptions that validate a credential or a bearer token for a single request and stop there — they do not issue tokens, manage sessions, or make authorization decisions: `BasicAuth` ([middleware-stdlib.md](middleware-stdlib.md) section 9), `APIKey` (section 18), `JWTAuth` (section 19), and `OAuth2Introspect` (section 20).
 
 ### 2.7 Custom and Extension HTTP Methods
 
@@ -98,7 +98,7 @@ MuxMaster will not implement automatic content negotiation (selecting a response
 
 The `muxmaster/middleware` sub-package provides general-purpose HTTP middleware. The following are explicitly out of scope for that sub-package:
 
-- Rate limiting backed by external stores (Redis, Memcached). The `ThrottleBacklog` middleware is in-process only.
+- Rate limiting backed by external stores (Redis, Memcached). `ThrottleBacklog` and `ThrottlePerIP`/`ThrottlePerIPCapped` ([middleware-stdlib.md](middleware-stdlib.md) sections 11 and 21) are in-process only; each tracks its state (a concurrency count, or a per-key table) purely in the memory of the running process, and neither state nor the applied limit is shared across separate processes or replicas.
 - CSRF protection middleware (requires session state or signed tokens, which is application territory).
 - Prometheus middleware (would require importing the Prometheus client, violating zero-dependency).
 - OpenTelemetry middleware (same reason).
