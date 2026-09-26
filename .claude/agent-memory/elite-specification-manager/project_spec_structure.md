@@ -60,7 +60,7 @@ Grep `^[0-9]\+\.` before appending to any of these — do not trust an older num
 - compatibility.md: 19 (added §6 HTTP Method Constants Not Yet in the Standard Library, items 17-19)
 - middleware-stdlib.md: 70 (fully renumbered 2026-09-25 — old rule numbers before that date are stale)
 - middleware.md: 43
-- groups.md: 30
+- groups.md: 40 (added §8 Location Rewriting for Automatic Redirects Through Mount [31-35], §9 Mount Prefix Validation [36-37], §10 RawPath Propagation Through a Parameterized Mount Prefix [38-40] — see [[task_rmp281_mount_redirect_prefix_spec]])
 - performance.md: 45
 - error-handling.md: 39
 - configuration.md: 44
