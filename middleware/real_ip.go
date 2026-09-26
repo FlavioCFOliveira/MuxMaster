@@ -71,12 +71,12 @@ func RealIP(trustedCIDRs ...*netip.Prefix) func(http.Handler) http.Handler {
 
 			if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 				if addr, ok := selectXFFRightmost(xff, trustedCIDRs); ok {
-					r.RemoteAddr = addr.WithZone("").String()
+					r.RemoteAddr = addr.WithZone("").String() // nosemgrep: muxmaster-xff-unconditional-trust — trusted-proxy design; direct-peer check at line 52–69
 				}
 			} else if xri := r.Header.Get("X-Real-IP"); xri != "" {
 				candidate := strings.TrimSpace(xri)
 				if addr, err := netip.ParseAddr(candidate); err == nil {
-					r.RemoteAddr = addr.WithZone("").String()
+					r.RemoteAddr = addr.WithZone("").String() // nosemgrep: muxmaster-xff-unconditional-trust — trusted-proxy design; direct-peer check at line 52–69
 				}
 			}
 			next.ServeHTTP(w, r)

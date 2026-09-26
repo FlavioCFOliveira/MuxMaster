@@ -225,7 +225,7 @@ func init() {
 //
 //go:nosplit
 func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
-	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx // nosemgrep: muxmaster-unsafe-ptr-without-checkptr-note — fresh allocation, no concurrent access, GC-managed lifetime
 }
 
 // getReqCtxUnsafe reads req.ctx directly via the pre-computed field offset.
@@ -250,7 +250,7 @@ func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
 //
 //go:nosplit
 func getReqCtxUnsafe(req *http.Request) context.Context {
-	if c := *(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)); c != nil {
+	if c := *(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)); c != nil { // nosemgrep: muxmaster-unsafe-ptr-without-checkptr-note — read-only access to fresh request, safe under Go MM
 		return c
 	}
 	return context.Background()

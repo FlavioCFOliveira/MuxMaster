@@ -87,11 +87,11 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 	// Still accumulating the sniff buffer.
 	room := sniffBufSize - len(g.buf)
 	if len(b) <= room {
-		g.buf = append(g.buf, b...)
+		g.buf = append(g.buf, b...) // nosemgrep: muxmaster-unbounded-buffer-append — bounded by sniffBufSize check above
 		return len(b), nil
 	}
 	// Enough data — make the compress/skip decision now.
-	g.buf = append(g.buf, b[:room]...)
+	g.buf = append(g.buf, b[:room]...) // nosemgrep: muxmaster-unbounded-buffer-append — only room bytes, bounded by sniffBufSize
 	if err := g.commit(); err != nil {
 		return 0, err
 	}

@@ -239,6 +239,33 @@ jobs:
       - name: Run govulncheck
         run: govulncheck $(go list ./... | grep -v '/reports/')
 
+  semgrep-custom:
+    name: SAST (semgrep custom rules)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Install semgrep
+        # Pinned version for reproducibility
+        run: pip install semgrep==1.178.0
+
+      - name: Test custom semgrep rules
+        # Validate rule syntax and test cases
+        run: semgrep --test reports/go-sast-and-memory-auditor/semgrep-rules/
+
+      - name: Run semgrep with custom MuxMaster rules
+        # Custom rule file at reports/go-sast-and-memory-auditor/semgrep-rules/muxmaster.yml
+        # Scans the root Go package, excluding: reports/**, competitor/**, testdata/**, .claude/**
+        run: |
+          semgrep scan \
+            --config reports/go-sast-and-memory-auditor/semgrep-rules/muxmaster.yml \
+            --error \
+            --exclude=reports \
+            --exclude=competitor \
+            --exclude=testdata \
+            --exclude=.claude \
+            .
+
   changelog-touched:
     name: CHANGELOG.md updated
     runs-on: ubuntu-latest

@@ -430,6 +430,7 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := extract(r)
+			// nosemgrep: muxmaster-non-constant-time-compare — checking if token is present, not comparing secrets.
 			if token == "" {
 				w.Header().Set("WWW-Authenticate", `Bearer realm="api"`)
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
