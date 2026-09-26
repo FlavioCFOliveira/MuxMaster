@@ -402,8 +402,11 @@ func TestProp_GroupMiddlewareOrderPreserved(t *testing.T) {
 }
 
 // ============================================================
-// I-WALK-01 — Walk()/Routes() agree with the registered set, and Walk()
-// honours callback-error early termination.
+// I-WALK-05 — Walk()/Routes() agree with the registered set, and Walk()
+// honours callback-error early termination. (Renumbered from I-WALK-01,
+// which collided with the pre-existing I-WALK-01..04 invariant in
+// invariants.md — see that entry, fuzz_walk_corrupted_test.go, for
+// I-WALK-01 through I-WALK-04.)
 // ============================================================
 
 func FuzzWalkRoutes(f *testing.F) {

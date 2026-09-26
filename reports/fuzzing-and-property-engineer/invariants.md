@@ -341,6 +341,13 @@ Composing N middlewares from the catalogue (RequestID, NoCache, Recoverer) via U
 - Last verified: 2026-05-07 (30s, 1.27M execs, 0 crashes)
 - Fail-count: 0
 
+## I-CDX-01 — Mux.Use + Mux.HandleFast panics (FPE-2026-010, rmp #178/#181)
+Registering a `HandleFast` route on the root `Mux` that has stdlib middleware (via `Use()`) panics at registration time with a message naming both `HandleFast` and `Use`. This is the root-Mux counterpart of I-CDX-01b (Group tier) and prevents a silent auth bypass on fast routes registered directly on the root mux — historically (FPE-2026-010, sev 6) the panic guard existed only on `Group.HandleFast`, not on the root `Mux`, so `mux.Use(authMW); mux.HandleFast(...)` silently left the fast route unauthenticated. Fixed in commit `825c623` (`mux.go`, `len(m.middleware) > 0` guard added to `Mux.HandleFast`, mirroring the Group guard).
+- Test: `TestCDX_MuxUsePlusHandleFastNowPanics`, `TestProp_CDXMatrix_MuxUsePanicsOnHandleFast` (`harness/fuzz_s9_cdx_matrix_test.go`); `TestRegression_FPE_2026_010` (`mux_test.go`, root package — deterministic regression pin added in the fixing commit)
+- Last verified: 2026-09-26 (`go test -race -count=1` on both the root module and the harness module — clean)
+- Fail-count: 0
+- Finding: FPE-2026-010 — **Fixed**, commit `825c623` (see the FINDING entry below, now marked Fixed). Closes rmp #181; retroactively completes the property-test acceptance criterion of rmp #178 (FPE-2026-007), which had originally only been fulfilled at the Group tier.
+
 ## I-CDX-01b — Group.Use + Group.HandleFast panics (CSA-2026-0054)
 Registering a `HandleFast` route on a `Group` that has stdlib middleware (via `Use()`) panics at registration time with a message explaining the incompatibility. This prevents silent auth bypass on group-scoped fast routes.
 - Test: `TestCDX_GroupUsePlusHandleFastPanics`, `TestProp_CDXMatrix_UsePanicsOnHandleFast`
@@ -359,11 +366,12 @@ Middleware registered via `UseFast()` runs only on `HandleFast` routes, not on s
 - Last verified: 2026-05-07 (100 rapid runs, 0 failures)
 - Fail-count: 0
 
-## FINDING FPE-2026-010 — Mux.Use + Mux.HandleFast does NOT panic (OPEN)
-OPEN FINDING (task #181, sev=6): `Mux.Use(stdlibMW) + Mux.HandleFast` does NOT panic at registration time, contrary to the Use() docstring. The panic guard exists only for `Group.HandleFast` (CSA-2026-0054). Auth middleware registered via `Mux.Use()` silently does not cover fast routes on the root mux.
-- Test: `TestCDX_MuxUsePlusHandleFastDoesNotPanic` — logs the open gap, becomes an assertion when fixed
-- Evidence: `CRASH-FPE-010/repro_test.go`
-- Fix: add `if len(m.middleware) > 0 { panic(...) }` guard in `Mux.HandleFast` (mux.go)
+## FINDING FPE-2026-010 — Mux.Use + Mux.HandleFast does NOT panic (FIXED)
+Task #181, sev=6: `Mux.Use(stdlibMW) + Mux.HandleFast` did NOT panic at registration time, contrary to the Use() docstring. The panic guard existed only for `Group.HandleFast` (CSA-2026-0054). Auth middleware registered via `Mux.Use()` silently did not cover fast routes on the root mux.
+- **Fixed** in commit `825c623` (`fix(security,middleware): close S9 audit findings (CSA-0060, FPE-010, HPS-0005, TM-001..TM-013, TSC-0008, MSR-0071, DOS-0059)`): `Mux.HandleFast` (`mux.go`) now has an `if len(m.middleware) > 0 { panic(...) }` guard, mirroring the pre-existing `Group.HandleFast` guard (CSA-2026-0054).
+- Regression test: `TestCDX_MuxUsePlusHandleFastNowPanics` (`harness/fuzz_s9_cdx_matrix_test.go`, renamed and converted from the former log-only `TestCDX_MuxUsePlusHandleFastDoesNotPanic` into a hard assertion now that the fix has landed); also `TestRegression_FPE_2026_010` (`mux_test.go`, root package, added in the fixing commit itself)
+- Evidence: `CRASH-FPE-010/repro_test.go` (original discovery, kept as historical record — its "Found by" reference to the pre-fix test name is intentionally left unchanged as it describes the state at time of discovery)
+- See I-CDX-01 above, which pins this behaviour going forward.
 
 ---
 ## Sprint 20 Invariants (2026-09-25, rmp #265 — closes O-6/FPE-2026-006)
@@ -445,7 +453,7 @@ two tiers.
 - Last verified: 2026-09-25 (100 rapid runs, 0 failures)
 - Fail-count: 0
 
-## I-WALK-01 — Walk()/Routes() consistency and early termination
+## I-WALK-05 — Walk()/Routes() consistency and early termination
 `Walk()` surfaces every registered route exactly once, agrees with
 `Routes()` on the full registered set, and honours callback-error early
 termination (stops after the first non-nil error and propagates it).
