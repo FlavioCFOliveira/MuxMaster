@@ -352,9 +352,11 @@ func oauth2TransportFrom(src *http.Transport) *http.Transport {
 		Proxy:                  src.Proxy,
 		OnProxyConnectResponse: src.OnProxyConnectResponse,
 		DialContext:            src.DialContext,
-		Dial:                   src.Dial, //nolint:staticcheck // SA1019: honour an application that still sets the deprecated dialer.
-		DialTLSContext:         src.DialTLSContext,
-		DialTLS:                src.DialTLS, //nolint:staticcheck // SA1019: honour an application that still sets the deprecated dialer.
+		//lint:ignore SA1019 honour an application that still sets the deprecated dialer.
+		Dial:           src.Dial, //nolint:staticcheck // SA1019: see the lint:ignore directive above.
+		DialTLSContext: src.DialTLSContext,
+		//lint:ignore SA1019 honour an application that still sets the deprecated dialer.
+		DialTLS:                src.DialTLS, //nolint:staticcheck // SA1019: see the lint:ignore directive above.
 		TLSHandshakeTimeout:    src.TLSHandshakeTimeout,
 		DisableCompression:     src.DisableCompression,
 		IdleConnTimeout:        src.IdleConnTimeout,
