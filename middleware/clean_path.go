@@ -11,6 +11,13 @@ import (
 // differs from what path.Clean produces for the percent-decoded Path,
 // RawPath is zeroed to prevent encoded path-traversal bypass (MM-2026-0018).
 //
+// ORDERING: When composing CleanPath with path-inspecting Pre-gates
+// (authorization checks that reject certain prefixes), CleanPath MUST be
+// registered first. A gate registered before CleanPath sees the raw,
+// unnormalised path and can be bypassed by /admin/../public, //admin, or
+// %2e%2e-encoded variants. CleanPath must run first to normalise before
+// the gate inspects the path (rmp #284, TM-2026-040).
+//
 // When the path changes, next receives a shallow copy of the request (see
 // the Terminology section in README.md): a new *http.Request with a new
 // URL, but sharing the original's header map and context. The original

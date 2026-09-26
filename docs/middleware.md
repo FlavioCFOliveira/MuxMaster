@@ -614,7 +614,7 @@ Only use this middleware if the server is behind a trusted reverse proxy. Accept
 
 ### CleanPath
 
-Redirects URLs with redundant components to their canonical form:
+Rewrites the request path in-place, normalising redundant components via `path.Clean`:
 - `//users` → `/users`
 - `/a/../users` → `/users`
 - `/a/./users` → `/a/users`
@@ -622,6 +622,21 @@ Redirects URLs with redundant components to their canonical form:
 ```go
 mux.Pre(middleware.CleanPath()) // run before routing to avoid a redirect
 ```
+
+**Ordering with authorization gates:** When used with path-inspecting Pre-gates
+(e.g., gates that check `if strings.HasPrefix(r.URL.Path, "/admin")`), register
+CleanPath FIRST. A gate registered before CleanPath sees the raw, unnormalised path
+and can be bypassed by traversal sequences like `/admin/../public` or `//admin`.
+CleanPath must run first to normalise the path before the gate inspects it:
+
+```go
+mux.Pre(middleware.CleanPath())              // first: normalise the path
+mux.Pre(middleware.BasicAuth("realm", ...))  // then: check authorisation
+```
+
+If this order is reversed, `/admin/../public` reaches the BasicAuth gate as-is
+(bypassing the `/admin` check), though the radix tree lookup still matches the
+correct route based on the cleaned path.
 
 ---
 

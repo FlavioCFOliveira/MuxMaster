@@ -114,6 +114,20 @@ field. `Rebuild()` is safe to call concurrently with `ServeHTTP`.
 route registration (before serving), but must not be called concurrently with
 active requests.
 
+## HTTP/2 Cleartext (h2c) Upgrade Handling (TM-2026-050, HPS-2026-EXT)
+
+MuxMaster does not implement h2c-specific code. A request carrying
+`Upgrade: h2c` and `Connection: Upgrade` headers is routed and dispatched
+identically to any other request. By default, `net/http` does not perform
+the h2c upgrade (RFC 7540 §3.4); the server responds with 200 OK and the
+upgrade is silently ignored (confirmed by test `TestHPSExt16_H2CUpgradeRejected`,
+2026-09-26). To enable HTTP/2 over unencrypted TCP, operators must
+explicitly configure the server (Go 1.27+: `http.Server.Protocols` with
+`UnencryptedHTTP2`; earlier versions: use `golang.org/x/net/http2/h2c`);
+MuxMaster's dispatcher operates identically in both cases. Routing and
+middleware behaviour is unaffected by the Upgrade headers; treat h2c like
+any other client request.
+
 ## Timeout Middleware (MM-2026-0019)
 
 `middleware.Timeout` cancels the request context after the configured duration.
@@ -159,21 +173,20 @@ srv := &http.Server{
 
 The timing difference between dispatch to a **registered** route (200) and
 dispatch to an **unregistered** path (404) — same depth, no auth middleware
-involved — is **~960 ns** (four independent `-count=1` runs on an AMD Ryzen 9
-5900HX development machine, `TestTiming_Route_RegisteredVsUnregistered`:
-946.64 / 962.39 / 967.31 / 978.34 ns, mean 963.67 ns, spread ±2%; see
-`timing-and-sidechannel-analyst/2026-09-25-TSC-2026-0009-error-oracle.md`
-rmp #270 / O-10). This is intrinsic to radix tree lookup and is present in
-httprouter, chi, and bunrouter as well. If this is a concern, use a WAF or
-add uniform response delays via middleware.
-
-This figure previously read "~440 ns" and mis-described the comparison as
-"404 vs 405" — that language did not match either the underlying harness
-(`route_existence_timing_test.go`, which compares registered/200 vs
-unregistered/404) or the actual 404-vs-405 pair (which is a *different*,
-smaller oracle: see `error_oracle_test.go` / TSC-2026-0009, ~250-270 ns).
-Reconciled 2026-09-25 (rmp #270 / O-10) so this section and TSC-2026-0005
-below cite the same figure for the same pair.
+involved — is measured with the identical harness against the vendored
+httprouter, chi, and bunrouter modules: the same registered-vs-unregistered
+pair yields ~1014 ns (httprouter), ~897 ns (chi), and ~777 ns (bunrouter),
+against MuxMaster's ~932 ns — all four land within the same 750–1050 ns band
+(Cohen's d 0.69–1.24, medium-to-large) and MuxMaster is not the largest
+(measured AMD Ryzen 9 5900HX, Go 1.27.0, N=200,000 samples × 3 independent
+runs, Welch t-test + Kolmogorov-Smirnov + Mann-Whitney U, 2026-09-26,
+`reports/timing-and-sidechannel-analyst/2026-09-26-route-existence-oracle-stats.md`
+and `competitor/route_existence_timing_test.go`). The finer-grained
+depth-correlation signal is not uniform across routers: chi and bunrouter
+show roughly 6–10× more cumulative depth-vs-latency signal than MuxMaster or
+httprouter. This is intrinsic to radix tree lookup; all major routers exhibit
+similar timing. If this is a concern, use a WAF or add uniform response delays
+via middleware.
 
 ### Path normalisation accepted behaviour (PRF-2026-0001..0005)
 
@@ -207,9 +220,9 @@ dispatch.
 
 1. Leave `UnescapePathValues = false` (default) and let the handler
    call `url.PathUnescape` only after `path.Clean` and a `..` check.
-2. Use the safe pattern in `examples/static-site/` which calls
-   `path.Clean` on the param BEFORE filesystem dispatch and rejects
-   paths whose cleaned form starts with `..`.
+2. Use `http.FileServer` (as in `examples/static-site/`), which applies
+   `path.Clean` internally and prevents escaped traversal sequences from
+   escaping the configured root.
 
 When `UseRawPath` and `UnescapePathValues` are both set, MuxMaster
 emits a one-time `slog.Warn` at the first `Handle`/`HandleFast` call
@@ -217,6 +230,18 @@ to make the misconfiguration visible in startup logs. Additionally,
 `ServeFiles` PANICS at registration when both flags are set, since
 http.FileServer would treat decoded slashes as path separators inside
 the static-file root (CDX-S8-002).
+
+**UseRawPath + CleanPath interaction:** When `UseRawPath = true`, the request
+path is left percent-encoded and `net/http` does not decode it before routing.
+If `CleanPath` is registered (as a Pre-gate), it cleans the decoded path via
+`path.Clean`, then compares the result against a cleaned RawPath: if they
+diverge (e.g., `/a/%2e%2e/b` decodes to `/a/b` but the literal-cleaned
+`%2e%2e` does not clean to `..`), `CleanPath` zeroes `RawPath` to prevent
+encoded traversal bypass (test `TestSec_CleanPath_RawPathWithTraversalZeroed`,
+MSR-2026-0061, 2026-09-26). This means CleanPath already protects against
+encoded traversal even with `UseRawPath = true`. Handlers still must not
+pass RawPath values directly to file I/O; always decode and validate
+(PRF-2026-S9-001 / MSR-2026-0061).
 
 - **Catch-all `*filepath` parameters carry raw bytes**, including any
   `..` traversal sequences. The router does NOT sanitise catch-all values
@@ -226,11 +251,20 @@ the static-file root (CDX-S8-002).
   `filepath.Rel(root, joined)`). `Mux.ServeFiles` already delegates to
   `http.FileServer` which performs path cleaning (PRF-2026-0005).
 
-- **Static routes must be registered before sibling wildcards.** Calling
-  `r.GET("/users/:id", h)` and then `r.GET("/users/active", h)` panics
-  because `:id` already claims the wildcard slot at that depth. Register
-  the more-specific static route first; this matches httprouter's
-  behaviour (PRF-2026-0003).
+- **Path parameters may contain any byte, including CR/LF.** When
+  `UseRawPath=false` (the default), `net/http` decodes percent-encoded
+  sequences before routing. A request like `/users/%0D%0ASet-Cookie:%20hacked`
+  becomes `/users/\r\nSet-Cookie: hacked` in `r.URL.Path`, and captured
+  parameters carry the literal CR/LF bytes. Handlers must NOT echo
+  parameters directly into headers or logs without escaping (use `url.PathEscape`
+  for header injection mitigation, `html.EscapeString` for logs). The router
+  itself does not strip or reject CR/LF; that is the handler's responsibility
+  (PRF-2026-S9-002, rmp #156).
+
+- **Order-independent static and parameter routes.** Routes can be registered
+  in any order: `r.GET("/users/:id", h)` followed by `r.GET("/users/active", h)`
+  succeeds without panic (rmp #256, fixed). Static routes are never shadowed
+  by param routes at the same depth (PRF-2026-0003).
 
 - **`RedirectFixedPath=true` discloses route existence via the redirect
   status.** The default is `false` precisely because path cleaning before
@@ -243,7 +277,31 @@ the static-file root (CDX-S8-002).
   cause requests to land on a different handler than the raw path
   suggests. CleanPath is intended for clients that emit `/foo/../bar`
   and similar; do not use it on endpoints where the literal path is
-  semantically meaningful (PRF-2026-0001).
+  semantically meaningful. **Ordering:** When composing CleanPath with
+  path-inspecting Pre-gates (e.g. authorization checks that reject `/admin/*`),
+  register CleanPath FIRST — a gate registered before CleanPath sees the
+  raw path and can be bypassed by `/admin/../public`, `//admin`, or
+  `%2e%2e`-encoded variants (rmp #284, TM-2026-040). **Query fragment
+  in parameters:** Path parameters may contain `?` and `#` if percent-encoded
+  in the request URL (`%3F` and `%23`). When handlers construct URLs with
+  captured parameters, use `url.QueryEscape` (for query-string values) or
+  `url.PathEscape` (for path segments) to prevent accidental query/fragment
+  boundary shifts (PRF-2026-S9-006, rmp #161) (PRF-2026-0001).
+
+### Mount inner handler path sanitisation (PRF-2026-S9-009)
+
+`Mux.Mount` and `Group.Mount` forward requests to an inner handler with the
+mount prefix stripped. The router does NOT clean the request path before
+passing it to the inner handler. When the inner handler is another `*Mux`,
+its routing receives the uncleaned path; if a request like `/mount/../secret`
+reaches the mount (e.g. via `CleanPath` *after* the Mount prefix is consumed),
+the inner handler receives `/../secret` and may dispatch it differently than
+the outer router did. This is expected behaviour: inner handlers are responsible
+for their own path validation and cleanup (e.g. calling `CleanPath` or validating
+input). The inner `Mux`'s own `CleanPath` Pre-gate must run for its own security
+(confirmed by test `TestMount_TraversalEscapesPrefix`, 2026-09-26). See
+`specification/groups.md` §8–10 and `groups.md` rule 23–24 for Mount's
+path-forwarding contract.
 
 ### OAuth2 introspection cache poisoning (MSR-2026-0063)
 
@@ -257,6 +315,21 @@ will hit the introspection endpoint, but the singleflight group
 (DOS-OAUTH2-001 fix) coalesces concurrent calls for the same token, so
 the IDP load growth is bounded by distinct-token concurrency rather
 than total request rate.
+
+### OAuth2 singleflight leader cancellation (MSR-2026-0071)
+
+When `OAuth2Introspect` has concurrent requests for the same token, the
+first request (the "leader") performs the introspection call while others
+(the "followers") wait for its result via the singleflight group (golang.org/x/sync/singleflight).
+If the leader's context (the first request's `r.Context()`) is cancelled
+(e.g. by a `Timeout` middleware or client disconnect), the leader's context
+cancellation must not poison the cached result for followers. As of commit
+0eafe9e (rmp #277), the leader performs introspection with a detached
+`context.WithTimeout(context.WithoutCancel(r.Context()), 30s)` — request values are kept (rmp #280, commit 0eafe9e) but independent of the leader's
+request context, so context value overrides and cancellations from the first
+request do not affect followers. The 30s timeout is a fixed upper bound on
+introspection latency; it is **not** configurable and is separate from
+`CacheTTL` (which controls cache expiry, not introspection timeout).
 
 ### Timeout middleware preemption (DOS-2026-0003)
 
@@ -380,23 +453,28 @@ attacks should rate-limit aggressively and monitor for prefix-scan probes.
   (rmp #270 / O-9) as 2× the worst of the documented figure and 6
   independent `-count=1` runs (worst observed: 1258.16 ns), rounded up.
 
-- **TSC-2026-0002 (BasicAuth user-exists vs not-exists, 61 ns; accepted
-  bound: ≤700 ns).** Same root cause as TSC-0001 — the hashedCreds map
-  lookup leaks existence. Effect size is sub-microsecond and impractical
-  over WAN. The bound is asserted by `TestTiming_BasicAuth_UserExistsVsNotExists`
-  (`tsc20260002BoundNs`), derived 2026-09-25 (rmp #270 / O-9) from 6
-  independent `-count=1` runs (worst observed: 349.39 ns) × 2, rounded up.
-  An initial derivation from only 3 runs (bound 300 ns) proved too tight —
-  a 4th independent run measured 349.39 ns with no evidence of a
-  code-level regression, so the bound was widened using the full 6-run
-  sample rather than the code being changed.
+- **TSC-2026-0002 (BasicAuth user-exists vs not-exists, 15–121 ns residual;
+  accepted bound: ≤700 ns).** The credential lookup originally used a
+  `map[string][32]byte` which leaked existence; as of commit 6ac8772 (rmp #290),
+  BasicAuth now scans all registered users in constant time via
+  `subtle.ConstantTimeCompare`, eliminating the map-lookup oracle at code level.
+  The residual timing difference (measured across 3 independent runs,
+  2026-09-26, worst: 121 ns) comes from other code paths (handler dispatch,
+  middleware chain) and is well within the ≤700 ns bound. Cost per request is
+  ~26 ns per registered user (1 user: 202→322 ns; linear scaling). The bound
+  is asserted by `TestTiming_BasicAuth_UserExistsVsNotExists`
+  (`tsc20260002BoundNs`), derived 2026-09-25 (rmp #270 / O-9) from the original
+  6-run sample; the implementation fix (commit 6ac8772) was validated separately
+  with a re-measurement on 2026-09-26 showing the oracle is closed at the
+  code level.
 
 - **TSC-2026-0004 (APIKey hit vs miss, 1141 ns; accepted bound: ≤2500 ns).**
-  The `map[[32]byte]string` lookup leaks key existence with a similar
-  magnitude. A constant-time alternative requires iterating every
-  registered key with `subtle.ConstantTimeCompare`, which is O(n) per
-  request — only worthwhile for very small key sets. The bound is asserted
-  by `TestTiming_APIKey_HitVsMiss` (`tsc20260004BoundNs` in
+  The `map[[32]byte]string` lookup leaks key existence. Unlike BasicAuth
+  (which was fixed by commit 6ac8772 to use constant-time scanning),
+  APIKey keeps its map-based lookup because a constant-time alternative
+  would require iterating every registered key with `subtle.ConstantTimeCompare`
+  (O(n) per request) — only worthwhile for very small key sets. The bound is
+  asserted by `TestTiming_APIKey_HitVsMiss` (`tsc20260004BoundNs` in
   `api_key_timing_test.go`), derived 2026-09-25 (rmp #270 / O-9) as 2× the
   worst of the documented figure and 6 independent `-count=1` runs (worst
   observed: 501.04 ns), rounded up. This replaces an earlier, ungrounded
@@ -452,11 +530,31 @@ attacks should rate-limit aggressively and monitor for prefix-scan probes.
   the interleaved design also removes the in-suite drift). Same derivation
   method as TSC-2026-0001/0002/0004/0013 (rmp #270 / O-9, rmp #274 / O-14).
 
-- **TSC-2026-0005 (Route existence, ~960 ns) — MM-2026-0026 magnitude
+- **TSC-2026-0005 (Route existence, ~932 ns) — MM-2026-0026 magnitude
   update.** Registered vs unregistered paths take measurably different
   time inside the radix tree. Already documented as the
   "Route-Existence Timing Oracle" earlier in this file; both sections cite
-  the same current figure as of 2026-09-25 (rmp #270 / O-10).
+  the same current figure as of 2026-09-26 (rmp #290 / #11).
+
+- **TSC-2026-0011 (JWTAuth HS256 vs ES256 path latency, ~80 ns at
+  HEAD; no bound asserted).** The finding (rmp #153) first measured a
+  320 ns distinguishable difference between the HS256 and ES256 paths; the
+  re-measurement during the closed-task audit found HS256 ~7.0 µs vs ES256
+  ~7.1 µs, a mean difference of 0.08 µs (80 ns).
+  Unlike the HS/RS oracle (TSC-2026-0003, ~25 µs), this oracle is negligible.
+  Measured 2026-09-26, N=200k samples, `reports/timing-and-sidechannel-analyst/harness/jwt_alg_confusion_timing_test.go`,
+  reported in `reports/overview/2026-09-26-closed-task-audit.md` row #153.
+
+- **TSC-2026-0012 (JWTAuth alg=none vs alg=HS256, 226 ns; no bound
+  asserted).** When `JWTAuth` is misconfigured to accept the unsigned `alg=none`
+  token format (non-default; requires explicit `"none"` in the `Algorithms`
+  list), the JWT processing path is measurably different from HMAC verification
+  (mean-diff 226 ns, alg=none SLOWER, not faster as the original hypothesis
+  suggested). The oracle is sub-microsecond. More importantly, accepting
+  `alg=none` is a catastrophic auth bypass and must never be enabled in
+  production (see `middleware/jwt_auth.go` GoDoc). Measured 2026-09-26
+  (N=200k, `reports/timing-and-sidechannel-analyst/harness/jwt_alg_confusion_timing_test.go`,
+  `reports/overview/2026-09-26-closed-task-audit.md` row #154).
 
 - **TSC-2026-0006 (ECDSA zero-sig vs random-sig, 1234 ns).** Stdlib
   `ecdsa.Verify` returns at slightly different times depending on
@@ -476,9 +574,10 @@ user-correlation attacks in multi-tenant deployments or to facilitate
 reconnaissance of IdP infrastructure:
 
 1. **JWT algorithm-path timing (TSC-2026-0003):** Configuring both HMAC
-   (HS256, ~1 µs) and RSA/ECDSA (RS256/ES256, ~300 µs) algorithms reveals
-   which algorithm family the server accepted the token with — a ~25 µs
-   observable gap on average.
+   (HS256) and RSA (RS256) algorithms reveals which algorithm family the
+   server accepted the token with — a ~25.2 µs observable latency gap
+   (HS256 vs RS256 path difference; measured 2026-09-26,
+   `reports/timing-and-sidechannel-analyst/harness/jwt_alg_confusion_timing_test.go`).
 
 2. **OAuth2 introspection cache timing (TSC-2026-0007):** The local token
    cache hits or misses depending on whether a token was previously seen
@@ -525,16 +624,69 @@ HTTP routers (httprouter, chi, bunrouter) exhibit similar timing. See
 "Route-Existence Timing Oracle (MM-2026-0026)" earlier in this file and
 `reports/overview/2026-05-07-posture.md` (CDX-5) for the full analysis.
 
+### JWT Subject Claim Validation (TM-2026-003)
+
+`JWTAuth` does NOT validate the `sub` (subject) claim — it performs only
+signature verification and (optionally) expiry checking. When a JWT is
+verified as authentic, the `sub` claim value is **not** authoritative for
+identifying the token's bearer; an attacker with access to a single valid
+signing key can forge arbitrary `sub` values in new tokens. Authorization
+logic must bind the token to the (issuer, subject) pair: do not authorise
+a request based on `sub` alone, and do not assume that two tokens with the
+same `sub` but different `iss` (issuer) claims belong to the same principal.
+Extract both `iss` and `sub`, verify they match your expected issuer and
+subject registry, and enforce additional checks (e.g. IP, user-agent, request
+time) if needed (TM-2026-003, rmp #286).
+
+### JWT Expiry Claim Handling (TM-2026-002)
+
+`JWTAuth` treats `exp: null` (the JSON null value) and `exp: 0` as if the
+`exp` claim is absent — the token is never expired by the JWT expiry check.
+When `RequireExpiry: true` (the safe default as of 2026-09-26), a token
+without an `exp` claim or with `exp` null/0 fails validation. When
+`RequireExpiry: false` (the default for backward compatibility), such tokens
+pass expiry validation (though they may fail on other checks like issuer or
+signature). Tokens created by non-standard JWT libraries or hand-crafted
+edge cases must carry a numeric, positive Unix timestamp in the `exp` claim
+for expiry validation to work correctly (TM-2026-002, rmp #287).
+
 ### JWT Mixed-Family Algorithms (TSC-2026-0003)
 
 `JWTAuth` configured with HS\* and RS\*/ES\* algorithms in the same
 `Algorithms` list leaks the algorithm code-path via response latency
-(HMAC verifies in ~1 µs, RSA-2048 in ~300 µs). An attacker submitting
+(~25.2 µs HS256 vs RS256 latency difference, per
+`reports/overview/2026-05-07-posture.md` CDX-5). An attacker submitting
 tokens labelled with different `alg` values can determine which path the
 server runs from the response time alone, narrowing the attack surface for
 algorithm-confusion attacks (RFC 8725 §3.1). Configure each endpoint with
 a single algorithm family. Mixed-family configuration emits a `slog.Warn`
 at construction time.
+
+### Recoverer Middleware Panic Logging (TM-2026-025)
+
+`middleware.Recoverer` and `middleware.RecovererWithLogger` catch panics
+and emit a `slog.Warn` (via slog default logger or the supplied logger)
+containing the raw panic value and the full stack trace. A panic that
+includes sensitive data (e.g. `panic("user_id=%d, api_key=%s", userID, key)`)
+will be logged verbatim. Log sinks (files, centralized logging services,
+SIEM systems) must be protected with appropriate access controls and
+sanitisation rules. Do not use Recoverer as the sole defense against
+information leakage in panic messages — validate and sanitise panic
+recovery output at the log ingestion layer (TM-2026-025, rmp #286).
+
+### SIEM Re-interpretation of Log Fields (TM-2026-032)
+
+MuxMaster's `Logger` middleware emits structured logs (slog format) with
+user-controlled data (request paths, headers, query parameters). SIEM systems
+that parse JSON logs may re-interpret escaped sequences: a field value that
+was sanitised (e.g., CR/LF stripped and replaced with literal `\r\n` in JSON)
+may be re-interpreted by a downstream JSON parser as control characters if
+the SIEM applies unescaping. This is a log-consumer concern, not a router
+defect. Operators must validate and configure their log aggregation layer
+to handle the escaping semantics MuxMaster uses (slog's standard JSON escaping
+with literal backslash-r/-n/-t for control characters, never raw bytes).
+Test `TestSec_TM_2026_032_LoggerSanitises` confirms no raw CR/LF/TAB reaches
+logs (2026-09-26) (TM-2026-032, rmp #122).
 
 ### BasicAuth Brute-Force (MM-2026-0027)
 

@@ -582,6 +582,14 @@ func routeCtxPattern(ctx context.Context) string {
 }
 
 // PathParam returns the value of the named path parameter from the request.
+//
+// SECURITY: Path parameters may contain any byte, including CR/LF and NUL.
+// When UseRawPath=false (the default), net/http decodes percent-encoded
+// sequences before routing. A request like /users/%0D%0ASet-Cookie:%20hacked
+// becomes /users/\r\nSet-Cookie: hacked in the matched parameter.
+// Handlers must not echo parameters directly into headers or logs without
+// escaping (use url.PathEscape for header injection mitigation,
+// html.EscapeString for logs).
 func PathParam(r *http.Request, name string) string {
 	return routeCtxParams(r.Context()).Get(name)
 }
