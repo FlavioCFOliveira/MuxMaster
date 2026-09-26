@@ -566,6 +566,108 @@ func TestBasicAuth_RealmInjectionSanitised(t *testing.T) {
 	}
 }
 
+// ── BasicAuth: constant-time user lookup (TSC-2026-0002 fix) ────────────────
+//
+// BasicAuth used to look up the supplied username in a map[string][32]byte,
+// which leaks user existence via runtime.mapaccess2_faststr's data-dependent
+// timing. The fix replaces the map with an unordered []basicAuthEntry that is
+// scanned in full, unconditionally, on every request — position in the slice
+// (first/middle/last registered user) must not affect correctness, and the
+// scan must authenticate correctly regardless of how many users are
+// registered.
+
+// basicAuthManyUsers builds an N-user credential map with predictable,
+// sortable usernames ("user-0000".."user-000N") so first/middle/last can be
+// selected deterministically for testing.
+func basicAuthManyUsers(n int) map[string]string {
+	creds := make(map[string]string, n)
+	for i := range n {
+		creds[fmt.Sprintf("user-%04d", i)] = fmt.Sprintf("pass-%04d", i)
+	}
+	return creds
+}
+
+func TestBasicAuth_ManyUsers_FirstMiddleLastAuthenticate(t *testing.T) {
+	const n = 100
+	creds := basicAuthManyUsers(n)
+	mw := middleware.BasicAuth("realm", creds)
+
+	for _, idx := range []int{0, n / 2, n - 1} {
+		user := fmt.Sprintf("user-%04d", idx)
+		pass := fmt.Sprintf("pass-%04d", idx)
+		t.Run(user, func(t *testing.T) {
+			rec := serve(mw, "GET", "/", func(req *http.Request) {
+				req.SetBasicAuth(user, pass)
+			})
+			if rec.Code != http.StatusOK {
+				t.Fatalf("valid credentials for %q (index %d of %d): got %d, want 200", user, idx, n, rec.Code)
+			}
+		})
+	}
+}
+
+func TestBasicAuth_ManyUsers_WrongPasswordRejected(t *testing.T) {
+	const n = 100
+	creds := basicAuthManyUsers(n)
+	mw := middleware.BasicAuth("realm", creds)
+
+	for _, idx := range []int{0, n / 2, n - 1} {
+		user := fmt.Sprintf("user-%04d", idx)
+		t.Run(user, func(t *testing.T) {
+			rec := serve(mw, "GET", "/", func(req *http.Request) {
+				req.SetBasicAuth(user, "definitely-wrong-password")
+			})
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("wrong password for %q: got %d, want 401", user, rec.Code)
+			}
+		})
+	}
+}
+
+func TestBasicAuth_ManyUsers_UnknownUserRejected(t *testing.T) {
+	const n = 100
+	creds := basicAuthManyUsers(n)
+	mw := middleware.BasicAuth("realm", creds)
+
+	rec := serve(mw, "GET", "/", func(req *http.Request) {
+		req.SetBasicAuth("user-9999", "anything")
+	})
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unknown user among %d registered: got %d, want 401", n, rec.Code)
+	}
+}
+
+func TestBasicAuth_EmptyUsernameAndPassword(t *testing.T) {
+	// "Basic Og==" is base64("") — an empty user:pass pair — against a
+	// credential set that does not register the empty username.
+	mw := middleware.BasicAuth("realm", map[string]string{"alice": "secret"})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(":")))
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("empty user:pass (Basic Og==): got %d, want 401", rec.Code)
+	}
+}
+
+func TestBasicAuth_EmptyUsernameRegistered(t *testing.T) {
+	// When the empty username IS registered, it must authenticate exactly
+	// like any other entry — the constant-time scan makes no exception for
+	// the empty string.
+	mw := middleware.BasicAuth("realm", map[string]string{"": "secret", "alice": "other"})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(":secret")))
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("registered empty username with correct password: got %d, want 200", rec.Code)
+	}
+}
+
 // ── RequestID (Phase 5.3) ────────────────────────────────────────────────────
 
 func TestRequestID_ValidPropagated(t *testing.T) {
