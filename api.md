@@ -1335,7 +1335,11 @@ type OAuth2Options struct {
 	CacheTTL time.Duration
 	// MaxCacheSize caps the number of cached active tokens. Default: 10000.
 	MaxCacheSize int
-	// HTTPClient is used for introspection requests. Default: 10s timeout.
+	// HTTPClient is used for introspection requests. Default: a client with
+	// a 10s timeout whose transport is a clone of http.DefaultTransport with
+	// MaxIdleConnsPerHost raised to 100, so concurrent introspection calls
+	// reuse keep-alive connections to the single introspection host instead
+	// of opening (and closing) one TCP connection per call.
 	HTTPClient *http.Client
 	// ExtractFn overrides token extraction. Default: "Authorization: Bearer <token>".
 	ExtractFn func(*http.Request) string

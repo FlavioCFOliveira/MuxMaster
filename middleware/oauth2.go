@@ -62,7 +62,11 @@ type OAuth2Options struct {
 	CacheTTL time.Duration
 	// MaxCacheSize caps the number of cached active tokens. Default: 10000.
 	MaxCacheSize int
-	// HTTPClient is used for introspection requests. Default: 10s timeout.
+	// HTTPClient is used for introspection requests. Default: a client with
+	// a 10s timeout whose transport is a clone of http.DefaultTransport with
+	// MaxIdleConnsPerHost raised to 100, so concurrent introspection calls
+	// reuse keep-alive connections to the single introspection host instead
+	// of opening (and closing) one TCP connection per call.
 	HTTPClient *http.Client
 	// ExtractFn overrides token extraction. Default: "Authorization: Bearer <token>".
 	ExtractFn func(*http.Request) string
@@ -244,6 +248,40 @@ func (c *oauth2Cache) evictOneLocked() bool {
 	return true
 }
 
+// oauth2DefaultMaxIdleConnsPerHost is the keep-alive pool size per host of
+// the default introspection client. It matches http.DefaultTransport's
+// MaxIdleConns (100): every introspection call targets the SAME host, so the
+// whole idle pool is allowed to serve it.
+const oauth2DefaultMaxIdleConnsPerHost = 100
+
+// newOAuth2DefaultClient builds the introspection client used when
+// OAuth2Options.HTTPClient is nil.
+//
+// rmp #300: the previous default, &http.Client{Timeout: 10 * time.Second},
+// used http.DefaultTransport, whose MaxIdleConnsPerHost is
+// http.DefaultMaxIdleConnsPerHost (2). Since introspection always targets a
+// single host, any burst of more than two concurrent cache misses closed
+// every surplus connection after one use, so each call paid a fresh TCP
+// (and TLS) handshake and left a client-side socket in TIME_WAIT. Under
+// sustained concurrent load this exhausts the ephemeral port range —
+// markedly sooner on Windows and macOS (16384 ephemeral ports, long
+// TIME_WAIT) than on Linux — and every failed dial surfaced as a 401 for a
+// VALID token. Measured on 16 000 requests over 800 goroutines: ~7 000 new
+// connections with the old default versus ~160 with this transport.
+//
+// If http.DefaultTransport has been replaced by a RoundTripper that is not
+// an *http.Transport, it is used unchanged (Transport left nil), exactly as
+// before: the application owns that transport's pooling policy.
+func newOAuth2DefaultClient() *http.Client {
+	client := &http.Client{Timeout: 10 * time.Second}
+	if dt, ok := http.DefaultTransport.(*http.Transport); ok {
+		tr := dt.Clone()
+		tr.MaxIdleConnsPerHost = oauth2DefaultMaxIdleConnsPerHost
+		client.Transport = tr
+	}
+	return client
+}
+
 // oauth2UserinfoPattern matches an embedded userinfo component ("user:pass@"
 // or "user@") immediately following a scheme separator ("://"), e.g. in
 // "https://user:secret@host/path". It is the fallback redaction path used
@@ -346,7 +384,7 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 	}
 	client := opts.HTTPClient
 	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
+		client = newOAuth2DefaultClient()
 	}
 	extract := opts.ExtractFn
 	if extract == nil {

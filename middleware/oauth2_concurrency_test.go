@@ -13,6 +13,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -142,6 +143,76 @@ func TestOAuth2Introspect_ConcurrentManyTokens_HeapEvictionUnderLoad(t *testing.
 
 	if failures != 0 {
 		t.Fatalf("%d requests failed under heap-eviction load", failures)
+	}
+}
+
+// TestOAuth2Introspect_DefaultClient_ReusesConnectionsUnderConcurrency is
+// the regression test for rmp #300. The default introspection client (no
+// OAuth2Options.HTTPClient) used http.DefaultTransport, which keeps at most
+// two idle connections per host. Because every introspection call targets
+// the same host, concurrent cache misses opened and closed one TCP
+// connection per call; on Windows and macOS the resulting TIME_WAIT churn
+// exhausted the ephemeral port range and valid tokens were rejected with
+// 401 (TestOAuth2Introspect_ConcurrentManyTokens_HeapEvictionUnderLoad
+// failed there with thousands of rejected requests).
+//
+// Caching is disabled so that EVERY request performs an introspection call.
+// The assertion counts the TCP connections the IdP accepts: with keep-alive
+// reuse the count is bounded by the peak number of concurrent calls, not by
+// the total number of calls. The bound (2 × goroutines) leaves room for the
+// transport's benign dial races while staying far below what the old
+// default produced (hundreds to thousands of connections for this load).
+func TestOAuth2Introspect_DefaultClient_ReusesConnectionsUnderConcurrency(t *testing.T) {
+	var newConns int64
+	idp := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprintf(w, `{"active":true,"sub":"u","exp":%d}`, time.Now().Add(time.Hour).Unix())
+	}))
+	idp.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			atomic.AddInt64(&newConns, 1)
+		}
+	}
+	idp.Start()
+	defer idp.Close()
+
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		Endpoint:              idp.URL,
+		AllowInsecureEndpoint: true,
+		CacheTTL:              -1, // every request introspects
+	})
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	const goroutines = 32
+	const perGoroutine = 100
+
+	var wg sync.WaitGroup
+	var failures int64
+	wg.Add(goroutines)
+	for g := 0; g < goroutines; g++ {
+		go func(g int) {
+			defer wg.Done()
+			for i := 0; i < perGoroutine; i++ {
+				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer conn-reuse-%d-%d", g, i))
+				rec := httptest.NewRecorder()
+				wrapped.ServeHTTP(rec, req)
+				if rec.Code != http.StatusOK {
+					atomic.AddInt64(&failures, 1)
+				}
+			}
+		}(g)
+	}
+	wg.Wait()
+
+	if failures != 0 {
+		t.Fatalf("%d/%d requests failed", failures, goroutines*perGoroutine)
+	}
+	if got, limit := atomic.LoadInt64(&newConns), int64(2*goroutines); got > limit {
+		t.Fatalf("default introspection client opened %d TCP connections for %d calls at concurrency %d (limit %d): keep-alive connections are not being reused",
+			got, goroutines*perGoroutine, goroutines, limit)
 	}
 }
 
