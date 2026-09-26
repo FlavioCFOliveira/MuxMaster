@@ -1341,9 +1341,13 @@ type OAuth2Options struct {
 	MaxCacheSize int
 	// HTTPClient is used for introspection requests. Default: a client with
 	// a 10s timeout whose transport is a clone of http.DefaultTransport with
-	// MaxIdleConnsPerHost raised to 100, so concurrent introspection calls
-	// reuse keep-alive connections to the single introspection host instead
-	// of opening (and closing) one TCP connection per call.
+	// MaxIdleConnsPerHost and MaxConnsPerHost both set to 100: at most 100
+	// connections to the introspection host exist at once (over HTTP/1.1,
+	// at most 100 introspection calls are in flight). Further calls wait for
+	// a free keep-alive connection, and the wait counts toward the 10s
+	// timeout, instead of opening new TCP connections. This bounds the
+	// sockets the middleware opens and prevents ephemeral-port exhaustion
+	// under load. Supply your own client to choose a different limit.
 	HTTPClient *http.Client
 	// ExtractFn overrides token extraction. Default: "Authorization: Bearer <token>".
 	ExtractFn func(*http.Request) string

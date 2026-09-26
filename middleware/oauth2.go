@@ -64,9 +64,13 @@ type OAuth2Options struct {
 	MaxCacheSize int
 	// HTTPClient is used for introspection requests. Default: a client with
 	// a 10s timeout whose transport is a clone of http.DefaultTransport with
-	// MaxIdleConnsPerHost raised to 100, so concurrent introspection calls
-	// reuse keep-alive connections to the single introspection host instead
-	// of opening (and closing) one TCP connection per call.
+	// MaxIdleConnsPerHost and MaxConnsPerHost both set to 100: at most 100
+	// connections to the introspection host exist at once (over HTTP/1.1,
+	// at most 100 introspection calls are in flight). Further calls wait for
+	// a free keep-alive connection, and the wait counts toward the 10s
+	// timeout, instead of opening new TCP connections. This bounds the
+	// sockets the middleware opens and prevents ephemeral-port exhaustion
+	// under load. Supply your own client to choose a different limit.
 	HTTPClient *http.Client
 	// ExtractFn overrides token extraction. Default: "Authorization: Bearer <token>".
 	ExtractFn func(*http.Request) string
@@ -248,11 +252,21 @@ func (c *oauth2Cache) evictOneLocked() bool {
 	return true
 }
 
-// oauth2DefaultMaxIdleConnsPerHost is the keep-alive pool size per host of
-// the default introspection client. It matches http.DefaultTransport's
-// MaxIdleConns (100): every introspection call targets the SAME host, so the
-// whole idle pool is allowed to serve it.
-const oauth2DefaultMaxIdleConnsPerHost = 100
+// oauth2DefaultMaxConnsPerHost bounds the default introspection client's
+// connections to the introspection host, both in total (MaxConnsPerHost)
+// and in its keep-alive pool (MaxIdleConnsPerHost). Using the SAME value
+// for both is what makes the bound hold: every connection the transport may
+// open also fits in the idle pool, so no connection is ever closed because
+// the pool is full, and no new one is ever dialled while the cap is
+// reached — the caller waits for a connection to become free instead.
+//
+// 100 matches http.DefaultTransport's MaxIdleConns (the whole idle pool is
+// dedicated to the single introspection host). With HTTP/1.1 keep-alive it
+// sustains 100 / IdP-latency calls per second (10 000/s at 10 ms), well
+// above what a single IdP is normally provisioned for; concurrent requests
+// for the SAME token are already coalesced by singleflight, and cache hits
+// never reach the transport.
+const oauth2DefaultMaxConnsPerHost = 100
 
 // newOAuth2DefaultClient builds the introspection client used when
 // OAuth2Options.HTTPClient is nil.
@@ -266,8 +280,13 @@ const oauth2DefaultMaxIdleConnsPerHost = 100
 // sustained concurrent load this exhausts the ephemeral port range —
 // markedly sooner on Windows and macOS (16384 ephemeral ports, long
 // TIME_WAIT) than on Linux — and every failed dial surfaced as a 401 for a
-// VALID token. Measured on 16 000 requests over 800 goroutines: ~7 000 new
-// connections with the old default versus ~160 with this transport.
+// VALID token. Raising MaxIdleConnsPerHost alone was not enough: with more
+// concurrent calls than idle slots the surplus connections were still
+// opened and closed per call (still exhausting the ports on Windows CI), so
+// MaxConnsPerHost now caps the total — see oauth2DefaultMaxConnsPerHost.
+// Measured on 16 000 calls over 800 goroutines: ~7 700 new connections with
+// the original default, ~550 with only the idle pool raised, and at most
+// 100 with both limits set.
 //
 // If http.DefaultTransport has been replaced by a RoundTripper that is not
 // an *http.Transport, it is used unchanged (Transport left nil), exactly as
@@ -276,7 +295,8 @@ func newOAuth2DefaultClient() *http.Client {
 	client := &http.Client{Timeout: 10 * time.Second}
 	if dt, ok := http.DefaultTransport.(*http.Transport); ok {
 		tr := dt.Clone()
-		tr.MaxIdleConnsPerHost = oauth2DefaultMaxIdleConnsPerHost
+		tr.MaxIdleConnsPerHost = oauth2DefaultMaxConnsPerHost
+		tr.MaxConnsPerHost = oauth2DefaultMaxConnsPerHost
 		client.Transport = tr
 	}
 	return client
