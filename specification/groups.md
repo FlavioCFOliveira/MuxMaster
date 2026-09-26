@@ -2,7 +2,7 @@
 
 ## Scope
 
-This file specifies the `Group` type, group creation, the `Route` inline group function, the `Mount` method, and sub-group nesting.
+This file specifies the `Group` type, group creation, the `Route` inline group function, the `Mount` method, sub-group nesting, and the rule for joining a group prefix with a route-local path or a nested prefix.
 
 This file does not cover the middleware application rules for groups (see [middleware.md](middleware.md)), path parameter syntax (see [routing.md](routing.md)), or how registered routes behave at request time (see [routing.md](routing.md)).
 
@@ -21,14 +21,14 @@ This file does not cover the middleware application rules for groups (see [middl
 
 5. `(*Mux).Group(prefix string) *Group` returns a new `*Group` with the given prefix and an empty middleware slice.
 6. The prefix must begin with `/`. A prefix that does not begin with `/` causes a panic.
-7. The prefix may end with `/` or not. Both are valid. The final route path is produced by concatenating the group prefix and the route-local path without any normalization. It is the caller's responsibility to ensure the resulting path is valid.
+7. The prefix may end with `/` or not. Both are valid. The final route path is produced by joining the group prefix and the route-local path according to the rule in section 11; it is not a plain, unconditional concatenation. It remains the caller's responsibility to ensure the resulting path is valid — see section 11 for exactly what the join does and does not normalize.
 
 ---
 
 ## 3. Registering Routes on a Group
 
 8. A `*Group` exposes the same route registration methods as `*Mux`: `Handle`, `HandleFunc`, `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `CONNECT`, `TRACE`, `QUERY`, `ANY`, and `Match`. `QUERY` is a standard HTTP method (RFC 10008); see [routing.md](routing.md) section 9 for its full semantics. `*Group` also exposes `HandleFast` (see [performance.md](performance.md) section 6) and `HandleE` plus its `...E` convenience methods, including `QUERYE` (see [error-handling.md](error-handling.md) section 5). Unlike `*Mux`, `*Group` has no dedicated `...Fast` convenience methods (such as `GETFast` or `QUERYFast`): a fast route on a group must be registered via `(*Group).HandleFast(method, pattern, h)` directly.
-9. For each registration, the final pattern passed to the underlying `*Mux` is `group.prefix + path`.
+9. For each registration, the final pattern passed to the underlying `*Mux` is `group.prefix` joined with `path` according to section 11 — not a plain `group.prefix + path` concatenation.
 10. The handler passed to the group is first wrapped with the group's middleware, then passed to `(*Mux).Handle`, where the mux's global middleware is applied. The resulting wrapped handler is stored in the tree.
 
 ---
@@ -43,7 +43,7 @@ This file does not cover the middleware application rules for groups (see [middl
 
 ## 5. Sub-Groups
 
-14. `(*Group).Group(prefix string) *Group` returns a new sub-group whose full prefix is `parentGroup.prefix + prefix`.
+14. `(*Group).Group(prefix string) *Group` returns a new sub-group whose full prefix is `parentGroup.prefix` joined with `prefix` according to section 11 — not a plain `parentGroup.prefix + prefix` concatenation.
 15. The sub-group receives a copy of the parent group's middleware slice at the time `Group` is called. Middleware added to the parent group after the sub-group is created does not affect the sub-group.
 16. Sub-groups may be nested to any depth.
 
@@ -87,7 +87,7 @@ mux.Route("/api/v1", func(api *muxmaster.Group) {
 ## 7. Mount — External Handler
 
 21. `(*Mux).Mount(prefix string, h http.Handler)` registers `h` to handle all requests whose path begins with `prefix`.
-22. `(*Group).Mount(prefix string, h http.Handler)` is equivalent to `(*Mux).Mount` with the group prefix prepended to `prefix`.
+22. `(*Group).Mount(prefix string, h http.Handler)` is equivalent to `(*Mux).Mount` with the group prefix joined with `prefix` according to section 11 (not a plain prepend/concatenation).
 23. Before delegating to `h`, the router builds a shallow request copy (see the Terminology section in [README.md](README.md)) — a new `*http.Request` sharing the original's header map and context, with a new `*url.URL` copied from the original — and sets the copy's `URL.Path` to the remaining path after stripping `prefix`. If the remaining path is empty, the copy's `URL.Path` is set to `/`. `h` receives the copy; the original request passed to `ServeHTTP` is never mutated.
 24. The original (unstripped) path is available via `r.URL.RawPath` or via the `RoutePattern` function if the mounted handler is a `*Mux`. See section 10 for the precise rule governing when `r.URL.RawPath` is preserved (stripped of the matched prefix) versus set to the empty string on the request copy.
 25. Trailing slashes on `prefix` are normalized: a trailing `/` is removed from `prefix` before matching.
@@ -148,3 +148,24 @@ mux.Mount("/legacy", legacyRouter)
 39. For a Mount prefix that is entirely static (no parameter token), `RawPath` continues to follow the algorithm already in effect before this section was added, unchanged: the copy's `URL.RawPath` is set to `r.URL.RawPath` with the literal, registered prefix text removed from its front (a plain byte-for-byte `TrimPrefix`, not the segment-wise decoding of rule 38), and set to the empty string whenever that literal removal does not apply cleanly — the prefix's exact bytes are not a leading substring of `r.URL.RawPath`, or removing them would leave a remainder not itself starting with `/` (an encoded `/` immediately after the removed prefix, which would otherwise disguise a stale encoded prefix fragment as the start of the forwarded path). This algorithm never percent-decodes the candidate prefix bytes before comparing them, unlike rule 38.
 
 40. Rule 39's literal comparison has an observable consequence for a static prefix that rule 38's decode-consistent comparison does not share: a request whose `RawPath` percent-encodes one or more bytes of the static prefix itself has its `RawPath` zeroed, even though the request's decoded path matches the registered prefix exactly and would satisfy rule 38's decode-consistency check if that check were applied to it. For example, with a Mount prefix `/api` and a request whose raw target is `/%61pi/v1/resource` (`%61` decodes to `a`, so `r.URL.Path` is `/api/v1/resource` and the prefix matches), the request copy's `r.URL.RawPath` is `""`, not `/v1/resource`. This is deliberate, not an oversight: it preserves the exact behavior already relied upon before this section existed (a pinned regression, `TestMountRawPathNormalisedOnMismatch`), and rule 39 is never merged with rule 38's segment-wise algorithm — the latter exists only to correctly handle a captured parameter value, never to relax the static case.
+
+---
+
+## 11. Prefix and Path Joining
+
+41. Every place in this specification where a group prefix, a nested group prefix, a route-local path, or a `Mount` / `ServeFiles` prefix argument is combined with another such string — route registration on a `*Group` (requirement 9), sub-group creation (requirement 14), `(*Group).Mount` (requirement 22), and `(*Group).ServeFiles` ([static-files.md](static-files.md) requirement 2) — the two strings are joined by this rule, not concatenated unconditionally: if the left operand ends with `/` and the right operand begins with `/`, exactly one of the two slashes is dropped, so the joined result contains a single `/` at the boundary. For example, group prefix `/api/` joined with route path `/users` produces `/api/users`, not `/api//users`.
+42. In every other case, the join is a plain concatenation with nothing inserted or removed at the boundary — in particular, when the right operand does not begin with `/`, no `/` is ever inserted, regardless of whether the left operand ends with one. A route-local path that does not begin with `/` is therefore never given one by this rule; if the resulting joined pattern does not begin with `/`, it still fails `Handle`'s own existing validation exactly as before ([routing.md](routing.md) rule 2 / rule 63). This join runs before that validation, not instead of it, so registering such a path continues to panic exactly as it does today.
+43. A repeated `/` that already exists strictly inside the group prefix or the route-local path — anywhere other than the exact boundary being joined — is left untouched by this rule. It remains literal pattern text and is matched literally at request time, like any other static segment ([routing.md](routing.md) section 1.2).
+44. A group prefix, sub-group prefix, or `Mount` / `ServeFiles` prefix argument that contains a percent-encoded character — including a percent-encoded slash such as `%2f` or `%2F` — is not rejected and is not treated specially by this join or by group/prefix creation. It is ordinary literal pattern text, matched exactly like any other pattern registered directly via `(*Mux).Handle`: a static pattern may contain any literal character that is not a wildcard token ([routing.md](routing.md) rule 6), and `Handle` performs no content validation beyond the checks already listed in [routing.md](routing.md) section 5. Whether such literal text can ever match an incoming request depends on `UseRawPath` ([configuration.md](configuration.md) section 4.3), exactly as it does for a percent-encoded sequence in any other pattern — this is not a new consideration introduced by grouping. A Group-specific panic for this content would single out group and Mount prefixes for a restriction that does not apply to an identical pattern registered directly via `(*Mux).Handle`, `(*Mux).Mount`, or `(*Mux).ServeFiles`; this specification treats prefixes and patterns uniformly instead.
+
+```go
+// Example
+api := mux.Group("/api/")
+api.GET("/users", h)
+// Full path: /api/users — not /api//users (requirement 41)
+
+api.GET("orders", h2)
+// Full path: /api/orders — the route-local path "orders" has no leading '/',
+// so nothing is inserted (requirement 42); this happens to still be correct
+// only because the group prefix already ends in '/'.
+```
