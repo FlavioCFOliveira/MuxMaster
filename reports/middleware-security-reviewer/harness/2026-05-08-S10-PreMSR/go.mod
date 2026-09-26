@@ -4,4 +4,4 @@ go 1.26
 
 replace github.com/FlavioCFOliveira/MuxMaster => ../../../../
 
-require github.com/FlavioCFOliveira/MuxMaster v0.0.0 // indirect
+require github.com/FlavioCFOliveira/MuxMaster v0.0.0
