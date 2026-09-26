@@ -1,0 +1,74 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/middleware
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                                         │ middleware-head.txt │
+                                         │       sec/op        │
+OAuth2CacheSetAtSaturation-16                     3.194µ ± ∞ ¹
+ThrottlePerIP/sequential-one-client-16            115.0n ± ∞ ¹
+ThrottlePerIP/many-clients-no-overlap-16          127.2n ± ∞ ¹
+Logger-16                                         5.671µ ± ∞ ¹
+Recoverer_NoPanic-16                              19.99n ± ∞ ¹
+RecovererWithLogger_NoPanic-16                    20.12n ± ∞ ¹
+Compress/small-600B-16                            316.6n ± ∞ ¹
+Compress/chunked-12KiB-16                         7.765µ ± ∞ ¹
+RealIP/1-hop-16                                   143.6n ± ∞ ¹
+RealIP/3-hops-16                                  178.7n ± ∞ ¹
+APIKeyHit-16                                      453.3n ± ∞ ¹
+BasicAuth/1-users/hit-16                          319.5n ± ∞ ¹
+BasicAuth/10-users/hit-16                         549.7n ± ∞ ¹
+BasicAuth/100-users/hit-16                        2.836µ ± ∞ ¹
+BasicAuth/1-users/miss-16                         733.3n ± ∞ ¹
+BasicAuth/10-users/miss-16                        958.8n ± ∞ ¹
+BasicAuth/100-users/miss-16                       3.232µ ± ∞ ¹
+JWTAuthHS256-16                                   4.354µ ± ∞ ¹
+geomean                                           539.6n
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                         │ middleware-head.txt │
+                                         │        B/op         │
+OAuth2CacheSetAtSaturation-16                      288.0 ± ∞ ¹
+ThrottlePerIP/sequential-one-client-16             0.000 ± ∞ ¹
+ThrottlePerIP/many-clients-no-overlap-16           0.000 ± ∞ ¹
+Logger-16                                          0.000 ± ∞ ¹
+Recoverer_NoPanic-16                               0.000 ± ∞ ¹
+RecovererWithLogger_NoPanic-16                     0.000 ± ∞ ¹
+Compress/small-600B-16                             32.00 ± ∞ ¹
+Compress/chunked-12KiB-16                          58.00 ± ∞ ¹
+RealIP/1-hop-16                                    16.00 ± ∞ ¹
+RealIP/3-hops-16                                   16.00 ± ∞ ¹
+APIKeyHit-16                                       416.0 ± ∞ ¹
+BasicAuth/1-users/hit-16                           32.00 ± ∞ ¹
+BasicAuth/10-users/hit-16                          32.00 ± ∞ ¹
+BasicAuth/100-users/hit-16                         32.00 ± ∞ ¹
+BasicAuth/1-users/miss-16                          168.0 ± ∞ ¹
+BasicAuth/10-users/miss-16                         168.0 ± ∞ ¹
+BasicAuth/100-users/miss-16                        168.0 ± ∞ ¹
+JWTAuthHS256-16                                    738.0 ± ∞ ¹
+geomean                                                      ²
+¹ need >= 6 samples for confidence interval at level 0.95
+² summaries must be >0 to compute geomean
+
+                                         │ middleware-head.txt │
+                                         │      allocs/op      │
+OAuth2CacheSetAtSaturation-16                      2.000 ± ∞ ¹
+ThrottlePerIP/sequential-one-client-16             0.000 ± ∞ ¹
+ThrottlePerIP/many-clients-no-overlap-16           0.000 ± ∞ ¹
+Logger-16                                          0.000 ± ∞ ¹
+Recoverer_NoPanic-16                               0.000 ± ∞ ¹
+RecovererWithLogger_NoPanic-16                     0.000 ± ∞ ¹
+Compress/small-600B-16                             2.000 ± ∞ ¹
+Compress/chunked-12KiB-16                          3.000 ± ∞ ¹
+RealIP/1-hop-16                                    1.000 ± ∞ ¹
+RealIP/3-hops-16                                   1.000 ± ∞ ¹
+APIKeyHit-16                                       6.000 ± ∞ ¹
+BasicAuth/1-users/hit-16                           2.000 ± ∞ ¹
+BasicAuth/10-users/hit-16                          2.000 ± ∞ ¹
+BasicAuth/100-users/hit-16                         2.000 ± ∞ ¹
+BasicAuth/1-users/miss-16                          8.000 ± ∞ ¹
+BasicAuth/10-users/miss-16                         8.000 ± ∞ ¹
+BasicAuth/100-users/miss-16                        8.000 ± ∞ ¹
+JWTAuthHS256-16                                    7.000 ± ∞ ¹
+geomean                                                      ²
+¹ need >= 6 samples for confidence interval at level 0.95
+² summaries must be >0 to compute geomean
