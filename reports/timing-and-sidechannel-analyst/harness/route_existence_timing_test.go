@@ -130,10 +130,10 @@ func TestTiming_Route_RegisteredVsUnregistered(t *testing.T) {
 	us := Summarise(unregistered)
 
 	t.Logf("Route existence oracle: /users (registered) vs /totally-random-zzz (unregistered)")
-	t.Logf("  Registered:   mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", rs.Mean, rs.Std, rs.P50, rs.P99)
-	t.Logf("  Unregistered: mean=%.1fns std=%.1fns p50=%.0fns p99=%.0fns", us.Mean, us.Std, us.P50, us.P99)
-	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns",
-		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+	t.Logf("  Registered:   N=%d mean=%.1fns std=%.1fns p50=%.0fns p95=%.0fns p99=%.0fns", rs.N, rs.Mean, rs.Std, rs.P50, rs.P95, rs.P99)
+	t.Logf("  Unregistered: N=%d mean=%.1fns std=%.1fns p50=%.0fns p95=%.0fns p99=%.0fns", us.N, us.Mean, us.Std, us.P50, us.P95, us.P99)
+	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns  Cohen d=%.3f",
+		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs, result.CohenD)
 
 	if result.Leak {
 		// This is the known MM-2026-0026 accepted finding. Classify by effect size.
@@ -184,10 +184,10 @@ func TestTiming_Route_AdminHiddenVsRandom(t *testing.T) {
 	rs_ := Summarise(randomSamples)
 
 	t.Logf("Route oracle: /admin (registered+auth) vs /xyzxyz (unregistered)")
-	t.Logf("  Admin:  mean=%.1fns p50=%.0fns p99=%.0fns", as_.Mean, as_.P50, as_.P99)
-	t.Logf("  Random: mean=%.1fns p50=%.0fns p99=%.0fns", rs_.Mean, rs_.P50, rs_.P99)
-	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns",
-		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+	t.Logf("  Admin:  N=%d mean=%.1fns std=%.1fns p50=%.0fns p95=%.0fns p99=%.0fns", as_.N, as_.Mean, as_.Std, as_.P50, as_.P95, as_.P99)
+	t.Logf("  Random: N=%d mean=%.1fns std=%.1fns p50=%.0fns p95=%.0fns p99=%.0fns", rs_.N, rs_.Mean, rs_.Std, rs_.P50, rs_.P95, rs_.P99)
+	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns  Cohen d=%.3f",
+		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs, result.CohenD)
 
 	if result.Leak {
 		t.Logf("ADMIN ROUTE EXISTENCE ORACLE: diff=%.2fns — admin paths are timing-discoverable",
@@ -236,7 +236,17 @@ func TestTiming_Route_DepthCorrelation(t *testing.T) {
 
 	t.Log("Route depth correlation (registered routes):")
 	for j, s := range results {
-		t.Logf("  %s (%s): mean=%.1fns p50=%.0fns", labels[j], paths[j], s.Mean, s.P50)
+		t.Logf("  %s (%s): N=%d mean=%.1fns std=%.1fns p50=%.0fns p95=%.0fns p99=%.0fns", labels[j], paths[j], s.N, s.Mean, s.Std, s.P50, s.P95, s.P99)
+	}
+	// Pairwise Cohen's d / Welch p between adjacent depths, to quantify how
+	// cleanly the depth-vs-latency correlation separates each level from
+	// the next (complements the raw ns/level slope already logged above).
+	for j := 1; j < len(paths); j++ {
+		samplesPrev, _ := measureRouteWithStatus(mux, paths[j-1], nRoute/2)
+		samplesCur, _ := measureRouteWithStatus(mux, paths[j], nRoute/2)
+		r := RunTests(samplesPrev, samplesCur)
+		t.Logf("  %s vs %s: Welch p=%.4g Cohen d=%.3f |mean diff|=%.2fns",
+			labels[j-1], labels[j], r.WelchP, r.CohenD, r.MeanDiffNs)
 	}
 	// Check monotonic increase — radix tree walk should take longer for deeper routes.
 	for j := 1; j < len(results); j++ {
@@ -287,10 +297,10 @@ func TestTiming_Route_Param_vs_Static(t *testing.T) {
 	ps := Summarise(paramSamples)
 
 	t.Logf("Route: /users/list (static) vs /users/alice (param :id)")
-	t.Logf("  Static: mean=%.1fns p50=%.0fns", ss.Mean, ss.P50)
-	t.Logf("  Param:  mean=%.1fns p50=%.0fns", ps.Mean, ps.P50)
-	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns",
-		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+	t.Logf("  Static: N=%d mean=%.1fns std=%.1fns p50=%.0fns p95=%.0fns p99=%.0fns", ss.N, ss.Mean, ss.Std, ss.P50, ss.P95, ss.P99)
+	t.Logf("  Param:  N=%d mean=%.1fns std=%.1fns p50=%.0fns p95=%.0fns p99=%.0fns", ps.N, ps.Mean, ps.Std, ps.P50, ps.P95, ps.P99)
+	t.Logf("  Welch p=%.4g  KS p=%.4g  MWU p=%.4g  |mean diff|=%.2fns  Cohen d=%.3f",
+		result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs, result.CohenD)
 
 	// Expected: param routes are slower (reqBundle allocation); static routes are 0-alloc.
 	// This is KNOWN and ACCEPTED behaviour.
@@ -393,8 +403,8 @@ func TestTiming_RedirectFixedPath_Oracle(t *testing.T) {
 
 	for _, p := range pairs {
 		result := RunTests(p.a, p.b)
-		t.Logf("  %s (%s): Welch p=%.4g KS p=%.4g MWU p=%.4g |mean diff|=%.2fns",
-			p.name, p.label, result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs)
+		t.Logf("  %s (%s): Welch p=%.4g KS p=%.4g MWU p=%.4g |mean diff|=%.2fns Cohen d=%.3f",
+			p.name, p.label, result.WelchP, result.KSP, result.MWUP, result.MeanDiffNs, result.CohenD)
 		if result.Leak {
 			t.Logf("    DISTINGUISHABLE: diff=%.2fns — %s", result.MeanDiffNs, classifyOracle(result.MeanDiffNs))
 			assessNetworkExploitability(t, result.MeanDiffNs)

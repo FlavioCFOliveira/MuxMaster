@@ -1,0 +1,134 @@
+=== RUN   TestTiming_Route_Competitor_RegisteredVsUnregistered
+=== RUN   TestTiming_Route_Competitor_RegisteredVsUnregistered/MuxMaster
+    route_existence_timing_test.go:290: [MuxMaster] /users (registered) vs /totally-random-zzz (unregistered)
+    route_existence_timing_test.go:291:   Registered:   N=200000 mean=1611.6ns std=4528.2ns p50=1466ns p95=1955ns p99=3352ns
+    route_existence_timing_test.go:292:   Unregistered: N=200000 mean=2593.9ns std=6814.5ns p50=1955ns p95=5727ns p99=7473ns
+    route_existence_timing_test.go:293:   Welch p=0  KS p=0  MWU p=0  |mean diff|=915.39ns  Cohen d=1.051
+    route_existence_timing_test.go:296:   DISTINGUISHABLE — same class as MM-2026-0026/TSC-002
+=== RUN   TestTiming_Route_Competitor_RegisteredVsUnregistered/httprouter
+    route_existence_timing_test.go:290: [httprouter] /users (registered) vs /totally-random-zzz (unregistered)
+    route_existence_timing_test.go:291:   Registered:   N=200000 mean=1544.7ns std=3867.8ns p50=1466ns p95=1886ns p99=1956ns
+    route_existence_timing_test.go:292:   Unregistered: N=200000 mean=2644.0ns std=7079.5ns p50=2305ns p95=5797ns p99=7264ns
+    route_existence_timing_test.go:293:   Welch p=0  KS p=0  MWU p=0  |mean diff|=977.01ns  Cohen d=1.236
+    route_existence_timing_test.go:296:   DISTINGUISHABLE — same class as MM-2026-0026/TSC-002
+=== RUN   TestTiming_Route_Competitor_RegisteredVsUnregistered/chi
+    route_existence_timing_test.go:290: [chi] /users (registered) vs /totally-random-zzz (unregistered)
+    route_existence_timing_test.go:291:   Registered:   N=200000 mean=2021.9ns std=4711.6ns p50=1886ns p95=5099ns p99=6635ns
+    route_existence_timing_test.go:292:   Unregistered: N=200000 mean=2919.0ns std=5948.4ns p50=2305ns p95=6216ns p99=9498ns
+    route_existence_timing_test.go:293:   Welch p=0  KS p=0  MWU p=0  |mean diff|=841.88ns  Cohen d=0.692
+    route_existence_timing_test.go:296:   DISTINGUISHABLE — same class as MM-2026-0026/TSC-002
+=== RUN   TestTiming_Route_Competitor_RegisteredVsUnregistered/bunrouter
+    route_existence_timing_test.go:290: [bunrouter] /users (registered) vs /totally-random-zzz (unregistered)
+    route_existence_timing_test.go:291:   Registered:   N=200000 mean=1867.4ns std=4339.3ns p50=1885ns p95=1956ns p99=5727ns
+    route_existence_timing_test.go:292:   Unregistered: N=200000 mean=2743.1ns std=7986.1ns p50=1956ns p95=6076ns p99=7612ns
+    route_existence_timing_test.go:293:   Welch p=0  KS p=0  MWU p=0  |mean diff|=768.61ns  Cohen d=0.781
+    route_existence_timing_test.go:296:   DISTINGUISHABLE — same class as MM-2026-0026/TSC-002
+--- PASS: TestTiming_Route_Competitor_RegisteredVsUnregistered (13.99s)
+    --- PASS: TestTiming_Route_Competitor_RegisteredVsUnregistered/MuxMaster (3.69s)
+    --- PASS: TestTiming_Route_Competitor_RegisteredVsUnregistered/httprouter (3.09s)
+    --- PASS: TestTiming_Route_Competitor_RegisteredVsUnregistered/chi (3.67s)
+    --- PASS: TestTiming_Route_Competitor_RegisteredVsUnregistered/bunrouter (3.53s)
+=== RUN   TestTiming_Route_Competitor_AdminHiddenVsRandom
+=== RUN   TestTiming_Route_Competitor_AdminHiddenVsRandom/MuxMaster
+    route_existence_timing_test.go:333: [MuxMaster] /admin (registered, hidden) vs /xyzxyz (unregistered)
+    route_existence_timing_test.go:334:   Admin:  N=200000 mean=1577.0ns std=4203.0ns p50=1466ns p95=1955ns p99=1956ns
+    route_existence_timing_test.go:335:   Random: N=200000 mean=2577.8ns std=4651.8ns p50=1955ns p95=5797ns p99=7543ns
+    route_existence_timing_test.go:336:   Welch p=0  KS p=0  MWU p=0  |mean diff|=944.89ns  Cohen d=1.061
+    route_existence_timing_test.go:339:   DISTINGUISHABLE — hidden admin route is timing-discoverable
+=== RUN   TestTiming_Route_Competitor_AdminHiddenVsRandom/httprouter
+    route_existence_timing_test.go:333: [httprouter] /admin (registered, hidden) vs /xyzxyz (unregistered)
+    route_existence_timing_test.go:334:   Admin:  N=200000 mean=1560.0ns std=3362.0ns p50=1466ns p95=1955ns p99=1956ns
+    route_existence_timing_test.go:335:   Random: N=200000 mean=2727.7ns std=8280.7ns p50=2304ns p95=5867ns p99=7543ns
+    route_existence_timing_test.go:336:   Welch p=0  KS p=0  MWU p=0  |mean diff|=1020.66ns  Cohen d=1.159
+    route_existence_timing_test.go:339:   DISTINGUISHABLE — hidden admin route is timing-discoverable
+=== RUN   TestTiming_Route_Competitor_AdminHiddenVsRandom/chi
+    route_existence_timing_test.go:333: [chi] /admin (registered, hidden) vs /xyzxyz (unregistered)
+    route_existence_timing_test.go:334:   Admin:  N=200000 mean=1956.5ns std=4234.8ns p50=1886ns p95=2375ns p99=5867ns
+    route_existence_timing_test.go:335:   Random: N=200000 mean=2926.7ns std=8492.7ns p50=2305ns p95=6147ns p99=9079ns
+    route_existence_timing_test.go:336:   Welch p=0  KS p=0  MWU p=0  |mean diff|=840.87ns  Cohen d=0.754
+    route_existence_timing_test.go:339:   DISTINGUISHABLE — hidden admin route is timing-discoverable
+=== RUN   TestTiming_Route_Competitor_AdminHiddenVsRandom/bunrouter
+    route_existence_timing_test.go:333: [bunrouter] /admin (registered, hidden) vs /xyzxyz (unregistered)
+    route_existence_timing_test.go:334:   Admin:  N=200000 mean=1860.7ns std=4769.4ns p50=1885ns p95=1956ns p99=5657ns
+    route_existence_timing_test.go:335:   Random: N=200000 mean=2692.4ns std=7026.9ns p50=1956ns p95=5867ns p99=7543ns
+    route_existence_timing_test.go:336:   Welch p=0  KS p=0  MWU p=0  |mean diff|=755.46ns  Cohen d=0.793
+    route_existence_timing_test.go:339:   DISTINGUISHABLE — hidden admin route is timing-discoverable
+--- PASS: TestTiming_Route_Competitor_AdminHiddenVsRandom (13.72s)
+    --- PASS: TestTiming_Route_Competitor_AdminHiddenVsRandom/MuxMaster (3.34s)
+    --- PASS: TestTiming_Route_Competitor_AdminHiddenVsRandom/httprouter (3.39s)
+    --- PASS: TestTiming_Route_Competitor_AdminHiddenVsRandom/chi (3.54s)
+    --- PASS: TestTiming_Route_Competitor_AdminHiddenVsRandom/bunrouter (3.45s)
+=== RUN   TestTiming_Route_Competitor_DepthCorrelation
+=== RUN   TestTiming_Route_Competitor_DepthCorrelation/MuxMaster
+    route_existence_timing_test.go:385: [MuxMaster] route depth correlation (registered routes):
+    route_existence_timing_test.go:387:   depth-1 (/): N=100000 mean=1532.1ns std=1705.0ns p50=1466ns p95=1886ns p99=1956ns
+    route_existence_timing_test.go:387:   depth-2 (/users): N=100000 mean=1572.0ns std=4024.9ns p50=1466ns p95=1955ns p99=2374ns
+    route_existence_timing_test.go:387:   depth-3 (/users/list): N=100000 mean=1604.5ns std=1521.5ns p50=1467ns p95=1956ns p99=3352ns
+    route_existence_timing_test.go:387:   depth-4 (/users/detail/view): N=100000 mean=1669.6ns std=5632.6ns p50=1467ns p95=1956ns p99=3352ns
+    route_existence_timing_test.go:387:   depth-5 (/users/detail/view/extended/info): N=100000 mean=1679.5ns std=5074.6ns p50=1467ns p95=1956ns p99=3352ns
+    route_existence_timing_test.go:391:   depth-1 vs depth-2: Welch p=1.274e-14 Cohen d=0.035 |mean diff|=6.53ns
+    route_existence_timing_test.go:391:   depth-2 vs depth-3: Welch p=0 Cohen d=0.213 |mean diff|=45.51ns
+    route_existence_timing_test.go:391:   depth-3 vs depth-4: Welch p=1.763e-59 Cohen d=0.073 |mean diff|=17.49ns
+    route_existence_timing_test.go:391:   depth-4 vs depth-5: Welch p=6.003e-41 Cohen d=0.060 |mean diff|=14.85ns
+=== RUN   TestTiming_Route_Competitor_DepthCorrelation/httprouter
+    route_existence_timing_test.go:385: [httprouter] route depth correlation (registered routes):
+    route_existence_timing_test.go:387:   depth-1 (/): N=100000 mean=1537.1ns std=3676.8ns p50=1466ns p95=1886ns p99=1956ns
+    route_existence_timing_test.go:387:   depth-2 (/users): N=100000 mean=1568.3ns std=4059.0ns p50=1466ns p95=1886ns p99=1956ns
+    route_existence_timing_test.go:387:   depth-3 (/users/list): N=100000 mean=1643.6ns std=5371.8ns p50=1467ns p95=1956ns p99=3352ns
+    route_existence_timing_test.go:387:   depth-4 (/users/detail/view): N=100000 mean=1627.4ns std=4033.5ns p50=1467ns p95=1956ns p99=3352ns
+    route_existence_timing_test.go:387:   depth-5 (/users/detail/view/extended/info): N=100000 mean=1637.9ns std=3788.7ns p50=1467ns p95=1956ns p99=3352ns
+    route_existence_timing_test.go:391:   depth-1 vs depth-2: Welch p=1.087e-52 Cohen d=0.069 |mean diff|=12.76ns
+    route_existence_timing_test.go:391:   depth-2 vs depth-3: Welch p=0 Cohen d=0.195 |mean diff|=41.64ns
+    route_existence_timing_test.go:391:   depth-3 vs depth-4: Welch p=0.04492 Cohen d=0.009 |mean diff|=2.12ns
+    route_existence_timing_test.go:391:   depth-4 vs depth-5: Welch p=1.003e-41 Cohen d=0.061 |mean diff|=14.49ns
+=== RUN   TestTiming_Route_Competitor_DepthCorrelation/chi
+    route_existence_timing_test.go:385: [chi] route depth correlation (registered routes):
+    route_existence_timing_test.go:387:   depth-1 (/): N=100000 mean=1782.6ns std=3276.6ns p50=1885ns p95=1956ns p99=2444ns
+    route_existence_timing_test.go:387:   depth-2 (/users): N=100000 mean=1916.0ns std=3690.6ns p50=1886ns p95=2375ns p99=5797ns
+    route_existence_timing_test.go:387:   depth-3 (/users/list): N=100000 mean=2387.6ns std=1775.2ns p50=1886ns p95=5727ns p99=7263ns
+    route_existence_timing_test.go:387:   depth-4 (/users/detail/view): N=100000 mean=2201.7ns std=2762.9ns p50=1886ns p95=5308ns p99=6775ns
+    route_existence_timing_test.go:387:   depth-5 (/users/detail/view/extended/info): N=100000 mean=2063.7ns std=4454.4ns p50=1886ns p95=5168ns p99=6635ns
+    route_existence_timing_test.go:391:   depth-1 vs depth-2: Welch p=0 Cohen d=0.226 |mean diff|=97.75ns
+    route_existence_timing_test.go:391:   depth-2 vs depth-3: Welch p=0 Cohen d=0.443 |mean diff|=464.16ns
+    route_existence_timing_test.go:391:   depth-3 vs depth-4: Welch p=6.022e-240 Cohen d=0.149 |mean diff|=186.84ns
+    route_existence_timing_test.go:391:   depth-4 vs depth-5: Welch p=1.719e-221 Cohen d=0.143 |mean diff|=142.48ns
+=== RUN   TestTiming_Route_Competitor_DepthCorrelation/bunrouter
+    route_existence_timing_test.go:385: [bunrouter] route depth correlation (registered routes):
+    route_existence_timing_test.go:387:   depth-1 (/): N=100000 mean=1789.9ns std=4438.8ns p50=1885ns p95=2374ns p99=2445ns
+    route_existence_timing_test.go:387:   depth-2 (/users): N=100000 mean=1797.5ns std=2291.9ns p50=1885ns p95=1956ns p99=5308ns
+    route_existence_timing_test.go:387:   depth-3 (/users/list): N=100000 mean=2038.0ns std=3387.6ns p50=1885ns p95=5239ns p99=6705ns
+    route_existence_timing_test.go:387:   depth-4 (/users/detail/view): N=100000 mean=1871.1ns std=2342.4ns p50=1885ns p95=1956ns p99=5728ns
+    route_existence_timing_test.go:387:   depth-5 (/users/detail/view/extended/info): N=100000 mean=1914.8ns std=6063.1ns p50=1885ns p95=1956ns p99=5727ns
+    route_existence_timing_test.go:391:   depth-1 vs depth-2: Welch p=2.099e-10 Cohen d=0.029 |mean diff|=9.24ns
+    route_existence_timing_test.go:391:   depth-2 vs depth-3: Welch p=0 Cohen d=0.298 |mean diff|=218.68ns
+    route_existence_timing_test.go:391:   depth-3 vs depth-4: Welch p=0 Cohen d=0.180 |mean diff|=148.94ns
+    route_existence_timing_test.go:391:   depth-4 vs depth-5: Welch p=0.6687 Cohen d=0.002 |mean diff|=1.21ns
+--- PASS: TestTiming_Route_Competitor_DepthCorrelation (16.80s)
+    --- PASS: TestTiming_Route_Competitor_DepthCorrelation/MuxMaster (4.14s)
+    --- PASS: TestTiming_Route_Competitor_DepthCorrelation/httprouter (4.08s)
+    --- PASS: TestTiming_Route_Competitor_DepthCorrelation/chi (4.30s)
+    --- PASS: TestTiming_Route_Competitor_DepthCorrelation/bunrouter (4.28s)
+=== RUN   TestTiming_Route_Competitor_Param_vs_Static
+=== RUN   TestTiming_Route_Competitor_Param_vs_Static/MuxMaster
+    route_existence_timing_test.go:434: [MuxMaster] /users/list (static) vs /users/alice (param)
+    route_existence_timing_test.go:435:   Static: N=200000 mean=1613.5ns std=2608.5ns p50=1467ns p95=1956ns p99=1956ns
+    route_existence_timing_test.go:436:   Param:  N=200000 mean=1967.4ns std=4028.9ns p50=1885ns p95=5168ns p99=6635ns
+    route_existence_timing_test.go:437:   Welch p=0  KS p=0  MWU p=0  |mean diff|=305.90ns  Cohen d=0.490
+=== RUN   TestTiming_Route_Competitor_Param_vs_Static/chi
+    route_existence_timing_test.go:434: [chi] /users/list (static) vs /users/alice (param)
+    route_existence_timing_test.go:435:   Static: N=200000 mean=1921.4ns std=3777.9ns p50=1886ns p95=2374ns p99=5657ns
+    route_existence_timing_test.go:436:   Param:  N=200000 mean=2442.6ns std=2542.2ns p50=1886ns p95=5727ns p99=7962ns
+    route_existence_timing_test.go:437:   Welch p=0  KS p=0  MWU p=0  |mean diff|=499.78ns  Cohen d=0.518
+=== RUN   TestTiming_Route_Competitor_Param_vs_Static/bunrouter
+    route_existence_timing_test.go:434: [bunrouter] /users/list (static) vs /users/alice (param)
+    route_existence_timing_test.go:435:   Static: N=200000 mean=1807.5ns std=3960.7ns p50=1885ns p95=1956ns p99=5169ns
+    route_existence_timing_test.go:436:   Param:  N=200000 mean=2057.6ns std=5604.3ns p50=1885ns p95=5238ns p99=6635ns
+    route_existence_timing_test.go:437:   Welch p=0  KS p=0  MWU p=0  |mean diff|=209.13ns  Cohen d=0.299
+=== NAME  TestTiming_Route_Competitor_Param_vs_Static
+    route_existence_timing_test.go:442: NOTE: httprouter skipped — v1.3.0 does not support a static and a param child at the same tree level (/users/list + /users/:id); see file doc comment.
+--- PASS: TestTiming_Route_Competitor_Param_vs_Static (9.84s)
+    --- PASS: TestTiming_Route_Competitor_Param_vs_Static/MuxMaster (3.14s)
+    --- PASS: TestTiming_Route_Competitor_Param_vs_Static/chi (3.41s)
+    --- PASS: TestTiming_Route_Competitor_Param_vs_Static/bunrouter (3.30s)
+PASS
+ok  	competitor/bench	54.550s
