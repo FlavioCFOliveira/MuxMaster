@@ -56,11 +56,12 @@ See [[task_kg2026001_fastpath_spec]] for the 2026-07-14 change that added the Fa
 
 Grep `^[0-9]\+\.` before appending to any of these — do not trust an older number from memory:
 
-- routing.md: 96 (added §11 Unclosed Regex Parameter Brace, items 94-96 — see [[task_rmp274_unclosed_regex_brace_spec]]; supersedes the 93 recorded after [[task_rmp278_options_asterisk_spec]])
+- routing.md: 101 (added §12 Empty Segment Rejection for Named and Regex Parameters, items 97-101 — see [[task_sprint20_282_283_join_and_empty_segment]]; supersedes the 96 recorded after [[task_rmp274_unclosed_regex_brace_spec]])
+- params.md: 37 (added §6 Captured Values Are Never Empty, item 37 — see [[task_sprint20_282_283_join_and_empty_segment]])
 - compatibility.md: 19 (added §6 HTTP Method Constants Not Yet in the Standard Library, items 17-19)
 - middleware-stdlib.md: 70 (fully renumbered 2026-09-25 — old rule numbers before that date are stale)
 - middleware.md: 43
-- groups.md: 40 (added §8 Location Rewriting for Automatic Redirects Through Mount [31-35], §9 Mount Prefix Validation [36-37], §10 RawPath Propagation Through a Parameterized Mount Prefix [38-40] — see [[task_rmp281_mount_redirect_prefix_spec]])
+- groups.md: 44 (§8 Location Rewriting for Automatic Redirects Through Mount [31-35], §9 Mount Prefix Validation [36-37], §10 RawPath Propagation Through Mount [38-40] — see [[task_rmp281_mount_redirect_prefix_spec]]; §11 Prefix and Path Joining [41-44] — see [[task_sprint20_282_283_join_and_empty_segment]])
 - performance.md: 45
 - error-handling.md: 39
 - configuration.md: 44
