@@ -43,15 +43,22 @@
 // See the SECURITY.md "Pre vs Use security boundary" section for the full
 // matrix.
 //
+// Use and UseFast middleware must be registered before the routes they should
+// wrap. Registering routes after the server has started serving is not
+// supported.
+//
 // # Performance
 //
-// On AMD Ryzen 9 5900HX (Go 1.26.2):
+// Root-package benchmarks on AMD Ryzen 9 5900HX (Go 1.27.0, 2026-09-26; see
+// docs/performance.md for the method and the full tables):
 //
-//   - Static route:                                    ~25 ns / 0 alloc
-//   - 1-param Handle (default):                       ~105 ns / 1 alloc / 384 B
-//   - 1-param HandleFast (default):                    ~50 ns / 1 alloc / 32 B
-//   - 1-param Handle + Mux.PoolRequestBundle = true:   ~45 ns / 0 alloc / 0 B
-//   - 1-param HandleFast + Mux.PoolFastParams = true:  ~44 ns / 0 alloc / 0 B
+//   - Static route:                                   28.6 ns / 0 allocs
+//   - 1-param Handle (default):                      118.5 ns / 1 alloc / 384 B
+//   - 1-param HandleFast (default):                   46.2 ns / 1 alloc / 32 B
+//   - 1-param Handle + Mux.PoolRequestBundle = true:  48.5 ns / 0 allocs
+//
+// Mux.PoolFastParams = true also removes the 1-param HandleFast allocation;
+// the 2026-09-26 run has no benchmark for it.
 //
 // HandleFast routes bypass the requestCtx allocation by passing Params
 // directly as the third handler argument; they trade off stdlib middleware

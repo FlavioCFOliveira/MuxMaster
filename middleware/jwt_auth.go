@@ -41,9 +41,10 @@ type JWTClaims struct {
 // JWTOptions configures the JWTAuth middleware.
 //
 // SECURITY (TSC-2026-0003): mixing algorithm families (HS* with RS* or ES*)
-// in Algorithms leaks the algorithm path via response latency. HMAC verifies
-// in ~1 µs, RSA-2048 verifies in ~300 µs, and an attacker submitting tokens
-// with different alg labels can determine which path the server runs from
+// in Algorithms leaks the algorithm path via response latency: the measured
+// HS256 and RS256 paths differ by about 25 µs (see SECURITY.md "JWT
+// Mixed-Family Algorithms"), and an attacker submitting tokens with
+// different alg labels can determine which path the server runs from
 // the response time alone — narrowing the attack surface for
 // algorithm-confusion attacks (RFC 8725 §3.1). Configure each endpoint
 // with a single algorithm family. JWTAuth emits a slog.Warn at construction

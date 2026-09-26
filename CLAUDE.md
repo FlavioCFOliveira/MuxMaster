@@ -219,7 +219,7 @@ If these criteria conflict, or if you struggle to follow them, ask the user imme
 # Project reference
 
 ## Go version
-**Go 1.26+** (`go.mod` declares `go 1.26`). Uses modern features:
+**Go 1.26+** (`go.mod` declares `go 1.26`; the 2026-09-26 measurements used Go 1.27.0). Uses modern features:
 - `for i := range n` (range over integer, Go 1.22+)
 - `min`/`max` builtins (Go 1.21+)
 
@@ -227,50 +227,77 @@ If these criteria conflict, or if you struggle to follow them, ask the user imme
 
 | File | Responsibility |
 |---|---|
-| `mux.go` | `Mux` struct, `ServeHTTP`, HTTP methods, global middleware |
-| `tree.go` | Radix tree — `node`, `addRoute`, `getValue`, `findWildcard` |
-| `params.go` | `Params` type, `sync.Pool`, `PathParam()`, `ParamsFromContext()` |
-| `group.go` | `Group` — path prefix + group middleware |
-| `mux_test.go` | 17 unit tests |
-| `bench_test.go` | 8 benchmarks including concurrent scenarios |
+| `doc.go` | Package documentation |
+| `mux.go` | `Mux` struct and options, `New`, `MethodQuery`, `Use`/`Pre`/`UseFast`, `Handle*` and per-method helpers, `Mount`, `ServeFiles`, `ServeHTTP`/`dispatch`, 405/OPTIONS/redirect handling, `Rebuild` |
+| `tree.go` | Radix tree — `node`, `addRoute`, `getValue` (bounded backtracking), `findWildcard`, regex and optional parameters |
+| `params.go` | `Param`/`Params` and typed helpers, tiered `requestCtx*`/`reqBundle*`, `reqBundle` and `fastParams` pools, `dispatchParams*`, `PathParam`, `ParamsFromContext`, `RoutePattern` |
+| `group.go` | `Group` — prefix joining, group middleware, per-method helpers, `Group.Mount`, `Group.ServeFiles` |
+| `handler.go` | `HandlerFuncE`, `HTTPError`, `Error`, `FastHandler`, `FastMiddleware` |
+| `response.go` | Response helpers — `JSON`, `XML`, `Text`, `Redirect`, `NoContent` |
+| `introspection.go` | `RouteInfo`, `Lookup`, `Routes`, `Walk`, `WalkFast` |
+| `middleware/` | 17 middleware source files plus `doc.go`, exporting 21 constructors (`APIKey`, `BasicAuth`, `CleanPath`, `Compress`, `CORS`, `JWTAuth`, `Logger`, `NoCache`, `OAuth2Introspect`, `RealIP`, `Recoverer`, `RecovererWithLogger`, `RequestID`, `SetHeader`, `StripSlashes`, `ThrottleBacklog`, `ThrottleAllBacklog`, `ThrottlePerIP`, `ThrottlePerIPCapped`, `Timeout`, `WithValue`) |
+
+**Tests and benchmarks:** 525 `func Test…` declarations in tracked `*_test.go` files outside `reports/` and `competitor/` — 256 in the root package, 269 in `middleware/` (counted with `git ls-files '*_test.go' | grep -v '^reports/\|^competitor/' | xargs grep -h '^func Test' | wc -l`). Benchmarks: 26 in `bench_test.go`, 9 in `middleware/bench_test.go`. Competitor benchmarks live in the separate `competitor/` module; audit harnesses under `reports/` belong to the root module.
 
 ## Public API
 
 ```go
 mux := muxmaster.New()
 
-// Middleware (must be registered BEFORE the routes it should wrap)
-mux.Use(logger, auth)
+// Middleware — Use and UseFast wrap only routes registered AFTER the call
+mux.Pre(cleanPath)           // before routing; covers Handle and HandleFast routes
+mux.Use(logger, auth)        // stdlib middleware; Handle routes only
+mux.UseFast(fastLogger)      // FastMiddleware; HandleFast routes only
 
-// Routes
+// Routes — ten methods: GET HEAD POST PUT PATCH DELETE OPTIONS CONNECT TRACE QUERY
 mux.GET("/users", listUsers)
-mux.GET("/users/:id", getUser)       // path parameter
-mux.GET("/static/*filepath", files)  // catch-all
+mux.GET("/users/:id", getUser)            // named parameter
+mux.GET("/users/{id:[0-9]+}", getUser)    // regex parameter
+mux.GET("/users{/:id}", getUser)          // optional parameter
+mux.GET("/static/*filepath", files)       // catch-all
+mux.QUERY("/search", search)              // RFC 10008; muxmaster.MethodQuery == "QUERY"
+mux.ANY("/health", health)                // all ten methods
+mux.GETE("/items/:id", getItemE)          // HandlerFuncE (error-returning)
+mux.GETFast("/fast/:id", fastHandler)     // FastHandler: params as 3rd argument
 
-// Groups
+// Groups, sub-groups, mounting, static files
 api := mux.Group("/api/v1")
 api.Use(apiKeyCheck)
 api.POST("/items", createItem)
-
-// Sub-groups
 admin := api.Group("/admin")
+mux.Mount("/v2", v2Mux)                                      // registered as "*" /v2/*mux_mount
+mux.ServeFiles("/static/*filepath", http.Dir("./public"))
 
 // Read parameters in the handler
 id := muxmaster.PathParam(r, "id")
 ps := muxmaster.ParamsFromContext(r.Context())
+pattern := muxmaster.RoutePattern(r)  // "" for static routes (no context allocation)
+
+// Introspection (registration read lock; never blocks dispatch)
+h, params, found := mux.Lookup("GET", "/users/42") // h == nil for a HandleFast route
+routes := mux.Routes()                             // includes fast routes and mount points
+mux.Walk(fn)                                       // skips fast routes
+mux.WalkFast(fastFn)                               // fast routes only
 
 // Custom handlers
 mux.NotFound = myHandler
 mux.MethodNotAllowed = myHandler
+mux.GlobalOPTIONS = myHandler
+mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) { ... }
 mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) { ... }
 
-// Options and their defaults
+// Options and the defaults set by New()
 mux.RedirectTrailingSlash  = true   // default: true
 mux.RedirectFixedPath      = false  // default: false (security — canonicalisation can bypass middleware)
 mux.HandleMethodNotAllowed = true   // default: true
-mux.HandleOPTIONS          = true   // default: true
-mux.PoolFastParams         = false  // default: false (opt-in: recycle FastHandler Params via sync.Pool)
-mux.PoolRequestBundle      = false  // default: false (opt-in Opt O13: recycle the per-request reqBundle — −53% ns/op, ZERO alloc on http.Handler param routes; strict lifetime contract: handlers MUST NOT retain *http.Request past return)
+mux.HandleOPTIONS          = true   // default: true (204 + Allow)
+mux.CaseInsensitive        = false  // default: false
+mux.UseRawPath             = false  // default: false
+mux.UnescapePathValues     = false  // default: false (effective only with UseRawPath)
+mux.RedirectCode           = 0      // default: 0 → 301 for GET/HEAD, 307 otherwise
+mux.PoolFastParams         = false  // default: false (Opt O9: recycle FastHandler Params; handlers MUST NOT retain ps)
+mux.PoolRequestBundle      = false  // default: false (Opt O13: recycle reqBundle; 0 allocs on Handle param routes; handlers MUST NOT retain *http.Request)
+mux.Rebuild()                       // re-snapshot the options after the first request
 
 http.ListenAndServe(":8080", mux)
 ```
@@ -290,19 +317,21 @@ http.ListenAndServe(":8080", mux)
 `Pre` runs OUTSIDE the dispatch (in `ServeHTTP` before tree lookup) and is the only middleware family that uniformly covers BOTH route types. Auth gates that must apply to fast routes MUST go through `Pre`, not `Use`. See SECURITY.md "Pre vs Use security boundary" / CDX-S8-003.
 
 ### Param accumulation — tiered reqBundle (1 alloc) + paramsBuf (stack)
-- `paramsBuf` is a fixed-size struct allocated on the stack during `getValue` — no `sync.Pool`, no heap escape for static routes
+- `paramsBuf` is a fixed-size struct allocated on the stack during `getValue`; static routes pass the original `r` to the handler and allocate nothing
 - For routes with parameters: tiered bundles fuse `requestCtx` and the copy of `*http.Request` into a single allocation (1 alloc), sized to the parameter count:
-  - 1 param → `reqBundle1` (392 B → size class 416 B): `requestCtx1` with `small [1]Param`
-  - 2 params → `reqBundle2` (424 B → size class 448 B): `requestCtx2` with `small [2]Param`
-  - 3+ params → `reqBundle` (456 B → size class 480 B): `requestCtx` with `small [3]Param` + heap overflow for >3
-- Dispatch is performed by `dispatchParams1`/`dispatchParams2` for 1/2 params, and inlined for 3+ (avoids call overhead in the most common REST-API case)
-- `bundle.req.ctx` is set via `setReqCtxUnsafe` (`unsafe.Add` over the reflected offset of the private `ctx` field of `http.Request`) — safe because: (1) the bundle is freshly allocated, no concurrent access yet; (2) the write happens-before any goroutine spawned in the handler (Go MM §goroutine creation); (3) the original `r` is NEVER modified; (4) no pool — lifetime managed by the GC
-- Automatic fallback to 2 allocs (`r.WithContext`) if the `ctx` field is not found via reflect (future Go version)
+  - 1 param → `reqBundle1` (368 B → size class 384 B): `requestCtx1` with `small [1]Param`
+  - 2 params → `reqBundle2` (400 B → size class 416 B): `requestCtx2` with `small [2]Param`
+  - 3+ params → `reqBundle` (456 B → size class 480 B): `requestCtx` with `small [3]Param` + heap overflow slice for >3
+- `dispatch` calls `dispatchParams1`/`dispatchParams2` directly for 1/2 params (Opt O10) and `dispatchWithParams` for 3+; with `PoolRequestBundle` it calls the `dispatchParams1Pooled`/`dispatchParams2Pooled`/`dispatchParamsNPooled` variants instead
+- `bundle.req.ctx` is set via `setReqCtxUnsafe` (`unsafe.Add` over the reflected offset of the private `ctx` field of `http.Request`) — safe because: (1) the bundle is not yet visible to any other goroutine; (2) the write happens-before any goroutine spawned in the handler (Go MM §goroutine creation); (3) the original `r` is NEVER modified; (4) by default there is no pool and the GC manages the lifetime — with `PoolRequestBundle` the bundle comes from a per-tier `sync.Pool` and is zeroed (`*b = reqBundle1{}`) before `Put`
+- Automatic fallback to 2 allocs (`r.WithContext`) if the `ctx` field is not found via reflect (future Go version); the pooled path is then not used
+- A request whose internal context is `nil` (struct literal) is dispatched with `context.Background()` as parent (rmp #292)
 
 ### Concurrency
 - `treesPtr atomic.Pointer[methodTrees]` — lock-free read on every request via `.Load()`; copy-on-write under `mu` during registration
-- `methodTrees` is a `[methodCount]*node` array indexed by constant (0–9), not a `map[string]*node`
-- `sync.RWMutex mu` protects Use/Pre/Handle and introspection; not needed for reads in `ServeHTTP`
+- `methodTrees` is a `[methodCount]*node` array (methodCount = 11: GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY, plus the `"*"` slot used by `Mount`), indexed by constant, not a `map[string]*node`
+- `sync.RWMutex mu` guards Use/Pre/Handle and introspection (`Lookup`, `Routes`, `Walk`, `WalkFast`). Request dispatch does not take it, except once per `Allow` value when a 405 or automatic-OPTIONS handler is first built and cached; redirects read an atomic middleware snapshot (`redirectMWPtr`, CH-06)
+- Options are frozen into `muxConfig` on the first `ServeHTTP`; `Rebuild()` resets the snapshot atomically and is safe during serving
 - Tree nodes are read-only after the initial registration — dynamic route registration after the server starts serving is not supported
 
 ### `Param` type vs `PathParam` function
@@ -316,12 +345,15 @@ The condition `c != ':' && c != '*' && n.nType != param` was incorrect — it pr
 ## Useful commands
 
 ```bash
-go test ./...                          # all tests
+go test ./...                          # all tests (includes the audit harnesses under reports/)
 go test -v ./...                       # verbose
-go test -bench=. -benchmem ./...       # benchmarks with allocations
 go test -race ./...                    # race-condition detector
 go vet ./...                           # static analysis
+make bench                             # benchmarks of the root and middleware packages only
+cd competitor && go test -mod=mod -run='^$' -bench=. -benchmem -count=3 .   # competitor suite
 ```
+
+`go test -bench=. ./...` also runs every benchmark under `reports/`; use `make bench` for the product packages.
 
 ## Performance competitors to beat
 
@@ -472,84 +504,119 @@ STRIDE, attack trees, cross-ecosystem transposition (nginx / Rails / Express / S
 
 ---
 
-## Performance baseline (HEAD — Opt O10/O12/O13)
+## Performance baseline (HEAD, measured 2026-09-26)
 
-### Apple M4 — 10 cores (4P+6E), 32 GB, Go 1.26.2, macOS arm64 (2026-05-12)
+Source: `reports/perf-lab-2026-09-26-docs/` (rmp #296). One host: AMD Ryzen 9 5900HX (8 cores / 16 threads), Linux 6.8, Go 1.27.0, `-count=3`, CPU governor `powersave`. At n=3, `benchstat` cannot test significance (it needs n≥4) or give confidence intervals (n≥6): treat ns/op differences below ~10% as noise.
 
-Internal benchmarks (`bench_test.go`):
+### v1.1.0 → HEAD
+- **Allocations identical** on all 18 shared root benchmarks (B/op and allocs/op equal in every sample of both versions).
+- **ns/op: no statistically significant change** — every row is "~". v1.1.0's `ParamRoute2`/`ParamRoute3` had 2 of 3 samples at ~1.5–1.7 µs (host perturbation, ~10× every other sample); this corrupts that table's geomean line, which must be ignored.
+
+### Internal benchmarks at HEAD (`bench_test.go`)
+
+| Case | ns/op | B/op | allocs/op |
+|---|---|---|---|
+| Static route | 28.63 | 0 | 0 |
+| 1 parameter | 118.5 | 384 | 1 |
+| 2 parameters | 130.1 | 416 | 1 |
+| 3 parameters | 149.6 | 480 | 1 |
+| Catch-all | 132.4 | 384 | 1 |
+| Not found | 208.0 | 91 | 3 |
+| Parallel static | 4.249 | 0 | 0 |
+| Parallel 1 parameter | 104.5 | 384 | 1 |
+| **Pooled** 1 parameter | **48.51** | **0** | **0** |
+| **Pooled** 2 parameters | **59.76** | **0** | **0** |
+| **Pooled** 3 parameters | **61.76** | **0** | **0** |
+| **Pooled** catch-all | **44.95** | **0** | **0** |
+| **Pooled** parallel param | **6.901** | **0** | **0** |
+| Fast static | 28.91 | 0 | 0 |
+| Fast 1 parameter | 46.15 | 32 | 1 |
+| Fast 2 parameters | 68.96 | 64 | 1 |
+| Fast 3 parameters | 79.72 | 96 | 1 |
+| Fast parallel param | 16.31 | 32 | 1 |
+| Mount, static prefix | 376.6 | 864 | 2 |
+| Mount, param prefix | 519.6 | 1 219 | 3 |
+| ServeFiles | 808.1 | 709 | 8 |
+| RegisterRoutes N=5000 | 4.70 ms (939.6 ns/route) | 6.08 MiB | 75 940 |
+
+`AdversarialBacktracking` (depth 1→128) and `QuadraticBacktracking` (2→64) grow linearly with depth. No pooled fast-route (`PoolFastParams`) benchmark exists in `bench_test.go`.
+
+### Middleware at HEAD (`middleware/bench_test.go`; no v1.1.0 baseline exists)
+
+| Case | ns/op | B/op | allocs/op |
+|---|---|---|---|
+| ThrottlePerIP, one client | 115.0 | 0 | 0 |
+| ThrottlePerIP, many clients | 127.2 | 0 | 0 |
+| Logger | 5 671 | 0 | 0 |
+| Recoverer, no panic | 19.99 | 0 | 0 |
+| Compress, 600 B | 316.6 | 32 | 2 |
+| Compress, chunked 12 KiB | 7 765 | 58 | 3 |
+| RealIP, 1 hop / 3 hops | 143.6 / 178.7 | 16 | 1 |
+| APIKey, hit | 453.3 | 416 | 6 |
+| BasicAuth hit, 1 / 10 / 100 users | 319.5 / 549.7 / 2 836 | 32 | 2 |
+| BasicAuth miss, 1 / 10 / 100 users | 733.3 / 958.8 / 3 232 | 168 | 8 |
+| JWTAuth HS256 | 4 354 | 738 | 7 |
+| OAuth2 cache set at saturation | 3 194 | 288 | 2 |
+
+`RequestID` and `CORS` have no benchmark in this suite and were not part of the report's middleware table.
+
+### Competitor suite at HEAD (`competitor/bench_test.go`) — ns/op (allocs/op)
+
+| Router | Static | Param×1 | Param×2 | Param×3 | Catch-all | Not found | Parallel static | Parallel param |
+|---|---|---|---|---|---|---|---|---|
+| **MuxMaster default** | 29.6 (0) | 116.9 (1) | 131.9 (1) | 144.4 (1) | 116.4 (1) | 254.7 (3) | 4.51 (0) | 102.3 (1) |
+| **MuxMaster Pooled** | 30.7 (0) | 46.7 (0) | 60.9 (0) | 67.6 (0) | 46.5 (0) | — | —¹ | 7.19 (0) |
+| **MuxMaster Fast** | 30.6 (0) | 47.8 (1) | 67.8 (1) | 83.0 (1) | 48.6 (1) | — | 4.55 (0) | 17.2 (1) |
+| httprouter | 34.7 (0) | 50.5 (1) | 60.2 (1) | 74.4 (1) | 42.8 (1) | 398.2 (3) | 4.91 (0) | 21.8 (1) |
+| bunrouter (`http.Handler` adapter)² | 168.1 (3) | 160.3 (3) | 181.6 (3) | 179.9 (3) | 152.5 (3) | 275.5 (4) | 126.1 (3) | 126.1 (3) |
+| chi v5 | 217.9 (2) | 360.7 (4) | 405.0 (4) | 415.5 (4) | 334.2 (4) | 346.5 (5) | 133.8 (2) | 232.3 (4) |
+| gorilla/mux | 578.9 (7) | 954.7 (8) | 1 497 (8) | 1 729 (8) | 1 611 (8) | 1 034 (4) | 345.6 (7) | 456.8 (8) |
+
+¹ Not measured; static routes never allocate a bundle, so pooling does not change them.
+² Vendored `github.com/uptrace/bunrouter v1.0.23` through `bunrouter.HTTPHandlerFunc` (params via `context.WithValue`). Its native API was not measured in this run.
+Not-found allocs for bunrouter (4) and chi (5) are taken from the raw `competitor-head.txt`; the report README's §3 table lists 3 and 4.
+
+Interpretation:
+- MuxMaster is the fastest of the measured routers on static, not-found and parallel-static routes.
+- Default mode trails httprouter ~2–2.7× on serial param routes (4.7× parallel): it copies `*http.Request` into a 384–480 B GC-managed bundle, so handlers may retain `r`. httprouter allocates only its `Params` slice (32–96 B) and uses a 3-argument handler.
+- Pooled mode is 0 allocs on every param route; vs httprouter it is faster on Param×1, Param×3 and parallel param, level on Param×2, slower on catch-all.
+
+### Sprint 18 waste-hunt claims — reproduced on 2026-09-26 (report §4)
+All 18 verifiable claims reproduced (none regressed): registration O(depth) (N=5000: 2.86 s → 4.70 ms); Mount 1 024 → 237.5 ns, 9 → 2 allocs; CleanPath dirty 810 → 145.4 ns, 7 → 2 allocs; redirect 884 → 641.3 ns, and with 5 middleware 1 050 → 760.7 ns, 19 → 11 allocs; ThrottlePerIP 4 051 → 115 ns, 5 → 0 allocs; Logger 7.5 → 5.67 µs, 0 allocs; Compress 600 B 435 → 316.6 ns, chunked 14.6 → 7.77 µs; JWTAuth 5.16 → 4.35 µs, 7 allocs; RealIP 3-hop 257 → 178.7 ns; APIKey 574 → 453.3 ns; 405 153 → 109.6 ns, 1 alloc; auto-OPTIONS 124 → 61.9 ns, 1 alloc; `Text` 98 → 60.4 ns, 1 alloc. No benchmark exists for `StripSlashes` (WH-04); `ServeFiles` has no quoted before/after pair.
+
+### Sprint 18 contention hunt — measured 2026-09-24, NOT re-measured on 2026-09-26
+Source: `reports/perf-lab-2026-09-24/contention-hunt.md` and the CHANGELOG. ThrottlePerIP 64-way sharding 2 114 → 451 ns at 16 CPUs (4.68×); ThrottleBacklog CAS fast path −42% at 1 CPU (39.12 → 22.76 ns), −13% at 16 CPUs (76.15 → 66.23 ns); RequestID 7 → 2 allocs, ~4.7×/2.8×/1.95× at 1/4/16 CPUs; OAuth2Introspect eviction 257.4 µs → 2.15 µs at 16 CPUs; redirect path reads a lock-free `Use()` snapshot (no measurable ns/op change).
+
+### Costs added by security fixes (sprint 20)
+- BasicAuth constant-time scan over all users (rmp #290, TSC-2026-0002): O(users) — hit ≈ 320 ns / 550 ns / 2.8 µs for 1 / 10 / 100 users (2026-09-26).
+- CORS `Vary: Origin` on every response (rmp #291): no-`Origin` path 25.7 → 71.0 ns, 0 → 1 alloc (`-count=10`, measured when the fix landed).
+- Recoverer response-state tracking (rmp #276): no-panic path 8.4 → 19.4 ns, 0 allocs (`-count=10`, measured when the fix landed).
+
+### Optimisation history (v1.1.0)
+- **O10**: removed the `doDispatch1`/`doDispatch2` function pointers; direct calls (−3% on param routes, measured 2026-05).
+- **O12**: `requestCtx1`/`requestCtx2` dropped their `params Params` field (slice derived from `small[:N]`); `reqBundle1` 416 → 384 B, `reqBundle2` 448 → 416 B size class.
+- **O13**: `PoolRequestBundle` recycles the bundle via `sync.Pool` — 0 allocs on param routes (1 param at HEAD: 118.5 → 48.51 ns). Handlers MUST NOT retain `*http.Request` past return.
+- **O9**: `PoolFastParams` recycles the `FastHandler` `Params` slice. Handlers MUST NOT retain `ps` past return.
+
+---
+
+### Historical: Apple M4 — 10 cores (4P+6E), 32 GB, Go 1.26.2, macOS arm64 (2026-05-12, v1.1.0-era code)
+
+Not re-measured on current code. Source: `reports/apple-m4-benchmarks-2026-05-12.md`.
 
 | Case | ns/op | B/op | allocs/op |
 |---|---|---|---|
 | Static route | 14.1 | 0 | 0 |
 | 1 parameter | 56.7 | 384 | 1 |
-| 2 parameters | 64.2 | 416 | 1 |
-| 3 parameters | 69.7 | 480 | 1 |
-| Catch-all | 58.2 | 384 | 1 |
 | Parallel static | 2.4 | 0 | 0 |
-| Parallel 1 parameter | 82.2 | 384 | 1 |
 | **Pooled** 1 parameter | **28.4** | **0** | **0** |
-| **Pooled** 2 parameters | **36.4** | **0** | **0** |
-| **Pooled** 3 parameters | **38.6** | **0** | **0** |
-| **Pooled** catch-all | **28.5** | **0** | **0** |
-| **Pooled** parallel param | **10.2** | **0** | **0** |
-| Fast static | 14.2 | 0 | 0 |
-| Fast 1 parameter | 28.4 | 32 | 1 |
-| Fast 2 parameters | 36.9 | 64 | 1 |
-| Fast 3 parameters | 45.9 | 96 | 1 |
-| Fast parallel param | 13.1 | 32 | 1 |
 
-Competitive benchmarks (`competitor/bench_test.go`, Apple M4, bunrouter using **native API**):
+Competitor suite on that date (bunrouter measured through its **native** API, which is not `net/http`-compatible):
 
-| Case | MuxMaster Pooled¹ | MuxMaster default | httprouter | bunrouter² | chi v5 |
-|---|---|---|---|---|---|
-| Static | **14 ns, 0 allocs** | 14 ns, 0 allocs | 14.7 ns, 0 allocs | 18.6 ns, 0 allocs | 114 ns, 2 allocs |
-| 1 parameter | **28 ns, 0 allocs** | 61.7 ns, 1 alloc | 33.0 ns, 1 alloc | 21.9 ns, 0 allocs | 196 ns, 4 allocs |
-| 2 parameters | **36 ns, 0 allocs** | 71.1 ns, 1 alloc | 39.6 ns, 1 alloc | 40.7 ns, 0 allocs | 226 ns, 4 allocs |
-| 3 parameters | **39 ns, 0 allocs** | 83.2 ns, 1 alloc | 45.1 ns, 1 alloc | 29.3 ns, 0 allocs | 225 ns, 4 allocs |
-| Catch-all | **29 ns, 0 allocs** | 57.4 ns, 1 alloc | 27.3 ns, 1 alloc | 11.5 ns, 0 allocs | 175 ns, 4 allocs |
-| Parallel static | **1.86 ns, 0 allocs** | 1.86 ns, 0 allocs | 2.35 ns, 0 allocs | 2.12 ns, 0 allocs | 120 ns, 2 allocs |
-| Parallel param | **10.2 ns, 0 allocs** | 112 ns, 1 alloc | 18.9 ns, 1 alloc | 3.97 ns, 0 allocs | 188 ns, 4 allocs |
-
-¹ MuxMaster Pooled = `Mux.PoolRequestBundle = true` (Opt O13 opt-in) — pooled numbers from internal bench_test.go; competitor suite tests default mode only
-² bunrouter uses native `bunrouter.HandlerFunc` API — not `net/http`-compatible; `http.Handler` adapter adds ~3 allocs (~180 ns/op)
-
----
-
-### AMD Ryzen 9 5900HX — 16 cores, Go 1.26.2, Linux 6.8 (2026-05-08)
-
-Internal benchmarks (`bench_test.go`):
-
-| Case | ns/op | B/op | allocs/op |
+| Case | MuxMaster Pooled | httprouter | bunrouter (native) |
 |---|---|---|---|
-| Static route | 25.1 | 0 | 0 |
-| 1 parameter | 105 | 384 | 1 |
-| 2 parameters | 119 | 416 | 1 |
-| 3 parameters | 135 | 480 | 1 |
-| Catch-all | 108 | 384 | 1 |
-| Parallel static | 3.6 | 0 | 0 |
-| Parallel 1 parameter | 100 | 384 | 1 |
-| **Pooled** 1 parameter | **49.6** | **0** | **0** |
-| **Pooled** 2 parameters | **55.9** | **0** | **0** |
-| **Pooled** 3 parameters | **58.6** | **0** | **0** |
-| **Pooled** catch-all | **43.9** | **0** | **0** |
-| **Pooled** parallel param | **6.3** | **0** | **0** |
-| Fast static | 25.5 | 0 | 0 |
-| Fast 1 parameter | 50.3 | 32 | 1 |
-| Fast 2 parameters | 67.9 | 64 | 1 |
-| Fast 3 parameters | 76.9 | 96 | 1 |
-| Fast parallel param | 16.5 | 32 | 1 |
-
-> Opt O10: eliminating the `doDispatch1`/`doDispatch2` function pointers gave −3% on all param routes. The indirect CALL was replaced by a direct call carrying the `if hasReqCtxField` branch internally.
-> Opt O12: `requestCtx1`/`requestCtx2` dropped their `params Params` field — the slice header is derived from `small[:N]` on access. reqBundle1: 416→384 B, reqBundle2: 448→416 B. +4–9% ns/op gain via smaller GC size class.
-> Opt O13 (opt-in via `Mux.PoolRequestBundle`): recycles `reqBundle` via `sync.Pool` — **−53% ns/op, −100% B/op (zero allocations)** on 1-param routes. Brings MuxMaster's stdlib `http.Handler` path on-par with the FastHandler one. Strict lifetime contract: handlers MUST NOT retain `*http.Request` past return. Failing this contract triggers use-after-free against the recycled bundle storage.
-
-Interpretation notes (both platforms):
-- **MuxMaster Pooled** is the fastest stdlib-compatible `http.Handler` HTTP router measured: 0 allocs on all param routes. On the M4, **faster than httprouter** (28 ns vs 33 ns, 1-param). Requires handler lifetime audit.
-- **MuxMaster default** is the maximum-safety design: tiered reqBundle (384/416/480 B for 1/2/3 params) fuses requestCtx + *http.Request into a single allocation. GC-managed lifetime — handlers may retain `r` freely.
-- **MuxMaster Fast** (`HandleFast`) bypasses the context overhead by passing `Params` as a 3rd argument — same model as httprouter's API but with stdlib `http.Handler` signature for static routes.
-- **httprouter** uses a different API (3rd argument `Params`), not native `http.Handler`; its 1 alloc is just the 64 B `Params` slice, not a full copy of `*http.Request`.
-- **bunrouter native** achieves 0 allocs via its own `bunrouter.HandlerFunc` signature — not `net/http`-compatible; the `http.Handler` adapter brings it to ~3 allocs.
-- **MuxMaster parallel static** is the fastest of all tested routers on the M4 (1.86 ns vs httprouter 2.35 ns, bunrouter 2.12 ns) — the lock-free `atomic.Pointer` read path has zero contention.
+| Static | 14 ns, 0 allocs | 14.7 ns, 0 allocs | 18.6 ns, 0 allocs |
+| 1 parameter | 28 ns, 0 allocs | 33.0 ns, 1 alloc | 21.9 ns, 0 allocs |
 
 ---
 

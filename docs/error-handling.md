@@ -94,7 +94,7 @@ type HTTPError interface {
 }
 ```
 
-Any error that implements this interface is recognized by MuxMaster's error-handling pipeline, including custom implementations:
+Your `ErrorHandler` can recognise any error that implements this interface with `errors.As`, including custom implementations:
 
 ```go
 type ValidationError struct {
@@ -110,10 +110,9 @@ func (e *ValidationError) StatusCode() int { return http.StatusUnprocessableEnti
 
 ## The Default Error Handler
 
-When no `ErrorHandler` is set, MuxMaster's default behaviour is:
+When no `ErrorHandler` is set, every non-nil error returned by a `HandlerFuncE` produces the same response: `500 Internal Server Error` with the plain-text body `Internal Server Error`. The status code carried by an `HTTPError` and the error message are **not** used, so no error detail reaches the client. Set an `ErrorHandler` to map `HTTPError` values to their status codes.
 
-- If the error implements `HTTPError`, respond with that status code and the error message as plain text.
-- Otherwise, respond with 500 Internal Server Error.
+The handler is read from the configuration snapshot taken on the first request; see [Configuration](configuration.md#when-configuration-takes-effect).
 
 ---
 
@@ -177,7 +176,7 @@ mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 
 ## Error-Returning Method Variants
 
-Every standard HTTP method has an error-returning variant:
+Eight methods have an error-returning helper:
 
 | Standard     | Error-returning |
 |--------------|-----------------|
@@ -188,6 +187,9 @@ Every standard HTTP method has an error-returning variant:
 | `mux.DELETE` | `mux.DELETEE`   |
 | `mux.HEAD`   | `mux.HEADE`     |
 | `mux.OPTIONS`| `mux.OPTIONSE`  |
+| `mux.QUERY`  | `mux.QUERYE`    |
+
+CONNECT and TRACE have none; use `mux.HandleE(http.MethodConnect, path, h)` or `mux.HandleE(http.MethodTrace, path, h)`.
 
 The same variants exist on `*Group`:
 
@@ -204,7 +206,7 @@ api.DELETEE("/users/:id", deleteUser)
 
 ### Not Found (404)
 
-Called when no route matches the request path:
+Called when no route matches the request path. When `NotFound` is `nil`, the router uses `http.NotFound` (plain-text `404 page not found`).
 
 ```go
 mux.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +235,9 @@ mux.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Requ
 })
 ```
 
-To enable 405 responses, `HandleMethodNotAllowed` must be `true` (the default).
+To enable 405 responses, `HandleMethodNotAllowed` must be `true` (the default). When `MethodNotAllowed` is `nil`, the router writes `405 Method Not Allowed` as plain text with the `Allow` header and `X-Content-Type-Options: nosniff`.
+
+The automatic OPTIONS response and the router's own redirects are wrapped by `Use()` middleware in the same way.
 
 **Middleware wrapping:**
 
@@ -243,13 +247,17 @@ Like `NotFound`, the `MethodNotAllowed` handler is wrapped by global middleware 
 
 ## Panic Recovery
 
-MuxMaster does not automatically recover from panics. Use `middleware.Recoverer` to catch panics before they crash the server:
+MuxMaster does not recover panics unless you ask it to. Without recovery, `net/http` recovers the panic itself, logs it and closes the connection, so the client gets no normal response. Use `middleware.RecovererWithLogger` to log the panic and answer with a plain `500 Internal Server Error`:
 
 ```go
-mux.Use(middleware.Recoverer())
+mux.Use(middleware.RecovererWithLogger(slog.Default())) // Handle routes registered after this call
+// or
+mux.Pre(middleware.RecovererWithLogger(slog.Default())) // every request, including HandleFast routes
 ```
 
-For custom panic handling, set `mux.PanicHandler`:
+`RecovererWithLogger` writes its 500 response only if the handler has not already sent a status or body bytes; otherwise it leaves the response as the handler left it. `middleware.Recoverer()` is deprecated and equivalent to `RecovererWithLogger(slog.Default())`.
+
+For custom panic handling, set `mux.PanicHandler`. It recovers panics from `Pre` middleware, `Use` middleware and the handlers of both `Handle` and `HandleFast` routes. A `RecovererWithLogger` registered inside it (with `Pre` or `Use`) catches a panic first, in which case `PanicHandler` is not called:
 
 ```go
 mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
@@ -265,6 +273,8 @@ mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
 - `w http.ResponseWriter` — the response writer
 - `r *http.Request` — the request that caused the panic
 - `rcv any` — the value passed to `panic()`
+
+`PanicHandler` must not panic itself: a second panic is not recovered by MuxMaster and reaches `net/http`, which closes the connection.
 
 ---
 
@@ -324,5 +334,5 @@ errors.Is(he, base) // true — unwraps through the HTTPError wrapper
 ## See Also
 
 - [Response Helpers](response-helpers.md) — JSON, XML, Text helpers
-- [Middleware](middleware.md) — Recoverer middleware
+- [Middleware](middleware.md) — `RecovererWithLogger` middleware
 - [Cookbook](cookbook.md) — error handling patterns for production APIs

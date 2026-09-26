@@ -39,8 +39,9 @@ func (ps Params) Lookup(name string) (value string, ok bool) {
 	return "", false
 }
 
-// Int returns the named parameter parsed as int.
-// Returns errParamNotFound if the key is absent, or a strconv error on parse failure.
+// Int returns the named parameter parsed as int (base 10).
+// Returns a non-nil error if the key is absent, or the strconv error on parse
+// failure.
 func (ps Params) Int(name string) (int, error) {
 	v, ok := ps.Lookup(name)
 	if !ok {
@@ -594,13 +595,22 @@ func PathParam(r *http.Request, name string) string {
 	return routeCtxParams(r.Context()).Get(name)
 }
 
-// ParamsFromContext returns the path parameters stored in ctx.
+// ParamsFromContext returns the path parameters stored in ctx, or nil when
+// ctx carries none (for example on a static route). ctx must not be nil; a
+// request whose internal context is nil is dispatched by ServeHTTP with
+// context.Background() as the parent, so r.Context() is always safe to pass.
 func ParamsFromContext(ctx context.Context) Params {
 	return routeCtxParams(ctx)
 }
 
 // RoutePattern returns the registered route pattern that matched the request,
-// or "" if none has been stored in the context.
+// or "" if none has been stored in the context. Only routes with at least one
+// parameter (named, regex or catch-all) store their pattern, so RoutePattern
+// returns "" for a static route, for the NotFound, MethodNotAllowed, automatic
+// OPTIONS and redirect handlers, and inside Pre middleware, which runs before
+// routing. A static route of a *Mux attached with Mount sees the mount's own
+// pattern, prefix + "/*mux_mount", because the context stores the nearest
+// parameterised match.
 func RoutePattern(r *http.Request) string {
 	return routeCtxPattern(r.Context())
 }

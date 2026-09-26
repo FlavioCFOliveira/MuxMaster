@@ -70,8 +70,8 @@ type RouteInfo struct {
 
 ## 5. RoutePattern (Implementation Perspective)
 
-27. The router stores the matched pattern string in the request context when a route is matched. The key is an unexported context key defined in `params.go`.
+27. The router stores the matched pattern string in the request context only when the matched route declares at least one parameter (named, regex, or catch-all). A static route stores no pattern. The key is an unexported context key defined in `params.go`.
 28. The pattern is stored alongside the `Params` slice. Both use the same `withParams` call internally.
 29. `RoutePattern(r *http.Request) string` reads this value from the context and returns it.
 30. The pattern value stored is the original pattern as registered (e.g., `/users/:id`), not a normalized or compiled form.
-31. `RoutePattern` returns `""` when no pattern is stored in the context. This occurs for requests handled by `NotFound`, `MethodNotAllowed`, TSR redirects, fixed-path redirects, and OPTIONS auto-responses.
+31. `RoutePattern` returns `""` when no pattern is stored in the context. This occurs for requests handled by `NotFound`, `MethodNotAllowed`, TSR redirects, fixed-path redirects, and OPTIONS auto-responses; for any static route (rule 27); and inside `Pre` middleware, which runs before route lookup (see [params.md](params.md) section 4, rules 28-30 for the full handler-facing statement, including the `Mount` exception).

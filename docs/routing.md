@@ -13,6 +13,7 @@ MuxMaster dispatches HTTP requests using a radix tree (compressed prefix trie). 
 - [Route Ordering and Middleware Timing](#route-ordering-and-middleware-timing)
 - [Trailing Slash Behaviour](#trailing-slash-behaviour)
 - [Path Normalization](#path-normalization)
+- [Route Introspection](#route-introspection)
 
 ---
 
@@ -34,13 +35,13 @@ mux.TRACE("/trace", trace)
 mux.QUERY("/books/search", searchBooks)
 ```
 
-All helpers accept a `http.HandlerFunc`. To pass an `http.Handler` directly, use `Handle`.
+All helpers accept an `http.HandlerFunc`. To pass an `http.Handler` directly, use `Handle`.
 
 ---
 
 ## Path Pattern Syntax
 
-Patterns are strings that begin with `/`. Four types of segment are supported:
+Patterns are strings that begin with `/`. Five kinds of segment are supported: static text, named parameters, regex-constrained parameters, catch-all parameters and optional parameters.
 
 ### Static segments
 
@@ -63,6 +64,8 @@ A segment starting with `:` captures one path segment (everything up to the next
                    no match /users/42/posts   (extra segment)
 ```
 
+A named or regex parameter never captures an empty segment, including one produced by a doubled slash: `/:id/posts` does not match `//posts`.
+
 Multiple parameters in the same pattern:
 
 ```
@@ -79,7 +82,7 @@ A segment of the form `{name:regexp}` captures the segment only if it matches th
                      no match /users/3.14
 ```
 
-The regexp is anchored automatically — you do not need `^` or `$`. The full Go regexp syntax is supported.
+The expression is compiled at registration as `^(?:expr)$`, so it is anchored automatically — you do not need `^` or `$`. It uses Go's [`regexp`](https://pkg.go.dev/regexp/syntax) (RE2) syntax; an invalid expression panics at registration. Even an expression that accepts the empty string, such as `[a-z]*`, never matches an empty segment.
 
 ### Catch-all parameters (`*name`)
 
@@ -91,7 +94,9 @@ A segment starting with `*` captures the rest of the path, including slashes. It
                    matches  /files/                → filepath = "/"
 ```
 
-The captured value always starts with `/`.
+The captured value always starts with `/`. The pattern must have a `/` immediately before `*`.
+
+The value is the unsanitised remainder of the request path and may contain `..` segments. Handlers that map it to files must use `http.FileServer` or `ServeFiles`, which clean the path, or clean and confine the value themselves.
 
 ### Optional parameters (`{/:name}` and `{/:name:pattern}`)
 
@@ -109,27 +114,26 @@ When a route contains optional parameters, the router automatically expands it i
 - A pattern may contain **at most 8 optional parameters**. Exceeding this limit panics at registration time to prevent exponential complexity in route expansion (a pattern with 8 optional parameters expands into 256 routes).
 - **Two optional parameters may not appear consecutively** (with no literal segment between them). For example, `/users{/:id}{/:post}` is invalid. Separate them with a literal segment: `/users{/:id}/posts{/:post}`.
 
-These constraints prevent both exponential expansion and conflicts in the radix tree structure. See [specification/routing.md](../specification/routing.md) §102-103 for the full technical rationale.
+These constraints prevent both exponential expansion and conflicts in the radix tree structure. See [specification/routing.md](../specification/routing.md) section 13 (requirements 103–105) for the full rationale.
 
 ---
 
 ## Pattern Priority and Conflicts
 
-When multiple patterns could match the same URL, MuxMaster resolves the conflict with the following priority (highest first):
-
-1. **Static segments** — exact text always wins over parameters at the same position
-2. **Named parameters** — `:name` wins over `*catch-all` at the same position
-3. **Catch-all** — matches anything that nothing else matched
-
-Example:
+A static segment and a named (or regex) parameter may share the same position. When both could match, the static segment wins:
 
 ```go
-mux.GET("/users/me",   getMe)       // 1. static → /users/me
-mux.GET("/users/:id",  getUser)     // 2. param  → /users/42
-mux.GET("/users/*all", catchAll)    // 3. catch  → /users/a/b/c
+mux.GET("/users/me",  getMe)    // GET /users/me → getMe
+mux.GET("/users/:id", getUser)  // GET /users/42 → getUser
 ```
 
-Registering two patterns that are ambiguous (e.g. two different named parameters at the same position) panics at startup to surface the conflict early.
+The tree holds one wildcard per position, so the following registrations panic, whichever of the two is registered second:
+
+- two different parameters at the same position, such as `/users/:id` and `/users/:name/posts`, or `/u/{id:[0-9]+}` and `/u/:name`;
+- a parameter and a catch-all at the same position, such as `/users/:id` and `/users/*all`;
+- a catch-all and a static sibling at the same position, such as `/*filepath` and `/api/users`.
+
+A catch-all therefore never competes with another route at its own position: it matches everything below its prefix that no deeper route claims. Registering the same method and pattern twice also panics.
 
 ### Lookup Fallback: Static Branch to Param Sibling
 
@@ -169,7 +173,9 @@ Each standard HTTP method has a direct helper on `*Mux` and on `*Group`:
 
 ¹ QUERY is standardised by RFC 10008 (June 2026). It is a safe, idempotent method like GET, but carries request content in the body like POST. The router performs no Content-Type validation; the handler is responsible.
 
-Each helper also has an error-returning variant (`GETE`, `POSTE`, `PUTE`, `QUERYE`, etc.) — see [Error Handling](error-handling.md).
+Error-returning variants (`GETE`, `HEADE`, `POSTE`, `PUTE`, `PATCHE`, `DELETEE`, `OPTIONSE`, `QUERYE`) exist on both `*Mux` and `*Group`; there is no `CONNECTE` or `TRACEE` — use `HandleE` for those methods. See [Error Handling](error-handling.md).
+
+`*Mux` also has a `FastHandler` variant for every method (`GETFast`, …, `QUERYFast`). `*Group` has none; register a fast route on a group with `g.HandleFast(method, path, h)`.
 
 ---
 
@@ -198,15 +204,17 @@ mux.Match([]string{"POST", "PUT"}, "/upload", uploadHandler)
 
 ## Low-Level Registration
 
-`Handle`, `HandleFunc`, and `HandleE` accept an explicit method string and are used for all ten standard methods and the `QUERY` method (RFC 10008). When called on `*Group`, these methods delegate to the parent `*Mux`'s same methods with identical behaviour.
+`Handle`, `HandleFunc`, `HandleE` and `HandleFast` accept an explicit method string. When called on `*Group`, they join the group prefix, apply the group middleware and delegate to the parent `*Mux`.
 
 ### Supported Methods
 
-The following eleven tokens are recognized by the router:
+The router accepts exactly ten method tokens:
 
 ```
 GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY
 ```
+
+Internally it also uses the token `"*"` for routes registered by `Mount`. `muxmaster.MethodQuery` holds the string `"QUERY"`, because `net/http` does not define an `http.MethodQuery` constant.
 
 These can be registered via the HTTP method helpers (e.g., `mux.GET`, `mux.QUERY`) or via `Handle` with an explicit method string:
 
@@ -223,7 +231,7 @@ All three pairs of methods are equivalent:
 
 ### GET and HEAD Methods
 
-Unlike `net/http.ServeMux` and some other routers, **registering a handler for GET does not automatically handle HEAD requests**. HEAD requests to a GET-only route return `405 Method Not Allowed`. To handle HEAD requests, register them explicitly:
+Unlike `net/http.ServeMux`, **registering a handler for GET does not automatically handle HEAD requests**. A HEAD request to a GET-only route returns `405 Method Not Allowed` with `Allow: GET, OPTIONS` (or `404 Not Found` when `HandleMethodNotAllowed` is `false`). To handle HEAD requests, register them explicitly:
 
 ```go
 mux.GET("/users/:id", getUser)
@@ -319,18 +327,26 @@ This design eliminates per-request middleware iteration. Combined with the radix
 - If a request arrives for `/users/` and only `/users` is registered, MuxMaster redirects to `/users`.
 - If a request arrives for `/users` and only `/users/` is registered, MuxMaster redirects to `/users/`.
 
+The redirect happens only when the requested path itself has no route; if both `/users` and `/users/` are registered, each is served directly. It never applies to the root path `/` or to CONNECT requests. The query string is preserved.
+
 This also applies to catch-all routes and mounted handlers. For example, with `Mount("/api", handler)` (internally registered as `Handle("*", "/api/*mux_mount", ...)`, with a wrapper that strips the prefix before calling `handler`):
 
 - A request to `/api` (bare prefix, no trailing slash) triggers a redirect to `/api/` when `RedirectTrailingSlash` is `true`.
 - A request to `/api/` and `/api/anything` both match the mounted handler directly.
 
-The redirect uses the code set in `RedirectCode` (default 301).
+When the mounted handler is itself a `*muxmaster.Mux`, its own automatic redirects keep the mount prefix: an inner redirect from `/x` to `/x/` reaches the client as `Location: /api/x/`.
 
-**Redirect target encoding:**
+**Redirect status code:** with `RedirectCode` left at `0` (the default), the redirect is `301 Moved Permanently` for GET and HEAD and `307 Temporary Redirect` for every other method, including QUERY, so the method and body are preserved. A non-zero `RedirectCode` is used for every method.
 
-When building the redirect target, MuxMaster percent-encodes any ASCII control bytes (0x00–0x1F and 0x7F) that appear in the computed path. This conforms to RFC 9110 section 5.5, which prohibits raw control bytes in HTTP field values. All other bytes, including the query string, are left unchanged. This ensures that redirects containing decoded control characters (e.g., a newline in a path segment after percent-decoding) cannot inject headers or response content.
+**Redirect target encoding:** the `Location` value is always a path on the same origin, never a scheme or host taken from the request. Before it is written, MuxMaster:
 
-To disable this and return 404 instead:
+- percent-encodes every backslash (`\` → `%5C`), because browsers treat `/\` at the start of a URL like `//` and would resolve the redirect to another origin (WHATWG URL Standard);
+- percent-encodes every ASCII control byte (0x00–0x1F) and DEL (0x7F), which RFC 9110 section 5.5 forbids in field values, so a decoded control character in the path cannot inject headers;
+- percent-encodes non-ASCII bytes, as `net/http.Redirect` does.
+
+The query string is appended unchanged. Apart from the backslash and control-byte encoding, the response is byte-identical to `net/http.Redirect`.
+
+To disable trailing-slash redirects and return 404 instead:
 
 ```go
 mux.RedirectTrailingSlash = false
@@ -340,19 +356,50 @@ mux.RedirectTrailingSlash = false
 
 ## Path Normalization
 
-`RedirectFixedPath` (default `true`) normalizes the URL before matching:
+`RedirectFixedPath` is **`false` by default**. When you enable it, a request whose path has no route (and no trailing-slash redirect) is checked again with its `path.Clean` form; if that cleaned path has a route, MuxMaster redirects to it:
 
-- Removes duplicate slashes: `//users` → `/users`
-- Resolves dot segments: `/a/../users` → `/users`
-- If a match is found after normalization, issues a redirect to the clean URL
+- duplicate slashes: `//users` → `/users`
+- dot segments: `/a/../users` → `/users`
 
-To use pre-routing path cleaning instead of a redirect (useful when you want the clean path without a round-trip), add the middleware:
+It does not change letter case. The redirect uses the same status codes and `Location` encoding as trailing-slash redirects.
+
+```go
+mux.RedirectFixedPath = true
+```
+
+It is off by default for security: path canonicalisation can bypass middleware that inspects the raw path.
+
+To route the cleaned path directly, without a redirect, add the `CleanPath` middleware before routing:
 
 ```go
 mux.Pre(middleware.CleanPath())
 ```
 
-`CleanPath` modifies the request in-place before the router sees it, so no redirect is issued.
+`CleanPath` hands the router a shallow copy of the request with the cleaned path; the original request is not modified. Register it before any `Pre` middleware that inspects the path.
+
+---
+
+## Route Introspection
+
+`*Mux` can report what is registered without serving a request:
+
+| Method | Behaviour |
+|---|---|
+| `Lookup(method, path) (http.Handler, Params, bool)` | Matches `path` exactly as registered: no redirects, and `CaseInsensitive` is ignored. For a `HandleFast` route it returns a `nil` handler, the captured `Params` and `true`. |
+| `Routes() []RouteInfo` | Lists every route, both `Handle` and `HandleFast`, with its method, pattern and handler function name. A mount point is listed with method `"*"` and pattern `<prefix>/*mux_mount`. An optional-parameter pattern is listed as its expanded routes. |
+| `Walk(fn)` | Calls `fn` for every `Handle` route and skips `HandleFast` routes; returning an error stops the walk. |
+| `WalkFast(fn)` | Calls `fn` for every `HandleFast` route and skips `Handle` routes. |
+
+These methods take the registration read lock, which request dispatch never takes; they are intended for start-up checks, tests and admin endpoints, not the request path.
+
+```go
+if _, _, ok := mux.Lookup(http.MethodGet, "/users/42"); !ok {
+    log.Fatal("route /users/:id is missing")
+}
+for _, r := range mux.Routes() {
+    fmt.Printf("%-7s %s\n", r.Method, r.Pattern)
+}
+```
 
 ---
 

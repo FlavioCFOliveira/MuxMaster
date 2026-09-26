@@ -1,24 +1,3 @@
-// Package muxmaster is a high-performance HTTP request multiplexer for Go.
-//
-// Routes are matched with a radix (compressed prefix) tree, giving O(k) lookup
-// where k is the path length. Zero external dependencies; pure standard library.
-//
-// Usage:
-//
-//	mux := muxmaster.New()
-//	mux.Use(logger, auth)          // middleware applied to every route below
-//	mux.GET("/users", listUsers)
-//	mux.GET("/users/:id", getUser)
-//	mux.GET("/static/*filepath", serveFiles)
-//
-//	api := mux.Group("/api/v1")
-//	api.Use(apiKeyCheck)
-//	api.POST("/items", createItem)
-//
-//	http.ListenAndServe(":8080", mux)
-//
-// Middleware must be registered (via Use) before the routes it should wrap.
-// Dynamic route registration after the server starts serving is not supported.
 package muxmaster
 
 import (
@@ -186,15 +165,19 @@ type Mux struct {
 	// handler exists at the alternate path.
 	RedirectTrailingSlash bool
 
-	// RedirectFixedPath redirects requests whose cleaned path has a handler.
+	// RedirectFixedPath redirects a request whose path has no route, but
+	// whose path.Clean form does, to that cleaned path (for example //users
+	// or /a/../users to /users). New leaves it false: a redirect to a
+	// canonicalised path can bypass path-inspecting middleware.
 	RedirectFixedPath bool
 
 	// HandleMethodNotAllowed returns 405 with an Allow header when the path
 	// exists but not for the requested method.
 	HandleMethodNotAllowed bool
 
-	// HandleOPTIONS replies to OPTIONS requests with the Allow header set to
-	// all registered methods for the matched path.
+	// HandleOPTIONS replies to OPTIONS requests for a path that has no
+	// explicit OPTIONS route with 204 No Content and an Allow header listing
+	// the methods registered for that path.
 	HandleOPTIONS bool
 
 	// CaseInsensitive enables case-insensitive route matching for static segments.
@@ -217,17 +200,19 @@ type Mux struct {
 	// then DECODED in the captured param value. A request such as
 	// `/files/..%2fetc%2fpasswd` binds `:filepath` to the literal string
 	// `..\x2fetc\x2fpasswd` — i.e. the captured value contains a real slash.
-	// Handlers that pass `ParamsFromContext(...).ByName("filepath")` to
+	// Handlers that pass `ParamsFromContext(...).Get("filepath")` to
 	// `os.Open`, `http.FileServer`, or any URL/file API WITHOUT calling
 	// `path.Clean` (and rejecting values that contain `..`) are vulnerable to
-	// directory traversal. The `clean_path` middleware does NOT normalise
+	// directory traversal. The CleanPath middleware does NOT normalise
 	// post-decode values; it only canonicalises the request path before
 	// dispatch. See SECURITY.md "UseRawPath traversal" and
 	// examples/static-site/ for the safe pattern.
 	UnescapePathValues bool
 
-	// RedirectCode overrides the default redirect status code (301/307).
-	// Zero means use the default.
+	// RedirectCode overrides the status code of the automatic trailing-slash
+	// and fixed-path redirects. Zero (the default) means 301 Moved
+	// Permanently for GET and HEAD and 307 Temporary Redirect for every
+	// other method, including QUERY, so the method and body are preserved.
 	RedirectCode int
 
 	// NotFound is called when no route matches (default: http.NotFound).
@@ -276,7 +261,8 @@ type Mux struct {
 	// PoolRequestBundle, when true, recycles the per-request reqBundle (the
 	// fused requestCtx + http.Request copy) handed to http.Handler routes
 	// with path parameters via a tiered sync.Pool. It eliminates the
-	// 368/400/480-byte allocation on every param-route request and is the
+	// per-request bundle allocation (a 384, 416 or 480 B size class for 1, 2
+	// or 3+ parameters) on every param-route request and is the
 	// single largest performance lever for stdlib-style handlers — but it
 	// enforces a strict lifetime contract:
 	//
@@ -285,21 +271,20 @@ type Mux struct {
 	//   the handler observe a recycled request bound to an unrelated route —
 	//   effectively a use-after-free against the bundle storage.
 	//
-	// This contract is stricter than the Go stdlib's documented invariant
-	// (net/http itself recycles request structs internally, but only via the
-	// per-connection serve loop, which guarantees the handler has returned
-	// before recycling). With PoolRequestBundle the recycling happens at
-	// MuxMaster's dispatch boundary, which is finer-grained.
+	// This contract is stricter than the default mode, in which a handler
+	// may retain r after returning: with PoolRequestBundle the storage behind
+	// r is reused as soon as MuxMaster's dispatch returns.
 	//
 	// Default is FALSE for full stdlib semantics. Operators who audit their
-	// handlers and confirm they do not retain r past return may opt in to
-	// drive ParamRoute1 from ~106 ns / 384 B / 1 alloc down to roughly
-	// 40-50 ns / 0 B / 0 allocs on the hot path.
+	// handlers and confirm they do not retain r past return may opt in. On
+	// the 2026-09-26 benchmark run (AMD Ryzen 9 5900HX, Go 1.27.0; see
+	// docs/performance.md) it took BenchmarkParamRoute1 from 118.5 ns /
+	// 384 B / 1 alloc to 48.5 ns / 0 B / 0 allocs.
 	//
 	// SECURITY (Opt O13): the bundle is fully zeroed before returning to
 	// the pool, so secrets accidentally stored in request fields by a
-	// handler cannot leak across requests. The zeroing cost (~10 ns) is
-	// already included in the projected savings.
+	// handler cannot leak across requests. The measured figures above
+	// include the zeroing cost.
 	PoolRequestBundle bool
 
 	middleware     []func(http.Handler) http.Handler
@@ -375,7 +360,11 @@ func (m *Mux) warnRawPathDecodeIfEnabled() {
 	})
 }
 
-// New returns a Mux with production-safe defaults enabled.
+// New returns a Mux with production-safe defaults: RedirectTrailingSlash,
+// HandleMethodNotAllowed and HandleOPTIONS are true; RedirectFixedPath,
+// CaseInsensitive, UseRawPath, UnescapePathValues, PoolFastParams and
+// PoolRequestBundle are false; RedirectCode is 0 and every handler field is
+// nil, selecting the documented defaults.
 func New() *Mux {
 	return &Mux{
 		RedirectTrailingSlash:  true,
@@ -451,7 +440,9 @@ func (m *Mux) Pre(mw ...func(http.Handler) http.Handler) {
 // contain dot-dot segments; handlers serving files must use http.FileServer
 // or ServeFiles, or clean and confine the value themselves.
 //
-// Panics on empty method, non-absolute path, nil handler, or route conflict.
+// Panics on an empty or unsupported method, a path that does not begin with
+// '/', a nil handler, or a route conflict. The supported methods are GET,
+// HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE and QUERY.
 func (m *Mux) Handle(method, pattern string, handler http.Handler) {
 	switch {
 	case method == "":
@@ -547,8 +538,9 @@ func (m *Mux) UseFast(mw ...FastMiddleware) {
 //
 // PanicHandler (if set) recovers panics on both Handle and HandleFast paths.
 //
-// Panics on empty method, non-absolute path, nil handler, route conflict,
-// or when Use() middleware is registered.
+// Panics on an empty or unsupported method, a path that does not begin with
+// '/', a nil handler, a route conflict, or when Use() middleware is
+// registered.
 func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
 	switch {
 	case method == "":
@@ -715,7 +707,8 @@ func (m *Mux) OPTIONSE(pattern string, h HandlerFuncE) { m.HandleE(http.MethodOp
 // QUERY is a standard HTTP method (RFC 10008); see MethodQuery.
 func (m *Mux) QUERYE(pattern string, h HandlerFuncE) { m.HandleE(MethodQuery, pattern, h) }
 
-// ANY registers handler for all standard HTTP methods on pattern.
+// ANY registers h on pattern for every supported method: GET, HEAD, POST,
+// PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE and QUERY.
 func (m *Mux) ANY(pattern string, h http.HandlerFunc) {
 	for _, method := range anyMethods {
 		m.HandleFunc(method, pattern, h)
@@ -729,7 +722,9 @@ func (m *Mux) Match(methods []string, pattern string, handler http.Handler) {
 	}
 }
 
-// Group returns a RouteGroup whose routes share the given path prefix.
+// Group returns a *Group whose routes share the given path prefix. The group
+// starts with no middleware of its own; the Mux's Use middleware still wraps
+// its routes.
 func (m *Mux) Group(prefix string) *Group {
 	return &Group{mux: m, prefix: prefix}
 }
@@ -750,11 +745,17 @@ func (m *Mux) Route(prefix string, fn func(*Group)) {
 }
 
 // Mount attaches h at prefix, stripping the prefix before forwarding the request.
-// The catch-all parameter is named "mux_mount".
+// Trailing '/' characters are removed from prefix, and the mount is
+// registered under the internal method "*" with the pattern
+// prefix + "/*mux_mount", which is how Routes lists it. Explicit routes in the
+// request method's own tree take precedence over the mount. Middleware
+// registered with Use before Mount wraps h. Panics if h is nil, if prefix does
+// not begin with '/' or is not valid UTF-8, or if its last element is an
+// optional parameter.
 //
 // h receives a shallow copy of the request (see the Terminology section in
-// README.md): a new *http.Request with a new URL, but sharing the original's
-// header map, Trailer, Form and context. h may read the original request's
+// specification/README.md): a new *http.Request with a new URL, but sharing
+// the original's header map, Trailer, Form and context. h may read the original request's
 // headers, but must not mutate them in place — such a mutation would be
 // visible to the caller's original request and to any outer middleware that
 // runs after Mount returns.
@@ -1066,8 +1067,8 @@ type mountBundle struct {
 // prefix must end with "/*name" (e.g. "/static/*filepath").
 //
 // http.FileServer receives a shallow copy of the request (see the
-// Terminology section in README.md): a new *http.Request with a new URL,
-// but sharing the original's header map and context.
+// Terminology section in specification/README.md): a new *http.Request with
+// a new URL, but sharing the original's header map and context.
 //
 // SECURITY (CDX-S8-002): http.FileServer applies path.Clean internally,
 // so a request like /static/../etc/passwd cannot escape root. However,

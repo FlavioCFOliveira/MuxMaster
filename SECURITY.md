@@ -34,10 +34,10 @@ that the issue is closed.
 
 | ID | Sev | Class | Summary | Fix location | Status |
 |---|---|---|---|---|---|
-| **CSA-2026-0060** | 8 | CWE-440 / CWE-863 | `ParamsFromContext()` silently returned empty params when any `Use()`-registered middleware wrapped the request context (`Timeout`, `WithValue`, `RealIP`). An auth handler comparing `:userID` to a JWT subject would see `""` and could grant or deny access incorrectly. | `params.go:357-378` — slow-path `ctx.Value` fallback gated by reflection-discovered `hasReqCtxField` | **FIXED** |
-| **HPS-2026-0005** | 7 | CWE-601 | When the request line used absolute-form URI (RFC 7230 §5.3.2, e.g. `GET http://evil.com/x HTTP/1.1`), `RedirectTrailingSlash` and `RedirectFixedPath` echoed the attacker-controlled scheme + host into the `Location` header — open redirect. | `mux.go:945, 960` — `Location` is now built from a path-only `url.URL` so the scheme + host can never originate from request input | **FIXED** |
-| **FPE-2026-010** | 6 | CWE-693 / CWE-863 | Calling `Mux.Use(authMW)` followed by `Mux.HandleFast(...)` silently registered a fast route with NO middleware applied. `Use()`'s GoDoc explicitly claimed this combination panics — but the panic guard from CSA-2026-0054 was only wired to `Group.HandleFast`, not root `Mux.HandleFast`. | `mux.go:435-445` — root `HandleFast` panics when `Use()`-registered middleware is present, mirroring `Group.HandleFast` | **FIXED** |
-| **TM-2026-005** | 4 | CWE-532 | The construction-time `slog.Warn` issued when `OAuth2Introspect` is configured with `AllowInsecureEndpoint: true` logged the full endpoint URL — including any credentials embedded in the query string. | `middleware/oauth2.go:229-233` — log `host` + `scheme` only, never the full URL | **FIXED** |
+| **CSA-2026-0060** | 8 | CWE-440 / CWE-863 | `ParamsFromContext()` silently returned empty params when any `Use()`-registered middleware wrapped the request context (`Timeout`, `WithValue`, `RealIP`). An auth handler comparing `:userID` to a JWT subject would see `""` and could grant or deny access incorrectly. | `params.go`, `routeCtxParams` — when the context is not the router's own, a slow-path `ctx.Value(contextKey{})` fallback walks the wrapped context chain | **FIXED** |
+| **HPS-2026-0005** | 7 | CWE-601 | When the request line used absolute-form URI (RFC 7230 §5.3.2, e.g. `GET http://evil.com/x HTTP/1.1`), `RedirectTrailingSlash` and `RedirectFixedPath` echoed the attacker-controlled scheme + host into the `Location` header — open redirect. | `mux.go`, `Mux.dispatch` (trailing-slash and fixed-path redirect branches) and `buildRedirectTarget` — `Location` is built from the path and raw query only, so the scheme + host can never originate from request input | **FIXED** |
+| **FPE-2026-010** | 6 | CWE-693 / CWE-863 | Calling `Mux.Use(authMW)` followed by `Mux.HandleFast(...)` silently registered a fast route with NO middleware applied. `Use()`'s GoDoc explicitly claimed this combination panics — but the panic guard from CSA-2026-0054 was only wired to `Group.HandleFast`, not root `Mux.HandleFast`. | `mux.go`, `Mux.HandleFast` — root `HandleFast` panics when `Use()`-registered middleware is present, mirroring `Group.HandleFast` | **FIXED** |
+| **TM-2026-005** | 4 | CWE-532 | The construction-time `slog.Warn` issued when `OAuth2Introspect` is configured with `AllowInsecureEndpoint: true` logged the full endpoint URL — including any credentials embedded in the query string. | `middleware/oauth2.go`, `OAuth2Introspect` — the construction-time `slog.Warn` and `slog.Info` log `host` + `scheme` only, never the full URL | **FIXED** |
 
 ## Defects Found and Fixed (Sprint 18 — Unreleased)
 
@@ -94,21 +94,60 @@ warnings.
 The README "Security defaults" section reproduces this matrix and the
 hardened-stack snippet.
 
+## Hardening Behaviours Added in Sprints 19–20 (Unreleased)
+
+These behaviours are in the code on the `[Unreleased]` line of
+[CHANGELOG.md](CHANGELOG.md); operators relying on the previous behaviour
+should review them.
+
+- **Redirect `Location` encoding (rmp #260, rmp #279).** The router's own
+  trailing-slash and fixed-path redirects percent-encode every ASCII
+  control byte (0x00–0x1F, 0x7F) per RFC 9110 §5.5 and every backslash
+  (`\` → `%5C`). The backslash encoding neutralises the WHATWG
+  "special authority slashes" shape, in which a browser resolves a
+  `Location` such as `/\evil.com/` to another origin. It is a deliberate
+  divergence from `net/http.Redirect`, which encodes neither; the
+  `muxmaster.Redirect` helper delegates to `net/http.Redirect` and
+  therefore does not apply it. `%5C` decodes back to `\` on the follow-up
+  request, so a registered backslash route is still reached on the same
+  origin. Defence in depth: a backslash can reach a redirect target only
+  through a route the operator registered.
+- **`CORS` sends `Vary: Origin` on every response (TM-2026-033,
+  rmp #291).** Previously it was added only for a matched, non-wildcard
+  origin, so a shared cache could serve a response fetched without CORS
+  relevance to a CORS-relevant origin. It is now added (with `Header.Add`,
+  keeping other `Vary` values) to every response CORS produces or
+  forwards, including requests without `Origin` and CORS's own 400/403
+  responses.
+- **`BasicAuth` constant-time user lookup (TSC-2026-0002, rmp #290).**
+  Every request scans all registered users with `crypto/subtle`; see
+  TSC-2026-0002 under "Accepted Timing Oracles" for the residual figures
+  and the per-user cost.
+- **`OAuth2Introspect` credential redaction (CWE-532, rmp #280).** The
+  construction-time panics for a malformed `Endpoint`, an `Endpoint`
+  without a host and an `Endpoint` with userinfo now redact credentials
+  embedded in the URL, as the construction-time log lines already did
+  (TM-2026-005). The singleflight leader keeps request-scoped context
+  values while ignoring the leader's cancellation (MSR-2026-0071).
+- **`Recoverer` no longer corrupts a started response (O-14, rmp #276).**
+  It writes its 500 response only if the handler has not yet sent a
+  status or body bytes.
+
 ## Thread-Safety Contract (MM-2026-0017 / CSA-2026-0052)
 
 All public `Mux` fields (`PanicHandler`, `NotFound`, `MethodNotAllowed`,
 `GlobalOPTIONS`, `ErrorHandler`, `RedirectTrailingSlash`, `RedirectFixedPath`,
 `CaseInsensitive`, `UseRawPath`, `UnescapePathValues`, `RedirectCode`,
-`HandleMethodNotAllowed`, `HandleOPTIONS`) **must be set before the first
-call to `ServeHTTP`**. On the first request these values are atomically
+`HandleMethodNotAllowed`, `HandleOPTIONS`, `PoolFastParams`,
+`PoolRequestBundle`) **must be set before the first call to `ServeHTTP`**. On the first request these values are atomically
 captured into a frozen `muxConfig` snapshot and every subsequent dispatch
 reads from that snapshot — direct field mutation after serving begins is
 ignored by the dispatch path and races with the snapshot's first read.
 
 To reconfigure handlers after serving starts, mutate the field and then call
 `Mux.Rebuild()`. `Rebuild()` atomically resets the snapshot and the lazy
-NotFound/405/OPTIONS handler caches so the next request re-reads every
-field. `Rebuild()` is safe to call concurrently with `ServeHTTP`.
+NotFound/405/OPTIONS/redirect handler caches so the next request re-reads
+every field. `Rebuild()` is safe to call concurrently with `ServeHTTP`.
 
 `Use()` and `Pre()` are safe to call concurrently with `Handle()` during
 route registration (before serving), but must not be called concurrently with
@@ -196,7 +235,7 @@ responsibilities — they are not router defects:
 - **`%61dmin` matches `/admin`** when `UseRawPath=false` (the default).
   `net/http` decodes `%61` to `a` during URL parsing per RFC 3986 §6.2.2.2,
   so the router sees `/admin`. To enforce byte-exact path matching set
-  `r.UseRawPath = true` — patterns then match against `r.URL.RawPath`,
+  `mux.UseRawPath = true` — patterns then match against `r.URL.RawPath`,
   which preserves the percent-encoded form (PRF-2026-0002).
 
 #### UseRawPath traversal (PRF-2026-0002 / CDX-S8-002)
@@ -209,10 +248,10 @@ as `/files/..%2fetc%2fpasswd` against the route `/files/:filepath`
 binds `:filepath` to the literal string `..\x2fetc\x2fpasswd` — i.e. the
 captured value contains a real slash.
 
-Handlers that pass `ParamsFromContext(...).ByName("filepath")` to
+Handlers that pass `ParamsFromContext(...).Get("filepath")` to
 `os.Open`, `http.FileServer`, or any URL/file API WITHOUT calling
 `path.Clean` (and rejecting values that contain `..`) are vulnerable to
-directory traversal. The `clean_path` middleware does NOT normalise
+directory traversal. The `CleanPath` middleware does NOT normalise
 post-decode values; it only canonicalises the request path before
 dispatch.
 
@@ -231,13 +270,14 @@ to make the misconfiguration visible in startup logs. Additionally,
 http.FileServer would treat decoded slashes as path separators inside
 the static-file root (CDX-S8-002).
 
-**UseRawPath + CleanPath interaction:** When `UseRawPath = true`, the request
-path is left percent-encoded and `net/http` does not decode it before routing.
-If `CleanPath` is registered (as a Pre-gate), it cleans the decoded path via
-`path.Clean`, then compares the result against a cleaned RawPath: if they
-diverge (e.g., `/a/%2e%2e/b` decodes to `/a/b` but the literal-cleaned
-`%2e%2e` does not clean to `..`), `CleanPath` zeroes `RawPath` to prevent
-encoded traversal bypass (test `TestSec_CleanPath_RawPathWithTraversalZeroed`,
+**UseRawPath + CleanPath interaction:** When `UseRawPath = true`, the router
+matches against `r.URL.RawPath` (the percent-encoded form, which `net/http`
+sets only when it differs from the decoded `r.URL.Path`). If `CleanPath` is
+registered (as a Pre-gate), it cleans the decoded path via `path.Clean`, then
+compares the result against a cleaned RawPath: if they diverge (e.g. for
+`/a/%2e%2e/b`, `Path` is `/a/../b`, which cleans to `/b`, while `path.Clean`
+does not treat the encoded `%2e%2e` in `RawPath` as `..`), `CleanPath` zeroes
+`RawPath` to prevent encoded traversal bypass (test `TestSec_CleanPath_RawPathWithTraversalZeroed`,
 MSR-2026-0061, 2026-09-26). This means CleanPath already protects against
 encoded traversal even with `UseRawPath = true`. Handlers still must not
 pass RawPath values directly to file I/O; always decode and validate
@@ -320,14 +360,15 @@ than total request rate.
 
 When `OAuth2Introspect` has concurrent requests for the same token, the
 first request (the "leader") performs the introspection call while others
-(the "followers") wait for its result via the singleflight group (golang.org/x/sync/singleflight).
+(the "followers") wait for its result via an in-process singleflight group
+keyed by `sha256(token)` (MuxMaster has no external dependencies).
 If the leader's context (the first request's `r.Context()`) is cancelled
 (e.g. by a `Timeout` middleware or client disconnect), the leader's context
 cancellation must not poison the cached result for followers. As of commit
-0eafe9e (rmp #277), the leader performs introspection with a detached
-`context.WithTimeout(context.WithoutCancel(r.Context()), 30s)` — request values are kept (rmp #280, commit 0eafe9e) but independent of the leader's
-request context, so context value overrides and cancellations from the first
-request do not affect followers. The 30s timeout is a fixed upper bound on
+0eafe9e (rmp #280), the leader performs introspection with a detached
+`context.WithTimeout(context.WithoutCancel(r.Context()), 30s)`: the
+leader's request-scoped context values are kept, but its cancellation and
+deadline are not, so a cancelled leader does not fail its followers. The 30s timeout is a fixed upper bound on
 introspection latency; it is **not** configurable and is separate from
 `CacheTTL` (which controls cache expiry, not introspection timeout).
 
@@ -443,11 +484,13 @@ valid-request latency. Operators concerned about LAN-adjacent statistical
 attacks should rate-limit aggressively and monitor for prefix-scan probes.
 
 - **TSC-2026-0001 (BasicAuth valid vs invalid password, 890 ns; accepted
-  bound: ≤2000 ns).** The `map[string][32]byte` credential lookup uses
-  `runtime.mapaccess2_faststr` which is not constant time. The post-auth
-  code path (`next.ServeHTTP` vs `http.Error+WWW-Authenticate`) also
-  dominates the visible delta. Constant-time comparison of the hashed
-  credentials is already used; the remaining oracle is the map shape. The
+  bound: ≤2000 ns).** The 890 ns figure was measured when the credential
+  lookup still used a `map[string][32]byte` (`runtime.mapaccess2_faststr`,
+  not constant time). Since commit 6ac8772 (rmp #290, see TSC-2026-0002
+  below) the lookup is a constant-time scan over all users, so no map
+  remains; the visible delta is dominated by the post-auth code path
+  (`next.ServeHTTP` vs `http.Error` + `WWW-Authenticate`), which differs
+  by design. The
   bound is asserted by `TestTiming_BasicAuth_ValidVsInvalid`
   (`tsc20260001BoundNs` in `basic_auth_timing_test.go`), derived 2026-09-25
   (rmp #270 / O-9) as 2× the worst of the documented figure and 6
@@ -546,13 +589,14 @@ attacks should rate-limit aggressively and monitor for prefix-scan probes.
   reported in `reports/overview/2026-09-26-closed-task-audit.md` row #153.
 
 - **TSC-2026-0012 (JWTAuth alg=none vs alg=HS256, 226 ns; no bound
-  asserted).** When `JWTAuth` is misconfigured to accept the unsigned `alg=none`
-  token format (non-default; requires explicit `"none"` in the `Algorithms`
-  list), the JWT processing path is measurably different from HMAC verification
-  (mean-diff 226 ns, alg=none SLOWER, not faster as the original hypothesis
-  suggested). The oracle is sub-microsecond. More importantly, accepting
-  `alg=none` is a catastrophic auth bypass and must never be enabled in
-  production (see `middleware/jwt_auth.go` GoDoc). Measured 2026-09-26
+  asserted).** `JWTAuth` never accepts the unsigned `alg=none` format:
+  `"none"` is not a supported algorithm, and listing it in `Algorithms`
+  panics at construction. A token whose header declares `alg=none`, sent to
+  an HS256-configured `JWTAuth`, is rejected with 401 at the algorithm
+  allow-list check; that rejection path is measurably different from HMAC
+  verification of an HS256 token (mean-diff 226 ns, alg=none SLOWER, not
+  faster as the original hypothesis suggested). The oracle is
+  sub-microsecond and reveals only that the token was rejected. Measured 2026-09-26
   (N=200k, `reports/timing-and-sidechannel-analyst/harness/jwt_alg_confusion_timing_test.go`,
   `reports/overview/2026-09-26-closed-task-audit.md` row #154).
 
@@ -585,9 +629,9 @@ reconnaissance of IdP infrastructure:
    timing difference that leaks whether a token was recently active on the service.
 
 3. **Route existence timing (TSC-2026-0005):** Dispatch to a registered
-   route (~960 ns) versus an unregistered path (also ~960 ns + tree lookup
-   for the not-found case) produces a measurable timing difference intrinsic
-   to radix-tree lookup.
+   route and to an unregistered path at the same depth differ by about
+   932 ns, a difference intrinsic to radix-tree lookup (see
+   "Route-Existence Timing Oracle (MM-2026-0026)").
 
 **Composite vector:** An attacker can submit multiple tokens and measure
 response latencies to infer: (a) which algorithm family is configured,
@@ -642,10 +686,10 @@ time) if needed (TM-2026-003, rmp #286).
 
 `JWTAuth` treats `exp: null` (the JSON null value) and `exp: 0` as if the
 `exp` claim is absent — the token is never expired by the JWT expiry check.
-When `RequireExpiry: true` (the safe default as of 2026-09-26), a token
+When `RequireExpiry: true` (the recommended production setting), a token
 without an `exp` claim or with `exp` null/0 fails validation. When
-`RequireExpiry: false` (the default for backward compatibility), such tokens
-pass expiry validation (though they may fail on other checks like issuer or
+`RequireExpiry: false` (the default, kept for backward compatibility), such
+tokens pass expiry validation (though they may fail on other checks like issuer or
 signature). Tokens created by non-standard JWT libraries or hand-crafted
 edge cases must carry a numeric, positive Unix timestamp in the `exp` claim
 for expiry validation to work correctly (TM-2026-002, rmp #287).
@@ -665,8 +709,8 @@ at construction time.
 ### Recoverer Middleware Panic Logging (TM-2026-025)
 
 `middleware.Recoverer` and `middleware.RecovererWithLogger` catch panics
-and emit a `slog.Warn` (via slog default logger or the supplied logger)
-containing the raw panic value and the full stack trace. A panic that
+and log, at Error level (via the slog default logger or the supplied
+logger), the raw panic value and the full stack trace. A panic that
 includes sensitive data (e.g. `panic("user_id=%d, api_key=%s", userID, key)`)
 will be logged verbatim. Log sinks (files, centralized logging services,
 SIEM systems) must be protected with appropriate access controls and
@@ -676,15 +720,16 @@ recovery output at the log ingestion layer (TM-2026-025, rmp #286).
 
 ### SIEM Re-interpretation of Log Fields (TM-2026-032)
 
-MuxMaster's `Logger` middleware emits structured logs (slog format) with
-user-controlled data (request paths, headers, query parameters). SIEM systems
-that parse JSON logs may re-interpret escaped sequences: a field value that
-was sanitised (e.g., CR/LF stripped and replaced with literal `\r\n` in JSON)
-may be re-interpreted by a downstream JSON parser as control characters if
-the SIEM applies unescaping. This is a log-consumer concern, not a router
-defect. Operators must validate and configure their log aggregation layer
-to handle the escaping semantics MuxMaster uses (slog's standard JSON escaping
-with literal backslash-r/-n/-t for control characters, never raw bytes).
+MuxMaster's `Logger` middleware writes one plain-text line per request
+(`<time> <method> <path> <status> <duration>`) containing user-controlled
+data: the request method and path. When either contains a control byte, a
+non-ASCII byte, `"` or `\`, it is written with Go string-literal escaping
+(`strconv.QuoteToASCII`, without the surrounding quotes), so a CR/LF in the
+path appears as the literal two-character sequences `\r` and `\n`, never as
+raw bytes. A SIEM or log parser that later unescapes these sequences may
+re-interpret them as control characters. This is a log-consumer concern, not
+a router defect. Operators must configure their log aggregation layer to
+treat these escapes as text.
 Test `TestSec_TM_2026_032_LoggerSanitises` confirms no raw CR/LF/TAB reaches
 logs (2026-09-26) (TM-2026-032, rmp #122).
 
@@ -804,31 +849,36 @@ with comments cross-referencing CDX-S8-001.
 
 ### Layered panic recovery (CSA-2026-0058 / CSA-2026-0059)
 
-MuxMaster has THREE layers that may catch panics. Understanding the order
-is essential when configuring PanicHandler and middleware.Recoverer.
+Up to four layers may catch a panic. From outermost to innermost:
 
-| Layer                         | What it catches                              | What it does on a second panic                |
-|-------------------------------|----------------------------------------------|-----------------------------------------------|
-| `Mux.PanicHandler`            | Panics in handler / `Use` / `UseFast` chain. | NOT recovered by MuxMaster.                   |
-| `middleware.Recoverer` (Pre)  | Panics anywhere downstream including the    | Catches if PanicHandler panicked.             |
-|                               | first PanicHandler invocation.               |                                               |
-| `net/http` per-conn recover   | Anything that escapes both above.            | Logs "http: panic serving ..." and closes TCP.|
+| Layer | Frame | Catches |
+|---|---|---|
+| `net/http` per-connection recover | around the whole handler | anything that escapes every layer below; logs "http: panic serving ..." and closes the connection |
+| `Mux.PanicHandler` (when set) | deferred in `Mux.ServeHTTP` | panics from `Pre` middleware and from dispatch (`Use` / `UseFast` middleware, handlers of both route types), unless an inner layer catches them first |
+| `RecovererWithLogger` registered with `Pre` | around every `Pre` middleware registered after it and the dispatch | panics from those `Pre` middleware, from dispatch and from both route types |
+| `RecovererWithLogger` registered with `Use` | around the `Handle` routes registered after it | panics from the `Use` middleware registered after it and from those handlers |
+
+A panic is caught by the **innermost** recovering frame that encloses it.
+Consequently, with a `Pre`-registered `RecovererWithLogger`, a panic in a
+handler is handled by the Recoverer (plain 500) and `PanicHandler` never
+sees it; `PanicHandler` then only receives panics raised by `Pre`
+middleware registered before the Recoverer.
 
 **Boundary rules.**
 
-1. `Mux.PanicHandler` MUST NOT panic. If it does, the secondary panic
-   propagates to the next layer (Recoverer in `Pre()`, or net/http) and
-   the connection is terminated mid-response. There is no goroutine leak
-   and no process crash, but the client sees a reset stream — confusing
-   for HTTP/2 multiplexing and reverse-proxy retries.
-2. To make recovery FULLY symmetric for both stdlib and FastHandler
-   routes, register `RecovererWithLogger` via `r.Pre(...)`. Pre wraps
-   ALL dispatch including HandleFast, so even a panic in fast routes
-   (which `Use`-registered Recoverer cannot catch — see CSA-2026-0054)
-   is contained.
-3. `Mux.PanicHandler` runs INSIDE the dispatch frame and covers both
-   stdlib and FastHandler routes; it is the single, route-type-agnostic
-   recovery point if you do not want to register a Pre middleware.
+1. `Mux.PanicHandler` MUST NOT panic. Its frame is outside every
+   MuxMaster-owned recovery, including a `Pre`-registered Recoverer, so a
+   secondary panic propagates to `net/http`, which closes the connection
+   mid-response. There is no goroutine leak and no process crash, but the
+   client sees a reset stream — confusing for HTTP/2 multiplexing and
+   reverse-proxy retries.
+2. For uniform recovery across stdlib and FastHandler routes, either set
+   `Mux.PanicHandler` (it covers both route types and `Pre` middleware)
+   or register `RecovererWithLogger` as the first `r.Pre(...)` middleware.
+   A `Use`-registered Recoverer cannot cover `HandleFast` routes (see
+   CSA-2026-0054).
+3. Choose one primary mechanism. If you configure both, decide which one
+   owns the 500 response: the innermost wins.
 
 ### Pre vs Use security boundary (CSA-2026-0059 / H8-01)
 

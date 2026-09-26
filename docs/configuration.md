@@ -1,13 +1,42 @@
 # Configuration Reference
 
-All configuration is done by setting fields on `*Mux` after calling `muxmaster.New()`. Every field has a sensible default suitable for production use.
+All configuration is done by setting fields on the `*Mux` returned by `muxmaster.New()`. `New` sets production-safe defaults; a zero-value `Mux{}` does not have them (for example, its `RedirectTrailingSlash` is `false`).
 
 ## Table of Contents
 
+- [When Configuration Takes Effect](#when-configuration-takes-effect)
 - [Router Behaviour](#router-behaviour)
 - [Path Matching](#path-matching)
+- [Opt-in Pools](#opt-in-pools)
 - [Custom Handlers](#custom-handlers)
 - [Complete Example](#complete-example)
+
+---
+
+## When Configuration Takes Effect
+
+The first call to `ServeHTTP` copies every option and handler field into an internal snapshot, and requests read only that snapshot. Assigning a field after the first request has no effect until you call `Rebuild()`, which discards the snapshot and the cached 404, 405, OPTIONS and redirect handlers; the next request takes a new snapshot. `Rebuild` is safe to call while the server is serving.
+
+```go
+mux.HandleMethodNotAllowed = false
+mux.Rebuild() // the next request uses the new value
+```
+
+Set all fields before the server starts whenever possible.
+
+| Field | Default after `New()` |
+|---|---|
+| `RedirectTrailingSlash` | `true` |
+| `RedirectFixedPath` | `false` |
+| `HandleMethodNotAllowed` | `true` |
+| `HandleOPTIONS` | `true` |
+| `RedirectCode` | `0` (301 for GET and HEAD, 307 otherwise) |
+| `CaseInsensitive` | `false` |
+| `UseRawPath` | `false` |
+| `UnescapePathValues` | `false` |
+| `PoolFastParams` | `false` |
+| `PoolRequestBundle` | `false` |
+| `NotFound`, `MethodNotAllowed`, `GlobalOPTIONS`, `ErrorHandler`, `PanicHandler` | `nil` (built-in behaviour) |
 
 ---
 
@@ -24,7 +53,7 @@ Automatically redirects requests with a trailing slash mismatch:
 - `GET /users/` → 301 redirect to `/users` (when `/users` is registered but not `/users/`)
 - `GET /users` → 301 redirect to `/users/` (when `/users/` is registered but not `/users`)
 
-The redirect code is controlled by `RedirectCode`.
+Other methods receive 307 by default. The redirect code is controlled by `RedirectCode`. No redirect is issued for `/` or for CONNECT requests.
 
 Set to `false` to return 404 in both cases instead of redirecting.
 
@@ -33,17 +62,17 @@ Set to `false` to return 404 in both cases instead of redirecting.
 ### RedirectFixedPath
 
 ```go
-mux.RedirectFixedPath = true // default
+mux.RedirectFixedPath = false // default
 ```
 
-Cleans the request path and issues a redirect if a match is found after cleaning:
+When `true`, a request whose path has no route is checked again with its `path.Clean` form, and redirected there if that path has a route:
 
 - Removes extra slashes: `GET //users` → 301 to `/users`
 - Resolves dots: `GET /a/../users` → 301 to `/users`
 
-This prevents duplicate-content issues where `/users` and `//users` serve identical content under different URLs.
+It does not change letter case. With the default `false`, such requests receive 404 (or 405).
 
-Set to `false` to return 404 for malformed paths instead of redirecting.
+**Security:** the default is `false` because path canonicalisation can bypass middleware that inspects the raw path. To serve the cleaned path without a redirect, use `mux.Pre(middleware.CleanPath())` instead.
 
 ---
 
@@ -67,7 +96,7 @@ The response handler can be customized via `mux.MethodNotAllowed`.
 mux.HandleOPTIONS = true // default
 ```
 
-Automatically responds to `OPTIONS` requests with the list of allowed HTTP methods in the `Allow` header. The default response body is empty with status 200.
+Automatically responds to an `OPTIONS` request for a path that has routes but no explicit OPTIONS handler: status `204 No Content`, an empty body, and an `Allow` header listing the registered methods in the order GET, HEAD, POST, PUT, PATCH, DELETE, CONNECT, TRACE, QUERY, followed by OPTIONS. An explicitly registered OPTIONS route takes precedence.
 
 To customize the OPTIONS response globally:
 
@@ -78,7 +107,7 @@ mux.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request
 })
 ```
 
-Set to `false` if you handle OPTIONS manually (e.g. through the CORS middleware).
+Set to `false` to send unmatched OPTIONS requests to the 405 or 404 handling instead. The `CORS` middleware answers preflight requests itself (204) before the router's OPTIONS handling runs, so it works with either setting.
 
 **Note — Asterisk-form `OPTIONS * HTTP/1.1`:** By default, `net/http` intercepts and answers asterisk-form OPTIONS requests directly (see [Middleware — Pre routing](middleware.md#pre-routing-middleware) for details). These requests never reach `GlobalOPTIONS`. To route them through MuxMaster, set `http.Server.DisableGeneralOptionsHandler = true`.
 
@@ -87,10 +116,10 @@ Set to `false` if you handle OPTIONS manually (e.g. through the CORS middleware)
 ### RedirectCode
 
 ```go
-mux.RedirectCode = http.StatusMovedPermanently // default: 301
+mux.RedirectCode = 0 // default
 ```
 
-The HTTP status code used for redirects triggered by `RedirectTrailingSlash` and `RedirectFixedPath`. Common values:
+The HTTP status code used for redirects triggered by `RedirectTrailingSlash` and `RedirectFixedPath`. With `0`, GET and HEAD receive `301 Moved Permanently` and every other method, including QUERY, receives `307 Temporary Redirect`, which preserves the method and body. A non-zero value is used for every method. Common values:
 
 | Code | Constant                      | Semantics                          |
 |------|-------------------------------|------------------------------------|
@@ -99,7 +128,7 @@ The HTTP status code used for redirects triggered by `RedirectTrailingSlash` and
 | 307  | `http.StatusTemporaryRedirect`| Temporary, preserves method        |
 | 308  | `http.StatusPermanentRedirect`| Permanent, preserves method        |
 
-Use 307 or 308 if you need POST requests to be redirected without the browser changing the method to GET.
+If you set 301 or 302, clients may change a POST (or other non-GET) request to GET when following the redirect; prefer 307 or 308 when the method must be preserved.
 
 ---
 
@@ -111,9 +140,9 @@ Use 307 or 308 if you need POST requests to be redirected without the browser ch
 mux.CaseInsensitive = false // default
 ```
 
-When `true`, route matching ignores case in path segments. A request for `/Users/42` matches a route registered as `/users/:id`.
+When `true`, static segments of a pattern match regardless of letter case. A request for `/Users/42` matches a route registered as `/users/:id`, and captured parameter values keep the case of the request (`/USERS/AbC` gives `id = "AbC"`).
 
-Note: this does not issue a redirect; the original URL is preserved in the response.
+No redirect is issued; the handler sees the original URL. `Lookup` ignores this option.
 
 ---
 
@@ -138,12 +167,28 @@ Enable this only if your application legitimately uses encoded slashes in URL pa
 mux.UnescapePathValues = false // default
 ```
 
-When `true`, path parameter values are percent-decoded before being returned by `PathParam` and `ParamsFromContext`.
+Takes effect only when `UseRawPath` is also `true`. With `UseRawPath = false` (the default), `net/http` has already decoded the path, so parameter values are already decoded and a second decode is never applied.
 
-For example, with the route `/search/:query` and the URL `/search/hello%20world`:
+With `UseRawPath = true`, parameters are captured from the raw path, still percent-encoded; setting `UnescapePathValues = true` decodes them. For the route `/files/:name` and the request `/files/a%2Fb`:
 
-- `false`: `PathParam(r, "query")` returns `"hello%20world"`
-- `true`:  `PathParam(r, "query")` returns `"hello world"`
+| `UseRawPath` | `UnescapePathValues` | Result |
+|---|---|---|
+| `false` | either | 404: the decoded path `/files/a/b` has an extra segment |
+| `true` | `false` | `name = "a%2Fb"` |
+| `true` | `true` | `name = "a/b"` |
+
+**Security:** with both options `true`, a captured value can contain a real `/` (and `..`). Clean and confine it before using it as a file or URL path. MuxMaster logs a warning when a route is registered with this combination, and `Mux.ServeFiles` panics rather than register under it. See [SECURITY.md](../SECURITY.md).
+
+---
+
+## Opt-in Pools
+
+```go
+mux.PoolRequestBundle = false // default
+mux.PoolFastParams    = false // default
+```
+
+`PoolRequestBundle` recycles the per-request bundle of `Handle` routes with parameters; `PoolFastParams` recycles the `Params` slice of `HandleFast` routes with 1–3 parameters. Both remove the per-request allocation but require that handlers never retain the request (or `ps`) after returning. See the [Maximum Performance Guide](max-performance.md) before enabling either.
 
 ---
 
@@ -174,7 +219,7 @@ mux.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 mux.MethodNotAllowed = myMethodNotAllowedHandler
 ```
 
-Called when the path matches a route but not for the requested HTTP method. The `Allow` header is set to the list of allowed methods before this handler is called.
+Called when the path matches a route but not for the requested HTTP method. The `Allow` header is set to the list of allowed methods before this handler is called. When it is `nil`, the router writes `405 Method Not Allowed` as plain text with `X-Content-Type-Options: nosniff`.
 
 ```go
 mux.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -195,7 +240,7 @@ Only active when `HandleMethodNotAllowed` is `true`.
 mux.GlobalOPTIONS = myOptionsHandler
 ```
 
-Called for every auto-handled OPTIONS request. The `Allow` header is already set when this handler runs.
+Called instead of the default `204 No Content` for every auto-handled OPTIONS request. The `Allow` header is already set when this handler runs.
 
 Only active when `HandleOPTIONS` is `true`.
 
@@ -211,7 +256,7 @@ The automatic OPTIONS response is wrapped by any global middleware registered vi
 mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) { ... }
 ```
 
-If set, catches panics in downstream handlers and calls this function instead of letting the panic propagate. Receives the value passed to `panic()` as `rcv`.
+If set, recovers panics raised anywhere in `ServeHTTP` — `Pre` middleware, `Use` middleware and handlers of both `Handle` and `HandleFast` routes — and calls this function with the value passed to `panic()` as `rcv`. A `RecovererWithLogger` middleware catches the panics raised inside it first, so `PanicHandler` does not see those. `PanicHandler` must not panic itself: a second panic is not recovered by MuxMaster and reaches `net/http`, which closes the connection.
 
 ```go
 mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
@@ -228,7 +273,7 @@ mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, rcv any) {
 mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) { ... }
 ```
 
-Called for every `HandlerFuncE` that returns a non-nil error. See [Error Handling](error-handling.md) for details.
+Called for every `HandlerFuncE` that returns a non-nil error. When it is `nil`, the router writes a plain-text `500 Internal Server Error`, even if the error is an `HTTPError`. See [Error Handling](error-handling.md) for details.
 
 ---
 
@@ -239,10 +284,10 @@ mux := muxmaster.New()
 
 // Routing behaviour
 mux.RedirectTrailingSlash  = true
-mux.RedirectFixedPath      = true
+mux.RedirectFixedPath      = false // keep false unless you need path.Clean redirects
 mux.HandleMethodNotAllowed = true
 mux.HandleOPTIONS          = true
-mux.RedirectCode           = http.StatusMovedPermanently
+mux.RedirectCode           = 0 // 301 for GET/HEAD, 307 otherwise
 
 // Path matching
 mux.CaseInsensitive       = false

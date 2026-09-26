@@ -29,13 +29,15 @@ api.POST("/users", createUser)    // → POST /api/v1/users
 api.GET("/users/:id", getUser)    // → GET /api/v1/users/:id
 ```
 
-The group shares the same underlying tree as the parent router. Routes are registered directly into the parent mux with the full prefix appended.
+The group shares the same underlying tree as the parent router. Routes are registered directly into the parent mux with the full prefix prepended.
+
+The prefix and the route path are joined with a single `/`: `mux.Group("/api/")` followed by `GET("/users", …)` registers `/api/users`, not `/api//users`. Nothing else is inserted or removed — `mux.Group("/api")` with `GET("users", …)` would produce `/apiusers`, so start route paths with `/`. The same join applies to sub-group prefixes, `Group.Mount` and `Group.ServeFiles`.
 
 ---
 
 ## Group Middleware
 
-Middleware applied to a group wraps only the routes of that group, after any mux-level middleware:
+Middleware applied to a group wraps only the routes of that group. Mux-level `Use` middleware wraps the group middleware, so it runs first:
 
 ```go
 mux := muxmaster.New()
@@ -52,6 +54,8 @@ mux.GET("/health", health)
 ```
 
 **Important:** call `Use` before registering routes on the group, for the same reason it must be called before routes on the mux.
+
+Group `Use` middleware does not wrap fast routes: `group.HandleFast` panics if the group has `Use` middleware. Use `group.UseFast` for `FastMiddleware`, or `mux.Pre` for policy that must cover every route.
 
 ---
 
@@ -71,7 +75,7 @@ admin.GET("/stats", getStats)        // GET /api/v1/admin/stats
 admin.DELETE("/users/:id", deleteUser) // DELETE /api/v1/admin/users/:id
 ```
 
-Each group maintains an independent copy of its middleware list, so adding middleware to a sub-group does not affect the parent group.
+A sub-group starts with a copy of its parent's middleware. Middleware added to either group afterwards does not affect the other.
 
 ---
 
@@ -140,11 +144,17 @@ mux.Mount("/v2", v2)
 // GET /v2/users → v2 sees GET /users
 ```
 
-The mounted handler receives `r.URL.Path` with the prefix stripped, so a sub-router mounted at `/v2` sees `/users`, not `/v2/users`.
+The mounted handler receives `r.URL.Path` with the prefix stripped, so a sub-router mounted at `/v2` sees `/users`, not `/v2/users`. A request for `/v2/` reaches it as `/`, and a request for the bare prefix `/v2` is redirected to `/v2/` when `RedirectTrailingSlash` is `true`.
+
+**How a mount is registered:** trailing slashes are removed from the prefix, and the mount is registered under the internal method `"*"` with the pattern `<prefix>/*mux_mount`; `Routes()` lists it that way. The mount receives requests of **every** method, including methods the router does not support for normal routes. A route registered for the request's method takes precedence over the mount: with `GET /v2/health` registered on `mux`, a GET for that path never reaches `v2`, while a POST for it does. The prefix may contain parameters, but its last element must not be an optional parameter (that panics).
+
+**Middleware:** `Use` middleware registered on `mux` before the `Mount` call wraps the mounted handler and sees the original, unstripped request, as does `Pre` middleware.
 
 **Request handling:**
 
-Before forwarding to the mounted handler, MuxMaster creates a shallow request copy — a new `*http.Request` that shares the header map and context with the original, but carries a new `*url.URL` with the stripped path. The original request passed to `ServeHTTP` is never modified. The original path is available via `r.URL.RawPath` or via `RoutePattern()` if the mounted handler is another `*Mux`.
+Before forwarding to the mounted handler, MuxMaster creates a shallow request copy — a new `*http.Request` that shares the header map and context with the original, but carries a new `*url.URL` with the stripped `Path` (and `RawPath`, when it can be stripped consistently). The original request passed to `ServeHTTP` is never modified. The forwarded request does not carry the original path; if the mounted handler needs it, read it in middleware registered before `Mount`.
+
+**Redirects from a mounted `*Mux`:** when the mounted handler is itself a `*muxmaster.Mux`, its own trailing-slash and fixed-path redirects keep the mount prefix — `v2`'s redirect from `/users/` to `/users` reaches the client as `Location: /v2/users`. Redirects that your own code issues (for example with `http.Redirect`) are not rewritten.
 
 ### Organizing a large application
 
@@ -152,7 +162,7 @@ Before forwarding to the mounted handler, MuxMaster creates a shallow request co
 func main() {
     mux := muxmaster.New()
     mux.Use(middleware.Logger(os.Stdout))
-    mux.Use(middleware.Recoverer())
+    mux.Use(middleware.RecovererWithLogger(slog.Default()))
 
     mux.Mount("/api/v1", newV1Router())
     mux.Mount("/api/v2", newV2Router())
@@ -174,7 +184,7 @@ func newV1Router() http.Handler {
 
 ## Mounting on a Group
 
-`Mount` is also available on `*Group`, which combines the group's prefix with the mount prefix:
+`Mount` is also available on `*Group`, which combines the group's prefix with the mount prefix. The group's `Use` middleware wraps the mounted handler, so a group protected by an authentication middleware also protects what is mounted on it:
 
 ```go
 api := mux.Group("/api")
@@ -196,6 +206,8 @@ assets := mux.Group("/static")
 assets.ServeFiles("/*filepath", http.Dir("./public"))
 // GET /static/css/main.css → ./public/css/main.css
 ```
+
+`ServeFiles` registers GET and HEAD routes and serves them with `http.FileServer`, which cleans the path, so `..` segments cannot escape the root. The prefix must end with `/*name`; `ServeFiles` panics otherwise, or if the root is `nil`.
 
 ---
 

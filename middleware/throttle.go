@@ -97,8 +97,15 @@ func (s *throttleSem) release() {
 	}
 }
 
-// ThrottleBacklog limits concurrent handler execution with a backlog queue.
-// Panics if limit <= 0 or backlog < 0.
+// ThrottleBacklog limits concurrent handler execution globally, across all
+// clients combined, with a backlog queue. At most limit requests run next at
+// the same time; up to backlog further requests wait, each for at most
+// timeout, for a free slot. A request that finds the backlog full, or whose
+// wait times out, receives 503 Service Unavailable. Use ThrottlePerIP for
+// per-client limits.
+//
+// ThrottleBacklog and ThrottleAllBacklog are equivalent names for the same
+// middleware. Panics if limit <= 0 or backlog < 0.
 func ThrottleBacklog(limit int, backlog int, timeout time.Duration) func(http.Handler) http.Handler {
 	if limit <= 0 {
 		panic("middleware: ThrottleBacklog limit must be > 0")
@@ -128,10 +135,10 @@ func ThrottleBacklog(limit int, backlog int, timeout time.Duration) func(http.Ha
 	}
 }
 
-// ThrottleAllBacklog is the renamed ThrottleBacklog — limits concurrency globally
-// across ALL clients combined. Use ThrottlePerIP for per-client rate limiting.
-//
-// Deprecated: Use ThrottleAllBacklog. ThrottleBacklog remains for compatibility.
+// ThrottleAllBacklog limits concurrent handler execution globally, across all
+// clients combined, with a backlog queue. It is an equivalent name for
+// ThrottleBacklog: both return the same middleware with the same behaviour
+// and panics. Use ThrottlePerIP for per-client limits.
 func ThrottleAllBacklog(limit int, backlog int, timeout time.Duration) func(http.Handler) http.Handler {
 	return ThrottleBacklog(limit, backlog, timeout)
 }

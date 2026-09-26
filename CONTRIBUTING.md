@@ -6,8 +6,8 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 ### Prerequisites
 
-- Go 1.26 or later
-- `golangci-lint` — `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`
+- Go 1.26 or later (the minimum declared in `go.mod`)
+- `golangci-lint` v2 — `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4` (the version CI uses)
 - `staticcheck` — `go install honnef.co/go/tools/cmd/staticcheck@latest`
 
 ### Clone and verify
@@ -15,42 +15,61 @@ Thank you for your interest in contributing. This guide covers everything you ne
 ```bash
 git clone https://github.com/FlavioCFOliveira/MuxMaster.git
 cd MuxMaster
-go test ./...          # all tests must pass
-go test -race ./...    # zero race conditions
-go vet ./...           # zero warnings
+make test        # all tests must pass
+make test-race   # zero race conditions
+make vet         # zero warnings
 ```
+
+The Makefile targets exclude `reports/`, whose audit harnesses belong to the same module; `go test ./...` also runs them and takes much longer.
 
 ## Development workflow
 
 ### Branches
 
-- `main` — stable, always passing CI. Direct pushes are not allowed.
-- Feature branches: `feat/<short-description>`
-- Bug fix branches: `fix/<short-description>`
-- Performance branches: `perf/<short-description>`
+The repository follows the [gitflow](https://nvie.com/posts/a-successful-git-branching-model/) branching model:
+
+| Branch | Branches off | Merges into | Purpose |
+|---|---|---|---|
+| `main` | — | — | Production line. Every release is a commit on `main` tagged `vMAJOR.MINOR.PATCH`. |
+| `develop` | `main` | — | Integration line. All new work targets `develop`. |
+| `feature/<sprint-id>-<slug>` | `develop` | `develop`, with `git merge --no-ff` | A maintainer sprint's working branch. |
+| `release/<version>` | `develop` | `main`, with a version tag | Stabilises a release. `main` is then merged back into `develop`. |
+| `hotfix/<version>` | `main` | `main`, with a version tag | Urgent fix on top of a release. `main` is then merged back into `develop`. |
+
+Only `release/*` and `hotfix/*` branches merge into `main`. After every merge into `main`, `main` is merged back into `develop`, so `develop` never falls behind `main`.
+
+### Branch protection
+
+Project policy requires branch protection on `main`: changes arrive only through pull requests with green CI and an approving code-owner review, with linear history and no bypass for administrators. The rule is specified in [`.github/branch-protection.md`](.github/branch-protection.md), together with the exact steps to apply it.
+
+The rule is **not currently applied** on GitHub: on 2026-09-26, `gh api repos/FlavioCFOliveira/MuxMaster/branches/main/protection` returned `Branch not protected`. Until a maintainer applies it, GitHub does not technically block direct pushes to `main`; the workflow above is enforced by convention only.
 
 ### Making a change
 
-1. Fork the repository and create a branch from `main`.
+1. Fork the repository and create a topic branch from `develop` (for example `fix/<short-description>`).
 2. Write or update tests before (or alongside) the implementation.
 3. Ensure all checks pass locally (see below).
-4. Open a pull request against `main`.
+4. Open a pull request against `develop`.
+
+The CI, CodeQL and commitlint workflows run on pull requests that target `main` (CI and CodeQL also run on pushes to `main`); none of them runs on a pull request that targets `develop`. Run the local checks below before you open a pull request: CI checks your change only when it reaches `main` through a release.
 
 ### Local checks (run before every PR)
 
 ```bash
-go test ./...                          # all tests
-go test -race ./...                    # race detector
-go test -bench=. -benchmem ./...       # benchmarks (no regressions)
-go vet ./...                           # static analysis
-golangci-lint run                      # linter suite
-staticcheck ./...                      # advanced analysis
+make test        # all tests (excluding reports/)
+make test-race   # race detector
+make vet         # go vet
+make lint        # golangci-lint run + staticcheck
+make bench       # benchmarks (excluding reports/ and competitor/); compare with benchstat
+make api         # regenerate api.md after changing any exported symbol or doc comment (CI fails on a stale api.md)
 ```
 
-Or use the Makefile:
+`make check` runs `vet`, `lint` and `test-race` in one step. It does not run the benchmarks.
+
+Each directory under `examples/` is a separate Go module (with a `replace` directive pointing at the repository root) and is not covered by the targets above or by CI. If you change one, check it from its own directory:
 
 ```bash
-make check    # runs all of the above
+cd examples/<name> && go vet . && go build .
 ```
 
 ### Pre-push lint guard (recommended)
@@ -62,7 +81,7 @@ introduces a `golangci-lint` finding:
 make hooks-install
 ```
 
-This sets `git config core.hooksPath .githooks/`. Once installed, every
+This sets `git config core.hooksPath .githooks`. Once installed, every
 `git push` runs `golangci-lint run ./...` and aborts the push if any
 issue is reported. Bypass in emergencies with `git push --no-verify`
 (NOT recommended — CI will still reject the change).
@@ -88,7 +107,7 @@ Uninstall any time with `make hooks-uninstall`.
 ### Performance
 
 - The hot path must remain zero-allocation for static routes.
-- Measure with `benchstat` before and after any change that touches `tree.go`, `mux.go`, or `params.go`.
+- Measure with `benchstat` before and after any change that touches `tree.go`, `mux.go`, or `params.go`, with at least `-count=6` so `benchstat` can report confidence intervals (see [docs/performance.md](docs/performance.md#running-benchmarks-locally)).
 - Never introduce `interface{}` conversions, closures, or `context.WithValue` on the hot path.
 
 ### API compatibility
@@ -124,32 +143,35 @@ When a symbol must be removed, follow the staged deprecation:
 
 4. **Remove.** Removal is a MAJOR change, listed under `### Removed`.
 
-CI runs `staticcheck SA1019` against `examples/` to catch any internal
-reliance on deprecated symbols.
+CI runs `staticcheck` (which includes SA1019, use of deprecated
+symbols) on the root module. The `examples/` modules are not checked in
+CI, so run `staticcheck .` in any example you change.
 
 ## Commit messages
 
+Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org/); the `commitlint` workflow validates every commit of a pull request against `main`:
+
 ```
-<type>: <short description>
+<type>(<optional scope>)!: <short description>
 
 [optional body]
 ```
 
-Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `ci`, `chore`.
+Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `ci`, `chore`, `build`, `style`, `revert`, `security`. The scope is optional and lowercase; `!` marks a breaking change. The subject is 1–100 characters.
 
 Examples:
 
 ```
 feat: add Mux.With for inline middleware scoping
 perf: eliminate requestCtx heap allocation for ≤3 params
-fix: allow static children on param nodes
+fix(middleware): look up BasicAuth users in constant time
 ```
 
 ## Pull requests
 
 - Keep PRs focused on a single concern.
 - Link the relevant issue if one exists.
-- Update `CHANGELOG.md` under `[Unreleased]`.
+- Update `CHANGELOG.md` under `[Unreleased]`. CI fails a pull request against `main` that changes a non-test `.go` file outside `reports/`, `competitor/` and `examples/` without touching `CHANGELOG.md`, unless it carries the `no-changelog` label.
 - All CI checks must be green before merging.
 
 ## Reporting issues

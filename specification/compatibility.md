@@ -70,7 +70,7 @@ MuxMaster does not provide adapters for these types. Converting an existing code
 ## 5. Dynamic Route Registration
 
 16. MuxMaster does not support registering routes after `ServeHTTP` has begun serving requests. The radix tree nodes are written once at registration time and then read concurrently at request time without write locks on the nodes themselves.
-17. Calling `Handle` (or any registration method) concurrently with `ServeHTTP` in a way that creates a new method tree is safe (a `sync.RWMutex` protects the top-level method-to-tree map). However, calling `Handle` after the server has started serving is considered a misuse. Behavior under concurrent registration and serving on the same method tree is undefined.
+17. `ServeHTTP` reads the router's method-to-tree data through `treesPtr`, an `atomic.Pointer` to a `methodTrees` array (one radix tree root per HTTP method, indexed by a constant, not a map). Every request loads this pointer with `.Load()` and requires no lock. A registration method (`Handle` or any method built on it) builds a modified copy of the `methodTrees` array under a `sync.RWMutex` and publishes it with a single atomic `.Store()`, so a registration running concurrently with `ServeHTTP` is safe: in-flight requests keep using the array snapshot they already loaded, and later requests observe the new one. Calling `Handle` after the server has started serving is nonetheless considered a misuse (see requirement 16): the tree nodes themselves are not designed for concurrent mutation, and behavior is undefined if two registrations race to mutate the same node.
 
 ---
 
