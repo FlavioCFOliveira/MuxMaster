@@ -94,6 +94,26 @@ warnings.
 The README "Security defaults" section reproduces this matrix and the
 hardened-stack snippet.
 
+## Hardening Behaviours Added in v1.3.0
+
+These behaviours ship in v1.3.0 (see the `[1.3.0]` entry of
+[CHANGELOG.md](CHANGELOG.md#130---2026-09-26)).
+
+- **`Group.ServeFiles` applies the raw-path guard (CDX-S8-002).**
+  `Mux.ServeFiles` already refused to register when the Mux has both
+  `UseRawPath` and `UnescapePathValues` enabled, because the captured path
+  could contain decoded `/` characters that `http.FileServer` treats as
+  separators. `Group.ServeFiles` skipped that check; it now panics with the
+  same message. Both variants share one check.
+- **`OAuth2Introspect` default client no longer exhausts ephemeral ports.**
+  With no `HTTPClient` configured, concurrent cache misses opened a new
+  connection per introspection call, and on Windows the resulting
+  `TIME_WAIT` sockets exhausted the port range, rejecting valid tokens with
+  401. The default client now uses its own transport, copied once from
+  `http.DefaultTransport` without initialising it, and allows at most 100
+  connections per introspection host (exact for HTTP/1.1). Construct the
+  middleware at startup.
+
 ## Hardening Behaviours Added in Sprints 19–20 (v1.2.0)
 
 These behaviours shipped in v1.2.0 (see the `[1.2.0]` entry of

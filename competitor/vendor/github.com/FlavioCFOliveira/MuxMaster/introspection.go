@@ -15,9 +15,16 @@ type RouteInfo struct {
 }
 
 // Lookup performs a route lookup without dispatching a request.
-// Returns (nil, nil, false) if path is empty or does not begin with '/'.
-// For FastHandler routes the returned http.Handler is nil; use LookupFast
-// when you need to distinguish fast routes.
+// Returns (nil, nil, false) if path is empty or does not begin with '/',
+// if method is not a supported method, or if no route matches.
+//
+// A route registered with HandleFast (or a *Fast helper) also matches: Lookup
+// then returns a nil http.Handler, the captured Params and true. There is no
+// fast-route counterpart of Lookup; use WalkFast to enumerate fast routes.
+//
+// Lookup matches path exactly as registered: it applies no trailing-slash or
+// fixed-path redirect and ignores CaseInsensitive. Unlike ServeHTTP, which
+// never takes a lock, Lookup holds the registration read lock while it runs.
 func (m *Mux) Lookup(method, path string) (http.Handler, Params, bool) {
 	if path == "" || path[0] != '/' {
 		return nil, nil, false

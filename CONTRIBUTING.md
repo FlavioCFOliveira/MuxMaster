@@ -6,8 +6,8 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 ### Prerequisites
 
-- Go 1.26 or later (the minimum declared in `go.mod`)
-- `golangci-lint` v2 — `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4` (the version CI uses)
+- Go 1.27.1 or later (the minimum declared in `go.mod`)
+- `golangci-lint` v2 — `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0` (the version CI uses)
 - `staticcheck` — `go install honnef.co/go/tools/cmd/staticcheck@latest`
 
 ### Clone and verify
@@ -40,9 +40,9 @@ Only `release/*` and `hotfix/*` branches merge into `main`. After every merge in
 
 ### Branch protection
 
-Project policy requires branch protection on `main`: changes arrive only through pull requests with green CI and an approving code-owner review, with linear history and no bypass for administrators. The rule is specified in [`.github/branch-protection.md`](.github/branch-protection.md), together with the exact steps to apply it.
+Maintainers apply gitflow without pull requests: they merge `release/*` and `hotfix/*` branches into `main` with `--no-ff` merge commits and push directly. The branch-protection rule for `main` is therefore limited to blocking force pushes and branch deletion, with no bypass for administrators. It does not require pull requests, status checks, or linear history, because each of those would reject the direct gitflow merges. The rule, its rationale, and the exact steps to apply it are in [`.github/branch-protection.md`](.github/branch-protection.md).
 
-The rule is **not currently applied** on GitHub: on 2026-09-26, `gh api repos/FlavioCFOliveira/MuxMaster/branches/main/protection` returned `Branch not protected`. Until a maintainer applies it, GitHub does not technically block direct pushes to `main`; the workflow above is enforced by convention only.
+The rule is **not currently applied** on GitHub: on 2026-09-26, `gh api repos/FlavioCFOliveira/MuxMaster/branches/main/protection` returned `Branch not protected`. Until a maintainer applies it, GitHub does not block force pushes to `main` or its deletion. Even when it is applied, GitHub cannot make a direct push wait for CI: the maintainer checks that CI is green on the `release/*` or `hotfix/*` branch before merging it into `main`.
 
 ### Making a change
 
@@ -51,7 +51,9 @@ The rule is **not currently applied** on GitHub: on 2026-09-26, `gh api repos/Fl
 3. Ensure all checks pass locally (see below).
 4. Open a pull request against `develop`.
 
-The CI, CodeQL and commitlint workflows run on pull requests that target `main` (CI and CodeQL also run on pushes to `main`); none of them runs on a pull request that targets `develop`. Run the local checks below before you open a pull request: CI checks your change only when it reaches `main` through a release.
+The CI and commitlint workflows run on every push to `main`, `develop`, `release/**` and `hotfix/**`, and on pull requests that target `main`. CodeQL runs on pushes to `main`, on pull requests that target `main`, and weekly. None of these workflows runs on a pull request that targets `develop`, so run the local checks below before you open one: CI checks your change once it is merged and pushed to `develop`.
+
+In `ci.yml`, the `apidiff` API compatibility check is advisory on push (incompatible changes produce a warning, and the job never fails) and blocking on pull requests against `main`, unless the pull request carries the `api-break` label.
 
 ### Local checks (run before every PR)
 
@@ -149,7 +151,7 @@ CI, so run `staticcheck .` in any example you change.
 
 ## Commit messages
 
-Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org/); the `commitlint` workflow validates every commit of a pull request against `main`:
+Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org/); the `commitlint` workflow validates every commit pushed to `main`, `develop`, `release/**` or `hotfix/**`, and every commit of a pull request against `main`. Merge commits (commits with more than one parent) are exempt:
 
 ```
 <type>(<optional scope>)!: <short description>
@@ -171,7 +173,7 @@ fix(middleware): look up BasicAuth users in constant time
 
 - Keep PRs focused on a single concern.
 - Link the relevant issue if one exists.
-- Update `CHANGELOG.md` under `[Unreleased]`. CI fails a pull request against `main` that changes a non-test `.go` file outside `reports/`, `competitor/` and `examples/` without touching `CHANGELOG.md`, unless it carries the `no-changelog` label.
+- Update `CHANGELOG.md` under `[Unreleased]`. CI fails a push to `main`, `develop`, `release/**` or `hotfix/**`, and a pull request against `main`, that changes a non-test `.go` file outside `reports/`, `competitor/` and `examples/` without touching `CHANGELOG.md`. A pull request can be exempted with the `no-changelog` label; a push cannot.
 - All CI checks must be green before merging.
 
 ## Reporting issues

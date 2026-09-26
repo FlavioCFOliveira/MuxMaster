@@ -1,17 +1,48 @@
 package muxmaster
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"runtime"
 	"testing"
 )
 
-// TestReqBundleParamAccess verifies that PathParam works correctly
-// when the reqBundle optimisation is active.
-func TestReqBundleParamAccess(t *testing.T) {
+// The tests in this file assert the observable contract of param dispatch
+// (PathParam, ParamsFromContext, original request untouched, params visible
+// from spawned goroutines). That contract holds on both dispatch paths — the
+// reqBundle fast path (hasReqCtxField == true) and the r.WithContext
+// fallback — so no test is conditional on the active path.
+// TestReqCtxFieldDetected pins which path is active on supported toolchains.
+
+// TestReqCtxFieldDetected asserts that init() in params.go locates the
+// unexported ctx field of http.Request on every Go version go.mod supports,
+// so the reqBundle fast path (and the PoolRequestBundle opt-in, which
+// requires it) is active. It also cross-checks the recorded offset against
+// an independent reflect lookup. A failure means a new Go release renamed,
+// retyped or removed the field: dispatch stays correct through the
+// r.WithContext fallback, but performance regresses and the supported-version
+// claim in go.mod / COMPATIBILITY.md must be revisited.
+func TestReqCtxFieldDetected(t *testing.T) {
 	if !hasReqCtxField {
-		t.Skip("reqBundle fast path unavailable on this Go version")
+		t.Fatalf("http.Request has no 'ctx context.Context' field on %s: reqBundle fast path inactive", runtime.Version())
 	}
+	f, ok := reflect.TypeOf(http.Request{}).FieldByName("ctx")
+	if !ok {
+		t.Fatal("reflect: http.Request.ctx not found")
+	}
+	if f.Type != reflect.TypeOf((*context.Context)(nil)).Elem() {
+		t.Fatalf("http.Request.ctx has type %v, want context.Context", f.Type)
+	}
+	if f.Offset != reqCtxFieldOffset {
+		t.Fatalf("reqCtxFieldOffset = %d, reflect offset = %d", reqCtxFieldOffset, f.Offset)
+	}
+}
+
+// TestReqBundleParamAccess verifies that PathParam works correctly on the
+// active param-dispatch path (reqBundle on supported toolchains).
+func TestReqBundleParamAccess(t *testing.T) {
 	m := New()
 	m.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
 		id := PathParam(r, "id")
@@ -29,9 +60,6 @@ func TestReqBundleParamAccess(t *testing.T) {
 
 // TestReqBundleParamsFromContext verifies ParamsFromContext with reqBundle.
 func TestReqBundleParamsFromContext(t *testing.T) {
-	if !hasReqCtxField {
-		t.Skip("reqBundle fast path unavailable on this Go version")
-	}
 	m := New()
 	m.GET("/orgs/:org/repos/:repo", func(w http.ResponseWriter, r *http.Request) {
 		ps := ParamsFromContext(r.Context())
@@ -53,9 +81,6 @@ func TestReqBundleParamsFromContext(t *testing.T) {
 // TestReqBundleOriginalRequestUnmodified verifies that dispatch (reqBundle path)
 // does NOT modify the original *http.Request — the handler receives a copy.
 func TestReqBundleOriginalRequestUnmodified(t *testing.T) {
-	if !hasReqCtxField {
-		t.Skip("reqBundle fast path unavailable on this Go version")
-	}
 	m := New()
 	m.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {})
 
@@ -72,9 +97,6 @@ func TestReqBundleOriginalRequestUnmodified(t *testing.T) {
 // TestReqBundleGoroutineSpawn verifies that params are accessible in goroutines
 // spawned by the handler.
 func TestReqBundleGoroutineSpawn(t *testing.T) {
-	if !hasReqCtxField {
-		t.Skip("reqBundle fast path unavailable on this Go version")
-	}
 	done := make(chan string, 1)
 	m := New()
 	m.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {

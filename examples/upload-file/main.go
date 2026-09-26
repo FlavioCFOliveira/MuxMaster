@@ -69,9 +69,9 @@ func main() {
 	mux.Pre(mw.RequestID(), mw.RecovererWithLogger(log))
 
 	// Each handler illustrates a different correctness pattern.
-	mux.POST("/upload", singleUpload)         // 1 file, sync
-	mux.POST("/multi", multiUpload)           // N files, sync
-	mux.POST("/async", asyncProcessUpload)    // drain → spawn goroutine
+	mux.POST("/upload", singleUpload)      // 1 file, sync
+	mux.POST("/multi", multiUpload)        // N files, sync
+	mux.POST("/async", asyncProcessUpload) // drain → spawn goroutine
 
 	mux.GET("/", indexHTML)
 

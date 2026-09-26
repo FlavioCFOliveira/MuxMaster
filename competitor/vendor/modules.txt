@@ -1,12 +1,18 @@
 # github.com/FlavioCFOliveira/MuxMaster v0.0.0-20260416175757-434f76cb080e => ../
-## explicit; go 1.26
+## explicit; go 1.27.1
 github.com/FlavioCFOliveira/MuxMaster
-# github.com/go-chi/chi/v5 v5.2.5
-## explicit; go 1.22
+github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness
+# github.com/go-chi/chi/v5 v5.3.2
+## explicit; go 1.23
 github.com/go-chi/chi/v5
+# github.com/gorilla/mux v1.8.1
+## explicit; go 1.20
+github.com/gorilla/mux
 # github.com/julienschmidt/httprouter v1.3.0
 ## explicit; go 1.7
 github.com/julienschmidt/httprouter
+# github.com/stretchr/testify v1.12.1
+## explicit; go 1.17
 # github.com/uptrace/bunrouter v1.0.23
 ## explicit; go 1.22
 github.com/uptrace/bunrouter

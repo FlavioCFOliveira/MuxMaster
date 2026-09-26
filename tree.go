@@ -1,6 +1,7 @@
 package muxmaster
 
 import (
+	"math"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -187,7 +188,14 @@ func (n *node) addRouteInternal(path string, handler http.Handler, fast FastHand
 	origRoot := n
 	defer func() {
 		if c := countPatternParams(fullPath); c > int(origRoot.maxParams) {
-			origRoot.maxParams = uint8(min(c, 255))
+			// Explicit saturation (rather than min(c, 255)) so the bound
+			// 0 <= c <= math.MaxUint8 is visible to range-analysing SAST
+			// (gosec G115): c > int(maxParams) >= 0 above, and the clamp
+			// below caps it, so the conversion can never wrap.
+			if c > math.MaxUint8 {
+				c = math.MaxUint8
+			}
+			origRoot.maxParams = uint8(c)
 		}
 	}()
 

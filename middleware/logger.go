@@ -170,7 +170,12 @@ func appendLogDuration(b []byte, d time.Duration) []byte {
 
 func formatLogDuration(buf *[32]byte, d time.Duration) int {
 	w := len(buf)
-	u := uint64(d) //nolint:gosec // two's-complement magnitude extraction, mirrors time.Duration.format exactly
+	// Two's-complement magnitude extraction, identical to
+	// time.Duration.format: the conversion is a deliberate bit
+	// reinterpretation, and for d < 0 the negation below yields |d| — exact
+	// even for math.MinInt64, whose magnitude 2^63 fits in uint64. No value
+	// of d can overflow here.
+	u := uint64(d) // #nosec G115 -- intentional int64->uint64 bit reinterpretation; |d| <= 2^63 fits in uint64
 	neg := d < 0
 	if neg {
 		u = -u

@@ -219,7 +219,7 @@ If these criteria conflict, or if you struggle to follow them, ask the user imme
 # Project reference
 
 ## Go version
-**Go 1.26+** (`go.mod` declares `go 1.26`; the 2026-09-26 measurements used Go 1.27.0). Uses modern features:
+**Go 1.27.1+** (`go.mod` declares `go 1.27.1`; the 2026-09-26 measurements used Go 1.27.0). Uses modern features:
 - `for i := range n` (range over integer, Go 1.22+)
 - `min`/`max` builtins (Go 1.21+)
 
