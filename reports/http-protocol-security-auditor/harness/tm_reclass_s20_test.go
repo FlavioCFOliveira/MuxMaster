@@ -87,23 +87,22 @@ func TestHPS_TM_2026_033_CORSCompress_VaryOnTheWire(t *testing.T) {
 	}
 }
 
-// TestHPS_TM_2026_033_Reproducer_NonCORSResponseLacksVaryOrigin is the
-// minimal reproducer of the confirmed TM-2026-033 defect (not fixed here).
+// TestHPS_TM_2026_033_Regression_NonCORSResponseHasVaryOrigin is the
+// regression test for the FIXED TM-2026-033 defect (formerly
+// TestHPS_TM_2026_033_Reproducer_NonCORSResponseLacksVaryOrigin, which
+// asserted the defect was present; converted per spec section 16 / rules
+// 71-75, rmp #291).
 //
 // Fetch Standard, "CORS protocol and HTTP caches": when
 // Access-Control-Allow-Origin is sent only in response to CORS requests,
 // "Vary: Origin" must also be sent on responses to non-CORS requests;
-// when ACAO is "*" it must be sent on non-CORS responses too. CORS()
-// returns early for a request without Origin (cors.go:94-96) and emits
-// neither, so a cache (browser or shared) that stored the non-CORS
-// response serves it — without ACAO — to a later CORS request from an
-// allowed origin, which the browser then blocks (cache-poisoned DoS of
-// cross-origin consumers).
-//
-// This test asserts the defect IS present at HEAD. When the defect is
-// fixed it fails with an explicit message and must be inverted into a
-// regression test.
-func TestHPS_TM_2026_033_Reproducer_NonCORSResponseLacksVaryOrigin(t *testing.T) {
+// when ACAO is "*" it must be sent on non-CORS responses too. CORS() now
+// calls addVaryOrigin unconditionally, before the early return for a
+// request without an Origin header (cors.go), so a cache (browser or
+// shared) that stores the non-CORS response also stores the fact that it
+// varies by Origin, and will not reuse it for a later CORS request from a
+// different origin.
+func TestHPS_TM_2026_033_Regression_NonCORSResponseHasVaryOrigin(t *testing.T) {
 	for _, origins := range [][]string{{"https://app.example"}, {"*"}} {
 		h := middleware.CORS(middleware.CORSOptions{AllowedOrigins: origins})(
 			http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -115,28 +114,27 @@ func TestHPS_TM_2026_033_Reproducer_NonCORSResponseLacksVaryOrigin(t *testing.T)
 		stored := httptest.NewRecorder()
 		h.ServeHTTP(stored, httptest.NewRequest(http.MethodGet, "/r", nil))
 
-		fixed := false
+		// The response the cache stores must itself declare that it varies
+		// by Origin, so a cache that respects Vary (RFC 9111 §4.1) never
+		// reuses it for a request bearing a different Origin.
+		hasVaryOrigin := false
 		for _, v := range stored.Header().Values("Vary") {
 			if strings.Contains(strings.ToLower(v), "origin") {
-				fixed = true
+				hasVaryOrigin = true
 			}
 		}
-		if origins[0] == "*" && stored.Header().Get("Access-Control-Allow-Origin") == "*" {
-			fixed = true
+		if !hasVaryOrigin {
+			t.Fatalf("origins=%v: non-CORS response lacks Vary: Origin — TM-2026-033 regression", origins)
 		}
-		if fixed {
-			t.Fatalf("origins=%v: TM-2026-033 appears FIXED (non-CORS response now carries Vary: Origin or ACAO: *) — "+
-				"invert this reproducer into a regression test", origins)
-		}
-
-		// 2) RFC 9111 §4.1: a stored response without Vary matches every
-		// later request for the same URI, whatever its Origin. The cache
-		// therefore serves `stored` to the CORS request below.
-		if len(stored.Header().Values("Vary")) != 0 {
-			t.Fatalf("origins=%v: stored response has Vary %v — premise of the reproducer changed", origins, stored.Header().Values("Vary"))
+		// ACAO itself must remain unset for a request with no Origin
+		// header (spec rule 72 — this fix changes only Vary).
+		if stored.Header().Get("Access-Control-Allow-Origin") != "" {
+			t.Fatalf("origins=%v: non-CORS response unexpectedly carries ACAO %q — rule 72 violated",
+				origins, stored.Header().Get("Access-Control-Allow-Origin"))
 		}
 
-		// 3) What the origin server WOULD have answered to that CORS request.
+		// 2) What the origin server WOULD have answered to a CORS request
+		// for the same resource from an allowed origin.
 		fresh := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/r", nil)
 		req.Header.Set("Origin", "https://app.example")
@@ -144,10 +142,11 @@ func TestHPS_TM_2026_033_Reproducer_NonCORSResponseLacksVaryOrigin(t *testing.T)
 		if fresh.Header().Get("Access-Control-Allow-Origin") == "" {
 			t.Fatalf("origins=%v: fresh CORS response lacks ACAO — reproducer precondition failed", origins)
 		}
-		// The cached copy the browser receives instead has no ACAO -> blocked.
-		if stored.Header().Get("Access-Control-Allow-Origin") != "" {
-			t.Fatalf("origins=%v: stored response unexpectedly carries ACAO", origins)
-		}
+
+		// 3) Because `stored` now carries Vary: Origin, a spec-compliant
+		// cache keys it separately from the CORS request above (whose
+		// Origin differs from the no-Origin request that produced
+		// `stored`) and will not serve `stored` in its place.
 	}
 }
 

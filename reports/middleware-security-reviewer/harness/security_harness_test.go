@@ -2178,9 +2178,11 @@ func TestSec_Composition_CompressWithCORSSensitiveData(t *testing.T) {
 // with a different Accept-Encoding or Origin. This test drives BOTH
 // middlewares together (unlike TestSec_Composition_CompressWithCORSSensitiveData
 // above, which only documents the BREACH angle and asserts nothing about
-// Vary) and requires an explicit, non-wildcard AllowedOrigins so CORS is on
-// its Vary-emitting branch (allowAll mode intentionally omits Vary: Origin
-// — see cors.go).
+// Vary) with an explicit, non-wildcard AllowedOrigins so ACAO reflects the
+// specific origin. TM-2026-033 (spec section 16, rmp #291) made CORS's
+// Vary: Origin unconditional, so as of that fix it is emitted in wildcard
+// mode too — see middleware/cors.go and
+// middleware/cors_vary_origin_test.go for the full matrix.
 func TestSec_MSR_INT_001_CompressCORS_VaryBothPresent(t *testing.T) {
 	compress := middleware.Compress(gzip.DefaultCompression)
 	cors := middleware.CORS(middleware.CORSOptions{

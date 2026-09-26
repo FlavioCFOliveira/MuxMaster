@@ -955,8 +955,16 @@ func TestHPSExt17_CORS_VaryOriginPresent(t *testing.T) {
 			t.Logf("HPS-EXT-17 PASS: Vary: Origin present when specific origin is allowed")
 		}
 	} else if acao == "*" {
-		// Wildcard — Vary not required
-		t.Logf("HPS-EXT-17 INFO: ACAO=* (wildcard) — Vary: Origin not required")
+		// TM-2026-033 (spec section 16, rmp #291): Vary: Origin is no longer
+		// optional in wildcard mode either — CORS now emits it
+		// unconditionally on every response. This branch is unreached by
+		// this test's own AllowedOrigins (non-wildcard), but is kept
+		// accurate for any future wildcard variant of this test.
+		if !strings.Contains(vary, "Origin") {
+			t.Errorf("HPS-EXT-17 VULNERABLE (TM-2026-033 regression): ACAO=* but Vary: Origin is absent. Vary=%q", vary)
+		} else {
+			t.Logf("HPS-EXT-17 PASS: ACAO=* (wildcard) and Vary: Origin present")
+		}
 	} else {
 		t.Logf("HPS-EXT-17 INFO: ACAO=%q (unexpected value)", acao)
 	}

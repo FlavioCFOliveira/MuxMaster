@@ -758,9 +758,20 @@ func TestSec_CORS_VaryOrigin_WhenSpecificOriginReflected(t *testing.T) {
 	}
 }
 
-// TestSec_CORS_WildcardNoVaryRequired verifies that when AllowedOrigins=["*"]
-// and the literal "*" is emitted (no origin reflected), Vary: Origin is NOT
-// required (the response is the same regardless of Origin value).
+// TestSec_CORS_WildcardNoVaryRequired originally verified that when
+// AllowedOrigins=["*"] and the literal "*" is emitted (no origin
+// reflected), Vary: Origin was NOT required, since ACAO itself does not
+// vary by Origin in wildcard mode.
+//
+// TM-2026-033 (spec section 16, rmp #291) supersedes that reasoning: the
+// Fetch Standard's "CORS protocol and HTTP caches" guidance requires
+// Vary: Origin on wildcard responses too, not because ACAO itself varies,
+// but because the SAME URL can also be served through this CORS()
+// instance's disallowed-origin or no-Origin paths, which respond
+// differently (403 / no Access-Control-* headers). A cache unaware of
+// that must not reuse a wildcard response for those other cases. CORS now
+// emits Vary: Origin unconditionally (rule 71), including here; kept as a
+// hard assertion instead of a Logf so a future regression is caught.
 func TestSec_CORS_WildcardNoVaryRequired(t *testing.T) {
 	mw := middleware.CORS(middleware.CORSOptions{
 		AllowedOrigins: []string{"*"},
@@ -778,8 +789,9 @@ func TestSec_CORS_WildcardNoVaryRequired(t *testing.T) {
 	if acao != "*" {
 		t.Errorf("CORS wildcard: expected literal *, got %q", acao)
 	}
-	// When emitting *, Vary:Origin is not mandatory. The middleware may or may
-	// not emit it — document the actual behaviour.
+	if vary := rec.Header().Get("Vary"); !strings.Contains(vary, "Origin") {
+		t.Errorf("TM-2026-033 regression: CORS wildcard response lacks Vary: Origin. ACAO=%q Vary=%q", acao, vary)
+	}
 	t.Logf("CORS wildcard: ACAO=%q, Vary=%q", acao, rec.Header().Get("Vary"))
 }
 

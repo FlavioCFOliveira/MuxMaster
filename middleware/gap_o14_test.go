@@ -78,7 +78,12 @@ func TestSec_CORS_WildcardNonFirstIndexAndCredentialsPanics(t *testing.T) {
 }
 
 // ── CORS: a request with no Origin header gets no Access-Control-Allow-Origin ──
-
+//
+// TM-2026-033 (spec rules 71-72, rmp #291): a request with no Origin header
+// still gets no Access-Control-* headers (rule 72, unchanged behaviour) but
+// now DOES get Vary: Origin (rule 71) — so a cache is aware this response
+// varies by Origin before it stores it, closing the CDN cache-poisoning gap
+// where a stored no-Origin response was later reused for a CORS request.
 func TestSec_CORS_NoOriginHeader_NoACAO(t *testing.T) {
 	mw := middleware.CORS(middleware.CORSOptions{AllowedOrigins: []string{"https://trusted.example"}})
 	rec := httptest.NewRecorder()
@@ -92,6 +97,16 @@ func TestSec_CORS_NoOriginHeader_NoACAO(t *testing.T) {
 	}
 	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
 		t.Fatalf("Access-Control-Allow-Origin = %q, want empty when the request carries no Origin header", got)
+	}
+	found := false
+	for _, v := range rec.Header().Values("Vary") {
+		if strings.EqualFold(strings.TrimSpace(v), "Origin") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("Vary = %v, want a value containing the token \"Origin\" (TM-2026-033, spec rule 71) even "+
+			"though the request carries no Origin header", rec.Header().Values("Vary"))
 	}
 }
 
