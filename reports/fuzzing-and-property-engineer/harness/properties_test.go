@@ -581,6 +581,89 @@ func TestProp_TimeoutSetsDeadline(t *testing.T) {
 }
 
 // ============================================================
+// Property: I-15b — Timeout cancels the request context within a
+// bounded margin of the deadline (FPE-2026-005)
+//
+// context.WithTimeout's Done() channel is closed by a runtime timer
+// serviced by a goroutine independent of the handler goroutine, so
+// cancellation is observed some lag AFTER `now+d` — never before it,
+// and the lag is not bounded by the language spec, only empirically
+// by scheduler/GC behaviour.
+//
+// timeoutCancelTolerance justification (measured on this repository's
+// dev machine, go1.26.2 linux/amd64, `go test -race`, see rmp task
+// #265 / FPE-2026-005):
+//   - Isolated (no contention): 200 samples across d in
+//     {10,20,50,100}ms, max observed lag ≈ 1.5ms.
+//   - Under synthetic heavy contention (NumCPU*4 goroutines churning
+//     allocations to force GC + scheduler pressure), still under
+//     -race: 90 samples across the same d range, max observed lag
+//     ≈ 60ms.
+// 300ms is a fixed floor at ~5x the worst contended measurement, to
+// absorb slower/virtualised CI runners and `-count=20` sequential
+// repetition without being loose enough to hide a real regression
+// (e.g. a timer that never fires, or fires seconds late). The lower
+// bound (cancellation must never precede the deadline) is asserted
+// unconditionally — context.WithTimeout's contract guarantees it, so
+// no tolerance applies there.
+//
+// This replaces the lost TestProp_TimeoutCancelsContext (rmp #176).
+// The original (recovered only as a .fail artifact — see
+// testdata/rapid/TestProp_TimeoutCancelsContext, now removed) drew a
+// `sleepMs` within ~1ms of `timeoutMs` and polled the context AFTER
+// sleeping that fixed duration; that construction races against
+// exactly the scheduler jitter measured above and fails spuriously —
+// it is a test-tolerance defect, not a `middleware/timeout.go` defect
+// (re-verified for this task; no code change to timeout.go was
+// needed). Blocking on <-ctx.Done() and comparing the observed fire
+// time against ctx.Deadline() (not a fixed sleep) removes the race:
+// the test can only observe cancellation once it has actually
+// happened.
+// ============================================================
+
+const timeoutCancelTolerance = 300 * time.Millisecond
+
+func TestProp_TimeoutCancelsContext(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		// Kept small (10-150ms) so the property runs at practical speed —
+		// the test literally waits out the timeout on every iteration.
+		timeoutMs := rapid.IntRange(10, 150).Draw(t, "timeoutMs")
+		d := time.Duration(timeoutMs) * time.Millisecond
+
+		timeoutMW := mw.Timeout(d)
+
+		var deadline time.Time
+		var deadlineOk bool
+		var cancelledAt time.Time
+		handler := timeoutMW(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			deadline, deadlineOk = r.Context().Deadline()
+			<-r.Context().Done() // blocks until the runtime timer actually fires
+			cancelledAt = time.Now()
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if !deadlineOk {
+			t.Fatalf("context has no deadline after Timeout(%dms)", timeoutMs)
+		}
+		if cancelledAt.Before(deadline) {
+			t.Fatalf("context cancelled %v BEFORE deadline (timeout=%dms): deadline=%v cancelledAt=%v — violates context.WithTimeout's contract",
+				deadline.Sub(cancelledAt), timeoutMs, deadline, cancelledAt)
+		}
+		if lag := cancelledAt.Sub(deadline); lag > timeoutCancelTolerance {
+			t.Fatalf("context cancelled %v AFTER deadline (timeout=%dms), exceeds tolerance %v: deadline=%v cancelledAt=%v",
+				lag, timeoutMs, timeoutCancelTolerance, deadline, cancelledAt)
+		}
+		if rec.Code != http.StatusOK {
+			t.Fatalf("handler did not complete: got=%d", rec.Code)
+		}
+	})
+}
+
+// ============================================================
 // Property: I-16 — Recoverer prevents panics from escaping
 // ============================================================
 

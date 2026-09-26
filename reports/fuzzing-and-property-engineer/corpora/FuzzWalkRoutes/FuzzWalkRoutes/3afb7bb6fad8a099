@@ -1,0 +1,4 @@
+go test fuzz v1
+string("/00\xf60")
+string("0")
+string("/")

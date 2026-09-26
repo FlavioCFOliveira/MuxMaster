@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/0aaaaa/0aaaa/000000a0000a/aaaaA")

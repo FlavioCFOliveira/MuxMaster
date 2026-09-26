@@ -82,12 +82,17 @@ func FuzzRegexParamRegistration(f *testing.F) {
 		_, regexErr := regexp.Compile("^(?:" + expr + ")$")
 		isValidRegex := regexErr == nil
 
-		// FINDING FPE-2026-REGEX-01: The {name:expr} parser in tree.go terminates
-		// on the first '}' byte encountered, so regex expressions that contain '}'
-		// (e.g. "(})", "\}", "[}]", "{2,3}") are rejected with a confusing panic
-		// even though regexp.Compile accepts them.
-		// A regex containing '}' will appear valid to regexp.Compile but invalid to the
-		// tree parser. We must account for this known divergence.
+		// FPE-2026-0001 / FPE-2026-REGEX-01 — FIXED (tree.go ~line 1255,
+		// commit 825c623). The {name:expr} parser used to stop at the FIRST
+		// '}' byte, so regex expressions containing '}' (e.g. "(})", "\}",
+		// "[}]", "a{2,3}") were rejected with a confusing panic even though
+		// regexp.Compile accepted them. The parser now scans the whole path
+		// segment and picks the LAST '}' before the next '/' (or end of
+		// pattern) as the token's closing brace, so any '}' inside expr no
+		// longer breaks registration. A valid regex containing '}' is
+		// therefore asserted below exactly like any other valid regex — no
+		// more special-cased swallow. See also TestRegexBraceFixed for a
+		// small deterministic regression guard.
 		containsCloseBrace := strings.ContainsRune(expr, '}')
 
 		defer func() {
@@ -96,26 +101,22 @@ func FuzzRegexParamRegistration(f *testing.F) {
 				if !ok {
 					t.Fatalf("PANIC (non-string): expr=%q r=%v\n%s", expr, r, debug.Stack())
 				}
-				if isValidRegex && !containsCloseBrace {
-					// Valid regex without '}' — tree parser should accept it.
-					// Only expected panic: conflict or other structural issue.
+				if isValidRegex {
+					// Valid regex (with or without '}') — tree parser must
+					// accept it post-FPE-2026-0001. Only expected panic:
+					// conflict or other structural issue.
 					if strings.Contains(msg, "invalid regexp") {
-						t.Fatalf("I-REGEX-01 violation: valid non-brace regex %q rejected as invalid\n%s",
-							expr, debug.Stack())
+						t.Fatalf("I-REGEX-01 violation: valid regex %q (containsCloseBrace=%v) rejected as invalid\n%s",
+							expr, containsCloseBrace, debug.Stack())
 					}
 					if isExpectedHandlePanic(msg) {
 						return
 					}
-					t.Fatalf("I-REGEX-01: unexpected panic for valid regex %q: %q\n%s",
-						expr, msg, debug.Stack())
+					t.Fatalf("I-REGEX-01: unexpected panic for valid regex %q (containsCloseBrace=%v): %q\n%s",
+						expr, containsCloseBrace, msg, debug.Stack())
 				}
-				// Any other case (invalid regex, or valid regex with '}', or expected tree panic).
+				// Invalid regex — any panic must be a documented/expected one.
 				if !isExpectedHandlePanic(msg) {
-					// Log FPE-2026-REGEX-01 case for '}'-containing valid regex.
-					if isValidRegex && containsCloseBrace {
-						// Known limitation: document, do not fail.
-						return
-					}
 					t.Fatalf("I-REGEX-01: unexpected panic for expr=%q msg=%q\n%s",
 						expr, msg, debug.Stack())
 				}
@@ -127,6 +128,56 @@ func FuzzRegexParamRegistration(f *testing.F) {
 		pattern := "/items/{p:" + expr + "}"
 		mux.GET(pattern, h200)
 	})
+}
+
+// TestRegexBraceFixed is a deterministic regression guard for
+// FPE-2026-0001 / FPE-2026-REGEX-01 (fixed in tree.go ~line 1255,
+// commit 825c623): valid Go regexes containing '}' must register as a
+// {name:expr} param without panic, and must correctly match at request
+// time. Unlike FuzzRegexParamRegistration (which only checks
+// registration), this also exercises a real request through the
+// registered route to confirm the closing-brace detection did not
+// truncate the regex body.
+func TestRegexBraceFixed(t *testing.T) {
+	cases := []struct {
+		expr    string
+		segment string
+		want    bool
+	}{
+		{expr: `a{2,3}`, segment: "aaa", want: true},
+		{expr: `a{2,3}`, segment: "a", want: false},
+		{expr: `[}]`, segment: "}", want: true},
+		{expr: `[}]`, segment: "x", want: false},
+		{expr: `(})`, segment: "}", want: true},
+		{expr: `\}`, segment: "}", want: true},
+		{expr: `x{1,3}y{2,4}`, segment: "xyy", want: true},
+		{expr: `x{1,3}y{2,4}`, segment: "x", want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.expr, func(t *testing.T) {
+			var matched bool
+			var panicked any
+			func() {
+				defer func() { panicked = recover() }()
+				mux := mm.New()
+				mux.GET("/items/{p:"+tc.expr+"}", func(w http.ResponseWriter, r *http.Request) {
+					matched = true
+					w.WriteHeader(http.StatusOK)
+				})
+				req := httptest.NewRequest(http.MethodGet, "/items/"+tc.segment, nil)
+				rec := httptest.NewRecorder()
+				mux.ServeHTTP(rec, req)
+			}()
+			if panicked != nil {
+				t.Fatalf("registration/dispatch panicked for expr=%q segment=%q: %v",
+					tc.expr, tc.segment, panicked)
+			}
+			if matched != tc.want {
+				t.Fatalf("expr=%q segment=%q: handler invoked=%v, want=%v",
+					tc.expr, tc.segment, matched, tc.want)
+			}
+		})
+	}
 }
 
 // FuzzRegexParamServeHTTP exercises getValue with registered regex routes.

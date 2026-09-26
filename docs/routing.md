@@ -93,6 +93,24 @@ A segment starting with `*` captures the rest of the path, including slashes. It
 
 The captured value always starts with `/`.
 
+### Optional parameters (`{/:name}` and `{/:name:pattern}`)
+
+An optional parameter declares that a segment may be present or absent. Optional named parameters use `{/:name}` syntax; optional regex parameters use `{/:name:pattern}`:
+
+```go
+mux.GET("/users{/:id}", handler)       // matches /users AND /users/42
+mux.GET("/items{/:id:[0-9]+}", handler) // matches /items AND /items/123 (regex)
+```
+
+When a route contains optional parameters, the router automatically expands it into multiple registrations. A pattern with `N` optional parameters expands into `2^N` registrations. For example, `/users{/:id}` expands into two handler registrations: one for `/users` and one for `/users/:id`.
+
+**Limits:**
+
+- A pattern may contain **at most 8 optional parameters**. Exceeding this limit panics at registration time to prevent exponential complexity in route expansion (a pattern with 8 optional parameters expands into 256 routes).
+- **Two optional parameters may not appear consecutively** (with no literal segment between them). For example, `/users{/:id}{/:post}` is invalid. Separate them with a literal segment: `/users{/:id}/posts{/:post}`.
+
+These constraints prevent both exponential expansion and conflicts in the radix tree structure. See [specification/routing.md](../specification/routing.md) §102-103 for the full technical rationale.
+
 ---
 
 ## Pattern Priority and Conflicts
@@ -203,6 +221,34 @@ All three pairs of methods are equivalent:
 - `mux.QUERYE(path, h)` ↔ `mux.HandleE("QUERY", path, h)`
 - `mux.POSTFast(path, h)` ↔ `mux.HandleFast("POST", path, h)`
 
+### GET and HEAD Methods
+
+Unlike `net/http.ServeMux` and some other routers, **registering a handler for GET does not automatically handle HEAD requests**. HEAD requests to a GET-only route return `405 Method Not Allowed`. To handle HEAD requests, register them explicitly:
+
+```go
+mux.GET("/users/:id", getUser)
+mux.HEAD("/users/:id", headUser)  // explicit HEAD handler required
+```
+
+Alternatively, use `Match` to register a single handler for both methods:
+
+```go
+mux.Match([]string{"GET", "HEAD"}, "/users/:id", func(w http.ResponseWriter, r *http.Request) {
+    // Handle both GET and HEAD here
+})
+```
+
+The router's GET and HEAD methods are independent; there is no implicit relationship between them per RFC 9110 §9.3.2 (which describes the *semantics* of HEAD, not the routing semantics). From the router's perspective, HEAD is a distinct HTTP method.
+
+### Regex Parameter Name Length
+
+Regex-constrained parameter names in `{name:expr}` are limited to 254 characters. Names longer than 254 bytes panic at route registration:
+
+```go
+mux.GET("/users/{" + strings.Repeat("x", 255) + ":[0-9]+}", handler)  // panics
+mux.GET("/users/{" + strings.Repeat("x", 254) + ":[0-9]+}", handler)  // OK
+```
+
 ### Custom or Extension Methods
 
 MuxMaster does not support registering handlers for custom or extension HTTP methods such as `PURGE` (used by caching proxies) or `PROPFIND` (WebDAV). Attempting to register one panics:
@@ -273,7 +319,7 @@ This design eliminates per-request middleware iteration. Combined with the radix
 - If a request arrives for `/users/` and only `/users` is registered, MuxMaster redirects to `/users`.
 - If a request arrives for `/users` and only `/users/` is registered, MuxMaster redirects to `/users/`.
 
-This also applies to catch-all routes and mounted handlers. For example, with `Mount("/api", handler)` (internally a catch-all `"/*"` at the `/api` prefix):
+This also applies to catch-all routes and mounted handlers. For example, with `Mount("/api", handler)` (internally registered as `Handle("*", "/api/*mux_mount", ...)`, with a wrapper that strips the prefix before calling `handler`):
 
 - A request to `/api` (bare prefix, no trailing slash) triggers a redirect to `/api/` when `RedirectTrailingSlash` is `true`.
 - A request to `/api/` and `/api/anything` both match the mounted handler directly.
@@ -303,7 +349,7 @@ mux.RedirectTrailingSlash = false
 To use pre-routing path cleaning instead of a redirect (useful when you want the clean path without a round-trip), add the middleware:
 
 ```go
-mux.Pre(middleware.CleanPath)
+mux.Pre(middleware.CleanPath())
 ```
 
 `CleanPath` modifies the request in-place before the router sees it, so no redirect is issued.

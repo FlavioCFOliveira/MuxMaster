@@ -15,9 +15,22 @@ import (
 
 // routeResult captures the routing outcome from a single router.
 type routeResult struct {
-	status  int
-	handler string // "matched", "notfound", "405", "redirect", "options"
-	param   string // first path param value if any
+	status   int
+	handler  string // "matched", "notfound", "405", "redirect", "options"
+	param    string // first path param value if any
+	xHandler string // raw X-Handler header value — identifies WHICH route matched
+	// (e.g. "admin", "users_id", "static", "items_children", "public"), used
+	// by FuzzDifferentialSecurity to distinguish a named-:param capture from
+	// a catch-all capture so "'/' inside a param" and "catch-all escapes its
+	// prefix" are checked against the right handler shape.
+	decodedPath string // req.URL.Path as net/url decoded it, captured BEFORE
+	// ServeHTTP runs (queryMuxMaster only) — the actual string the tree
+	// matched against when UseRawPath=false. FuzzDifferentialSecurity's
+	// catch-all-prefix-escape check must compare against this, not the raw
+	// fuzz-supplied path string: a percent-encoded but otherwise legitimate
+	// path (e.g. "/%73tatic/x") decodes to "/static/x" and correctly
+	// matches — checking the RAW string's prefix would misclassify that as
+	// a structural escape.
 }
 
 // --- MuxMaster oracle ---
@@ -60,6 +73,7 @@ func queryMuxMaster(mux *mm.Mux, path string) (res routeResult) {
 		}
 	}()
 	req := httptest.NewRequest("GET", "http://x"+path, nil)
+	res.decodedPath = req.URL.Path
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	res.status = w.Code
@@ -79,6 +93,7 @@ func queryMuxMaster(mux *mm.Mux, path string) (res routeResult) {
 	if res.param == "" {
 		res.param = w.Header().Get("X-Param-filepath")
 	}
+	res.xHandler = w.Header().Get("X-Handler")
 	return res
 }
 
@@ -138,6 +153,7 @@ func queryHTTPRouter(r *httprouter.Router, path string) (res routeResult) {
 	if res.param == "" {
 		res.param = w.Header().Get("X-Param-filepath")
 	}
+	res.xHandler = w.Header().Get("X-Handler")
 	return res
 }
 
@@ -197,6 +213,7 @@ func queryChi(r *chi.Mux, path string) (res routeResult) {
 	if res.param == "" {
 		res.param = w.Header().Get("X-Param-filepath")
 	}
+	res.xHandler = w.Header().Get("X-Handler")
 	return res
 }
 
@@ -263,6 +280,7 @@ func queryBunRouter(r *bunrouter.Router, path string) (res routeResult) {
 	if res.param == "" {
 		res.param = w.Header().Get("X-Param-filepath")
 	}
+	res.xHandler = w.Header().Get("X-Handler")
 	return res
 }
 
@@ -514,6 +532,17 @@ func FuzzAddRoute(f *testing.F) {
 		"/a{/:b}{/:c}{/:d}",
 		"/{name:[a-z]+}/profile",
 		"/a/b/c/d/e/f/g",
+		// Malformed-regex seeds (rmp #274 part 2/4 restoration of the
+		// deleted TestRegexCompilePanic — see round3_test.go's regex
+		// coverage for the ReDoS/timing angle; this seeds the syntax-error
+		// angle: a malformed {name:expr} must panic cleanly at addRoute,
+		// never hang or corrupt the tree, which FuzzAddRoute's existing
+		// "invalid regexp" allow-list entry below already expects).
+		"/{x:[}",    // unbalanced character class
+		"/{x:(a+}",  // unbalanced group
+		"/{x:(a|b}", // unbalanced alternation
+		"/{x:}",     // empty regex body
+		"/{x:*}",    // leading quantifier — invalid regex
 	}
 	for _, s := range seeds {
 		f.Add(s)

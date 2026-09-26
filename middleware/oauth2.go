@@ -5,11 +5,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -242,6 +244,38 @@ func (c *oauth2Cache) evictOneLocked() bool {
 	return true
 }
 
+// oauth2UserinfoPattern matches an embedded userinfo component ("user:pass@"
+// or "user@") immediately following a scheme separator ("://"), e.g. in
+// "https://user:secret@host/path". It is the fallback redaction path used
+// by redactedEndpointRaw when the Endpoint string cannot be parsed into a
+// structured *url.URL — see redactedEndpointRaw.
+var oauth2UserinfoPattern = regexp.MustCompile(`://[^/?#@]*@`)
+
+// redactedEndpointURL returns u's string form with any userinfo component
+// stripped ENTIRELY (not merely password-masked) — CWE-532: construction-time
+// diagnostics (panics, errors) must never render credentials embedded in the
+// Endpoint URL. This mirrors the TM-2026-005 slog redaction policy (host +
+// scheme only, no userinfo) so every surface — logs and panics alike —
+// applies the same redaction rule.
+func redactedEndpointURL(u *url.URL) string {
+	if u == nil {
+		return ""
+	}
+	c := *u
+	c.User = nil
+	return c.String()
+}
+
+// redactedEndpointRaw redacts an embedded userinfo component from a raw,
+// NOT-YET-PARSED (or unparseable) Endpoint string. It exists because the
+// "malformed Endpoint URL" panic path is reached precisely when url.Parse
+// has already failed on opts.Endpoint, so there is no *url.URL to hand to
+// redactedEndpointURL. Falls back to a regex-based redaction of the
+// "user:pass@" / "user@" substring following the scheme separator.
+func redactedEndpointRaw(raw string) string {
+	return oauth2UserinfoPattern.ReplaceAllString(raw, "://")
+}
+
 // OAuth2Introspect validates Bearer tokens via RFC 7662 token introspection.
 // Active tokens are cached (keyed by sha256(token)) to avoid per-request network calls.
 // On success, the IntrospectResponse is available via GetOAuth2Claims.
@@ -255,7 +289,18 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 	}
 	parsedEndpoint, err := url.Parse(opts.Endpoint)
 	if err != nil {
-		panic("middleware: OAuth2Introspect: malformed Endpoint URL: " + err.Error())
+		// CWE-532: url.Error.Error() echoes the raw, unparsed URL verbatim
+		// (`parse "<url>": <reason>`) — if opts.Endpoint carries embedded
+		// userinfo (e.g. "https://user:secret@host/x"), naively including
+		// err.Error() in this panic would render the credentials in full.
+		// Extract only the underlying reason (never the raw URL) and pair
+		// it with a separately redacted copy of opts.Endpoint.
+		reason := err.Error()
+		var uerr *url.Error
+		if errors.As(err, &uerr) && uerr.Err != nil {
+			reason = uerr.Err.Error()
+		}
+		panic("middleware: OAuth2Introspect: malformed Endpoint URL (" + redactedEndpointRaw(opts.Endpoint) + "): " + reason)
 	}
 	// TM-2026-004: tighten Endpoint validation. url.Parse is permissive —
 	// "https://attacker@evil/x" parses with Scheme=https, Host=evil, User=attacker.
@@ -266,10 +311,18 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 	// otherwise a misconfigured Endpoint silently routes bearer tokens to an
 	// attacker-controlled host that happens to use https.
 	if parsedEndpoint.Host == "" {
-		panic("middleware: OAuth2Introspect: Endpoint URL has no host: " + opts.Endpoint)
+		// CWE-532: render the REDACTED form, not opts.Endpoint — a URL with
+		// no discernible host can still carry userinfo (e.g. "https://user:
+		// secret@" parses with Host=="" and User set), and printing the raw
+		// string here would leak those credentials in the panic message.
+		panic("middleware: OAuth2Introspect: Endpoint URL has no host: " + redactedEndpointURL(parsedEndpoint))
 	}
 	if parsedEndpoint.User != nil {
-		panic("middleware: OAuth2Introspect: Endpoint URL must not contain userinfo (RFC 3986 §3.2.1) — credentials in URL are an exfiltration vector: " + opts.Endpoint)
+		// CWE-532 (originally flagged: construction-time panic rendered the
+		// full URL, including userinfo credentials, in the panic message).
+		// Redact before printing — this is exactly the case being rejected,
+		// so the raw opts.Endpoint is guaranteed to contain credentials here.
+		panic("middleware: OAuth2Introspect: Endpoint URL must not contain userinfo (RFC 3986 §3.2.1) — credentials in URL are an exfiltration vector: " + redactedEndpointURL(parsedEndpoint))
 	}
 	if parsedEndpoint.Scheme != "https" {
 		if !opts.AllowInsecureEndpoint {
@@ -407,13 +460,24 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 					}
 				}
 				// MSR-2026-0071: detach the introspection call from the
-				// leader's request context. If the leader cancels (client
-				// disconnect) while followers are still waiting, completing
-				// the call lets every follower receive the legitimate result
-				// instead of being poisoned with a 401 derived from
-				// context.Cancelled. The HTTP client retains its own timeout
-				// (opts.HTTPClient.Timeout) so the call cannot run forever.
-				detached, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				// leader's request CANCELLATION. If the leader cancels
+				// (client disconnect) while followers are still waiting,
+				// completing the call lets every follower receive the
+				// legitimate result instead of being poisoned with a 401
+				// derived from context.Canceled. A previous fix used
+				// context.Background() to achieve this, but that also
+				// discarded every request-scoped VALUE (trace/correlation
+				// IDs, etc.), so the outbound IdP request could never
+				// observe them.
+				// context.WithoutCancel(r.Context()) keeps ctx.Value()
+				// working (Value() still delegates to r.Context()) while
+				// guaranteeing the returned context's Done() never fires
+				// because of r's own cancellation — exactly the property
+				// this coalesced call needs. A fresh, independent 30s
+				// timeout is layered on top so the call still cannot run
+				// forever if the IdP hangs (the HTTP client's own
+				// opts.HTTPClient.Timeout is an additional bound).
+				detached, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
 				defer cancel()
 				return doIntrospect(detached, token)
 			})

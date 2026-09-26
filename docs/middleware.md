@@ -64,7 +64,7 @@ mux.GET("/path", handler)
 ```go
 mux := muxmaster.New()
 mux.Use(middleware.Logger(os.Stdout))
-mux.Use(middleware.Recoverer)
+mux.Use(middleware.Recoverer())
 
 mux.GET("/api/users", listUsers) // wrapped by Logger and Recoverer
 ```
@@ -76,11 +76,24 @@ mux.GET("/api/users", listUsers) // wrapped by Logger and Recoverer
 `Pre` registers middleware that runs **before** the router matches the request. Use it to rewrite or normalize the URL before the radix tree sees it.
 
 ```go
-mux.Pre(middleware.CleanPath)
-mux.Pre(middleware.StripSlashes)
+mux.Pre(middleware.CleanPath())
+mux.Pre(middleware.StripSlashes())
 ```
 
 Pre-routing middleware cannot access path parameters because routing has not happened yet. It is useful for path normalization, request ID injection, and real IP extraction.
+
+**Exception — asterisk-form `OPTIONS * HTTP/1.1`:** Under `net/http`'s default server configuration (`http.Server.DisableGeneralOptionsHandler == false`, the default), an incoming `OPTIONS * HTTP/1.1` request is answered by `net/http` itself before `Mux.ServeHTTP` is called, so pre-routing middleware does not run for it. To route these requests through MuxMaster and its middleware, set `http.Server.DisableGeneralOptionsHandler` to `true`:
+
+```go
+server := &http.Server{
+    Addr:                         ":8080",
+    Handler:                      mux,
+    DisableGeneralOptionsHandler: true,  // Allow OPTIONS * to reach MuxMaster
+}
+server.ListenAndServe()
+```
+
+When `DisableGeneralOptionsHandler` is `true`, `OPTIONS *` requests reach `Mux.ServeHTTP` with `r.URL.Path == "*"` and pre-routing middleware does run, consistent with all other requests. No route can match the path `*`, so the router then answers through `NotFound` (404 by default): no automatic `Allow` response and no `GlobalOPTIONS` call (see `specification/routing.md` section 10).
 
 ---
 
@@ -225,11 +238,17 @@ Logger implements `http.Flusher` (delegating to the underlying response writer) 
 
 ### Recoverer
 
-Catches panics in downstream handlers, writes a 500 response, and resumes normal request processing. Without this middleware a panic crashes the entire server.
+Catches panics in downstream handlers and resumes normal request processing. Without this middleware a panic crashes the entire server. The panic value and stack trace are always logged; the panic value itself is never written to the response body.
 
 ```go
-mux.Use(middleware.Recoverer)
+mux.Use(middleware.Recoverer())
 ```
+
+**Response behavior:** Recoverer writes a plain 500 response only if the handler has not already committed its own response — that is, only if the handler panicked before calling `WriteHeader` or `Write`. If the handler already sent a status or wrote body bytes before panicking, Recoverer leaves the response exactly as the handler left it and does not append anything; this is a handler bug independent of Recoverer, not something Recoverer can safely correct after the fact.
+
+**Supported interfaces:**
+
+Recoverer implements `http.Flusher` (delegating to the underlying response writer) and exposes `Unwrap() http.ResponseWriter`, so `http.ResponseController` reaches `Hijack` and other optional interfaces on the underlying writer.
 
 ---
 
@@ -365,7 +384,7 @@ type JWTClaims struct {
 
 **Security Considerations:**
 
-- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. The `Use()` family does not wrap fast routes and will panic if both are present. See [Pre vs. Use security boundary](../SECURITY.md#thread-safety-contract-mm-2026-0017--csa-2026-0052) in SECURITY.md.
+- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. The `Use()` family does not wrap fast routes and will panic if both are present. See [Pre vs. Use security boundary](../SECURITY.md#pre-vs-use-security-boundary-csa-2026-0059--h8-01) in SECURITY.md.
 
 - **Algorithm mixing (timing oracle — TSC-2026-0003):** Mixing algorithm families (e.g., HS256 alongside RS256) in `Algorithms` leaks the verification path via response latency: HMAC verification is ~1 µs, RSA ~300 µs. An attacker submitting tokens with different `alg` values can infer which path the server runs. Configure each endpoint with a single algorithm family (e.g., only `ES256`, not a mix). JWTAuth emits a `slog.Warn` at construction time when this misconfiguration is detected.
 
@@ -438,7 +457,7 @@ type IntrospectResponse struct {
 
 **Security Considerations:**
 
-- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#thread-safety-contract-mm-2026-0017--csa-2026-0052) in SECURITY.md.
+- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#pre-vs-use-security-boundary-csa-2026-0059--h8-01) in SECURITY.md.
 
 - **HTTPS endpoint required (RFC 7662 §4 — MSR-2026-0067):** Bearer tokens transmitted over plaintext are exposed to passive observers and man-in-the-middle attackers. The `Endpoint` must use the `https://` scheme. MuxMaster panics at construction time unless `AllowInsecureEndpoint: true` is explicitly set (testing/localhost only). Production deployments must use HTTPS.
 
@@ -492,7 +511,7 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 
 **Security Considerations:**
 
-- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#thread-safety-contract-mm-2026-0017--csa-2026-0052) in SECURITY.md.
+- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#pre-vs-use-security-boundary-csa-2026-0059--h8-01) in SECURITY.md.
 
 - **WWW-Authenticate header (RFC 7235 §3.1 — MM-2026-0052):** MuxMaster sets the `WWW-Authenticate: ApiKey realm="api"` header on 401 responses to comply with the HTTP specification.
 
@@ -581,7 +600,8 @@ id := middleware.GetRequestID(r.Context())
 Extracts the real client IP address from `X-Forwarded-For` or `X-Real-IP` headers set by a reverse proxy, and sets `r.RemoteAddr` to that value.
 
 ```go
-mux.Use(middleware.RealIP)
+trustedProxy := netip.MustParsePrefix("10.0.0.0/8")
+mux.Use(middleware.RealIP(&trustedProxy))
 ```
 
 For `X-Forwarded-For` (a comma-separated list of IPs in proxy chain order), RealIP searches from right-to-left for the rightmost untrusted proxy in the chain. It respects a 30-hop limit to defend against unbounded list sizes.
@@ -594,14 +614,29 @@ Only use this middleware if the server is behind a trusted reverse proxy. Accept
 
 ### CleanPath
 
-Redirects URLs with redundant components to their canonical form:
+Rewrites the request path in-place, normalising redundant components via `path.Clean`:
 - `//users` → `/users`
 - `/a/../users` → `/users`
 - `/a/./users` → `/a/users`
 
 ```go
-mux.Pre(middleware.CleanPath)  // run before routing to avoid a redirect
+mux.Pre(middleware.CleanPath()) // run before routing to avoid a redirect
 ```
+
+**Ordering with authorization gates:** When used with path-inspecting Pre-gates
+(e.g., gates that check `if strings.HasPrefix(r.URL.Path, "/admin")`), register
+CleanPath FIRST. A gate registered before CleanPath sees the raw, unnormalised path
+and can be bypassed by traversal sequences like `/admin/../public` or `//admin`.
+CleanPath must run first to normalise the path before the gate inspects it:
+
+```go
+mux.Pre(middleware.CleanPath())              // first: normalise the path
+mux.Pre(middleware.BasicAuth("realm", ...))  // then: check authorisation
+```
+
+If this order is reversed, `/admin/../public` reaches the BasicAuth gate as-is
+(bypassing the `/admin` check), though the radix tree lookup still matches the
+correct route based on the cleaned path.
 
 ---
 
@@ -610,7 +645,7 @@ mux.Pre(middleware.CleanPath)  // run before routing to avoid a redirect
 Removes trailing slashes from the URL path before routing. Unlike `RedirectTrailingSlash`, this modifies the request in-place without issuing a redirect.
 
 ```go
-mux.Pre(middleware.StripSlashes)
+mux.Pre(middleware.StripSlashes())
 ```
 
 ---
@@ -620,7 +655,7 @@ mux.Pre(middleware.StripSlashes)
 Sets headers that instruct browsers and intermediaries not to cache the response.
 
 ```go
-mux.Use(middleware.NoCache)
+mux.Use(middleware.NoCache())
 ```
 
 Headers set: `Cache-Control: no-cache, no-store, no-transform, must-revalidate, private, max-age=0`, `Pragma: no-cache`, `Expires: 0`.

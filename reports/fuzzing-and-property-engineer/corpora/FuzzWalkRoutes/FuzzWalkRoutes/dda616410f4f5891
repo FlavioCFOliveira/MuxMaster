@@ -1,0 +1,4 @@
+go test fuzz v1
+string("/0000\xf50\x9e\xed\xdc0\x98000000\xba\xbc\xba\xbc0\xe2\xbd\xdb000000")
+string("0")
+string("/")

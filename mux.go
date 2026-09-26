@@ -446,6 +446,10 @@ func (m *Mux) Pre(mw ...func(http.Handler) http.Handler) {
 // Path parameters use the ':name' syntax (/users/:id).
 // Regex params use '{name:expr}' (/users/{id:[0-9]+}).
 // Catch-all parameters use '*name' and must end the path (/static/*filepath).
+// Catch-all values are the unsanitised remainder of the request path
+// (decoded r.URL.Path, or r.URL.RawPath when UseRawPath is set) and may
+// contain dot-dot segments; handlers serving files must use http.FileServer
+// or ServeFiles, or clean and confine the value themselves.
 //
 // Panics on empty method, non-absolute path, nil handler, or route conflict.
 func (m *Mux) Handle(method, pattern string, handler http.Handler) {
@@ -535,15 +539,16 @@ func (m *Mux) UseFast(mw ...FastMiddleware) {
 // routes. Params are passed as a direct argument — see FastHandler for
 // lifetime guarantees.
 //
-// SECURITY: stdlib middleware (registered via Use) does NOT apply to fast
-// routes. This includes the Recoverer middleware — a panic in a FastHandler
-// is NOT recovered by middleware.Recoverer, regardless of the order Use was
-// called. Set Mux.PanicHandler to recover panics on the FastHandler path:
-// PanicHandler is invoked from dispatchWithRecover and covers both
-// http.Handler and FastHandler routes. Use UseFast to attach FastMiddleware
-// to fast routes; FastMiddleware runs on the FastHandler dispatch path.
+// SECURITY: Registering a HandleFast route after calling Use() panics
+// (CSA-2026-0054, FPE-2026-010). Stdlib middleware attached via Use does
+// not wrap fast routes. Use Pre() for middleware that must cover both route
+// types, or UseFast() for FastMiddleware that wraps only fast routes. See
+// SECURITY.md "Pre vs Use security boundary" for the full matrix.
 //
-// Panics on empty method, non-absolute path, nil handler, or route conflict.
+// PanicHandler (if set) recovers panics on both Handle and HandleFast paths.
+//
+// Panics on empty method, non-absolute path, nil handler, route conflict,
+// or when Use() middleware is registered.
 func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
 	switch {
 	case method == "":
@@ -770,46 +775,291 @@ func (m *Mux) mountAt(prefix string, h http.Handler) {
 		// "*mux_mount" param name. Validate up-front with a clean message.
 		panic("muxmaster: Mount prefix contains invalid UTF-8")
 	}
+	// specification/groups.md requirements 36-37: a prefix ending in an
+	// optional parameter ({/:name} or {/:name:expr}) cannot be supported —
+	// its two expansions would each attach a wildcard directly adjacent to
+	// the internal mux_mount catch-all at the same tree position. Checked
+	// against the exact combined prefix (before the trailing-'/'
+	// normalization below), matching requirement 36's panic message.
+	if endsWithOptionalParam(prefix) {
+		panic("muxmaster: Mount prefix '" + prefix + "' ends with an optional parameter; " +
+			"Mount does not support an optional parameter as the last element of its prefix")
+	}
 	prefix = strings.TrimRight(prefix, "/")
 
+	// hasParam is precomputed once at registration: it selects, per request,
+	// between the pre-existing literal-text RawPath algorithm (a static
+	// prefix's segments are always identical, unencoded, between
+	// r.URL.Path and r.URL.RawPath — specification/groups.md requirement
+	// 39, "the resulting RawPath is unchanged from the behavior already in
+	// effect before this section was added") and the new segment-wise
+	// decode-consistency algorithm (requirement 40), needed only when the
+	// prefix contains a parameter whose captured value is never equal to
+	// the pattern's own literal text. ':' marks a named parameter, '{'
+	// marks a regex or optional parameter; a bare Mount prefix never
+	// contains '*' (Mount appends its own catch-all separately).
+	hasParam := strings.ContainsAny(prefix, ":{")
+
 	mountH := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := PathParam(r, "mux_mount")
+		rawSuffix := PathParam(r, "mux_mount")
+		p := rawSuffix
 		if p == "" {
 			p = "/"
 		}
-		// [waste-hunt WH-04] Shallow request copy (see specification/README.md
-		// Terminology): net/http.StripPrefix's strategy — a shallow struct
-		// copy plus a fresh *url.URL — instead of r.Clone, which deep-copies
-		// the header map, Trailer, Form and TransferEncoding even though
-		// only URL.Path (and possibly URL.RawPath) changes below. r2 shares
-		// the original's header map and context; the original request is
-		// never mutated.
+
+		// matchedPrefix is the literal, request-specific text this Mount
+		// registration consumed from r.URL.Path for this request — with any
+		// parameter already resolved to its real captured value. It is used
+		// both to compose the accumulated Mount-prefix chain for Location
+		// rewriting (specification/groups.md §8, requirements 31-35) and,
+		// together with r.URL.RawPath, to derive the propagated RawPath
+		// (§10, requirements 38-40). rawSuffix always includes the mandatory
+		// literal '/' that must precede the catch-all (routing.md rule 16),
+		// so subtracting its length from r.URL.Path yields the prefix
+		// without a trailing slash.
+		matchedPrefix := r.URL.Path
+		if n := len(rawSuffix); n > 0 && n <= len(r.URL.Path) {
+			matchedPrefix = r.URL.Path[:len(r.URL.Path)-n]
+		}
+
+		// Accumulate the Mount-prefix chain across nested mounts: if this
+		// request already carries a composed prefix from an outer Mount (set
+		// by that outer Mux's own mountAt), extend it with this level's
+		// matched prefix. See mountPrefixCtx's doc comment for how the
+		// composed chain is later consumed by an inner *Mux's own automatic
+		// redirects.
+		composedPrefix := mountPrefixFrom(r.Context()) + matchedPrefix
+
+		// specification/groups.md requirements 38-40.
+		var rawPath string
+		if r.URL.RawPath != "" {
+			if hasParam {
+				// Segment-wise decode-consistency check (requirement 40):
+				// generalizes correctly to a Mount prefix containing a
+				// named, regex, or non-trailing optional parameter, where
+				// the pattern text itself never equals the actual captured
+				// segment.
+				if rem, ok := rawPathRemainder(matchedPrefix, r.URL.RawPath); ok {
+					rawPath = rem
+				}
+				// else: leave rawPath == "" (zeroed), per requirement 38.3.
+			} else {
+				// Static prefix (requirement 39): unchanged, byte-identical
+				// to the pre-existing MM-2026-0022 behavior — a literal
+				// TrimPrefix against the registered prefix text, zeroing
+				// RawPath on any divergence rather than treating a
+				// percent-encoded rendering of a static segment as
+				// decode-consistent.
+				trimmed := strings.TrimPrefix(r.URL.RawPath, prefix)
+				switch {
+				case len(trimmed) == len(r.URL.RawPath):
+					// TrimPrefix didn't match — zero RawPath to prevent stale encoded prefix.
+				case trimmed != "" && trimmed[0] != '/':
+					// HPS-2026-0001: prefix matched a leading byte of an encoded
+					// segment (e.g. /api%2fusers trimmed against /api leaves
+					// %2fusers — not a rooted path). Zero RawPath rather than
+					// publish a non-rooted URL that would violate the url.URL
+					// contract and confuse downstream handlers.
+				default:
+					rawPath = trimmed
+				}
+			}
+		}
+
+		// [waste-hunt WH-04] / [perf-lab] Shallow request copy (see
+		// specification/README.md Terminology): net/http.StripPrefix's
+		// strategy — a shallow struct copy plus a fresh *url.URL — instead
+		// of r.Clone, which deep-copies the header map, Trailer, Form and
+		// TransferEncoding even though only URL.Path/RawPath and the
+		// mount-prefix context value change below. r2 shares the original's
+		// header map; the original request is never mutated.
+		//
+		// The request copy, its URL, and the mountPrefixCtx wrapper carrying
+		// composedPrefix are fused into a single mountBundle allocation
+		// (mirrors reqBundle/redirectBundle in params.go/mux.go) instead of
+		// three separate allocations (new(http.Request), new(url.URL), and
+		// context.WithValue's node+boxed-value pair) — one heap object
+		// instead of up to four.
+		if hasReqCtxField {
+			b := &mountBundle{}
+			b.ctx.Context = getReqCtxUnsafe(r) // skip r.Context() method call
+			b.ctx.prefix = composedPrefix
+			b.req = *r
+			b.url = *r.URL
+			b.url.Path = p
+			b.url.RawPath = rawPath
+			b.req.URL = &b.url
+			setReqCtxUnsafe(&b.req, &b.ctx)
+			h.ServeHTTP(w, &b.req)
+			return
+		}
+		// Safe fallback for hypothetical future Go versions that rename `ctx`.
 		r2 := new(http.Request)
 		*r2 = *r
 		r2.URL = new(url.URL)
 		*r2.URL = *r.URL
 		r2.URL.Path = p
-		if r.URL.RawPath != "" {
-			trimmed := strings.TrimPrefix(r.URL.RawPath, prefix)
-			switch {
-			case len(trimmed) == len(r.URL.RawPath):
-				// TrimPrefix didn't match — zero RawPath to prevent stale encoded prefix.
-				r2.URL.RawPath = ""
-			case trimmed != "" && trimmed[0] != '/':
-				// HPS-2026-0001: prefix matched a leading byte of an encoded
-				// segment (e.g. /api%2fusers trimmed against /api leaves
-				// %2fusers — not a rooted path). Zero RawPath rather than
-				// publish a non-rooted URL that would violate the url.URL
-				// contract and confuse downstream handlers.
-				r2.URL.RawPath = ""
-			default:
-				r2.URL.RawPath = trimmed
-			}
-		}
-		h.ServeHTTP(w, r2)
+		r2.URL.RawPath = rawPath
+		ctx := &mountPrefixCtx{Context: r.Context(), prefix: composedPrefix}
+		h.ServeHTTP(w, r2.WithContext(ctx))
 	})
 
 	m.Handle("*", prefix+"/*mux_mount", mountH)
+}
+
+// endsWithOptionalParam reports whether prefix, after trailing '/'
+// characters are removed (specification/groups.md requirement 25), ends in
+// an optional parameter token {/:name} or {/:name:expr} (routing.md section
+// 1.6). "{/:" is an unambiguous marker: a Go regex quantifier such as
+// {2,3} never has a '/' immediately after '{', so the last occurrence of
+// "{/:" in the trimmed prefix always marks a genuine optional-segment
+// opener, never a quantifier inside a regex optional segment's expr.
+func endsWithOptionalParam(prefix string) bool {
+	trimmed := strings.TrimRight(prefix, "/")
+	i := strings.LastIndex(trimmed, "{/:")
+	if i < 0 {
+		return false
+	}
+	j := strings.IndexByte(trimmed[i:], '}')
+	if j < 0 {
+		return false // malformed — route registration produces its own panic
+	}
+	return i+j == len(trimmed)-1
+}
+
+// rawPathRemainder implements specification/groups.md §10 (requirements
+// 38-40). matchedPrefix is "" or begins with '/'; rawPath is r.URL.RawPath
+// (the caller only invokes this when rawPath is non-empty). It walks both
+// strings one '/'-delimited segment at a time, percent-decoding each of
+// rawPath's segments and comparing it byte-for-byte against the
+// corresponding (already-decoded) segment of matchedPrefix.
+//
+// ok is false as soon as a segment fails to decode, fails to match, or
+// rawPath runs out of segments before matchedPrefix does — including the
+// case where a percent-encoded '/' inside one of the first segments shifts
+// the raw segment boundaries out of alignment with the decoded ones
+// (requirement 38.3's example). In every such case the caller must zero
+// RawPath rather than propagate a stale or misaligned encoded prefix.
+//
+// On success, remainder is everything in rawPath after the segments
+// consumed — including its leading '/', or "" when nothing remains.
+func rawPathRemainder(matchedPrefix, rawPath string) (remainder string, ok bool) {
+	mp, rp := matchedPrefix, rawPath
+	for len(mp) > 0 {
+		// mp always starts with '/' here: consume it in lockstep with rp's.
+		if len(rp) == 0 || rp[0] != '/' {
+			return "", false
+		}
+		mp = mp[1:]
+		rp = rp[1:]
+
+		mSeg := mp
+		if i := strings.IndexByte(mp, '/'); i >= 0 {
+			mSeg = mp[:i]
+			mp = mp[i:]
+		} else {
+			mp = ""
+		}
+
+		rSeg := rp
+		if i := strings.IndexByte(rp, '/'); i >= 0 {
+			rSeg = rp[:i]
+			rp = rp[i:]
+		} else {
+			rp = ""
+		}
+
+		decoded, err := url.PathUnescape(rSeg)
+		if err != nil || decoded != mSeg {
+			return "", false
+		}
+	}
+	return rp, true
+}
+
+// mountPrefixKey is the sentinel context key intercepted by mountPrefixCtx.
+type mountPrefixKey struct{}
+
+// mountPrefixCtx carries the accumulated Mount-prefix chain down to any
+// inner *Mux reached via Mount, so that Mux's own automatic TSR/fixed-path
+// redirects can be rewritten into the client's original URL space
+// (specification/groups.md §8, requirements 31-35): the outer Mux's dispatch
+// reads this value (via mountPrefixFrom) when it is about to build a
+// redirect target, and prepends it before the target reaches the existing
+// control-byte/backslash encoding (buildRedirectTarget/writeRedirect).
+//
+// This composes transparently across nested mounts: each level's mountAt
+// wraps the context it received (which may already be a mountPrefixCtx set
+// by an outer mount) with its own extended prefix, so the innermost Mux
+// that actually issues a redirect sees the fully composed chain in one
+// Value() lookup, without needing to rewrite anything on the way back out.
+//
+// It also composes correctly with an intervening Group.Mount middleware
+// wrapper (requirement 35): the wrapped handler still receives the same
+// *http.Request built here, so the context value survives regardless of
+// what runs between this Mux and whichever inner *Mux (if any) eventually
+// reads it — and only MuxMaster's own redirect machinery ever reads this
+// key, so a redirect issued directly by application code, or by a mounted
+// handler that is not a *Mux, is never rewritten (requirement 34).
+//
+// Modeled on redirectCtx/requestCtx1/requestCtx2: a fixed-shape wrapper
+// embedding the parent context.Context and intercepting exactly one key,
+// avoiding context.WithValue's two allocations (the valueCtx node plus
+// boxing the string into its `any` value field).
+type mountPrefixCtx struct {
+	context.Context
+	prefix string
+}
+
+// Value intercepts mountPrefixKey; every other key is forwarded to the
+// parent context.
+func (c *mountPrefixCtx) Value(key any) any {
+	if _, ok := key.(mountPrefixKey); ok {
+		return c.prefix
+	}
+	return c.Context.Value(key)
+}
+
+// mountPrefixFrom extracts the accumulated Mount-prefix chain carried via
+// mountPrefixCtx (mountAt). The empty string means either the current Mux
+// was not reached through Mount, or no mount prefix should be prepended.
+// Mirrors redirectTargetFrom's fast/slow-path split: a direct type
+// assertion when the context is exactly *mountPrefixCtx — the common
+// case — falling back to the generic ctx.Value(mountPrefixKey{}) traversal
+// when a Use()-registered middleware (or Group.Mount's own middleware
+// wrapping, requirement 35) has layered its own context on top before the
+// inner Mux's dispatch runs.
+func mountPrefixFrom(ctx context.Context) string {
+	if mc, ok := ctx.(*mountPrefixCtx); ok {
+		return mc.prefix
+	}
+	if v := ctx.Value(mountPrefixKey{}); v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+// mountBundle fuses mountPrefixCtx, a shallow copy of *http.Request, and its
+// new *url.URL into a single heap allocation, mirroring reqBundle
+// (params.go) and redirectBundle (mux.go). It replaces mountAt's previous
+// pair of allocations (new(http.Request), new(url.URL)) — now further
+// carrying the mount-prefix chain — with exactly one.
+//
+// Safe for the same reasons as reqBundle/redirectBundle: the bundle is
+// freshly allocated and no goroutine holds a reference to it before
+// ServeHTTP is called; the setReqCtxUnsafe write happens-before any
+// goroutine the handler may spawn (Go memory model §goroutine creation);
+// the original r is never mutated. Unlike the Opt O13 reqBundle pools, this
+// bundle is NEVER pooled — Mount forwarding, like a redirect, is not
+// expected to be the dominant per-request cost, and pooling it would impose
+// PoolRequestBundle's "handlers must not retain r past return" contract on
+// every operator who uses Mount, including those who never opted into it.
+type mountBundle struct {
+	ctx mountPrefixCtx
+	req http.Request
+	url url.URL
 }
 
 // ServeFiles serves static files from root under the given prefix pattern.
@@ -1241,6 +1491,18 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 				} else {
 					newPath = urlPath + "/"
 				}
+				// specification/groups.md §8 (requirements 31-35): when this
+				// Mux was reached through Mount, prepend the accumulated
+				// mount-prefix chain so this automatic redirect's Location
+				// is expressed in the client's original URL space, BEFORE
+				// the composed target reaches the control-byte/backslash
+				// encoding below (buildRedirectTarget/writeRedirect apply to
+				// the composed target as a whole — requirement 33). Empty
+				// (the overwhelming common case: not reached via Mount)
+				// costs one cheap Context.Value-shaped check, no allocation.
+				if mp := mountPrefixFrom(r.Context()); mp != "" {
+					newPath = mp + newPath
+				}
 				// HPS-2026-0005: path-only Location — requests in absolute-form
 				// (RFC 7230 §5.3.2) cannot inject scheme+host into the redirect
 				// because we never serialise r.URL.Scheme/r.URL.Host.
@@ -1252,6 +1514,10 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 
 			if cfg.redirectFixedPath {
 				if fixed, ok := m.cleanedPath(root, urlPath); ok {
+					// specification/groups.md §8: see the TSR branch above.
+					if mp := mountPrefixFrom(r.Context()); mp != "" {
+						fixed = mp + fixed
+					}
 					// HPS-2026-0005: same-origin path-only Location.
 					m.serveRedirect(w, r, buildRedirectTarget(fixed, r.URL.RawQuery), code)
 					return
@@ -1333,6 +1599,10 @@ func (m *Mux) dispatch(w http.ResponseWriter, r *http.Request, cfg *muxConfig) {
 				newPath = urlPath[:len(urlPath)-1]
 			} else {
 				newPath = urlPath + "/"
+			}
+			// specification/groups.md §8: see the primary-tree TSR branch above.
+			if mp := mountPrefixFrom(r.Context()); mp != "" {
+				newPath = mp + newPath
 			}
 			m.serveRedirect(w, r, buildRedirectTarget(newPath, r.URL.RawQuery), code)
 			return
@@ -1431,6 +1701,19 @@ func percentEncodeControlBytes(s string) string {
 	return string(b)
 }
 
+// percentEncodeBackslash replaces every '\' (0x5C) byte in s with its
+// percent-encoded form "%5C". See writeRedirect's doc comment for why: a
+// literal backslash reaching the Location header lets a WHATWG-compliant
+// browser resolve the redirect to a different origin (the "special
+// authority slashes state") even though RFC 3986 / net/url see no host
+// component at all. strings.ReplaceAll already returns s unchanged, with no
+// allocation, when s contains no '\' (Count == 0 short-circuits Replace), so
+// output stays byte-identical to net/http.Redirect for every target that
+// never contains a backslash — the overwhelming majority.
+func percentEncodeBackslash(s string) string {
+	return strings.ReplaceAll(s, "\\", "%5C")
+}
+
 // hexEscapeNonASCII mirrors net/http's private helper of the same name, used
 // by net/http.Redirect to escape the Location header value. Duplicated here
 // because that symbol is unexported.
@@ -1482,11 +1765,47 @@ func hexEscapeNonASCII(s string) string {
 //
 // The one thing this function does not re-derive is net/http.Redirect's
 // scheme/host detection: it requires target to start with exactly one '/'
-// (never "//", which url.Parse would read as a network-path reference with
-// a non-empty Host — the classic protocol-relative open-redirect shape).
-// Every caller in this package satisfies that. The guard below falls back
-// to net/http.Redirect itself for anything that doesn't, so the output
-// stays byte-identical regardless.
+// — never "//", which url.Parse would read as a network-path reference with
+// a non-empty Host (the classic protocol-relative open-redirect shape).
+// Every caller in this package satisfies that (Handle() panics on any
+// pattern that does not start with a single '/'). The guard below falls
+// back to net/http.Redirect itself for anything that doesn't, so the "//"
+// output stays byte-identical to net/http.Redirect regardless — "//" is
+// deliberately left unneutralised, matching net/http.Redirect exactly,
+// because HPS-2026-0005 already guarantees no attacker-controlled
+// scheme/host ever reaches this function via that shape, and
+// redirect_bytediff_test.go pins exact parity with net/http.Redirect for
+// it.
+//
+// rmp #279 / rmp #274 part 5a — DELIBERATE DIVERGENCE from net/http.Redirect
+// for any target containing '\' (0x5C): every '\' is percent-encoded to
+// "%5C" (percentEncodeBackslash, below) before anything else runs. RFC 3986
+// gives '\' no meaning (url.Parse reports no Host for a target starting
+// "/\", unlike "//"), but the WHATWG URL Standard's "special authority
+// slashes state" treats ANY two-byte combination of '/' and '\' at the
+// start of a relative reference — "//", "/\", "\/", "\\" — as
+// authority-establishing: a browser resolves a Location of "/\evil.com" to
+// a DIFFERENT origin. net/http.Redirect does not defend against this (its
+// own path.Clean is a no-op on backslash — confirmed empirically), so
+// reproducing its behaviour byte-for-byte here would reproduce the flaw.
+// Encoding is applied to every backslash in target, not only a leading "/\"
+// pair: this is simpler than special-casing position 1, stays byte-identical
+// to net/http.Redirect for every backslash-free target (the overwhelming
+// majority — percentEncodeBackslash is then a true no-op), and additionally
+// neutralises components (some reverse proxies, WAFs, and legacy browsers)
+// that fold ANY backslash in a path to a forward slash, not only a leading
+// pair. A target with '\' can only ever reach writeRedirect if the operator
+// registers that literal backslash-shaped route themselves — path.Clean
+// never introduces a backslash that was not already present verbatim in a
+// registered pattern or the decoded request path — so an anonymous attacker
+// can never choose which backslash-shaped target appears (rmp #274 part 5a's
+// "not attacker reachable" invariant); this is defense-in-depth against that
+// operator-registered shape reaching a real browser unneutralised, not a fix
+// for an attacker-reachable bug. The percent-encoded '\' round-trips
+// correctly: net/http's own request-target decoding turns "%5C" back into a
+// literal '\' byte in the follow-up request's r.URL.Path, so the operator's
+// registered route is still reached, on the same origin (verified
+// end-to-end in TestWriteRedirect_BackslashAuthorityShape_NeutralisesEndToEnd).
 //
 // rmp #260: net/http.Redirect's own hexEscapeNonASCII only escapes bytes
 // >= 0x80 — a percent-decoded ASCII control byte (e.g. a %00 in
@@ -1497,6 +1816,8 @@ func hexEscapeNonASCII(s string) string {
 // input unchanged) for any target without one, so output stays
 // byte-identical to net/http.Redirect for every control-free target.
 func writeRedirect(w http.ResponseWriter, r *http.Request, target string, code int) {
+	target = percentEncodeBackslash(target)
+
 	if len(target) == 0 || target[0] != '/' || (len(target) > 1 && target[1] == '/') {
 		http.Redirect(w, r, percentEncodeControlBytes(target), code) // #nosec G710 — see callers' HPS-2026-0005 guarantees
 		return

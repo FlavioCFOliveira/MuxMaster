@@ -123,6 +123,9 @@ func TestTiming_OAuth2_CacheHit_ActiveVsInactive(t *testing.T) {
 		inactiveHandler.ServeHTTP(w2, oauth2Req(inactiveToken))
 	}
 
+	VerifyArmStatus(t, "active", activeHandler, func() *http.Request { return oauth2Req(activeToken) }, http.StatusOK)
+	VerifyArmStatus(t, "inactive", inactiveHandler, func() *http.Request { return oauth2Req(inactiveToken) }, http.StatusUnauthorized)
+
 	activeSamples = make([]int64, nOAuth2)
 	inactiveSamples = make([]int64, nOAuth2)
 
@@ -131,11 +134,17 @@ func TestTiming_OAuth2_CacheHit_ActiveVsInactive(t *testing.T) {
 		t0 := time.Now()
 		activeHandler.ServeHTTP(w, oauth2Req(activeToken))
 		activeSamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusOK {
+			t.Fatalf("active arm: sample %d returned status %d, want 200 — invalid evidence", i, w.Code)
+		}
 
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		inactiveHandler.ServeHTTP(w2, oauth2Req(inactiveToken))
 		inactiveSamples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("inactive arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(activeSamples, inactiveSamples)
@@ -192,6 +201,8 @@ func TestTiming_OAuth2_Cache_RWMutex_Contention(t *testing.T) {
 	defer debug.SetGCPercent(old)
 	runtime.GC()
 
+	VerifyArmStatus(t, "cache-hit", handler, func() *http.Request { return oauth2Req(token) }, http.StatusOK)
+
 	const n = 100_000
 	samples = make([]int64, n)
 	for i := 0; i < n; i++ {
@@ -199,6 +210,9 @@ func TestTiming_OAuth2_Cache_RWMutex_Contention(t *testing.T) {
 		t0 := time.Now()
 		handler.ServeHTTP(w, oauth2Req(token))
 		samples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusOK {
+			t.Fatalf("cache-hit arm: sample %d returned status %d, want 200 — invalid evidence", i, w.Code)
+		}
 	}
 
 	s := Summarise(samples)

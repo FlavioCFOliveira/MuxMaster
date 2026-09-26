@@ -38,8 +38,8 @@ import (
 // TestAddRouteRegistrationComplexity documents that addRoute exhibits O(N^2)
 // complexity in the total number of routes registered. This is a startup-time
 // DoS vector if routes are registered dynamically after the server starts
-// (which MuxMaster explicitly warns against). At N=5000 routes it takes ~5 s;
-// no runtime request throughput is affected.
+// (which MuxMaster explicitly warns against). See measured times below.
+// No runtime request throughput is affected.
 //
 // Attack scenario: a misconfigured operator loads 10000+ routes from a
 // database at startup and the server takes >30 s to initialise, causing
@@ -85,8 +85,8 @@ func TestAddRouteRegistrationComplexity(t *testing.T) {
 
 	t.Log("DOS-2026-0051: addRoute is O(N^2) in number of routes. " +
 		"Impact: startup-time only (MuxMaster docs: no dynamic runtime registration). " +
-		"At N=5000 routes: ~5 s startup. Mitigation: if registering >1000 routes, " +
-		"profile startup time and batch-register or split into sub-routers.")
+		"Mitigation: if registering many routes (>1000), profile startup time; " +
+		"consider batch registration or splitting into sub-routers.")
 }
 
 // BenchmarkAddRouteLargeScale measures addRoute cost at different route counts.

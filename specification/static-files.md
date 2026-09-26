@@ -11,7 +11,7 @@ This file does not cover the `Mount` method (see [groups.md](groups.md)), which 
 ## 1. ServeFiles
 
 1. `(*Mux).ServeFiles(prefix string, root http.FileSystem)` registers a handler that serves static files from `root` under the URL path `prefix`.
-2. `(*Group).ServeFiles(prefix string, root http.FileSystem)` is equivalent, with the group prefix prepended to `prefix`.
+2. `(*Group).ServeFiles(prefix string, root http.FileSystem)` is equivalent, with the group prefix joined with `prefix` per [groups.md](groups.md) section 11 (not a plain prepend/concatenation).
 3. `prefix` must end with `/*name` where `name` is a non-empty identifier. A `prefix` that does not end with this pattern causes a panic.
 4. `ServeFiles` registers the route for both GET and HEAD. No other methods are registered.
 5. Internally, `ServeFiles` uses `http.FileServer(root)` to serve files. No custom file-serving logic is implemented.

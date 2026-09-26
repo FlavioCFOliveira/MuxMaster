@@ -325,7 +325,10 @@ package main
 
 import (
     "encoding/json"
+    "log/slog"
     "net/http"
+    "net/netip"
+    "os"
     "strconv"
 
     muxmaster "github.com/FlavioCFOliveira/MuxMaster"
@@ -333,20 +336,21 @@ import (
 )
 
 func main() {
+    logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
     mux := muxmaster.New()
     mux.PoolRequestBundle = true   // 0-alloc Handle path
     mux.PoolFastParams    = true   // 0-alloc HandleFast path
 
     // Pre runs once per request, before routing — applies to both Handle and HandleFast
     mux.Pre(
-        middleware.RealIP,
-        middleware.RequestID,
-        middleware.RecovererWithLogger(nil),
+        middleware.RealIP(netip.MustParsePrefix("10.0.0.0/8")), // Trust your proxy network
+        middleware.RequestID(),
+        middleware.RecovererWithLogger(logger),
     )
 
     // Stdlib middleware for the API group — applies only to Handle routes below
     api := mux.Group("/v1")
-    api.Use(middleware.Logger)
+    api.Use(middleware.Logger(os.Stdout))
 
     api.GET("/users/:id", getUser)
     api.POST("/users", createUser)

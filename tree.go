@@ -366,6 +366,11 @@ func (n *node) insertChild(path, fullPath string, handler http.Handler, fast Fas
 			break
 		}
 		if !valid {
+			if path[i] == '{' {
+				// findWildcard found a '{' with no closing '}' before the
+				// next '/' or end of path (FPE-O14-002).
+				panic("muxmaster: regex param '{' in path '" + fullPath + "' is missing its closing '}'")
+			}
 			panic("muxmaster: only one wildcard per path segment is allowed in '" + fullPath + "'")
 		}
 		if len(wc) < 2 {
@@ -763,9 +768,20 @@ walk:
 
 		switch n.nType {
 		case param:
+			// routing.md rule 97: a named parameter never captures an empty
+			// segment (params.md rule 37). path is never empty here (see the
+			// invariant established above the walk loop), so path[0] == '/'
+			// is the ONLY way this segment can be empty. Folded into a
+			// single leading check instead of a separate post-scan branch:
+			// it doubles as the i==0 case of the scan below, so that scan
+			// starts at i=1 — same total work as before, one branch instead
+			// of two on the common (non-empty) path.
+			if path[0] == '/' {
+				break walk
+			}
 			// Inline scan for '/' — avoids strings.IndexByte call for short params.
 			end := len(path)
-			for i := 0; i < len(path); i++ {
+			for i := 1; i < len(path); i++ {
 				if path[i] == '/' {
 					end = i
 					break
@@ -793,8 +809,15 @@ walk:
 			break walk
 
 		case regexParam:
+			// routing.md rule 97/99: rejected before the regexp is ever
+			// evaluated, so an expression that would itself accept the empty
+			// string (e.g. "[a-z]*") never gets the chance to — see the
+			// param case above for why this is a single leading check.
+			if path[0] == '/' {
+				break walk
+			}
 			end := len(path)
-			for i := 0; i < len(path); i++ {
+			for i := 1; i < len(path); i++ {
 				if path[i] == '/' {
 					end = i
 					break
@@ -993,8 +1016,14 @@ walk:
 
 		switch n.nType {
 		case param:
+			// routing.md rule 97: reject an empty mid-path segment before
+			// capturing — see the mirror check in getValue for the full
+			// rationale (single leading check, folded with the scan start).
+			if path[0] == '/' {
+				goto fail
+			}
 			end := len(path)
-			for i := 0; i < len(path); i++ {
+			for i := 1; i < len(path); i++ {
 				if path[i] == '/' {
 					end = i
 					break
@@ -1025,8 +1054,13 @@ walk:
 			goto fail
 
 		case regexParam:
+			// routing.md rule 97/99: rejected before the regexp is
+			// evaluated — see the mirror check in getValue.
+			if path[0] == '/' {
+				goto fail
+			}
 			end := len(path)
-			for i := 0; i < len(path); i++ {
+			for i := 1; i < len(path); i++ {
 				if path[i] == '/' {
 					end = i
 					break
@@ -1275,8 +1309,20 @@ func findWildcard(path string) (token string, start int, valid bool) {
 				}
 			}
 			if closeIdx < 0 {
-				// No closing '}' in this segment.
-				return "", -1, false
+				// No closing '}' in this segment: this IS a wildcard start
+				// ('{'), just a malformed one. Return the position (not -1)
+				// so the caller's `i < 0` "no wildcard at all" branch is not
+				// taken — that branch is only correct when the segment truly
+				// contains no wildcard marker. Returning i alongside
+				// valid=false routes this into insertChild's `if !valid`
+				// panic instead (FPE-O14-002 / rmp #274 O-14: an unclosed
+				// '{' previously fell through the i<0 path in addRoute's
+				// walk() loop straight into insertChild's final
+				// `n.path = path; n.handler = handler` — silently
+				// overwriting whatever route n already held, without any
+				// panic. Regression test: FuzzWalkRoutes and
+				// TestUnclosedRegexParamPanicsWithoutCorruptingTree).
+				return "", i, false
 			}
 			return path[i : closeIdx+1], i, true
 		}

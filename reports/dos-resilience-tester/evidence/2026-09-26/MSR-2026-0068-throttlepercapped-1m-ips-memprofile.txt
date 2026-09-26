@@ -1,0 +1,16 @@
+MSR-2026-0068 — ThrottlePerIPCapped memory profile under 1,000,000 unique client IPs
+Run date: 2026-09-26 (rmp #285, closed-task audit #74)
+MaxTableSize: 1000
+Distinct client IPs: 1000000 (sequential, one request per IP, no overlap)
+Elapsed: 1.977431396s
+
+Heap before:  HeapAlloc=511 KB  HeapInuse=1240 KB
+Heap peak:    HeapAlloc=3732 KB  HeapInuse=4528 KB  (delta alloc=3220 KB, delta inuse=3288 KB)
+Heap after:   HeapAlloc=510 KB  HeapInuse=1224 KB  (delta=-1 KB)
+
+Assertion: heap-after delta <= 2048 KB; heap-peak-inuse delta <= 20480 KB.
+Both bounds are sized proportional to MaxTableSize (1000 entries), not to the 1,000,000
+distinct IPs presented — a genuine per-key leak proportional to N would be one to two
+orders of magnitude larger than these bounds.
+
+Verdict: PASS

@@ -1,0 +1,7 @@
+# Informal extended-N sanity check (not part of committed harness) — confirms
+# the per-route cost is flat (not growing) well beyond N=10000, for the
+# "param" shape (/r{i}/:id), on the same hardware.
+N=10000 elapsed=10.965568ms ns/route=1097
+N=20000 elapsed=21.129837ms ns/route=1056
+N=50000 elapsed=53.521791ms ns/route=1070
+N=100000 elapsed=103.84132ms ns/route=1038

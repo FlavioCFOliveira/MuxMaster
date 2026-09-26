@@ -22,6 +22,12 @@
 //   - Regex parameter:  /items/{id:[0-9]+}   — Go regexp restricted match
 //   - Catch-all:        /static/*filepath    — matches the rest of the path
 //
+// Catch-all values are the unsanitised remainder of the request path
+// (decoded r.URL.Path, or r.URL.RawPath when Mux.UseRawPath is set), so they
+// may contain dot-dot segments. Handlers that map a catch-all value to files
+// must use http.FileServer or ServeFiles, which clean the path, or clean and
+// confine the value themselves to prevent directory traversal.
+//
 // # Middleware
 //
 // Three orthogonal middleware scopes are supported:

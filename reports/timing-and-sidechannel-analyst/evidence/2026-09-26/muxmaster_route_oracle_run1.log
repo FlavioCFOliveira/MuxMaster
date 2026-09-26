@@ -1,0 +1,36 @@
+=== RUN   TestTiming_Route_RegisteredVsUnregistered
+    route_existence_timing_test.go:132: Route existence oracle: /users (registered) vs /totally-random-zzz (unregistered)
+    route_existence_timing_test.go:133:   Registered:   N=200000 mean=1627.0ns std=3090.1ns p50=1467ns p95=1956ns p99=3353ns
+    route_existence_timing_test.go:134:   Unregistered: N=200000 mean=2629.4ns std=7455.7ns p50=1956ns p95=6076ns p99=8102ns
+    route_existence_timing_test.go:135:   Welch p=0  KS p=0  MWU p=0  |mean diff|=950.93ns  Cohen d=1.022
+    route_existence_timing_test.go:140: ROUTE ORACLE CONFIRMED (MM-2026-0026): diff=950.93ns
+    route_existence_timing_test.go:141:   SEVERITY: INFORMATIONAL — diff < 1µs, below practical LAN exploitation threshold
+--- PASS: TestTiming_Route_RegisteredVsUnregistered (3.75s)
+=== RUN   TestTiming_Route_AdminHiddenVsRandom
+    route_existence_timing_test.go:186: Route oracle: /admin (registered+auth) vs /xyzxyz (unregistered)
+    route_existence_timing_test.go:187:   Admin:  N=200000 mean=1590.4ns std=4525.4ns p50=1466ns p95=1955ns p99=2863ns
+    route_existence_timing_test.go:188:   Random: N=200000 mean=2635.4ns std=8234.6ns p50=1955ns p95=5796ns p99=7263ns
+    route_existence_timing_test.go:189:   Welch p=0  KS p=0  MWU p=0  |mean diff|=921.36ns  Cohen d=1.060
+    route_existence_timing_test.go:193: ADMIN ROUTE EXISTENCE ORACLE: diff=921.36ns — admin paths are timing-discoverable
+    route_existence_timing_test.go:195:   SEVERITY: INFORMATIONAL — diff < 1µs, below practical LAN exploitation threshold
+--- PASS: TestTiming_Route_AdminHiddenVsRandom (3.48s)
+=== RUN   TestTiming_Route_DepthCorrelation
+    route_existence_timing_test.go:237: Route depth correlation (registered routes):
+    route_existence_timing_test.go:239:   depth-1 (/): N=100000 mean=1533.6ns std=2866.0ns p50=1466ns p95=1886ns p99=1956ns
+    route_existence_timing_test.go:239:   depth-2 (/users): N=100000 mean=1596.4ns std=4657.1ns p50=1466ns p95=1955ns p99=3352ns
+    route_existence_timing_test.go:239:   depth-3 (/users/list): N=100000 mean=1653.7ns std=5602.9ns p50=1467ns p95=1956ns p99=3352ns
+    route_existence_timing_test.go:239:   depth-4 (/users/detail/view): N=100000 mean=1662.0ns std=5899.6ns p50=1467ns p95=1956ns p99=3352ns
+    route_existence_timing_test.go:239:   depth-5 (/users/detail/view/extended/info): N=100000 mean=1640.1ns std=3023.2ns p50=1467ns p95=1956ns p99=3352ns
+    route_existence_timing_test.go:248:   depth-1 vs depth-2: Welch p=4.173e-53 Cohen d=0.069 |mean diff|=14.63ns
+    route_existence_timing_test.go:248:   depth-2 vs depth-3: Welch p=0 Cohen d=0.186 |mean diff|=42.28ns
+    route_existence_timing_test.go:248:   depth-3 vs depth-4: Welch p=3.153e-07 Cohen d=0.023 |mean diff|=5.43ns
+    route_existence_timing_test.go:248:   depth-4 vs depth-5: Welch p=2.998e-59 Cohen d=0.073 |mean diff|=17.76ns
+--- PASS: TestTiming_Route_DepthCorrelation (10.44s)
+=== RUN   TestTiming_Route_Param_vs_Static
+    route_existence_timing_test.go:299: Route: /users/list (static) vs /users/alice (param :id)
+    route_existence_timing_test.go:300:   Static: N=200000 mean=1619.2ns std=3978.3ns p50=1467ns p95=1956ns p99=1956ns
+    route_existence_timing_test.go:301:   Param:  N=200000 mean=1804.0ns std=4684.8ns p50=1885ns p95=1956ns p99=5169ns
+    route_existence_timing_test.go:302:   Welch p=0  KS p=0  MWU p=0  |mean diff|=142.06ns  Cohen d=0.540
+--- PASS: TestTiming_Route_Param_vs_Static (2.78s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	20.642s

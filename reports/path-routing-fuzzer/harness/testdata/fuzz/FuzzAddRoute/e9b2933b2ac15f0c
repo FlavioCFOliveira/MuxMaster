@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/\U000cf000\U000eaaaa\U000cf000\U000eaaaa\x8d")

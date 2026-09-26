@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -124,6 +125,38 @@ func BenchmarkLogger(b *testing.B) {
 	}
 }
 
+// ── Recoverer: no-panic hot path (rmp #276, sprint 20) ───────────────────
+//
+// Measures the cost Recoverer adds to a request that never panics — the
+// overwhelming majority of traffic through any deployment that wraps
+// routes with Recoverer. This is the path the O-14 fix (started-tracking
+// wrapper, pooled via recovererWriterPool) must not regress.
+
+func BenchmarkRecoverer_NoPanic(b *testing.B) {
+	h := middleware.Recoverer()(benchNop)
+	r := realisticRequest(http.MethodGet, "/api/v1/books/42/reviews")
+	w := newDiscardRW()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		h.ServeHTTP(w, r)
+		w.reset()
+	}
+}
+
+func BenchmarkRecovererWithLogger_NoPanic(b *testing.B) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := middleware.RecovererWithLogger(logger)(benchNop)
+	r := realisticRequest(http.MethodGet, "/api/v1/books/42/reviews")
+	w := newDiscardRW()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		h.ServeHTTP(w, r)
+		w.reset()
+	}
+}
+
 // ── WH-03: Compress ─────────────────────────────────────────────────────
 
 var (
@@ -193,6 +226,62 @@ func BenchmarkAPIKeyHit(b *testing.B) {
 	for range b.N {
 		h.ServeHTTP(w, r)
 		w.reset()
+	}
+}
+
+// ── TSC-2026-0002: BasicAuth constant-time user lookup ─────────────────
+//
+// BasicAuth (rmp #290 / TSC-2026-0002) replaced its map[string][32]byte
+// credential lookup with an unordered []basicAuthEntry scanned in FULL on
+// every request, to remove the user-enumeration timing oracle inherent to
+// Go's map lookup. This is O(n) in the number of registered users, always —
+// this benchmark quantifies the per-user cost of that scan at 1, 10 and 100
+// registered users so a regression (or an unexpectedly steep slope) is
+// visible in benchstat, not just in the timing harness.
+func BenchmarkBasicAuth(b *testing.B) {
+	for _, n := range []int{1, 10, 100} {
+		creds := make(map[string]string, n)
+		for i := range n {
+			creds[strconv.Itoa(i)] = "password-" + strconv.Itoa(i)
+		}
+		// Authenticate as the LAST registered user on every iteration: since
+		// the scan never short-circuits, this is not expected to be worse
+		// than authenticating as the first — the benchmark exists to catch
+		// a regression that reintroduces early-exit behaviour as much as to
+		// measure the steady-state cost.
+		lastUser := strconv.Itoa(n - 1)
+		lastPass := "password-" + lastUser
+		h := middleware.BasicAuth("realm", creds)(benchNop)
+		r := realisticRequest(http.MethodGet, "/admin")
+		r.SetBasicAuth(lastUser, lastPass)
+		w := newDiscardRW()
+		b.Run(strconv.Itoa(n)+"-users/hit", func(b *testing.B) {
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				h.ServeHTTP(w, r)
+				w.reset()
+			}
+		})
+	}
+
+	for _, n := range []int{1, 10, 100} {
+		creds := make(map[string]string, n)
+		for i := range n {
+			creds[strconv.Itoa(i)] = "password-" + strconv.Itoa(i)
+		}
+		h := middleware.BasicAuth("realm", creds)(benchNop)
+		r := realisticRequest(http.MethodGet, "/admin")
+		r.SetBasicAuth("nonexistent-user", "anything")
+		w := newDiscardRW()
+		b.Run(strconv.Itoa(n)+"-users/miss", func(b *testing.B) {
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				h.ServeHTTP(w, r)
+				w.reset()
+			}
+		})
 	}
 }
 

@@ -190,3 +190,137 @@ func TestWriteRedirect_FallbackPathAlsoEscapesControlBytes(t *testing.T) {
 		}
 	}
 }
+
+// TestWriteRedirect_BackslashAuthorityShape_Neutralised is the regression
+// test for rmp #279 (sprint 20), consolidating the hardening recommendation
+// filed by the http-protocol-security-auditor as rmp #274 part 5a /
+// TestHPS_FixedPath_BackslashAuthority_NotAttackerReachable
+// (reports/http-protocol-security-auditor/harness/hps_2026_openredirect_test.go)
+// into a first-class test in the root package.
+//
+// Per the WHATWG URL Standard's "special authority slashes state", a
+// browser's URL parser treats ANY two-byte combination of '/' and '\' at
+// the start of a relative reference — "//", "/\", "\/", "\\" — as
+// authority-establishing, not just RFC 3986's "//". writeRedirect now
+// percent-encodes every '\' in target to "%5C" (percentEncodeBackslash)
+// before anything else runs, so a "/\"-prefixed Location can never be
+// resolved by a browser as a network-path reference: the encoded form is
+// unambiguously path-rooted and single-origin.
+//
+// This is defense-in-depth, NOT a fix for an attacker-reachable bug: a "/\"
+// prefixed target can only ever reach writeRedirect if the operator
+// registers that exact literal route themselves (path.Clean, used by both
+// the TSR and FixedPath redirect paths, never introduces a backslash that
+// was not already present verbatim in the registered pattern or the
+// decoded request path — see cleanedPath/buildRedirectTarget in mux.go). An
+// anonymous attacker cannot choose the host in this shape. The round trip
+// still works for the operator: net/http's own request-target decoding
+// turns "%5C" back into a literal '\' byte in r.URL.Path on the follow-up
+// request, so the registered route is still reached — verified end-to-end
+// below.
+//
+// '\/' and '\\' (target[0] == '\\') are deliberately not exercised here:
+// every writeRedirect caller derives target from a Handle()-registered
+// pattern, and Handle() panics unless a pattern starts with '/', so
+// target[0] can never be '\' in this package — that shape is already
+// excluded by the pre-existing target[0] != '/' check (which still routes
+// to the net/http.Redirect fallback, itself now also backslash-neutralised
+// since percentEncodeBackslash runs before that branch is chosen).
+func TestWriteRedirect_BackslashAuthorityShape_Neutralised(t *testing.T) {
+	t.Run("RedirectFixedPath", func(t *testing.T) {
+		// Mirrors TestHPS_FixedPath_BackslashAuthority_NotAttackerReachable:
+		// the operator registers a literal backslash-shaped route, and a
+		// doubled leading slash in the request is what triggers FixedPath.
+		mux := New()
+		mux.RedirectFixedPath = true
+		mux.GET("/\\evil.com/foo", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+
+		req := httptest.NewRequest(http.MethodGet, "http://example.com//\\evil.com/foo", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		const want = "/%5Cevil.com/foo"
+		loc := rec.Header().Get("Location")
+		if loc != want {
+			t.Fatalf("Location = %q, want %q (backslash must be percent-encoded, neutralising the "+
+				"WHATWG authority-establishing shape)", loc, want)
+		}
+		if looksAuthorityEstablishing(loc) {
+			t.Fatalf("Location = %q is still authority-establishing after neutralisation", loc)
+		}
+	})
+
+	t.Run("RedirectTrailingSlash", func(t *testing.T) {
+		// buildRedirectTarget's TSR toggle (mux.go) appends "/" to the
+		// decoded request path when a slash-suffixed sibling route is
+		// registered — a backslash-prefixed pattern reaches writeRedirect
+		// here too, independent of the FixedPath code path above.
+		mux := New()
+		mux.GET("/\\evil.com/foo/", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+
+		req := httptest.NewRequest(http.MethodGet, "http://example.com/\\evil.com/foo", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		const want = "/%5Cevil.com/foo/"
+		loc := rec.Header().Get("Location")
+		if loc != want {
+			t.Fatalf("Location = %q, want %q (backslash must be percent-encoded, neutralising the "+
+				"WHATWG authority-establishing shape)", loc, want)
+		}
+		if looksAuthorityEstablishing(loc) {
+			t.Fatalf("Location = %q is still authority-establishing after neutralisation", loc)
+		}
+	})
+}
+
+// looksAuthorityEstablishing mirrors the helper of the same name in
+// reports/http-protocol-security-auditor/harness/hps_2026_openredirect_test.go:
+// per the WHATWG URL Standard's "special authority slashes state", ANY
+// combination of two leading '/' or '\' characters — "//", "/\", "\/", "\\"
+// — is authority-establishing to a browser, even though RFC 3986 (and
+// net/url) only recognise "//".
+func looksAuthorityEstablishing(loc string) bool {
+	isSlashLike := func(b byte) bool { return b == '/' || b == '\\' }
+	return len(loc) >= 2 && isSlashLike(loc[0]) && isSlashLike(loc[1])
+}
+
+// TestWriteRedirect_BackslashAuthorityShape_NeutralisesEndToEnd proves the
+// neutralisation round-trips correctly for a real client, not just that the
+// Location header looks safe: a genuine http.Client, following the redirect
+// exactly as a browser would, must land on the SAME origin (the test
+// server) and reach the operator's registered backslash-shaped handler —
+// never a different host, and never a 404.
+func TestWriteRedirect_BackslashAuthorityShape_NeutralisesEndToEnd(t *testing.T) {
+	const marker = "reached-backslash-route"
+
+	mux := New()
+	mux.RedirectFixedPath = true
+	mux.GET("/\\evil.com/foo", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Marker", marker)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	client := srv.Client() // follows redirects by default, resolving Location against the request URL
+
+	resp, err := client.Get(srv.URL + "//\\evil.com/foo")
+	if err != nil {
+		t.Fatalf("client.Get: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("final status = %d, want 200 (redirect must land on the registered handler)", resp.StatusCode)
+	}
+	if resp.Header.Get("X-Marker") != marker {
+		t.Fatalf("X-Marker = %q, want %q — the final request did not reach the operator's registered "+
+			"backslash-shaped handler", resp.Header.Get("X-Marker"), marker)
+	}
+	if got, want := resp.Request.URL.Host, srv.Listener.Addr().String(); got != want {
+		t.Fatalf("final request host = %q, want %q (same origin as the test server) — a mismatch here "+
+			"would mean the client followed the redirect off-origin", got, want)
+	}
+}

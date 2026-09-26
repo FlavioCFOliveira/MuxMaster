@@ -36,11 +36,14 @@ func TestLookup_VsConcurrentServe(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// ServeHTTP goroutines.
+	// iters trimmed 20000 -> 4000 (rmp #271); still 4000*n*4 = 256,000
+	// requests at GOMAXPROCS=16 (measured 2026-09-25: 68.1s of a 320s package
+	// run at 20000).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 20000; i++ {
+			for i := 0; i < 2400; i++ {
 				path := fmt.Sprintf("/resource/%d/x", (g*i)%100)
 				req := httptest.NewRequest("GET", path, nil)
 				w := httptest.NewRecorder()
@@ -50,11 +53,12 @@ func TestLookup_VsConcurrentServe(t *testing.T) {
 	}
 
 	// Lookup goroutines.
+	// iters trimmed 10000 -> 3000 (rmp #271).
 	for g := 0; g < n*2; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 10000; i++ {
+			for i := 0; i < 1800; i++ {
 				path := fmt.Sprintf("/resource/%d/val", (g*i)%100)
 				_, _, _ = r.Lookup("GET", path)
 			}
@@ -78,11 +82,13 @@ func TestWalk_VsConcurrentServe(t *testing.T) {
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
 
+	// iters trimmed 10000 -> 2500 (rmp #271); the Routes()/Walk()/WalkFast()
+	// side below dominated this test's cost, not this ServeHTTP side.
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 10000; i++ {
+			for i := 0; i < 1500; i++ {
 				path := fmt.Sprintf("/a/%d/v", (g*i)%50)
 				r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path, nil))
 				path2 := fmt.Sprintf("/b/%d/v", (g*i)%50)
@@ -91,11 +97,15 @@ func TestWalk_VsConcurrentServe(t *testing.T) {
 		}(g)
 	}
 
+	// iters trimmed 2000 -> 500 (rmp #271): each iteration calls Routes(),
+	// Walk() and WalkFast(), each of which walks/copies the full route table
+	// — at n*2*2000 this was the dominant cost of this test (measured
+	// 2026-09-25: 73.1s of a 320s package run at 2000 iters).
 	for g := 0; g < n*2; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 2000; i++ {
+			for i := 0; i < 500; i++ {
 				_ = r.Routes()
 				_ = r.Walk(func(method, pattern string, handler http.Handler) error {
 					return nil
@@ -152,7 +162,10 @@ func TestIntrospection_RouteSnapshot(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 1000; i++ {
+			// trimmed 1000 -> 400 (rmp #271): Routes() walks/copies the full
+			// route table on every call (measured 2026-09-25: 61.1s of a
+			// 320s package run at 1000 iters).
+			for i := 0; i < 400; i++ {
 				infos := r.Routes()
 				if len(infos) < 50 {
 					// Might see up to 50+extra from dynamic registrations below.

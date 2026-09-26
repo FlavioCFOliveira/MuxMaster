@@ -1,0 +1,28 @@
+=== RUN   TestTiming_ErrorOracleMatrix
+    error_oracle_test.go:516: Error-oracle matrix (MM-2026-0046): N=100000 per arm, 15 pairs
+    error_oracle_test.go:519:   arm 200: mean=1916.5ns p50=1886ns p99=5587ns
+    error_oracle_test.go:519:   arm 401: mean=3155.1ns p50=2375ns p99=8171ns
+    error_oracle_test.go:519:   arm 404: mean=2603.1ns p50=1955ns p99=7333ns
+    error_oracle_test.go:519:   arm 405: mean=2463.8ns p50=1886ns p99=8381ns
+    error_oracle_test.go:519:   arm 500: mean=2971.8ns p50=2375ns p99=7614ns
+    error_oracle_test.go:519:   arm 503: mean=2622.1ns p50=1955ns p99=7264ns
+    error_oracle_test.go:530:   200 vs 401: distinguishable — diff=1104.52ns (MEDIUM — exploitable at LAN with ~10k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   200 vs 404: distinguishable — diff=589.93ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   200 vs 405: distinguishable — diff=486.89ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   200 vs 500: distinguishable — diff=946.56ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   200 vs 503: distinguishable — diff=585.84ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   401 vs 404: distinguishable — diff=514.59ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   401 vs 405: distinguishable — diff=617.63ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   401 vs 500: distinguishable — diff=157.96ns (INFORMATIONAL — below practical LAN exploitation threshold) Welch p=2.051e-180 KS p=0 MWU p=0
+    error_oracle_test.go:530:   401 vs 503: distinguishable — diff=518.68ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   404 vs 405: distinguishable — diff=103.04ns (INFORMATIONAL — below practical LAN exploitation threshold) Welch p=1.831e-80 KS p=0 MWU p=0
+    error_oracle_test.go:530:   404 vs 500: distinguishable — diff=356.64ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   404 vs 503: distinguishable — diff=4.08ns (INFORMATIONAL — below practical LAN exploitation threshold) Welch p=0.4535 KS p=0.004105 MWU p=0.007497
+    error_oracle_test.go:530:   405 vs 500: distinguishable — diff=459.68ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:530:   405 vs 503: distinguishable — diff=98.95ns (INFORMATIONAL — below practical LAN exploitation threshold) Welch p=7.641e-74 KS p=0 MWU p=0
+    error_oracle_test.go:530:   500 vs 503: distinguishable — diff=360.72ns (LOW — exploitable at LAN with ~100k requests) Welch p=0 KS p=0 MWU p=0
+    error_oracle_test.go:537: Worst-case Welch p-value across all 15 pairs: 0
+    error_oracle_test.go:538: Verdict: MM-2026-0046 accepted class — differential error responses are intentional HTTP semantics (see SECURITY.md "Error Oracle"); this matrix documents current magnitudes, it does not gate the build on any pair's significance.
+--- PASS: TestTiming_ErrorOracleMatrix (6.24s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	6.540s
