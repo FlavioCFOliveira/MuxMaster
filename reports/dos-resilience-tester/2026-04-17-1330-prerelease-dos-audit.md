@@ -11,30 +11,30 @@
 
 ## 1. Scope
 
-Componentes auditados quanto à superfície de Denial-of-Service:
+Components audited for their Denial-of-Service surface:
 
 - **Core router** — `mux.go` (`ServeHTTP`, `dispatch`, `allowed`, `cleanedPath`, `wrapMiddleware`)
 - **Radix tree** — `tree.go` (`getValue`, `addRoute`, `findWildcard`, `paramsBuf`)
 - **Params pool** — `params.go` (`requestCtx`, `rcPool`, `acquireRC`/`releaseRC`)
-- **Middlewares prioritárias** — `compress.go`, `throttle.go`, `timeout.go`, `real_ip.go`, `logger.go`, `recoverer.go`
-- **Integração stdlib** — `http.Server` default configuration (slowloris surface)
+- **Priority middlewares** — `compress.go`, `throttle.go`, `timeout.go`, `real_ip.go`, `logger.go`, `recoverer.go`
+- **Stdlib integration** — default `http.Server` configuration (slowloris surface)
 
-Explicitamente fora do scope: HTTP/2 rapid-reset / HPACK bombing (coberto por `http-protocol-security-auditor`), TLS-layer (herdado stdlib), HTTP/3.
+Explicitly out of scope: HTTP/2 rapid-reset / HPACK bombing (covered by `http-protocol-security-auditor`), TLS layer (inherited from the stdlib), HTTP/3.
 
-## 2. Metodologia
+## 2. Methodology
 
-1. **Baseline** — corrida de benchmarks existentes + análise dos hotpaths conhecidos
-2. **Pathological construction** — árvores adversárias (deep chain 5000, wide fan-out 5000, prefix chain 5000, regex 10k alts)
-3. **Empirical curve-fitting** — ajuste linear de ns/op vs input-size para declarar complexidade observada
-4. **Scenario probes** — harness isolados para cada vector: compress buffer, timeout leak, throttle global, XFF spoof, regex compile, pool integrity sob GC storm, slowloris
-5. **Sustained load** — 60 segundos de 15k rps × 5 rotas mistas (estática + param + 404)
-6. **Cross-verification** — cada finding crítico/high possui `repro_test.go` independente em `evidence/2026-04-17/DOS-NNN/`
+1. **Baseline** — run of the existing benchmarks + analysis of the known hot paths
+2. **Pathological construction** — adversarial trees (deep chain 5000, wide fan-out 5000, prefix chain 5000, regex 10k alts)
+3. **Empirical curve-fitting** — linear fit of ns/op vs input size to declare the observed complexity
+4. **Scenario probes** — isolated harnesses for each vector: compress buffer, timeout leak, global throttle, XFF spoof, regex compile, pool integrity under GC storm, slowloris
+5. **Sustained load** — 60 seconds at 15k rps × 5 mixed routes (static + param + 404)
+6. **Cross-verification** — every critical/high finding has an independent `repro_test.go` in `evidence/2026-04-17/DOS-NNN/`
 
-**Nota honesta sobre limitação:** a instrução do sprint plan exige pelo menos 30 min de sustained load. Corri **60 segundos** (ver `evidence/2026-04-17/sustained-load.txt`). Confirmo comportamento estável (0 erros, 2 MB HeapInuse, 3 goroutines no final) mas não fiz a validação de drift GC de horas.
+**Honest note on a limitation:** the sprint plan instruction requires at least 30 min of sustained load. I ran **60 seconds** (see `evidence/2026-04-17/sustained-load.txt`). I confirm stable behaviour (0 errors, 2 MB HeapInuse, 3 goroutines at the end) but I did not perform the hours-long GC drift validation.
 
 ## 3. Baseline metrics
 
-Fonte: `evidence/2026-04-17/baseline.txt`. Hardware: AMD Ryzen 9 5900HX / Linux / Go 1.26.2.
+Source: `evidence/2026-04-17/baseline.txt`. Hardware: AMD Ryzen 9 5900HX / Linux / Go 1.26.2.
 
 | Benchmark | ns/op | B/op | allocs/op |
 |---|---:|---:|---:|
@@ -47,24 +47,24 @@ Fonte: `evidence/2026-04-17/baseline.txt`. Hardware: AMD Ryzen 9 5900HX / Linux 
 | `BenchmarkParallelStaticRoute` | 3.44 | 0 | 0 |
 | `BenchmarkParallelParamRoute` | 38.1 | 0 | 0 |
 
-Observação: **o único allocation-heavy path do core é `NotFound` (3 allocs/op)**. Tudo o resto permanece zero-alloc.
+Observation: **the only allocation-heavy path in the core is `NotFound` (3 allocs/op)**. Everything else remains zero-alloc.
 
 ## 4. Complexity analysis
 
-Fonte: `evidence/2026-04-17/complexity.txt`. Ajuste por regressão visual (slope = `Δns/Δinput`).
+Source: `evidence/2026-04-17/complexity.txt`. Fit by visual regression (slope = `Δns/Δinput`).
 
-| Operação | Input | Observação | Ajuste | Expectativa | Status |
+| Operation | Input | Observation | Fit | Expectation | Status |
 |---|---|---|---|---|---|
 | `getValue` path depth | 10 → 5000 (path length 20 → 10000 bytes) | 11.8 → 155.7 ns | **~0.014 ns/byte → O(k)** linear | O(k), k=path length | **PASS** |
-| `addRoute` common prefix | N = 10 → 5000 rotas | 29 → 74 ns | marginal aumento; não cresce com N | O(k) | **PASS** |
-| Fan-out a partir da raiz | N = 10 → 5000 | 35 → 74 ns | marginal | O(log n) no pior caso pela ordenação de índices | **PASS** |
-| Param-heavy path | k = 1 → 8 params | 38 → 92 ns | ~7-10 ns por param | O(k) | **PASS** |
-| Regex compile | N = 1 → 1000 alternations | 2 → 254 µs | linear em N (RE2) | O(N) RE2 garantido | **PASS** |
+| `addRoute` common prefix | N = 10 → 5000 routes | 29 → 74 ns | marginal increase; does not grow with N | O(k) | **PASS** |
+| Fan-out from the root | N = 10 → 5000 | 35 → 74 ns | marginal | O(log n) in the worst case due to index ordering | **PASS** |
+| Param-heavy path | k = 1 → 8 params | 38 → 92 ns | ~7-10 ns per param | O(k) | **PASS** |
+| Regex compile | N = 1 → 1000 alternations | 2 → 254 µs | linear in N (RE2) | O(N) RE2 guaranteed | **PASS** |
 | Regex match | 10 000 chars | ~170 µs | linear (RE2) | O(N) | **PASS** |
-| `allowed()` 9 métodos | 1 path | 462 ns, **8 allocs** | linear em # métodos | O(methods × k) | **PASS** mas amplifica allocs |
-| `path.Clean` via RedirectFixedPath | N=10 → 1000 `./` | constante 12 ns | não executa (path bate antes) | O(1) em no-hit | **PASS** |
+| `allowed()` 9 methods | 1 path | 462 ns, **8 allocs** | linear in # methods | O(methods × k) | **PASS** but amplifies allocs |
+| `path.Clean` via RedirectFixedPath | N=10 → 1000 `./` | constant 12 ns | does not execute (path matches earlier) | O(1) on no-hit | **PASS** |
 
-**Conclusão:** a árvore radix é empiricamente O(k), sem patologias algorítmicas. **Nenhuma curva observada tem slope quadrático ou exponencial.** O invariante "lookup é O(path-length)" é validado.
+**Conclusion:** the radix tree is empirically O(k), with no algorithmic pathologies. **No observed curve has a quadratic or exponential slope.** The invariant "lookup is O(path-length)" is validated.
 
 ## 5. Findings
 
@@ -80,7 +80,7 @@ Fonte: `evidence/2026-04-17/complexity.txt`. Ajuste por regressão visual (slope
 | DOS-008 | Medium | CWE-209+400 | `middleware/recoverer.go:16` | stderr dump of panic value + full stack; info-leak + flood | CONFIRMED |
 | DOS-009 | Low | CWE-400 info | `mux.go:594-622` | 405 path: 8 allocs, 462 ns — 19× amplification on custom method | INFORMATIONAL |
 
-Todos os findings têm `repro_test.go` em `evidence/2026-04-17/DOS-NNN/repro_test.go`.
+Every finding has a `repro_test.go` in `evidence/2026-04-17/DOS-NNN/repro_test.go`.
 
 Critical/High: **3** (DOS-001, DOS-004, DOS-005). Medium: **3** (DOS-002, DOS-003, DOS-006, DOS-008). Low/info: **2** (DOS-007, DOS-009).
 
@@ -93,16 +93,16 @@ Critical/High: **3** (DOS-001, DOS-004, DOS-005). Medium: **3** (DOS-002, DOS-00
 ```go
 func (g *gzipResponseWriter) Write(b []byte) (int, error) {
     if !g.done {
-        g.buf = append(g.buf, b...)   // ← cresce ilimitado
+        g.buf = append(g.buf, b...)   // ← grows without bound
         return len(b), nil
     }
     return g.gz.Write(b)
 }
 ```
 
-**Attack:** handler emite body de N bytes com `Accept-Encoding: gzip`. O middleware acumula tudo em `g.buf` antes de comprimir — o flush só corre depois do handler retornar (linha 79: `grw.done = true; grw.flush(w, pool)`).
+**Attack:** the handler emits a body of N bytes with `Accept-Encoding: gzip`. The middleware accumulates everything in `g.buf` before compressing — the flush only runs after the handler returns (line 79: `grw.done = true; grw.flush(w, pool)`).
 
-**Attack cost:** a mínima possível — um único request que dispara o handler. Não exige múltiplos requests, cookies, autenticação ou cabeçalhos especiais além de `Accept-Encoding: gzip` (default em todos os browsers/clientes modernos).
+**Attack cost:** the lowest possible — a single request that triggers the handler. It requires no multiple requests, cookies, authentication or special headers beyond `Accept-Encoding: gzip` (the default in every modern browser/client).
 
 **Evidence (`evidence/2026-04-17/DOS-001/compress-oom.txt`):**
 ```
@@ -113,18 +113,18 @@ bodySize=64MB  peakHeapAllocDuringHandler=73MB  ratio=1.15
 linear-fit slope = 1.15 bytes of heap per byte of body
 ```
 
-Slope=1.15 + factor `append`'s cap-doubling: **RSS cresce ~2× durante a acumulação** (capacidade dobra antes de ser ocupada). Com handler que stream 10 GB, pico de 15-20 GB de heap → OOM em container típico.
+Slope=1.15 + the `append` cap-doubling factor: **RSS grows ~2× during accumulation** (capacity doubles before it is filled). With a handler that streams 10 GB, a peak of 15-20 GB of heap → OOM in a typical container.
 
-Amplificação comparada com rota estática:
-| Body size | Heap peak | Amplificação |
+Amplification compared with a static route:
+| Body size | Heap peak | Amplification |
 |---:|---:|---:|
 | 1 MB | 1.5 MB | ~1.5× |
-| 64 MB | 73 MB | ~1.15× (`append` overhead reduzido com buffer grande) |
+| 64 MB | 73 MB | ~1.15× (`append` overhead reduced with a large buffer) |
 | 1 GB (extrapolated) | ~1.1-1.5 GB | 1.15×-1.5× |
 
-**Impact:** uncontrolled resource consumption / OOM kill. Um atacante que conhece a aplicação host pode aceitar a resposta e simplesmente descartar os bytes (ou fazer slow-read) enquanto o servidor continua a acumular. Combinado com H-017 (handler não pára no timeout), a acumulação continua além do budget.
+**Impact:** uncontrolled resource consumption / OOM kill. An attacker who knows the host application can accept the response and simply discard the bytes (or perform a slow read) while the server keeps accumulating. Combined with H-017 (the handler does not stop on timeout), the accumulation continues beyond the budget.
 
-**Fix recomendado:** streaming compression — escrever directamente para `gz.Writer` a partir do primeiro byte:
+**Recommended fix:** streaming compression — write directly to `gz.Writer` from the first byte:
 
 ```go
 type gzipResponseWriter struct {
@@ -167,9 +167,9 @@ return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 })
 ```
 
-A chamada `ctx.Done()` fecha depois de `d` mas o Go runtime **não preempta** a goroutine. Se o handler não respeita `r.Context().Done()`, continua até terminar o seu trabalho natural. O dispatcher fica bloqueado em `next.ServeHTTP` até esse ponto.
+The `ctx.Done()` channel closes after `d`, but the Go runtime **does not preempt** the goroutine. If the handler does not honour `r.Context().Done()`, it continues until it finishes its natural work. The dispatcher stays blocked in `next.ServeHTTP` until that point.
 
-**Attack:** cria 1000 conexões que batem um handler lento (`time.Sleep(10*time.Second)`) com timeout de 10 ms. Durante a janela de 10 segundos, as 1000 goroutines mantêm-se vivas (cada uma a ocupar uma frame pilha + params + request). A `NumGoroutine()` mostra o acumulado.
+**Attack:** open 1000 connections that hit a slow handler (`time.Sleep(10*time.Second)`) with a 10 ms timeout. During the 10-second window, the 1000 goroutines stay alive (each occupying a stack frame + params + request). `NumGoroutine()` shows the accumulated total.
 
 **Evidence (`evidence/2026-04-17/DOS-002/timeout-leak.txt`):**
 ```
@@ -177,7 +177,7 @@ TestTimeoutLeakCountExact:
   n=200 timeout=5ms handler_duration=500ms
   before=2 goroutines
   mid=202 goroutines (leaked approx 200 during 495ms window)
-  final=2 (limpo após handlers terminarem)
+  final=2 (clean after handlers finish)
 
 TestTimeoutMiddlewareGoroutineLatency:
   n=1000 timeout=10ms handler_duration=3s
@@ -185,9 +185,9 @@ TestTimeoutMiddlewareGoroutineLatency:
   final: 2
 ```
 
-**Impact:** resource exhaustion via goroutine accumulation. Com 1000 req/s e handler de 1 h, 3.6 milhões de goroutines em voo. Cada goroutine ~2-8 KB de stack → 7-28 GB. Antes disso o scheduler degrada.
+**Impact:** resource exhaustion via goroutine accumulation. With 1000 req/s and a 1 h handler, 3.6 million goroutines in flight. Each goroutine ~2-8 KB of stack → 7-28 GB. Before that, the scheduler degrades.
 
-**Fix recomendado:** impossível sem cooperação do handler (Go não preempta goroutines bloqueadas). Mitigação viável é **documentar explicitamente** que handlers usados com `Timeout()` DEVEM cooperar com `r.Context().Done()`. Exemplo de handler correcto:
+**Recommended fix:** impossible without handler cooperation (Go does not preempt blocked goroutines). The viable mitigation is to **document explicitly** that handlers used with `Timeout()` MUST cooperate with `r.Context().Done()`. Example of a correct handler:
 
 ```go
 r.GET("/slow", func(w http.ResponseWriter, r *http.Request) {
@@ -201,9 +201,9 @@ r.GET("/slow", func(w http.ResponseWriter, r *http.Request) {
 })
 ```
 
-Adicionar secção "Cooperation with Timeout() middleware" em `docs/middleware.md` e exemplo no README.
+Add a "Cooperation with Timeout() middleware" section to `docs/middleware.md` and an example to the README.
 
-**Alternative:** implementar `TimeoutWithAbort(d, onTimeout)` que devolve 503 imediatamente para o cliente (write happens), deixando o handler continuar como goroutine "abandonada" — o cliente está desacoplado. Pode ser subject de uma RFC pós-v1.0.
+**Alternative:** implement `TimeoutWithAbort(d, onTimeout)` that returns 503 to the client immediately (the write happens), leaving the handler to continue as an "abandoned" goroutine — the client is decoupled. This could be the subject of a post-v1.0 RFC.
 
 **Escalation:** also `concurrency-security-auditor` for handler/dispatcher context sharing (relates to H-001 — if abandoned handler retains `r`, it shares the context with whatever request grabs the pooled `rc` next; but params.go zeros `rc.params = nil` on release, so the worst case is the handler observes nil params, not cross-contamination).
 
@@ -222,7 +222,7 @@ func (pb *paramsBuf) add(key, value string) {
 }
 ```
 
-Rotas com >3 params perdem silenciosamente os params 4+.
+Routes with >3 params silently lose params 4+.
 
 **Evidence (`evidence/2026-04-17/DOS-003/repro_test.go`):**
 ```
@@ -232,13 +232,13 @@ Observed:
   p1="alpha"  p2="beta"  p3="gamma"  p4=""  p5=""
 ```
 
-**Impact (DoS-adjacent, primary is correctness):** se o handler usa `PathParam(r, "p4")` em lógica de auth — por exemplo `if allowedTenants[PathParam(r, "tenant")]` — e o mapa incluir `""`, há **auth bypass silencioso**. Outra variante: logger que loga params → logs incompletos → repudiation.
+**Impact (DoS-adjacent, primary is correctness):** if the handler uses `PathParam(r, "p4")` in auth logic — for example `if allowedTenants[PathParam(r, "tenant")]` — and the map includes `""`, there is a **silent auth bypass**. Another variant: a logger that logs params → incomplete logs → repudiation.
 
-Como DoS pure: o atacante que descobre esta condição envia requests com **paths deliberadamente longos** que criam entropy na lookup mas cujos handlers subsequentes falham — comportamento corrente pode multiplicar errors aplicacionais sem quota aumentada.
+As pure DoS: an attacker who discovers this condition sends requests with **deliberately long paths** that create lookup entropy but whose subsequent handlers fail — the current behaviour can multiply application errors without an increased quota.
 
-**Fix recomendado (ordem de preferência):**
-1. **(Breaking)** `panic` em `addRoute` se `pattern` contém >3 wildcards. Falha cedo e é explícito. `maxInlineParams` sobe no futuro sem partir API.
-2. **(Non-breaking)** `paramsBuf` cresce para `[maxInlineParams]Param` seguido de slice dinâmica como fallback:
+**Recommended fix (in order of preference):**
+1. **(Breaking)** `panic` in `addRoute` if `pattern` contains >3 wildcards. Fails early and is explicit. `maxInlineParams` can be raised in the future without breaking the API.
+2. **(Non-breaking)** `paramsBuf` grows to `[maxInlineParams]Param` followed by a dynamic slice as a fallback:
    ```go
    type paramsBuf struct {
        count int
@@ -247,9 +247,9 @@ Como DoS pure: o atacante que descobre esta condição envia requests com **path
    }
    ```
    Adds one branch on `add()` but preserves zero-alloc for ≤3 params.
-3. **Aumentar** `maxInlineParams` para 8 directly — bunrouter usa 8; chi usa pool alocado.
+3. **Raise** `maxInlineParams` to 8 directly — bunrouter uses 8; chi uses an allocated pool.
 
-**Escalation:** also `fuzzing-and-property-engineer` — fuzz targets should verify `len(params) == len(wildcards in pattern)` como invariante I-N.
+**Escalation:** also `fuzzing-and-property-engineer` — fuzz targets should verify `len(params) == len(wildcards in pattern)` as invariant I-N.
 
 ---
 
@@ -263,9 +263,9 @@ for range limit { tokens <- struct{}{} }
 queue  := make(chan struct{}, backlog)
 ```
 
-O `tokens` channel é compartilhado por todos os clientes. A API do middleware (`ThrottleBacklog(limit, backlog, timeout)`) não sinaliza global vs per-IP.
+The `tokens` channel is shared by all clients. The middleware API (`ThrottleBacklog(limit, backlog, timeout)`) does not signal global vs per-IP.
 
-**Attack:** 1 atacante abre `limit` requests de longa duração. Todos os outros clientes apanham 503 imediatamente (queue vazia) ou ao fim do `timeout` (queue cheia).
+**Attack:** 1 attacker opens `limit` long-running requests. Every other client gets 503 immediately (empty queue) or at the end of the `timeout` (full queue).
 
 **Evidence (`evidence/2026-04-17/DOS-004/repro_test.go`):**
 ```
@@ -273,13 +273,13 @@ Limit=5, 5 attacker requests holding tokens, 10 legit different-IP clients:
   legit_denied = 10/10 (100% denied)
 ```
 
-**Impact:** trivial Denial-of-Service. O atacante não precisa de elevated privileges, nem de muitos recursos (apenas de `limit` conexões concorrentes). Dimensionamento: um throttle `ThrottleBacklog(100, 0, 1s)` em produção é derrubado por 100 conexões concorrentes vindas de uma única máquina.
+**Impact:** trivial Denial-of-Service. The attacker needs neither elevated privileges nor many resources (only `limit` concurrent connections). Sizing: a `ThrottleBacklog(100, 0, 1s)` throttle in production is brought down by 100 concurrent connections from a single machine.
 
-Combinado com DOS-005 (XFF spoofing em real_ip), o atacante pode ainda falsificar IPs nos logs → harder to detect.
+Combined with DOS-005 (XFF spoofing in real_ip), the attacker can also forge IPs in the logs → harder to detect.
 
-**Fix recomendado:**
-1. **Rename** `ThrottleBacklog` para `ThrottleAllBacklog` (breaking) OU adicionar DocComment forte: `// Applies to ALL clients. See ThrottlePerIP for per-IP limiting.`
-2. **Adicionar** `ThrottlePerIP(limit int, keyFn func(*http.Request) string, timeout time.Duration)`:
+**Recommended fix:**
+1. **Rename** `ThrottleBacklog` to `ThrottleAllBacklog` (breaking) OR add a strong DocComment: `// Applies to ALL clients. See ThrottlePerIP for per-IP limiting.`
+2. **Add** `ThrottlePerIP(limit int, keyFn func(*http.Request) string, timeout time.Duration)`:
    ```go
    func ThrottlePerIP(limit int, key func(*http.Request) string, timeout time.Duration) func(http.Handler) http.Handler {
        var m sync.Map // map[string]chan struct{}
@@ -302,7 +302,7 @@ Combinado com DOS-005 (XFF spoofing em real_ip), o atacante pode ainda falsifica
        }
    }
    ```
-3. **Documentar** que `ThrottlePerIP` requer `real_ip` middleware com `TrustedProxies` configurado (ver DOS-005).
+3. **Document** that `ThrottlePerIP` requires the `real_ip` middleware with `TrustedProxies` configured (see DOS-005).
 
 **Escalation:** cross-cuts `middleware-security-reviewer`.
 
@@ -325,7 +325,7 @@ if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 }
 ```
 
-Não há verificação de proxy-origem. Qualquer cliente pode sobrescrever `r.RemoteAddr`.
+There is no proxy-origin check. Any client can overwrite `r.RemoteAddr`.
 
 **Attack + Evidence (`evidence/2026-04-17/DOS-005/repro_test.go`):**
 ```
@@ -337,10 +337,10 @@ Handler observes r.RemoteAddr:            10.0.0.1   ← spoofed
 **Impact:**
 - Any downstream per-IP throttle built by users is bypassable (DOS-004 is already global, but users *building* their own per-IP limiter via `r.RemoteAddr` are tricked);
 - Logger records spoofed IPs;
-- IP-based ACLs são bypassable;
+- IP-based ACLs are bypassable;
 - Audit trails become unreliable (repudiation).
 
-**Fix recomendado:**
+**Recommended fix:**
 
 ```go
 // RealIP trusts X-Forwarded-For / X-Real-IP only when the immediate
@@ -361,7 +361,7 @@ func RealIP(trustedProxies []netip.Prefix) func(http.Handler) http.Handler {
 }
 ```
 
-Manter a função actual como `RealIPUnsafe()` com comentário explícito, OU breaking-renomear para `RealIP(...)` exigindo `trustedProxies`.
+Keep the current function as `RealIPUnsafe()` with an explicit comment, OR perform a breaking rename to `RealIP(...)` that requires `trustedProxies`.
 
 **Escalation:** `middleware-security-reviewer` (primary); `http-protocol-security-auditor` (CRLF in XFF value).
 
@@ -369,7 +369,7 @@ Manter a função actual como `RealIPUnsafe()` com comentário explícito, OU br
 
 ### DOS-006 — Slowloris exposure in default http.Server (Medium)
 
-**Location:** documentação; exemplos em README que usam `http.ListenAndServe(":8080", r)` sem configurar timeouts.
+**Location:** documentation; README examples that use `http.ListenAndServe(":8080", r)` without configuring timeouts.
 
 **Evidence (`evidence/2026-04-17/DOS-006/slowloris-default.txt`):**
 ```
@@ -382,9 +382,9 @@ Same with ReadHeaderTimeout=500ms:
   goroutines during: 3 (delta=0)
 ```
 
-MuxMaster não pode fixar este vector sozinho — a aceitação TCP é da `http.Server`. MAS é **documentation gap**: o README não recomenda nenhum timeout. Utilizadores deployam com settings default → slowloris trivial.
+MuxMaster cannot fix this vector on its own — TCP acceptance belongs to `http.Server`. BUT it is a **documentation gap**: the README recommends no timeout. Users deploy with default settings → trivial slowloris.
 
-**Fix recomendado:** adicionar secção "Recommended http.Server settings" em `SECURITY.md` e na "Getting started" do README:
+**Recommended fix:** add a "Recommended http.Server settings" section to `SECURITY.md` and to the README's "Getting started":
 
 ```go
 srv := &http.Server{
@@ -408,7 +408,7 @@ if err := srv.ListenAndServe(); err != nil {
 
 **Location:** `mux.go:568-573`
 
-`http.NotFound()` chama `http.Error()` → `fmt.Fprintln` + `Content-Length` set. 3 allocs/op.
+`http.NotFound()` calls `http.Error()` → `fmt.Fprintln` + `Content-Length` set. 3 allocs/op.
 
 **Measurements:**
 ```
@@ -417,9 +417,9 @@ Static route:   24 ns/op, 0 allocs/op, 0 B/op
 Ratio:         12× ns, ∞× allocs, +109 B garbage per request
 ```
 
-**Impact informational:** flood de 10k req/s de paths inexistentes → 30k allocs/s + 1.1 MB/s de garbage. Não fatal mas atrás atenção do GC. Stdlib ServeMux tem shape similar — não é regressão.
+**Informational impact:** a flood of 10k req/s of nonexistent paths → 30k allocs/s + 1.1 MB/s of garbage. Not fatal, but it draws the GC's attention. The stdlib ServeMux has a similar shape — it is not a regression.
 
-**Fix sugerido (opcional):** `sync.Pool` dedicado para o 404 body string; evitar `fmt`. Win marginal, não-bloqueante.
+**Suggested fix (optional):** a dedicated `sync.Pool` for the 404 body string; avoid `fmt`. Marginal win, non-blocking.
 
 ---
 
@@ -440,10 +440,10 @@ Contains attacker string verbatim: YES
 
 **Impact:**
 1. Info disclosure (CWE-209) — attacker-controlled panic value flows unescaped to operator's logging backend.
-2. Secondary DoS — 1.5 KB/stderr por panic × 10k panics/s = 15 MB/s ao sink de logs.
+2. Secondary DoS — 1.5 KB of stderr per panic × 10k panics/s = 15 MB/s to the log sink.
 3. ANSI escape injection if stderr is a TTY (e.g. `debug.Stack()` including a path name with `\x1b[2J`).
 
-**Fix recomendado:**
+**Recommended fix:**
 
 ```go
 // Structured Recoverer: caller provides a slog.Logger — panic is routed
@@ -471,7 +471,7 @@ func RecovererWithLogger(logger *slog.Logger, includeStack bool) func(http.Handl
 }
 ```
 
-Mantém `Recoverer()` actual mas marca como `// Deprecated: use RecovererWithLogger for production`.
+Keep the current `Recoverer()` but mark it `// Deprecated: use RecovererWithLogger for production`.
 
 **Escalation:** `middleware-security-reviewer` (primary — info leak); `http-protocol-security-auditor` (CRLF / ANSI injection via panic string).
 
@@ -494,49 +494,49 @@ for i, root := range trees {
 }
 ```
 
-9 métodos registados para `/target`, request com método custom "FROBNICATE":
+9 methods registered for `/target`, request with the custom method "FROBNICATE":
 
 ```
 462 ns/op, 8 allocs/op, 236 B/op
 ```
 
-vs 200 OK em 24 ns / 0 alloc. Ratio: 19× ns, infinitos allocs.
+vs 200 OK at 24 ns / 0 alloc. Ratio: 19× ns, infinite allocs.
 
-**Impact informational:** garbage generation under 405 flood. Mesma shape que stdlib ServeMux em 405. Não crítica.
+**Informational impact:** garbage generation under a 405 flood. Same shape as the stdlib ServeMux on 405. Not critical.
 
-**Fix opcional:** cache `allowMap[path] → string` no registration time. Complexidade adicional não compensa para o ganho.
+**Optional fix:** cache `allowMap[path] → string` at registration time. The additional complexity does not pay off for the gain.
 
 ---
 
 ## 6. Slowloris exposure details
 
-Duas configurações testadas (ver `evidence/2026-04-17/DOS-006/`):
+Two configurations tested (see `evidence/2026-04-17/DOS-006/`):
 
-| Configuração | N conns | Goroutines delta | Status |
+| Configuration | N conns | Goroutines delta | Status |
 |---|---:|---:|---|
 | `http.Server{Handler: mm.New()}` (default) | 200 | +400 | **EXPOSED** |
 | `http.Server{Handler: mm.New(), ReadHeaderTimeout: 500*time.Millisecond}` | 100 | +0 | **MITIGATED** |
 
-**Goroutine profiles** em `evidence/2026-04-17/slowloris-goroutines-before.pprof` e `slowloris-goroutines-during.pprof`. `go tool pprof` em ambos confirma que os goroutines presos são em `net/http.(*conn).serve` e `net/textproto.(*Reader).ReadLine` — confirmando que são conexões TCP em half-read state.
+**Goroutine profiles** in `evidence/2026-04-17/slowloris-goroutines-before.pprof` and `slowloris-goroutines-during.pprof`. `go tool pprof` on both confirms that the stuck goroutines are in `net/http.(*conn).serve` and `net/textproto.(*Reader).ReadLine` — confirming that they are TCP connections in a half-read state.
 
 ## 7. Compression bomb exposure
 
-Testado: handler a streamar N bytes de zeros com `Accept-Encoding: gzip`.
+Tested: a handler streaming N bytes of zeros with `Accept-Encoding: gzip`.
 
-| Body size | Peak HeapAlloc durante handler | Slope |
+| Body size | Peak HeapAlloc during handler | Slope |
 |---:|---:|---:|
 | 1 MB | 1.5 MB | 1.47 |
 | 4 MB | 4 MB | 1.11 |
 | 16 MB | 19 MB | 1.23 |
 | 64 MB | 73 MB | 1.15 |
 
-Slope linear com pendente ~1.15×. Com a prática de `append` doubling, **o RSS peak durante a alocação** chega a 2×N (novo array × 2 antes de copiar do antigo). Para body de 1 GB → ~1.5-2 GB RSS peak.
+Linear slope with a gradient of ~1.15×. With `append`'s doubling behaviour, **the RSS peak during allocation** reaches 2×N (new array × 2 before copying from the old one). For a 1 GB body → ~1.5-2 GB RSS peak.
 
-**Não testado (compression-bomb inverso):** response com bytes aleatórios — neste cenário o gzip não ganha e Content-Length é preservado. Mas o buffer ainda acumula N bytes antes do flush. **Mesma magnitude de exposição.**
+**Not tested (inverse compression bomb):** a response with random bytes — in this scenario gzip gains nothing and Content-Length is preserved. But the buffer still accumulates N bytes before the flush. **Same magnitude of exposure.**
 
 ## 8. Sustained load profile
 
-**Limitação honesta:** a instrução pede 30 minutos. Corri **60 segundos**.
+**Honest limitation:** the instruction asks for 30 minutes. I ran **60 seconds**.
 
 `evidence/2026-04-17/sustained-load.txt`:
 ```
@@ -544,9 +544,9 @@ workers=50 duration=1m0s total=893 980 errors=0 rps=14 899.2
   HeapInuse=2 MB  goroutines=3 (final)
 ```
 
-Rotas: `/static`, `/users/:id`, `/users/alice`, `/a/foo/bar`, `/notfound` (mistura de paths estáticos, params e 404s). Zero errors em 893 980 requests. Heap estável em 2 MB. Zero goroutines leak.
+Routes: `/static`, `/users/:id`, `/users/alice`, `/a/foo/bar`, `/notfound` (a mix of static paths, params and 404s). Zero errors in 893 980 requests. Heap stable at 2 MB. Zero goroutine leaks.
 
-**Não medido:** GC drift em 30 minutos / RSS sob carga real, p50/p90/p99 via vegeta / hey (o harness usa `httptest.NewServer` loop in-process, não um cliente externo). Para validação release-grade, recomendo ciclo vegeta posterior.
+**Not measured:** GC drift over 30 minutes / RSS under real load, p50/p90/p99 via vegeta / hey (the harness uses an in-process `httptest.NewServer` loop, not an external client). For release-grade validation, I recommend a subsequent vegeta cycle.
 
 ## 9. Pool integrity under GC storm
 
@@ -558,11 +558,11 @@ TestPoolCrossGoroutineIntegrity: 8 workers × 2 000 requests, all cross-checked
   — 0 cross-contamination detected
 ```
 
-`sync.Pool` + `rc.Context = nil; rc.params = nil; rc.pattern = ""` cleanup in mux.go:477-479 é sufficient. **PASS.**
+`sync.Pool` + the `rc.Context = nil; rc.params = nil; rc.pattern = ""` cleanup in mux.go:477-479 is sufficient. **PASS.**
 
 ## 10. Regex / ReDoS exposure
 
-RE2 linear guarantee mantém-se para patterns testados. Limites bem-conhecidos do Go regexp (≈100 operações) rejeitam patterns exponenciais ao compile-time.
+The RE2 linear guarantee holds for the tested patterns. The well-known limits of Go regexp (≈100 operations) reject exponential patterns at compile time.
 
 | Pattern | Compile time |
 |---|---:|
@@ -572,39 +572,39 @@ RE2 linear guarantee mantém-se para patterns testados. Limites bem-conhecidos d
 | 10 000 alternations `a\|a\|...` | 380 µs |
 | 5 000-char literal | 928 µs |
 
-Match de 10 000 chars: **170 µs**. Linear.
+Match of 10 000 chars: **170 µs**. Linear.
 
-**H-019 verdict:** REFUTED. RE2 bounded. Não é vector.
+**H-019 verdict:** REFUTED. RE2 bounded. Not a vector.
 
 ## 11. Hash-flood audit
 
-`rg 'map\[string\]' *.go middleware/*.go` no código:
+`rg 'map\[string\]' *.go middleware/*.go` over the code:
 
-| Local | Chave | User input? | Bounded? |
+| Location | Key | User input? | Bounded? |
 |---|---|---|---|
-| `params.go` `Params.Map()` | nome do param | registered pattern names (fixed by developer) | yes (≤3) |
+| `params.go` `Params.Map()` | param name | registered pattern names (fixed by developer) | yes (≤3) |
 | `introspection.go` `Routes()` | pattern | registered patterns | yes (closed set) |
 | `with_value.go` context.Value | developer-provided key (typed key rare, string key possible) | if caller chose string | caller's problem |
 | HTTP headers (`r.Header`) | not muxmaster's map; stdlib `textproto.MIMEHeader` | stdlib-bounded | yes |
 
-**Sem** map indexado por input do atacante no hot path. **PASS.**
+**No** map indexed by attacker input on the hot path. **PASS.**
 
 ## 12. Coverage gaps (honest)
 
-- **Sustained load 30 min**: corri 1 min. Não vi drift. Para release-grade recomendo 30 min com vegeta externo.
-- **HTTP/2** fora do scope (coberto por `http-protocol-security-auditor`).
-- **OS resource limits** (ulimit -n, cgroup memory) não variados — todos os testes com limits default.
-- **compress bomb inversa** (body aleatório incomprimível): raciocinei analiticamente; mesma magnitude mas não executado.
-- **real_ip + CRLF**: testado só spoof; CRLF no XFF é do domain do `http-protocol-security-auditor`.
-- **logger sync write contention**: não medida sob load; pode ser um vector adicional (canal sync ao output writer).
+- **Sustained load 30 min**: I ran 1 min. I saw no drift. For release grade I recommend 30 min with an external vegeta.
+- **HTTP/2** out of scope (covered by `http-protocol-security-auditor`).
+- **OS resource limits** (ulimit -n, cgroup memory) not varied — all tests ran with default limits.
+- **Inverse compress bomb** (random incompressible body): reasoned analytically; same magnitude but not executed.
+- **real_ip + CRLF**: only spoofing tested; CRLF in XFF belongs to the domain of `http-protocol-security-auditor`.
+- **logger sync write contention**: not measured under load; may be an additional vector (sync channel to the output writer).
 
 ## 13. Escalations (cross-agent)
 
 - **DOS-001** (compress): `middleware-security-reviewer` — BREACH oracle.
-- **DOS-004 + DOS-005** combined: se um atacante quer per-IP bypass, não consegue construir um defence layer actualmente (throttle é global, XFF sem validation). **Escalate to threat-modeler** — composto `TM-NNN`: inability to build per-IP rate limiting is a cross-cutting platform gap.
+- **DOS-004 + DOS-005** combined: if an attacker wants a per-IP bypass, no defence layer can currently be built (throttle is global, XFF without validation). **Escalate to threat-modeler** — composite `TM-NNN`: inability to build per-IP rate limiting is a cross-cutting platform gap.
 - **DOS-008**: `middleware-security-reviewer` — info leak (primary), `http-protocol-security-auditor` — ANSI/CRLF injection via panic value.
-- **H-016 (throttle token leak on panic)** — testado: **REFUTED** (defer corre correctamente). Feedback para `concurrency-security-auditor`.
-- **H-017 + H-030 composite (timeout + slowloris)**: ambos confirmados (DOS-002 + DOS-006). O vector composite é real: attacker abre conexões lentas (slowloris), depois envia request que o handler lento processa — timeout não aborta, goroutine continua presa até handler terminar, ocupando slot no connection pool. Mitigação **exige** ambos: `ReadHeaderTimeout` + handlers que respeitam `ctx.Done()`.
+- **H-016 (throttle token leak on panic)** — tested: **REFUTED** (defer runs correctly). Feedback for `concurrency-security-auditor`.
+- **H-017 + H-030 composite (timeout + slowloris)**: both confirmed (DOS-002 + DOS-006). The composite vector is real: the attacker opens slow connections (slowloris), then sends a request that the slow handler processes — the timeout does not abort, the goroutine stays stuck until the handler finishes, occupying a slot in the connection pool. Mitigation **requires** both: `ReadHeaderTimeout` + handlers that honour `ctx.Done()`.
 
 ## 14. Hypotheses verdict update
 
@@ -623,7 +623,7 @@ Match de 10 000 chars: **170 µs**. Linear.
 ## 15. Next actions (prioritised)
 
 1. **DOS-001 fix (HIGH):** refactor compress middleware to stream (estimated 2 days + tests).
-2. **DOS-004/DOS-005 pair (HIGH):** add `ThrottlePerIP` + `RealIP(trustedProxies)`. Deprecate or rename current (breaking — tag para v1.0 ou v2.0).
+2. **DOS-004/DOS-005 pair (HIGH):** add `ThrottlePerIP` + `RealIP(trustedProxies)`. Deprecate or rename current (breaking — tag for v1.0 or v2.0).
 3. **DOS-006 (MEDIUM):** SECURITY.md + README section on http.Server timeouts. **This is the lowest-cost highest-impact action.**
 4. **DOS-002 (MEDIUM):** docs section on Timeout middleware cooperation requirement.
 5. **DOS-003 (MEDIUM):** decide: panic on >3 wildcards OR raise maxInlineParams to 8. Ship before v1.0.
@@ -631,13 +631,13 @@ Match de 10 000 chars: **170 µs**. Linear.
 
 ## 16. Release recommendation (dos-resilience axis)
 
-**HOLD** de v1.0.0 até:
-- DOS-001 fixed OR documented com limitação explícita no SECURITY.md (High);
-- DOS-004 + DOS-005 addressed pelo menos via rename + docs (High);
+**HOLD** v1.0.0 until:
+- DOS-001 fixed OR documented with an explicit limitation in SECURITY.md (High);
+- DOS-004 + DOS-005 addressed at least via rename + docs (High);
 - DOS-006 docs added (Medium, low-effort);
 - DOS-002 docs added (Medium, low-effort).
 
-DOS-003, DOS-007, DOS-008, DOS-009 podem ship com nota no CHANGELOG mas acima é o blocker mínimo do eixo DoS.
+DOS-003, DOS-007, DOS-008, DOS-009 can ship with a note in the CHANGELOG, but the list above is the minimum blocker on the DoS axis.
 
 ---
 

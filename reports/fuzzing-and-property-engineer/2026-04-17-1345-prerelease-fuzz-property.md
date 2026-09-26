@@ -1,34 +1,34 @@
-# Fuzzing & Property Test Report — Pré-release v1.0.0
+# Fuzzing & Property Test Report — Pre-release v1.0.0
 
 **Date:** 2026-04-17 13:45 UTC
 **Commit:** `533d0c9cea2ff9e8c2f1ed4da7da5ee9032b3d4c`
 **Go:** 1.26.2
 **Agent:** fuzzing-and-property-engineer
-**Scope:** toda a API pública do módulo `github.com/FlavioCFOliveira/MuxMaster` e os 15 middlewares. Complementa o `path-routing-fuzzer` (que cobre tree.go/path bypasses).
+**Scope:** the entire public API of the `github.com/FlavioCFOliveira/MuxMaster` module and the 15 middlewares. Complements `path-routing-fuzzer` (which covers tree.go/path bypasses).
 
 ---
 
-## Resumo executivo
+## Executive summary
 
-Nove findings descobertos em 4h de sprint — **três Critical** (panics não recuperáveis em hot-path e corrupção da árvore após panic em registo), **duas High** (CRLF response splitting em CORS e RequestID), **uma High** (param silent-drop), **três Medium** (StripSlashes não-idempotente, registration-time index OOB, pathological loop/OOM em inputs específicos).
+Nine findings discovered in a 4h sprint — **three Critical** (unrecoverable panics on the hot path and tree corruption after a panic during registration), **two High** (CRLF response splitting in CORS and RequestID), **one High** (param silent-drop), **three Medium** (non-idempotent StripSlashes, registration-time index OOB, pathological loop/OOM on specific inputs).
 
-**Recomendação ao maintainer:** **HOLD release**. As três Critical bloqueiam uma release v1.0.0 defensível. As High têm remediação trivial e devem entrar no mesmo ciclo de fix. Todos os findings têm repro mínimo committado, com go.mod independente, pronto para correr como smoke test após fix.
+**Recommendation to the maintainer:** **HOLD release**. The three Critical findings block a defensible v1.0.0 release. The High findings have trivial remediation and should enter the same fix cycle. Every finding has a committed minimal repro, with an independent go.mod, ready to run as a smoke test after the fix.
 
-A suite fica operacional e persiste corpus para 22 fuzz targets cobrindo 70.9% de linhas do módulo. Três allowlists de panic tracked permitem que a suite continue a encontrar novos bugs sem ser bloqueada pelos findings já catalogados.
+The suite is operational and persists a corpus for 22 fuzz targets covering 70.9% of the module's lines. Three tracked panic allowlists allow the suite to keep finding new bugs without being blocked by the findings already catalogued.
 
 ---
 
 ## Dependencies added
 
-- **`pgregory.net/rapid v1.2.0`** — test-only dependency, isolada num go.mod separado em `reports/fuzzing-and-property-engineer/harness/go.mod` via `replace` directive. **NÃO afecta** o go.mod do módulo principal nem a invariante zero-dep de produção. O sprint plan §8 autoriza explicitamente esta dependência para property-test infrastructure.
+- **`pgregory.net/rapid v1.2.0`** — test-only dependency, isolated in a separate go.mod at `reports/fuzzing-and-property-engineer/harness/go.mod` via a `replace` directive. It does **NOT affect** the main module's go.mod nor the production zero-dep invariant. Sprint plan §8 explicitly authorises this dependency for property-test infrastructure.
 
-Sem outras deps adicionadas. Módulo principal continua a zero externas.
+No other deps added. The main module still has zero external dependencies.
 
 ---
 
 ## Targets run (fuzz)
 
-Budget: mínimo 15s por target em modo short (pré-commit). Audit mode: 30s por target-crítico, 15s para targets de middleware. Cada execução com corpus persistido em `corpora/<target>/`.
+Budget: minimum 15s per target in short mode (pre-commit). Audit mode: 30s per critical target, 15s for middleware targets. Each run with its corpus persisted in `corpora/<target>/`.
 
 | Fuzzer | Budget | Exec/sec | Total execs | New crashes | Corpus entries |
 |---|---|---|---|---|---|
@@ -59,16 +59,16 @@ Budget: mínimo 15s por target em modo short (pré-commit). Audit mode: 30s por 
 | FuzzLookupAfterRegistration | 15 s | 88 648 | 1 329 724 | 0 (net) | 95 |
 | FuzzResponseJSON / XML / Text / Redirect | (seeds) | n/a | n/a | 0 | 16 |
 
-**Total cumulative exec budget:** ~10 min de wall-clock fuzz, aprox. 27 milhões de execs agregadas.
-**Net crashes:** zero após classificação. As nove findings (FPE-001…FPE-009) têm repro dedicado sob `evidence/FPE-NNN/` e estão allowlisted nas funções `isTrackedRuntimeError`/`isTrackedTreePanic`/`isTrackedHotPathRuntimeError` no harness para que o fuzzer continue a descobrir outras regressões.
+**Total cumulative exec budget:** ~10 min of wall-clock fuzzing, approx. 27 million aggregate execs.
+**Net crashes:** zero after classification. The nine findings (FPE-001…FPE-009) have a dedicated repro under `evidence/FPE-NNN/` and are allowlisted in the harness functions `isTrackedRuntimeError`/`isTrackedTreePanic`/`isTrackedHotPathRuntimeError` so that the fuzzer keeps discovering other regressions.
 
 ---
 
 ## Property tests
 
-Property tests com `pgregory.net/rapid` — cada invariante corre 100 casos gerados por default com shrink para minimal counter-example. Todos correm sob `go test ./...` no ciclo normal.
+Property tests with `pgregory.net/rapid` — each invariant runs 100 generated cases by default, with shrinking to a minimal counter-example. All of them run under `go test ./...` in the normal cycle.
 
-| Propriedade | Runs | Shrunk failures | Status |
+| Property | Runs | Shrunk failures | Status |
 |---|---|---|---|
 | I-04 Group prefix composition | 100 | 0 | PASS |
 | I-05 Middleware order (Mux.Use) | 100 | 0 | PASS |
@@ -81,9 +81,9 @@ Property tests com `pgregory.net/rapid` — cada invariante corre 100 casos gera
 | I-13 ServeFiles registers GET+HEAD | 100 | 0 | PASS |
 | I-14 Error status + message preservation | 100 | 0 | PASS |
 
-**I-11b (params capture > 3):** NÃO CHECADA — é o FPE-004 finding. Foi deliberadamente retirada da suite principal para não bloquear runs enquanto a bug não é fixed. Tracked em `evidence/FPE-004/`.
+**I-11b (params capture > 3):** NOT CHECKED — it is the FPE-004 finding. It was deliberately removed from the main suite so as not to block runs while the bug is not fixed. Tracked in `evidence/FPE-004/`.
 
-**I-09 (registration isolation):** NÃO CHECADA como property — FPE-008 demonstra que a árvore é corrompida por panic, ficaria sempre a falhar. Tracked separadamente.
+**I-09 (registration isolation):** NOT CHECKED as a property — FPE-008 shows that the tree is corrupted by a panic, so it would always fail. Tracked separately.
 
 ---
 
@@ -91,15 +91,15 @@ Property tests com `pgregory.net/rapid` — cada invariante corre 100 casos gera
 
 | ID | Severity | Fuzzer | Area | Root cause | Repro |
 |---|---|---|---|---|---|
-| FPE-001 | High | FuzzRequestIDReflection | middleware/request_id.go | CRLF em X-Request-ID reflectido para o response header sem sanitização | `evidence/FPE-001/` |
-| FPE-002 | High | FuzzCORSOrigin | middleware/cors.go | CRLF em Origin reflectido para Access-Control-Allow-Origin quando `AllowedOrigins=["*"]` | `evidence/FPE-002/` |
-| FPE-003 | Medium | FuzzStripSlashesIdempotency | middleware/strip_slashes.go | Middleware stripa *um só* trailing slash — não é idempotente | `evidence/FPE-003/` |
-| FPE-004 | High | TestProp_ParamsCaptureOrRejected | tree.go:21 | paramsBuf capacity = 3, params extras silenciosamente descartados (H-012) | `evidence/FPE-004/` |
-| FPE-005 | Medium | FuzzMuxHandle | tree.go:260 | `path[i-1]` com `i = 0` — `runtime error: index out of range [-1]` em Handle com pattern `/{…}*name` | `evidence/FPE-005/` |
-| FPE-006 | **Critical** | FuzzMuxHandleTwice | tree.go:305 | `n.children[:len(n.indices)]` — re-slice acima de cap. em getValue (hot path) após registar `/<non-ASCII>` + `/` | `evidence/FPE-006/` |
-| FPE-007 | Medium | FuzzMuxHandleTwice | tree.go (addRoute) | Pathological pair of invalid-UTF-8 patterns causa wall-clock > 10s num único Handle+Lookup | `evidence/FPE-007/` |
-| FPE-008 | **Critical** | FuzzWalkRoutes | mux.go:203-225 | `Handle` faz COW *superficial* — quando addRoute panica, a árvore partilhada fica em estado inconsistente; rotas previamente registadas ficam inalcançáveis | `evidence/FPE-008/` |
-| FPE-009 | **Critical** | FuzzLookupAfterRegistration | tree.go:395 | Registrar `/:0` + `/0` produz uma node com `nType == static` mas sem handler + wildChild; qualquer Lookup não-exacto panica com `muxmaster: invalid node type` | `evidence/FPE-009/` |
+| FPE-001 | High | FuzzRequestIDReflection | middleware/request_id.go | CRLF in X-Request-ID reflected into the response header without sanitisation | `evidence/FPE-001/` |
+| FPE-002 | High | FuzzCORSOrigin | middleware/cors.go | CRLF in Origin reflected into Access-Control-Allow-Origin when `AllowedOrigins=["*"]` | `evidence/FPE-002/` |
+| FPE-003 | Medium | FuzzStripSlashesIdempotency | middleware/strip_slashes.go | The middleware strips *only one* trailing slash — it is not idempotent | `evidence/FPE-003/` |
+| FPE-004 | High | TestProp_ParamsCaptureOrRejected | tree.go:21 | paramsBuf capacity = 3, extra params silently discarded (H-012) | `evidence/FPE-004/` |
+| FPE-005 | Medium | FuzzMuxHandle | tree.go:260 | `path[i-1]` with `i = 0` — `runtime error: index out of range [-1]` in Handle with the pattern `/{…}*name` | `evidence/FPE-005/` |
+| FPE-006 | **Critical** | FuzzMuxHandleTwice | tree.go:305 | `n.children[:len(n.indices)]` — re-slice beyond cap. in getValue (hot path) after registering `/<non-ASCII>` + `/` | `evidence/FPE-006/` |
+| FPE-007 | Medium | FuzzMuxHandleTwice | tree.go (addRoute) | Pathological pair of invalid-UTF-8 patterns causes wall-clock > 10s in a single Handle+Lookup | `evidence/FPE-007/` |
+| FPE-008 | **Critical** | FuzzWalkRoutes | mux.go:203-225 | `Handle` performs a *shallow* COW — when addRoute panics, the shared tree is left in an inconsistent state; previously registered routes become unreachable | `evidence/FPE-008/` |
+| FPE-009 | **Critical** | FuzzLookupAfterRegistration | tree.go:395 | Registering `/:0` + `/0` produces a node with `nType == static` but without handler + wildChild; any non-exact Lookup panics with `muxmaster: invalid node type` | `evidence/FPE-009/` |
 
 ### FPE-001 — RequestID CRLF response-splitting (H-004)
 **Severity:** High (CWE-113).
@@ -108,15 +108,15 @@ Property tests com `pgregory.net/rapid` — cada invariante corre 100 casos gera
 **Classification:** logic bug / missing input validation.
 **Repro:** `evidence/FPE-001/repro_test.go`.
 
-O `middleware.RequestID()` faz:
+`middleware.RequestID()` does:
 ```go
 id := r.Header.Get("X-Request-ID")
 if id == "" { … }
 w.Header().Set("X-Request-ID", id)
 ```
-Sem validação. Um upstream proxy permissivo (ou atacante via `Header["X-Request-Id"] = []string{…}`) injecta CR/LF na response. Stdlib `net/http` servidor pode truncar, mas `httptest.ResponseRecorder` não faz e downstream middlewares podem serializar headers de outra forma. Ainda assim, o *header map* contém bytes adversariais e qualquer integração a jusante fica vulnerável.
+No validation. A permissive upstream proxy (or an attacker via `Header["X-Request-Id"] = []string{…}`) injects CR/LF into the response. The stdlib `net/http` server may truncate it, but `httptest.ResponseRecorder` does not, and downstream middlewares may serialise headers differently. Even so, the *header map* contains adversarial bytes and any downstream integration becomes vulnerable.
 
-**Remediação proposta:**
+**Proposed remediation:**
 ```go
 id := r.Header.Get("X-Request-ID")
 if id != "" && (strings.ContainsAny(id, "\r\n\x00") || len(id) > 256) {
@@ -130,11 +130,11 @@ if id == "" { … crypto/rand gen … }
 **Fuzzer:** `FuzzCORSOrigin` (seed).
 **Repro:** `evidence/FPE-002/repro_test.go`.
 
-Idêntico ao FPE-001 na raiz — `cors.go:54` faz `h.Set("Access-Control-Allow-Origin", origin)` sem validar que o `origin` é um token HTTP legal. Qualquer deployment com `AllowedOrigins=["*"]` + upstream permissivo vê response splitting.
+Identical to FPE-001 at the root — `cors.go:54` does `h.Set("Access-Control-Allow-Origin", origin)` without validating that `origin` is a legal HTTP token. Any deployment with `AllowedOrigins=["*"]` + a permissive upstream sees response splitting.
 
-**Remediação:** validar o Origin contra `^[A-Za-z0-9+.-]+://[^\s\r\n\x00]*$` antes de setar o ACAO, ou rejeitar (400) se não for um origin legal.
+**Remediation:** validate the Origin against `^[A-Za-z0-9+.-]+://[^\s\r\n\x00]*$` before setting ACAO, or reject it (400) if it is not a legal origin.
 
-### FPE-003 — StripSlashes não-idempotente
+### FPE-003 — StripSlashes non-idempotent
 **Severity:** Medium (CWE-707).
 **Fuzzer:** `FuzzStripSlashesIdempotency` (seed `/a//`).
 **Repro:** `evidence/FPE-003/repro_test.go`.
@@ -144,16 +144,16 @@ Idêntico ao FPE-001 na raiz — `cors.go:54` faz `h.Set("Access-Control-Allow-O
 pass1       pass2
 ```
 
-Impacto prático é baixo em stacks tipicais (onde só há um passe), mas surpreende quando a middleware é composta com `CleanPath` ou outra que também invoque (casos arquitecturais como retries internos). A prova de idempotência está documentada nas invariantes comuns (chi, gorilla/mux) — manter alinhamento facilita porting.
+The practical impact is low in typical stacks (where there is only one pass), but it is surprising when the middleware is composed with `CleanPath` or another one that also invokes it (architectural cases such as internal retries). Idempotence is documented among the common invariants (chi, gorilla/mux) — keeping aligned eases porting.
 
-**Remediação trivial:**
+**Trivial remediation:**
 ```go
 for len(p) > 1 && p[len(p)-1] == '/' { p = p[:len(p)-1] }
 ```
 
 ### FPE-004 — paramsBuf silent overflow (H-012)
-**Severity:** High (CWE-20 + CWE-284 quando composto com auth middleware).
-**Fuzzer:** `TestProp_ParamsCaptureOrRejected` (retirado da suite principal).
+**Severity:** High (CWE-20 + CWE-284 when composed with auth middleware).
+**Fuzzer:** `TestProp_ParamsCaptureOrRejected` (removed from the main suite).
 **Repro:** `evidence/FPE-004/repro_test.go`.
 
 `tree.go:15`:
@@ -161,18 +161,18 @@ for len(p) > 1 && p[len(p)-1] == '/' { p = p[:len(p)-1] }
 const maxInlineParams = 3
 ```
 
-Qualquer pattern com mais de 3 params perde os restantes silenciosamente em `paramsBuf.add`. MuxMaster posiciona-se contra httprouter/bunrouter que suportam 16 params; esta divergência é surpresa silenciosa.
+Any pattern with more than 3 params silently loses the rest in `paramsBuf.add`. MuxMaster positions itself against httprouter/bunrouter, which support 16 params; this divergence is a silent surprise.
 
-**Remediação — duas opções:**
-1. **Lift simples:** `const maxInlineParams = 16` + ajustar `requestCtx.small [16]Param`. Custo: 208 bytes extra por pool entry, que são amortizados; a maioria dos handlers usa ≤ 4.
-2. **Explicit panic ao registo:** contar params no `insertChild` e panic se `>3`. Preserva o footprint actual mas rejeita casos legítimos.
+**Remediation — two options:**
+1. **Simple lift:** `const maxInlineParams = 16` + adjust `requestCtx.small [16]Param`. Cost: 208 extra bytes per pool entry, which are amortised; most handlers use ≤ 4.
+2. **Explicit panic at registration:** count params in `insertChild` and panic if `>3`. Preserves the current footprint but rejects legitimate cases.
 
-Opção 1 é a correcta em termos de competitividade.
+Option 1 is the correct one in terms of competitiveness.
 
-### FPE-005 — Runtime panic em Handle com pattern `/{…}*name`
+### FPE-005 — Runtime panic in Handle with the pattern `/{…}*name`
 **Severity:** Medium (CWE-20, CWE-755).
 **Fuzzer:** `FuzzMuxHandle` (minimal: `/{:}*00000`).
-**Repro:** `evidence/FPE-005/repro_test.go` (variants incluídos).
+**Repro:** `evidence/FPE-005/repro_test.go` (variants included).
 
 `tree.go:259-262`:
 ```go
@@ -182,9 +182,9 @@ if path[i] != '/' {
 }
 ```
 
-Quando o catch-all `*name` vem imediatamente a seguir a um token regex `{…}` consumido, `i` é 0 antes do decremento → -1. `path[-1]` panica com `runtime error: index out of range`.
+When the catch-all `*name` comes immediately after a consumed regex token `{…}`, `i` is 0 before the decrement → -1. `path[-1]` panics with `runtime error: index out of range`.
 
-**Remediação de uma linha:**
+**One-line remediation:**
 ```go
 i--
 if i < 0 || path[i] != '/' {
@@ -192,72 +192,72 @@ if i < 0 || path[i] != '/' {
 }
 ```
 
-### FPE-006 — CRITICAL: slice bounds OOB em getValue (hot path)
-**Severity:** Critical (CVSS ~8.1 — DoS remota via crafted lookup).
+### FPE-006 — CRITICAL: slice bounds OOB in getValue (hot path)
+**Severity:** Critical (CVSS ~8.1 — remote DoS via crafted lookup).
 **Fuzzer:** `FuzzMuxHandleTwice`.
 **Repro:** `evidence/FPE-006/repro_test.go`.
 
-Registar `/\xf9` + `/` e chamar `Lookup("/\xf9")` panica em `tree.go:305`:
+Registering `/\xf9` + `/` and calling `Lookup("/\xf9")` panics at `tree.go:305`:
 ```go
 children := n.children[:len(n.indices)]
 ```
-`len(n.indices) > cap(n.children)` em certos caminhos de split. Isto é um **panic em hot path** — qualquer request panica. Se PanicHandler não estiver configurado, a connection é cortada; em tráfego sustentado pode amplificar falhas.
+`len(n.indices) > cap(n.children)` on certain split paths. This is a **panic on the hot path** — every request panics. If PanicHandler is not configured, the connection is cut; under sustained traffic it can amplify failures.
 
-Combinado com FPE-009 (um caso diferente mas com mesmo vector de impacto), o tree radix tem fragilidade sistémica quando rotas estáticas + paramétricas + static com bytes não-ASCII interagem.
+Combined with FPE-009 (a different case but with the same impact vector), the radix tree has a systemic fragility when static + parametric routes + static routes with non-ASCII bytes interact.
 
-**Remediação:** auditar cada ramo de `addRoute` + `insertChild` para garantir que `len(n.indices) == número de filhos estáticos`. Considerar adicionar um `invariant check` em debug mode (`go test -tags=muxmasterdebug`) que valide esta igualdade após cada addRoute.
+**Remediation:** audit every branch of `addRoute` + `insertChild` to guarantee that `len(n.indices) == number of static children`. Consider adding an `invariant check` in debug mode (`go test -tags=muxmasterdebug`) that validates this equality after each addRoute.
 
-### FPE-007 — Pathological loop/OOM em Handle com UTF-8 inválido
-**Severity:** Medium (DoS registration-time).
+### FPE-007 — Pathological loop/OOM in Handle with invalid UTF-8
+**Severity:** Medium (registration-time DoS).
 **Fuzzer:** `FuzzMuxHandleTwice` (OS-killed).
-**Repro:** `evidence/FPE-007/repro_test.go` — demonstra > 10s wall-clock em Handle+Lookup com a par `"/\xbe"` + `"/\xc2\xa8\x91\x9d\xd8'\xef"`.
+**Repro:** `evidence/FPE-007/repro_test.go` — demonstrates > 10s wall-clock in Handle+Lookup with the pair `"/\xbe"` + `"/\xc2\xa8\x91\x9d\xd8'\xef"`.
 
-Impacto baixo em produção (registo é fase de arranque; DoS afecta o dev, não o utilizador final). Merece investigação: combinar perf-profiler com este input e ver onde o tempo é gasto.
+Low impact in production (registration is a start-up phase; the DoS affects the developer, not the end user). It deserves investigation: combine a perf profiler with this input and see where the time is spent.
 
-### FPE-008 — CRITICAL: tree corruption após panic em registation
-**Severity:** Critical (violação de invariante central documentada).
+### FPE-008 — CRITICAL: tree corruption after a panic during registration
+**Severity:** Critical (violation of a documented central invariant).
 **Fuzzer:** `FuzzWalkRoutes` (input `{"0", "/", "/{"}`).
 **Repro:** `evidence/FPE-008/repro_test.go`.
 
-Registar `/` (OK) e depois `/{` (panica) leaves:
-- `Lookup("/")` devolve `(nil, nil, false)` — a rota ficou inalcançável!
-- `Walk` surface `/{` como se estivesse registado — node parcial persistiu.
+Registering `/` (OK) and then `/{` (panics) leaves:
+- `Lookup("/")` returns `(nil, nil, false)` — the route became unreachable!
+- `Walk` surfaces `/{` as if it were registered — a partial node persisted.
 
-Raiz: `mux.go:213-225`:
+Root: `mux.go:213-225`:
 ```go
 var trees methodTrees
 if old := m.treesPtr.Load(); old != nil { trees = *old }
-root := trees[idx]   // <-- mesmo ponteiro *node que antes
+root := trees[idx]   // <-- same *node pointer as before
 …
-root.addRoute(pattern, …)  // muta root IN PLACE
+root.addRoute(pattern, …)  // mutates root IN PLACE
 m.treesPtr.Store(&trees)
 ```
 
-O "copy-on-write" é superficial — só a array `methodTrees` é copiada; os nodes *são partilhados*. `addRoute` muta o nó partilhado antes do panic. Zero-down invariant violada.
+The "copy-on-write" is shallow — only the `methodTrees` array is copied; the nodes *are shared*. `addRoute` mutates the shared node before the panic. Zero-down invariant violated.
 
-**Remediação — três opções:**
-1. **Deep clone antes de mutar:** copia a sub-árvore afectada. Custo de O(tamanho do tree) por registro.
-2. **Recover + revert:** `defer` captura o panic em `Handle`, snapshot antes, restaura em caso de falha. Menos custo mas complexo.
-3. **Two-phase registration:** fase 1 constrói no lado uma sub-árvore nova; fase 2 atomicamente troca. Alinha com a semântica atomic.Pointer já declarada.
+**Remediation — three options:**
+1. **Deep clone before mutating:** copy the affected subtree. Cost of O(tree size) per registration.
+2. **Recover + revert:** a `defer` catches the panic in `Handle`, snapshot beforehand, restore on failure. Lower cost but complex.
+3. **Two-phase registration:** phase 1 builds a new subtree on the side; phase 2 swaps it atomically. Aligns with the atomic.Pointer semantics already declared.
 
-Opção 3 é a defensável — alinha com a intenção de design. Prioridade máxima.
+Option 3 is the defensible one — it aligns with the design intent. Top priority.
 
-### FPE-009 — CRITICAL: invalid-node-type panic no getValue (hot path)
-**Severity:** Critical (CVSS ~7.5 — DoS de todos os requests após registration específica).
-**Fuzzer:** `FuzzLookupAfterRegistration` (minimal: registrar `/:0` + `/0`).
+### FPE-009 — CRITICAL: invalid-node-type panic in getValue (hot path)
+**Severity:** Critical (CVSS ~7.5 — DoS of all requests after a specific registration).
+**Fuzzer:** `FuzzLookupAfterRegistration` (minimal: register `/:0` + `/0`).
 **Repro:** `evidence/FPE-009/repro_test.go`.
 
-Depois de registar os dois patterns, **qualquer** Lookup/ServeHTTP em path ≠ `/0` panica com `muxmaster: invalid node type`. Atacante que consiga influenciar a lista de rotas registadas (via plugin system, config file mutable, ou até testes automáticos que partilhem um Mux global) derruba toda a surface.
+After registering the two patterns, **any** Lookup/ServeHTTP on a path ≠ `/0` panics with `muxmaster: invalid node type`. An attacker who can influence the list of registered routes (via a plugin system, a mutable config file, or even automated tests sharing a global Mux) brings down the whole surface.
 
-Raiz: o split de node em addRoute produz uma node com `wildChild = true` mas `nType = static` (zero-value). O switch em `getValue:321-396` não tem caso para `static` com `wildChild` e cai no default-panic.
+Root: the node split in addRoute produces a node with `wildChild = true` but `nType = static` (zero value). The switch in `getValue:321-396` has no case for `static` with `wildChild` and falls into the default panic.
 
-**Remediação:** identificar onde o split de node esquece de setar `nType`. Ponto provável: `tree.go:85-101` (split code) que inherit static/root/etc — mas quando a node está em meio a uma "ponte" entre static e wild não há nType semanticamente correcto. Precisa re-desenho do tree-building com invariantes explícitas.
+**Remediation:** identify where the node split forgets to set `nType`. Likely location: `tree.go:85-101` (split code), which inherits static/root/etc — but when the node sits in the middle of a "bridge" between static and wild there is no semantically correct nType. The tree building needs a redesign with explicit invariants.
 
 ---
 
 ## Corpus stats
 
-Todos persistidos em `reports/fuzzing-and-property-engineer/corpora/<target>/`.
+All persisted in `reports/fuzzing-and-property-engineer/corpora/<target>/`.
 
 | Target | Seeds | Corpus entries (post-run) |
 |---|---|---|
@@ -284,7 +284,7 @@ Todos persistidos em `reports/fuzzing-and-property-engineer/corpora/<target>/`.
 | FuzzStripSlashesIdempotency | 4 | 8 |
 | FuzzLoggerCRLF | 4 | 7 |
 
-**Total:** 22 targets, 2 462 entradas de corpus persistidas.
+**Total:** 22 targets, 2 462 persisted corpus entries.
 
 ---
 
@@ -292,9 +292,9 @@ Todos persistidos em `reports/fuzzing-and-property-engineer/corpora/<target>/`.
 
 `go test -coverpkg=github.com/FlavioCFOliveira/MuxMaster,github.com/FlavioCFOliveira/MuxMaster/middleware -coverprofile=evidence/2026-04-17/coverage.out ./...`
 
-**Total:** **70.9%** de linhas (statements) em `muxmaster` + `middleware`.
+**Total:** **70.9%** of lines (statements) in `muxmaster` + `middleware`.
 
-| Ficheiro | Coverage |
+| File | Coverage |
 |---|---|
 | `tree.go:addRoute` | 88.7% |
 | `tree.go:insertChild` | 97.1% |
@@ -310,78 +310,78 @@ Todos persistidos em `reports/fuzzing-and-property-engineer/corpora/<target>/`.
 | `response.go:Redirect` | 100% |
 | `response.go:NoContent` | 0% |
 
-HTML rendering em `evidence/2026-04-17/coverage.html`.
+HTML rendering in `evidence/2026-04-17/coverage.html`.
 
-### Coverage gaps declarados
+### Declared coverage gaps
 
-1. **`response.NoContent` 0%** — função trivial, não tem fuzz target dedicado. Acção: adicionar seed em `FuzzResponseText` para invocá-la. **Não-blocker**.
-2. **`getValue` 80.5%** — gaps em ramos `regexParam` sem filhos + ramos TSR. Cobrir com seeds de `FuzzMuxServeHTTP` que direccionem esses paths.
-3. **`addRoute` 88.7%** — gaps em casos de conflict entre catch-all e handler root.
-4. **`response.XML` 77.8%** — marshal-failure paths não cobertos.
-5. **`RoutePattern` 75%** — só um teste directo; nunca chamado via handler real.
+1. **`response.NoContent` 0%** — trivial function, has no dedicated fuzz target. Action: add a seed to `FuzzResponseText` that invokes it. **Non-blocker**.
+2. **`getValue` 80.5%** — gaps in `regexParam` branches without children + TSR branches. Cover them with `FuzzMuxServeHTTP` seeds that steer towards those paths.
+3. **`addRoute` 88.7%** — gaps in conflict cases between catch-all and the root handler.
+4. **`response.XML` 77.8%** — marshal-failure paths not covered.
+5. **`RoutePattern` 75%** — only one direct test; never called via a real handler.
 
-Nenhum gap ≥ 20% — critério de exit (`<80% é High`) é respeitado em todos os ficheiros tocados, excepto `NoContent` trivial.
+No gap ≥ 20% — the exit criterion (`<80% is High`) is met in every file touched, except the trivial `NoContent`.
 
 ---
 
 ## Escalations
 
-### Cross-domain findings (para passar a outros agentes)
+### Cross-domain findings (to hand over to other agents)
 
-1. **FPE-001 / FPE-002 (CRLF)** → `http-protocol-security-auditor`. Validar o impacto ao nível do HTTP/1.1 writer e HTTP/2 HPACK — o server stdlib pode ou não sanitizar dependendo do path de escrita; este agente tem o expertise.
+1. **FPE-001 / FPE-002 (CRLF)** → `http-protocol-security-auditor`. Validate the impact at the level of the HTTP/1.1 writer and HTTP/2 HPACK — the stdlib server may or may not sanitise depending on the write path; that agent has the expertise.
 
-2. **FPE-004 (H-012 confirmed)** → `middleware-security-reviewer`. Auth middleware que leiam o 4º+ parâmetro assumem que ele está preenchido; qualquer integração que dependa disso está trivialmente bypass-able. Mapear cenários em que isto se manifesta.
+2. **FPE-004 (H-012 confirmed)** → `middleware-security-reviewer`. Auth middleware that reads the 4th+ parameter assumes it is populated; any integration that depends on this is trivially bypassable. Map the scenarios in which this manifests.
 
-3. **FPE-006 / FPE-007 / FPE-008 / FPE-009 (tree fragility)** → `path-routing-fuzzer` + `dos-resilience-tester`. Estes agentes podem:
-   - Confirmar se existem mais variantes (path-routing-fuzzer tem corpus específico).
-   - Medir empiricamente a economia de recursos (dos-resilience).
+3. **FPE-006 / FPE-007 / FPE-008 / FPE-009 (tree fragility)** → `path-routing-fuzzer` + `dos-resilience-tester`. These agents can:
+   - Confirm whether more variants exist (path-routing-fuzzer has a specific corpus).
+   - Measure the resource economics empirically (dos-resilience).
 
-4. **FPE-003 (StripSlashes)** → `path-routing-fuzzer`. O middleware interage com RedirectTrailingSlash e CleanPath — se a composição for ordenada de forma a que StripSlashes corra DEPOIS de CleanPath mas ANTES do router, pode haver rotas `/admin` vs `/admin/` com sub-árvores distintas atingidas por paths diferentes. Análise profunda fora do meu escopo.
+4. **FPE-003 (StripSlashes)** → `path-routing-fuzzer`. The middleware interacts with RedirectTrailingSlash and CleanPath — if the composition is ordered so that StripSlashes runs AFTER CleanPath but BEFORE the router, there may be `/admin` vs `/admin/` routes with distinct subtrees reached by different paths. In-depth analysis is outside my scope.
 
-5. **Coverage gaps** → `go-sast-and-memory-auditor`. SAST pode identificar path-pragmas não atingidos pelo fuzz e sugerir novos targets.
+5. **Coverage gaps** → `go-sast-and-memory-auditor`. SAST can identify path pragmas not reached by the fuzzer and suggest new targets.
 
-### Findings bloqueantes de release
+### Release-blocking findings
 
-Todos os findings **Critical** precisam de fix + re-verification antes de v1.0.0 tag:
+Every **Critical** finding needs a fix + re-verification before the v1.0.0 tag:
 
-- **FPE-006** — panic em hot path, DoS remoto condicional a registro específico
-- **FPE-008** — violação de invariante central (tree isolation)
-- **FPE-009** — panic em hot path, DoS amplo condicional a registro específico
+- **FPE-006** — panic on the hot path, remote DoS conditional on a specific registration
+- **FPE-008** — violation of a central invariant (tree isolation)
+- **FPE-009** — panic on the hot path, broad DoS conditional on a specific registration
 
-Os findings **High** (FPE-001, FPE-002, FPE-004) podem opcionalmente ser tratados como known-issues documentados em CHANGELOG + SECURITY.md, mas a minha recomendação é incluí-los no fix cycle porque todos têm remediação < 10 linhas.
+The **High** findings (FPE-001, FPE-002, FPE-004) may optionally be treated as known issues documented in CHANGELOG + SECURITY.md, but my recommendation is to include them in the fix cycle because all of them have a remediation of < 10 lines.
 
 ---
 
 ## Operational posture
 
-**Harness pronta para CI:**
-- `cd reports/fuzzing-and-property-engineer/harness && go test -count=1 -timeout=60s ./...` executa seeds + property tests em ~3s.
-- Nightly: `go test -run=^$ -fuzz=^Fuzz -fuzztime=2h ./...` por target (26h agregadas).
-- Pre-release: 24h por target (4 dias agregados).
+**Harness ready for CI:**
+- `cd reports/fuzzing-and-property-engineer/harness && go test -count=1 -timeout=60s ./...` runs seeds + property tests in ~3s.
+- Nightly: `go test -run=^$ -fuzz=^Fuzz -fuzztime=2h ./...` per target (26h aggregate).
+- Pre-release: 24h per target (4 days aggregate).
 
-**Corpus minimisation:** não executada neste sprint — scheduled para próxima iteração com `-test.fuzzminimisetime=1m`.
+**Corpus minimisation:** not executed in this sprint — scheduled for the next iteration with `-test.fuzzminimisetime=1m`.
 
-**OSS-Fuzz readiness:** harness está preparada (cada Fuzz* é self-contained e importa só stdlib + mm + rapid). Next step: criar `oss-fuzz/Dockerfile` + `project.yaml` — adiado para próximo sprint.
+**OSS-Fuzz readiness:** the harness is ready (each Fuzz* is self-contained and imports only stdlib + mm + rapid). Next step: create `oss-fuzz/Dockerfile` + `project.yaml` — deferred to the next sprint.
 
 ---
 
 ## Next actions
 
-1. **Maintainer:** decidir sobre o gate de release. Recomendação: HOLD até FPE-006/008/009 corrigidos.
-2. **Post-fix verification:** correr cada `evidence/FPE-NNN/repro_test.go` após o fix — devem flipar de "CONFIRMED" para "remediation landed".
-3. **CI gate nightly:** agendar nightly de 2h por target; alertar maintainer em findings novos.
-4. **Invariantes pending:** adicionar I-23 (PanicHandler), I-24 (Mount), I-25 (ErrorHandler) no próximo sprint — ver `invariants.md`.
-5. **Regression pack:** os 9 FPE-NNN entram como regression tests permanentes. Após fix, mover de `evidence/FPE-NNN/repro_test.go` (standalone) para `harness/regression_fpe_test.go` (suite principal), invertendo a assertion.
-6. **Coordenar com `path-routing-fuzzer`:** partilhar os 95 corpus entries em `FuzzLookupAfterRegistration` — este agente tem corpora em `/reports/path-routing-fuzzer/corpora/` que podem seed os meus próximos runs.
+1. **Maintainer:** decide on the release gate. Recommendation: HOLD until FPE-006/008/009 are fixed.
+2. **Post-fix verification:** run each `evidence/FPE-NNN/repro_test.go` after the fix — they must flip from "CONFIRMED" to "remediation landed".
+3. **Nightly CI gate:** schedule a 2h nightly run per target; alert the maintainer on new findings.
+4. **Pending invariants:** add I-23 (PanicHandler), I-24 (Mount), I-25 (ErrorHandler) in the next sprint — see `invariants.md`.
+5. **Regression pack:** the 9 FPE-NNN become permanent regression tests. After the fix, move them from `evidence/FPE-NNN/repro_test.go` (standalone) to `harness/regression_fpe_test.go` (main suite), inverting the assertion.
+6. **Coordinate with `path-routing-fuzzer`:** share the 95 corpus entries in `FuzzLookupAfterRegistration` — that agent has corpora in `/reports/path-routing-fuzzer/corpora/` that can seed my next runs.
 
 ---
 
-## Artefactos
+## Artefacts
 
-- `reports/fuzzing-and-property-engineer/harness/` — 10 ficheiros de fuzz + property tests, `go.mod` isolado, `go.sum`
-- `reports/fuzzing-and-property-engineer/corpora/` — 22 directórios com 2 462 inputs persistidos
-- `reports/fuzzing-and-property-engineer/evidence/2026-04-17/` — 22 logs `fuzz-*.txt`, 9 `FPE-NNN/` com repro + go.mod, `coverage.out`, `coverage.html`
-- `reports/fuzzing-and-property-engineer/invariants.md` — 22 invariantes catalogadas com status
+- `reports/fuzzing-and-property-engineer/harness/` — 10 fuzz + property test files, isolated `go.mod`, `go.sum`
+- `reports/fuzzing-and-property-engineer/corpora/` — 22 directories with 2 462 persisted inputs
+- `reports/fuzzing-and-property-engineer/evidence/2026-04-17/` — 22 `fuzz-*.txt` logs, 9 `FPE-NNN/` with repro + go.mod, `coverage.out`, `coverage.html`
+- `reports/fuzzing-and-property-engineer/invariants.md` — 22 catalogued invariants with status
 
 ---
 

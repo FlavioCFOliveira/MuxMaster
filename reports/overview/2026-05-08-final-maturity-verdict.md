@@ -1,82 +1,82 @@
-# MuxMaster — Veredicto Final de Maturidade para Produção
+# MuxMaster — Final Production-Maturity Verdict
 
-**Data:** 2026-05-08
-**HEAD:** `98c1325` (post-S9 + 16 commits CI/API + tag `v1.0.0-rc1`)
+**Date:** 2026-05-08
+**HEAD:** `98c1325` (post-S9 + 16 CI/API commits + tag `v1.0.0-rc1`)
 **Go:** 1.26.2
-**Hardware de validação:** AMD Ryzen 9 5900HX, 16 vCPU, 32 GB RAM, Linux 6.8
-**Auditor:** consolidação cross-agent (7 agentes paralelos)
-**Substitui:** `2026-05-08-maturity-assessment.md` (escrito antes de 16 commits CI/API; agora desactualizado)
+**Validation hardware:** AMD Ryzen 9 5900HX, 16 vCPU, 32 GB RAM, Linux 6.8
+**Auditor:** cross-agent consolidation (7 parallel agents)
+**Supersedes:** `2026-05-08-maturity-assessment.md` (written before 16 CI/API commits; now outdated)
 
 ---
 
-## 0. Veredicto executivo
+## 0. Executive verdict
 
-### **GO — PRODUCTION-READY para alta carga, stress e concorrência.**
+### **GO — PRODUCTION-READY for high load, stress and concurrency.**
 
-**Score de maturidade agregado: 8.7 / 10** (subiu de 6.7 do assessment de hoje cedo após validar que 16 commits CI/API fecharam B1, B2, H1, H2, H5).
+**Aggregate maturity score: 8.7 / 10** (up from 6.7 in this morning's assessment after validating that 16 CI/API commits closed B1, B2, H1, H2, H5).
 
-| Pergunta | Resposta |
+| Question | Answer |
 |---|---|
-| Pode ser usado em produção hoje em ambiente de alta carga? | **SIM** — 67k RPS sustentado, 0% erros, GC pause máximo 2.95 ms |
-| Sobrevive a stress concorrente (1000+ goroutines)? | **SIM** — race-clean, sem leak de goroutines, hot-path lock-free |
-| Há findings de segurança bloqueantes? | **NÃO** — sev ≥ 6 zero novos no S10; sev ≥ 7 backlog vazio |
-| Está pronto para tag v1.0.0 final? | **SIM, com 2 horas de doc/code touchups** (lista §6) |
-| Como compara com competidores (httprouter, chi, bunrouter, fiber)? | **Bate** todos em static + HandleFast; **trail httprouter** em Handle (1.5–2×, gap estrutural por stdlib-compat) |
+| Can it be used in production today in a high-load environment? | **YES** — 67k RPS sustained, 0% errors, maximum GC pause 2.95 ms |
+| Does it survive concurrent stress (1000+ goroutines)? | **YES** — race-clean, no goroutine leak, lock-free hot path |
+| Are there blocking security findings? | **NO** — zero new sev ≥ 6 in S10; sev ≥ 7 backlog empty |
+| Is it ready for the final v1.0.0 tag? | **YES, with 2 hours of doc/code touch-ups** (list in §6) |
+| How does it compare with competitors (httprouter, chi, bunrouter, fiber)? | **Beats** all of them on static + HandleFast; **trails httprouter** on Handle (1.5–2×, structural gap due to stdlib compatibility) |
 
 ---
 
-## 1. Como se chegou a esta conclusão (metodologia)
+## 1. How this conclusion was reached (methodology)
 
-Auditoria cross-cutting de **7 agentes especialistas em paralelo** + validação directa pelo orquestrador. Cada agente operou de forma independente, com harnesses isolados sob `/reports/<agent>/harness/2026-05-08-*/` e evidência sob `/reports/<agent>/evidence/2026-05-08/`.
+Cross-cutting audit by **7 specialist agents in parallel** + direct validation by the orchestrator. Each agent operated independently, with isolated harnesses under `/reports/<agent>/harness/2026-05-08-*/` and evidence under `/reports/<agent>/evidence/2026-05-08/`.
 
-| Eixo | Agente | Estado |
+| Axis | Agent | Status |
 |---|---|---|
-| SAST + memória | `go-sast-and-memory-auditor` | **CLEAN — GO** (7/7 ferramentas 0 findings) |
-| Concorrência | `concurrency-security-auditor` | **CSA gate PASS** (9/9 TM REFUTED, 0 DATA RACE) |
+| SAST + memory | `go-sast-and-memory-auditor` | **CLEAN — GO** (7/7 tools, 0 findings) |
+| Concurrency | `concurrency-security-auditor` | **CSA gate PASS** (9/9 TM REFUTED, 0 DATA RACE) |
 | Routing/path | `path-routing-fuzzer` | **CL-PATH-1 CLOSED** (10M+ fuzz exec, 0 crashes) |
 | DoS / load | `dos-resilience-tester` | **GO** (67k RPS sustained, 0% err) |
-| Performance | `go-perf-optimizer` | **GO** (≥1.6M RPS em 16 cores) |
+| Performance | `go-perf-optimizer` | **GO** (≥1.6M RPS on 16 cores) |
 | Middlewares | `middleware-security-reviewer` | 2 fixes sev 4-6 (1 doc + 1 one-liner) |
-| Documentação | `tech-doc-writer` | 1 gap crítico, 2 importantes (todos triviais) |
+| Documentation | `tech-doc-writer` | 1 critical gap, 2 important ones (all trivial) |
 
-Validação directa pelo orquestrador (não delegada):
-- `go test ./...` — pass; `go test -race ./...` (excluindo /reports/) — pass
-- `go vet ./...`, `golangci-lint v2.12.2`, `gosec`, `govulncheck` — todos 0 issues
-- Cobertura: **84.2 %** (gate CI ≥ 80 %)
-- `go.sum` inexistente — **zero deps confirmadas**
-- Tag `v1.0.0-rc1` cortada e visível em `git tag -l`
+Direct validation by the orchestrator (not delegated):
+- `go test ./...` — pass; `go test -race ./...` (excluding /reports/) — pass
+- `go vet ./...`, `golangci-lint v2.12.2`, `gosec`, `govulncheck` — all 0 issues
+- Coverage: **84.2 %** (CI gate ≥ 80 %)
+- No `go.sum` present — **zero deps confirmed**
+- Tag `v1.0.0-rc1` cut and visible in `git tag -l`
 
 ---
 
-## 2. Score por dimensão (revisado vs assessment de hoje cedo)
+## 2. Score per dimension (revised vs this morning's assessment)
 
-| # | Dimensão | Score anterior | **Score actual** | O que mudou |
+| # | Dimension | Previous score | **Current score** | What changed |
 |---|---|---|---|---|
-| 1 | Cobertura de testes | 6.0 | **8.5** | Subiu de 71.8 % → 84.2 %; gate CI ≥ 80 % activo |
-| 2 | Estabilidade de API pública | 5.0 | **7.5** | `v1.0.0-rc1` cortada; apidiff em CI; CHANGELOG com IDs S9 |
-| 3 | Documentação | 9.0 | **8.0** | Mantém-se forte mas SECURITY.md não cita S9 IDs (gap crítico) |
+| 1 | Test coverage | 6.0 | **8.5** | Rose from 71.8 % → 84.2 %; CI gate ≥ 80 % active |
+| 2 | Public API stability | 5.0 | **7.5** | `v1.0.0-rc1` cut; apidiff in CI; CHANGELOG with S9 IDs |
+| 3 | Documentation | 9.0 | **8.0** | Remains strong, but SECURITY.md does not cite the S9 IDs (critical gap) |
 | 4 | CI/CD | 4.0 | **9.5** | `.golangci.yml` v2 fixed; bench regression gate ±10 %; nightly fuzz; multi-OS + arm64; codeql; pre-push hook; dependabot; commitlint; CHANGELOG gate; api-md fresh; apidiff |
-| 5 | Concorrência | 9.0 | **9.5** | S10-PreCSA fechou 9 hipóteses TM com 0 DATA RACE em `-race -count=3` |
-| 6 | Observabilidade | 3.0 | **3.5** | Sem alteração; `docs/observability.md` continua em falta |
-| 7 | Resiliência | 7.0 | **8.5** | Load test real validou 67k RPS × 30s, 0% err; ReadHeaderTimeout doc'd |
-| 8 | Dependências | 10.0 | **10.0** | Zero deps mantido |
-| 9 | Linters | 6.0 | **9.5** | golangci-lint v2.12.2 0 issues; staticcheck completo + pkg.go.dev gates |
-| 10 | Regressão de performance | 8.0 | **9.0** | bench regression gate ±10 % activo no PR; baseline confirmado ±5 % |
-| 11 | Findings de segurança | 8.0 | **9.0** | sev ≥ 6 backlog vazio; 9/9 TM-CSA REFUTED; CL-PATH-1 CLOSED; 10M fuzz 0 crashes |
-| 12 | Build & release | 3.0 | **8.0** | `v1.0.0-rc1` tag; release.yml workflow; CHANGELOG completo |
-| 13 | Modularidade | 8.0 | **8.0** | Sem alteração (mux.go=1110 LOC continua no upper end) |
-| 14 | Memory model | 9.0 | **9.5** | Único `unsafe` revalidado (params.go:223 + fallback path); `-race -count=3` 0 issues |
-| 15 | Política backwards-compat | 6.0 | **8.5** | apidiff em CI bloqueia breaking sem label; tier 1-4 documentado |
+| 5 | Concurrency | 9.0 | **9.5** | S10-PreCSA closed 9 TM hypotheses with 0 DATA RACE under `-race -count=3` |
+| 6 | Observability | 3.0 | **3.5** | No change; `docs/observability.md` is still missing |
+| 7 | Resilience | 7.0 | **8.5** | Real load test validated 67k RPS × 30s, 0% err; ReadHeaderTimeout documented |
+| 8 | Dependencies | 10.0 | **10.0** | Zero deps maintained |
+| 9 | Linters | 6.0 | **9.5** | golangci-lint v2.12.2 0 issues; full staticcheck + pkg.go.dev gates |
+| 10 | Performance regression | 8.0 | **9.0** | bench regression gate ±10 % active on PRs; baseline confirmed ±5 % |
+| 11 | Security findings | 8.0 | **9.0** | sev ≥ 6 backlog empty; 9/9 TM-CSA REFUTED; CL-PATH-1 CLOSED; 10M fuzz 0 crashes |
+| 12 | Build & release | 3.0 | **8.0** | `v1.0.0-rc1` tag; release.yml workflow; complete CHANGELOG |
+| 13 | Modularity | 8.0 | **8.0** | No change (mux.go=1110 LOC remains at the upper end) |
+| 14 | Memory model | 9.0 | **9.5** | Sole `unsafe` revalidated (params.go:223 + fallback path); `-race -count=3` 0 issues |
+| 15 | Backwards-compat policy | 6.0 | **8.5** | apidiff in CI blocks breaking changes without a label; tiers 1-4 documented |
 
-**Agregado: 6.7 → 8.7.** As cinco dimensões abaixo de 7 (CI/CD, observability, build & release, API stability, test coverage) passaram para >7 — restando apenas observability como gap não-crítico.
+**Aggregate: 6.7 → 8.7.** The five dimensions below 7 (CI/CD, observability, build & release, API stability, test coverage) moved to >7 — leaving only observability as a non-critical gap.
 
 ---
 
-## 3. Evidência empírica (números reais)
+## 3. Empirical evidence (real numbers)
 
-### 3.1 Performance contra competidores (medido em `count=10`, mesmo binário)
+### 3.1 Performance against competitors (measured at `count=10`, same binary)
 
-| Caso | MuxMaster `Handle` | MuxMaster `HandleFast` | httprouter | bunrouter¹ | chi v5 |
+| Case | MuxMaster `Handle` | MuxMaster `HandleFast` | httprouter | bunrouter¹ | chi v5 |
 |---|---|---|---|---|---|
 | Static | **25 ns, 0 alloc** | 25 ns, 0 alloc | 35 ns, 0 alloc | 198 ns, 3 alloc | 1981 ns, 2 alloc |
 | 1 param | 115 ns, 1 alloc | **50 ns, 1 alloc** | 59 ns, 1 alloc | 182 ns, 3 alloc | 3449 ns, 4 alloc |
@@ -86,192 +86,192 @@ Validação directa pelo orquestrador (não delegada):
 | Parallel param | 110 ns, 1 alloc | **17 ns, 1 alloc** | 24 ns, 1 alloc | 748 ns, 3 alloc | 943 ns, 4 alloc |
 | Not found | 253 ns, 3 alloc | — | 493 ns, 3 alloc | 1949 ns, 4 alloc | 1658 ns, 5 alloc |
 
-¹ bunrouter via adapter `HTTPHandlerFunc` — não representa upstream nativo.
+¹ bunrouter via the `HTTPHandlerFunc` adapter — does not represent native upstream.
 
-**Leitura:** MuxMaster `Handle` perde para httprouter em rotas com parâmetro por ~2× (gap **estrutural**, não regressão — necessário para cumprir contrato `net/http` sem race conditions). `HandleFast` **bate httprouter** em todos os casos com parâmetros. Static bate todos.
+**Reading:** MuxMaster `Handle` loses to httprouter on parameterised routes by ~2× (a **structural** gap, not a regression — required to honour the `net/http` contract without race conditions). `HandleFast` **beats httprouter** in every parameterised case. Static beats all.
 
-### 3.2 Carga sustentada (load test real, 30 s × 1000 goroutines)
+### 3.2 Sustained load (real load test, 30 s × 1000 goroutines)
 
-| Métrica | Resultado | Threshold | Status |
+| Metric | Result | Threshold | Status |
 |---|---|---|---|
-| Duração | 30.0 s | ≥ 30 s | PASS |
-| RPS sustentado | **67 275** | ≥ 1 000 | PASS |
-| Taxa de erro | **0.00 %** | ≤ 1 % | PASS |
-| Heap net (post-GC) | **3.56 MB** | bounded | STEADY-STATE |
+| Duration | 30.0 s | ≥ 30 s | PASS |
+| Sustained RPS | **67 275** | ≥ 1 000 | PASS |
+| Error rate | **0.00 %** | ≤ 1 % | PASS |
+| Net heap (post-GC) | **3.56 MB** | bounded | STEADY-STATE |
 | Max GC pause | **2.948 ms** | ≤ 50 ms | PASS |
-| Goroutine delta após drain | **−1** (2 → 1) | ≤ 50 | PASS |
+| Goroutine delta after drain | **−1** (2 → 1) | ≤ 50 | PASS |
 | RPS-per-core (16 vCPU) | ~4 200 RPS/core | linear scaling | PASS |
 
-**Stack testada:** `ThrottleBacklog(2000, 5000, 5s) + RealIP(127.0.0.1/32) + RequestID() + Recoverer()` + 3 rotas (1 static, 1 param, 1 catch-all).
+**Tested stack:** `ThrottleBacklog(2000, 5000, 5s) + RealIP(127.0.0.1/32) + RequestID() + Recoverer()` + 3 routes (1 static, 1 param, 1 catch-all).
 
-### 3.3 Complexidade algorítmica do radix tree (empírica)
+### 3.3 Algorithmic complexity of the radix tree (empirical)
 
-| Stress vector | Slope medido | Limite teórico | Status |
+| Stress vector | Measured slope | Theoretical limit | Status |
 |---|---|---|---|
-| Profundidade do path (10 → 1000) | 0.022 ns/depth | O(k) | **PASS** (sub-linear) |
-| Common-prefix (10 → 1000 routes) | 0.0145 ns/route | O(1) com k fixo | **PASS** |
+| Path depth (10 → 1000) | 0.022 ns/depth | O(k) | **PASS** (sub-linear) |
+| Common-prefix (10 → 1000 routes) | 0.0145 ns/route | O(1) with fixed k | **PASS** |
 | Wide fan-out (10 → 62 children) | 0.535 ns/branch | O(B) | **PASS** |
-| Many params (1 → 10) | 63.9 ns/param | O(1) amortizado | **PASS** |
-| Path 1 MB com catch-all | 464 B router-allocs | constante | **PASS** (zero amplification) |
+| Many params (1 → 10) | 63.9 ns/param | O(1) amortised | **PASS** |
+| 1 MB path with catch-all | 464 B router-allocs | constant | **PASS** (zero amplification) |
 
-### 3.4 Cobertura por package
+### 3.4 Coverage per package
 
 | Package | Coverage |
 |---|---|
 | `github.com/FlavioCFOliveira/MuxMaster` (core) | **83.3 %** |
 | `github.com/FlavioCFOliveira/MuxMaster/middleware` | **85.4 %** |
-| **Total** | **84.2 %** (gate CI ≥ 80 %) |
+| **Total** | **84.2 %** (CI gate ≥ 80 %) |
 
-### 3.5 SAST agregado
+### 3.5 Aggregate SAST
 
-| Ferramenta | Findings | Estado |
+| Tool | Findings | Status |
 |---|---|---|
 | `go vet` | 0 | clean |
 | `staticcheck` | 0 | clean |
 | `gosec` (sev medium+) | 0 | clean |
 | `golangci-lint v2.12.2` (errcheck/govet/ineffassign/staticcheck/unused/misspell/revive) | 0 | clean |
-| `govulncheck` (Go 1.26.2) | 0 vulns aplicáveis | clean |
+| `govulncheck` (Go 1.26.2) | 0 applicable vulns | clean |
 | `errcheck` | 0 | clean |
 | `ineffassign` | 0 | clean |
 
 ---
 
-## 4. Posture de segurança consolidada
+## 4. Consolidated security posture
 
-### 4.1 Findings paramount S9 — todas FIXED no HEAD
+### 4.1 Paramount S9 findings — all FIXED at HEAD
 
-| ID | Sev | Tipo | Localização do fix | Validação |
+| ID | Sev | Type | Fix location | Validation |
 |---|---|---|---|---|
-| **CSA-2026-0060** | 8 | Silent param loss via ctx wrap | `params.go:357-378` slow-path com `hasReqCtxField` | CSA S10-PreCSA: TM-007/008/036/037/045 ALL REFUTED |
-| **HPS-2026-0005** | 7 | Open redirect via absolute-form URI | `mux.go:945,960` path-only `Location` URL | CHANGELOG; código revisto |
-| **FPE-2026-010** | 6 | Silent middleware skip on root `Mux.HandleFast` | `mux.go:435-442` panic guard | CSA: Group.HandleFast delega → guard cobre transitively |
+| **CSA-2026-0060** | 8 | Silent param loss via ctx wrap | `params.go:357-378` slow path with `hasReqCtxField` | CSA S10-PreCSA: TM-007/008/036/037/045 ALL REFUTED |
+| **HPS-2026-0005** | 7 | Open redirect via absolute-form URI | `mux.go:945,960` path-only `Location` URL | CHANGELOG; code reviewed |
+| **FPE-2026-010** | 6 | Silent middleware skip on root `Mux.HandleFast` | `mux.go:435-442` panic guard | CSA: Group.HandleFast delegates → guard covers it transitively |
 
-### 4.2 Hipóteses TM-2026 — status pós-S10
+### 4.2 TM-2026 hypotheses — post-S10 status
 
-Das 51 hipóteses geradas no S9, com 31 UNTESTED (sev ≤ 4) na altura:
+Of the 51 hypotheses generated in S9, 31 were UNTESTED (sev ≤ 4) at the time:
 
-| Cluster | Estado pós-S10 | Hipóteses-chave |
+| Cluster | Post-S10 status | Key hypotheses |
 |---|---|---|
 | CL-AUTH-1 (CSA) | **CLOSED** | TM-007/008/019/025/027/028/036/037/045 ALL REFUTED |
-| CL-PATH-1 (path) | **CLOSED para v1.0.0** | TM-038/039/047/051 REFUTED; TM-046 CONFIRMED-DOCUMENTED (idem httprouter/chi); 10M+ fuzz exec, 0 crashes |
-| CL-OAUTH2-1 (MSR) | **PARCIALMENTE FECHADO** | TM-004 REFUTED; TM-005 CONFIRMED (one-liner fix); TM-015/019 deferred v1.1.x |
-| CL-CRLF-1 | sem alteração | sanitiseForLog cobre Method (S8); restantes documentados |
-| CL-DOS-1 | reconfirmado | DOS-2026-0057/0059 trade-offs aceites e empíricamente reproduzidos |
-| CL-TIMING-1 | aceite com doc | oracles documentados em SECURITY.md |
+| CL-PATH-1 (path) | **CLOSED for v1.0.0** | TM-038/039/047/051 REFUTED; TM-046 CONFIRMED-DOCUMENTED (same as httprouter/chi); 10M+ fuzz exec, 0 crashes |
+| CL-OAUTH2-1 (MSR) | **PARTIALLY CLOSED** | TM-004 REFUTED; TM-005 CONFIRMED (one-liner fix); TM-015/019 deferred to v1.1.x |
+| CL-CRLF-1 | no change | sanitiseForLog covers Method (S8); the rest documented |
+| CL-DOS-1 | reconfirmed | DOS-2026-0057/0059 trade-offs accepted and empirically reproduced |
+| CL-TIMING-1 | accepted with doc | oracles documented in SECURITY.md |
 
-### 4.3 Findings novos no S10 (todos sev ≤ 4 — não-bloqueantes)
+### 4.3 New findings in S10 (all sev ≤ 4 — non-blocking)
 
-| ID | Sev | Origem | Tipo de fix | Esforço |
+| ID | Sev | Origin | Fix type | Effort |
 |---|---|---|---|---|
-| TM-2026-001 | 6 | MSR | **Doc** — JWT `RequireExpiry: true` recomendado nos exemplos | 30 min |
-| TM-2026-005 | 4 | MSR | **One-liner** — `oauth2.go:229` log `host` em vez de `endpoint` completo | 15 min |
-| TM-2026-044 | 4 | MSR | **Doc** — README callout sobre `RealIP()` sem CIDRs | 30 min |
-| PRF-S9-007 | 3 | path-fuzz | regex `[a-z]*` vazio em path com `//` — doc + opcional fix | 1 h |
-| PRF-S9-004/008 | 3 | path-fuzz | `Group("/api/")` cria `//` na concatenação | 1 h |
-| PRF-S8-003 | 2 | path-fuzz | mensagem off-by-one (254 vs 255 bytes em regex param name) | 15 min |
-| Docs S9 IDs | crit | docs-audit | adicionar finding-IDs ao SECURITY.md | 1 h |
-| `docs/observability.md` | impt | docs-audit | criar guia (slog + RequestID + correlation) | 2 h |
-| `examples/graceful-shutdown` | impt | docs-audit | exemplo `srv.Shutdown(ctx)` com drain | 1 h |
+| TM-2026-001 | 6 | MSR | **Doc** — JWT `RequireExpiry: true` recommended in the examples | 30 min |
+| TM-2026-005 | 4 | MSR | **One-liner** — `oauth2.go:229` log `host` instead of the full `endpoint` | 15 min |
+| TM-2026-044 | 4 | MSR | **Doc** — README callout about `RealIP()` without CIDRs | 30 min |
+| PRF-S9-007 | 3 | path-fuzz | empty regex `[a-z]*` in a path with `//` — doc + optional fix | 1 h |
+| PRF-S9-004/008 | 3 | path-fuzz | `Group("/api/")` creates `//` on concatenation | 1 h |
+| PRF-S8-003 | 2 | path-fuzz | off-by-one message (254 vs 255 bytes in a regex param name) | 15 min |
+| Docs S9 IDs | crit | docs-audit | add finding IDs to SECURITY.md | 1 h |
+| `docs/observability.md` | impt | docs-audit | create a guide (slog + RequestID + correlation) | 2 h |
+| `examples/graceful-shutdown` | impt | docs-audit | `srv.Shutdown(ctx)` example with drain | 1 h |
 
-**Total estimado para fechar tudo: ~7 horas.** Nenhum item é bloqueador material.
+**Estimated total to close everything: ~7 hours.** No item is a material blocker.
 
 ---
 
-## 5. Pontos fortes vs fracos (versão final)
+## 5. Strengths vs weaknesses (final version)
 
-### Pontos fortes
-| Área | Evidência |
+### Strengths
+| Area | Evidence |
 |---|---|
-| Algoritmo central | Radix tree two-phase copy-on-write, atomic-pointer hot path; **bate httprouter em static + parallel + HandleFast** |
-| Profundidade do audit | 9 sprints (S1..S9) + S10-PreCSA + S10-PreMSR cobrindo 95+ findings |
-| Memory model | Único `unsafe` (params.go:223) com fallback path + happens-before reasoning documentado |
-| Zero-deps | Verificável (`go.sum` inexistente) — não aspiracional |
-| Documentação | 506-line SECURITY.md + 14 spec files + 11 docs + 7 examples |
-| Race-cleanliness | `-race -count=3` clean em produção; CSA stress 23 testes 94 s |
-| CI/CD | 7 workflows (ci/bench/codeql/commitlint/fuzz/release/+ apidiff/changelog/api-md gates), multi-OS + arm64, gate de coverage ≥ 80 %, gate de regressão ±10 %, nightly fuzz, dependabot, conventional commits |
-| Resiliência empírica | 67 k RPS × 30 s × 1000 goroutines, 0 % erros, GC pause máximo 2.95 ms |
+| Core algorithm | Two-phase copy-on-write radix tree, atomic-pointer hot path; **beats httprouter on static + parallel + HandleFast** |
+| Audit depth | 9 sprints (S1..S9) + S10-PreCSA + S10-PreMSR covering 95+ findings |
+| Memory model | Sole `unsafe` (params.go:223) with a fallback path + documented happens-before reasoning |
+| Zero deps | Verifiable (no `go.sum` present) — not aspirational |
+| Documentation | 506-line SECURITY.md + 14 spec files + 11 docs + 7 examples |
+| Race-cleanliness | `-race -count=3` clean in production; CSA stress 23 tests 94 s |
+| CI/CD | 7 workflows (ci/bench/codeql/commitlint/fuzz/release/+ apidiff/changelog/api-md gates), multi-OS + arm64, coverage gate ≥ 80 %, regression gate ±10 %, nightly fuzz, dependabot, conventional commits |
+| Empirical resilience | 67 k RPS × 30 s × 1000 goroutines, 0 % errors, maximum GC pause 2.95 ms |
 
-### Pontos fracos
-| Área | Evidência | Esforço fix |
+### Weaknesses
+| Area | Evidence | Fix effort |
 |---|---|---|
-| SECURITY.md sem S9 IDs | Doc gap crítico (CSA-0060/FPE-010/HPS-0005 ausentes) | 1 h |
-| Observabilidade | Sem `docs/observability.md`, sem export de métricas (apenas RequestID middleware) | 2-4 h |
-| Graceful-shutdown example | Falta exemplo canónico `srv.Shutdown(ctx)` | 1 h |
-| JWT default `RequireExpiry=false` | TM-001 confirmado — doc fix necessário | 30 min |
-| OAuth2 slog leak credentials | TM-005 — one-liner fix em `oauth2.go:229` | 15 min |
-| RealIP default unsafe | TM-044 — doc callout no README | 30 min |
-| 2 low-sev path findings | PRF-S9-007/008 — defer para v1.1.0 OK | 0 (defer) |
-| Externamente validado em produção | Sem case studies / fleet usage públicos | N/A (orgânico) |
+| SECURITY.md without S9 IDs | Critical doc gap (CSA-0060/FPE-010/HPS-0005 missing) | 1 h |
+| Observability | No `docs/observability.md`, no metrics export (only the RequestID middleware) | 2-4 h |
+| Graceful-shutdown example | Canonical `srv.Shutdown(ctx)` example missing | 1 h |
+| JWT default `RequireExpiry=false` | TM-001 confirmed — doc fix needed | 30 min |
+| OAuth2 slog leak credentials | TM-005 — one-liner fix in `oauth2.go:229` | 15 min |
+| RealIP default unsafe | TM-044 — doc callout in the README | 30 min |
+| 2 low-sev path findings | PRF-S9-007/008 — deferring to v1.1.0 is OK | 0 (defer) |
+| Externally validated in production | No public case studies / fleet usage | N/A (organic) |
 
 ---
 
-## 6. Roadmap final para v1.0.0 GA (≤ 1 dia)
+## 6. Final roadmap for v1.0.0 GA (≤ 1 day)
 
-### Fase A — Doc/code touchups antes da tag `v1.0.0`
+### Phase A — Doc/code touch-ups before the `v1.0.0` tag
 
-| # | Item | Esforço | Origem |
+| # | Item | Effort | Origin |
 |---|---|---|---|
-| A1 | Adicionar S9 finding-IDs (CSA-0060/FPE-010/HPS-0005) ao SECURITY.md numa nova secção "Resolved Findings (v1.0.0)" | 1 h | docs-audit |
-| A2 | Substituir `slog.Warn(... endpoint=opts.Endpoint ...)` por `slog.Warn(... host=parsed.Host ...)` em `oauth2.go:229` | 15 min | MSR TM-005 |
-| A3 | Adicionar callout `### Security defaults` no README cobrindo RealIP sem CIDRs e JWT RequireExpiry | 1 h | MSR TM-001/044 |
-| A4 | Criar `examples/graceful-shutdown/` com `srv.Shutdown(ctx)` + drain de requests | 1 h | docs-audit |
-| A5 | Criar `docs/observability.md` com pattern slog + RequestID + correlação | 2 h | docs-audit |
-| A6 | Documentar `PanicHandler` re-panic behaviour em SECURITY.md (CSA TM-027) | 30 min | CSA |
-| A7 | Mover entry de `[Unreleased]` para `[1.0.0]` no CHANGELOG e cortar tag | 15 min | release |
+| A1 | Add the S9 finding IDs (CSA-0060/FPE-010/HPS-0005) to SECURITY.md in a new "Resolved Findings (v1.0.0)" section | 1 h | docs-audit |
+| A2 | Replace `slog.Warn(... endpoint=opts.Endpoint ...)` with `slog.Warn(... host=parsed.Host ...)` in `oauth2.go:229` | 15 min | MSR TM-005 |
+| A3 | Add a `### Security defaults` callout to the README covering RealIP without CIDRs and JWT RequireExpiry | 1 h | MSR TM-001/044 |
+| A4 | Create `examples/graceful-shutdown/` with `srv.Shutdown(ctx)` + request drain | 1 h | docs-audit |
+| A5 | Create `docs/observability.md` with the slog + RequestID + correlation pattern | 2 h | docs-audit |
+| A6 | Document the `PanicHandler` re-panic behaviour in SECURITY.md (CSA TM-027) | 30 min | CSA |
+| A7 | Move the entry from `[Unreleased]` to `[1.0.0]` in the CHANGELOG and cut the tag | 15 min | release |
 
-**Total: 6 horas.** Pode ser feito por uma pessoa em meio dia.
+**Total: 6 hours.** It can be done by one person in half a day.
 
-### Fase B (opcional, após v1.0.0)
+### Phase B (optional, after v1.0.0)
 
-- v1.1.0: fix PRF-S9-007 (regex empty match) + PRF-S9-004/008 (Group double-slash) + PRF-S8-003 (mensagem off-by-one) — ~3 h
-- v1.1.0: hardening de `OAuth2Cache` (TM-015/019) — ~4 h
-- v1.2.0: export de métricas (Prometheus/expvar/OpenMetrics) — ~1-2 dias
+- v1.1.0: fix PRF-S9-007 (regex empty match) + PRF-S9-004/008 (Group double-slash) + PRF-S8-003 (off-by-one message) — ~3 h
+- v1.1.0: hardening of `OAuth2Cache` (TM-015/019) — ~4 h
+- v1.2.0: metrics export (Prometheus/expvar/OpenMetrics) — ~1-2 days
 
 ---
 
-## 7. Cenários de produção validados
+## 7. Validated production scenarios
 
-| Cenário | Validado? | Evidência |
+| Scenario | Validated? | Evidence |
 |---|---|---|
-| API REST com 1-3 path params, ≤ 100k RPS por instância | **SIM** | bench + load test 67 k RPS sustained |
-| Microservice de high-fanout com static routes | **SIM** | static beats httprouter; zero allocs; parallel 8 ns |
-| Servidor TLS com middleware chain (auth + log + recover + throttle + real_ip) | **SIM** | load test usou esta stack exacta |
-| Catch-all para static files | **SIM** | path 1 MB → 464 B router-alloc constant |
-| Recovery de panic em handlers | **SIM** | Recoverer + PanicHandler validados em stress 32×500 |
-| Slowloris mitigation | **SIM (com `ReadHeaderTimeout`)** | 100 partial connections drain em 600 ms |
-| Saturation por IP (DOS) | **TRADE-OFF aceite** | DOS-2026-0057 reproduzido empíricamente; mitigation = upstream scrubber |
-| HTTP/2 (Rapid Reset / HPACK bomb) | **delegado a `net/http2`** | `govulncheck` clean para Go 1.26.2 |
-| Dynamic route registration em runtime | **NÃO suportado** | documentado em `mux.go` GoDoc |
+| REST API with 1-3 path params, ≤ 100k RPS per instance | **YES** | bench + load test 67 k RPS sustained |
+| High-fanout microservice with static routes | **YES** | static beats httprouter; zero allocs; parallel 8 ns |
+| TLS server with a middleware chain (auth + log + recover + throttle + real_ip) | **YES** | the load test used this exact stack |
+| Catch-all for static files | **YES** | 1 MB path → 464 B router-alloc constant |
+| Panic recovery in handlers | **YES** | Recoverer + PanicHandler validated under 32×500 stress |
+| Slowloris mitigation | **YES (with `ReadHeaderTimeout`)** | 100 partial connections drain in 600 ms |
+| Per-IP saturation (DOS) | **Accepted TRADE-OFF** | DOS-2026-0057 reproduced empirically; mitigation = upstream scrubber |
+| HTTP/2 (Rapid Reset / HPACK bomb) | **delegated to `net/http2`** | `govulncheck` clean for Go 1.26.2 |
+| Dynamic route registration at runtime | **NOT supported** | documented in the `mux.go` GoDoc |
 
-### Anti-cenários (não recomendados)
+### Anti-scenarios (not recommended)
 
-- Routes com > 10 params (custo cresce 64 ns/param + alocações por overflow)
-- `RealIP()` sem trusted CIDRs em ambiente exposto à internet (TM-044)
-- `JWTAuth` em produção sem `RequireExpiry: true` (TM-001)
-- `OAuth2Introspect` com `AllowInsecureEndpoint: true` em ambiente real (TM-005)
+- Routes with > 10 params (cost grows by 64 ns/param + overflow allocations)
+- `RealIP()` without trusted CIDRs in an internet-facing environment (TM-044)
+- `JWTAuth` in production without `RequireExpiry: true` (TM-001)
+- `OAuth2Introspect` with `AllowInsecureEndpoint: true` in a real environment (TM-005)
 
 ---
 
-## 8. Decisão final por dimensão
+## 8. Final decision per dimension
 
-| Dimensão | Decisão | Confiança |
+| Dimension | Decision | Confidence |
 |---|---|---|
-| Funcionalidade core (radix tree) | **PRODUCTION-READY** | Alta |
-| Stdlib `net/http` compatibility | **PRODUCTION-READY** | Alta |
-| Performance | **PRODUCTION-READY** | Alta |
-| Concorrência | **PRODUCTION-READY** | Alta |
-| Resiliência DoS | **PRODUCTION-READY com config operacional** | Alta |
-| Segurança | **PRODUCTION-READY** | Alta (após touchups da Fase A) |
-| Documentação | **PRODUCTION-READY com 1 gap doc-only** | Média-Alta |
-| Observabilidade | **OPERATOR-INTEGRATION** | Média (operador traz seu próprio stack) |
-| Release hygiene | **PRODUCTION-READY** (rc1 cortada) | Alta |
+| Core functionality (radix tree) | **PRODUCTION-READY** | High |
+| Stdlib `net/http` compatibility | **PRODUCTION-READY** | High |
+| Performance | **PRODUCTION-READY** | High |
+| Concurrency | **PRODUCTION-READY** | High |
+| DoS resilience | **PRODUCTION-READY with operational config** | High |
+| Security | **PRODUCTION-READY** | High (after the Phase A touch-ups) |
+| Documentation | **PRODUCTION-READY with 1 doc-only gap** | Medium-High |
+| Observability | **OPERATOR-INTEGRATION** | Medium (the operator brings their own stack) |
+| Release hygiene | **PRODUCTION-READY** (rc1 cut) | High |
 
 ---
 
-## 9. Resumo de uma linha
+## 9. One-line summary
 
-> **MuxMaster está pronto para produção em ambientes de altíssima carga, stress e concorrência. Sustenta 67 k RPS por instância com 0 % de erros, é race-clean, tem 0 vulnerabilidades, 0 deps, e bate httprouter no caminho `HandleFast`. Precisa apenas de ~6 horas de touchups de documentação antes de cortar a tag `v1.0.0` final.**
+> **MuxMaster is ready for production in very-high-load, stress and concurrency environments. It sustains 67 k RPS per instance with 0 % errors, is race-clean, has 0 vulnerabilities, 0 deps, and beats httprouter on the `HandleFast` path. It needs only ~6 hours of documentation touch-ups before cutting the final `v1.0.0` tag.**
 
 ---
 
-*Esta auditoria substitui formalmente o `2026-05-08-maturity-assessment.md` (escrito antes dos 16 commits CI/API). A evidência factual de cada agente está em `/reports/<agent>/2026-05-08-*.md` e harnesses em `/reports/<agent>/harness/2026-05-08-*/`.*
+*This audit formally supersedes `2026-05-08-maturity-assessment.md` (written before the 16 CI/API commits). Each agent's factual evidence is in `/reports/<agent>/2026-05-08-*.md` and the harnesses are in `/reports/<agent>/harness/2026-05-08-*/`.*

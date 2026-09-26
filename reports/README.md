@@ -1,129 +1,129 @@
 # MuxMaster — Security Reports
 
-Esta pasta é o destino único de todos os relatórios, evidências, harnesses e corpora produzidos pelos agentes especializados de segurança. Cada agente é o único autor da sua subpasta; o `threat-modeler-and-zero-day-researcher` é o único autor de `/reports/overview/`.
+This directory is the single destination for all reports, evidence, harnesses, and corpora produced by specialized security agents. Each agent is the sole author of its subdirectory; the `threat-modeler-and-zero-day-researcher` is the sole author of `/reports/overview/`.
 
-## Estrutura
+## Structure
 
 ```
 reports/
-├── README.md                                   ← este ficheiro
-├── .gitignore                                  ← ignora evidências brutas; relatórios .md são versionados
-├── overview/                                   ← threat-modeler (consolida tudo)
-│   ├── threat-model.md                         ← matriz STRIDE viva
-│   ├── attack-trees.md                         ← árvores de ataque
-│   ├── transposition.md                        ← vectores de outros ecossistemas
-│   ├── hypotheses.md                           ← zero-day hypotheses abertas
-│   ├── findings.md                             ← ledger único de findings
+├── README.md                                   ← this file
+├── .gitignore                                  ← ignores raw evidence; .md reports are versioned
+├── overview/                                   ← threat-modeler (consolidates everything)
+│   ├── threat-model.md                         ← live STRIDE matrix
+│   ├── attack-trees.md                         ← attack trees
+│   ├── transposition.md                        ← vectors from other ecosystems
+│   ├── hypotheses.md                           ← open zero-day hypotheses
+│   ├── findings.md                             ← single ledger of findings
 │   ├── system-model.md                         ← DFD + trust boundaries
-│   └── YYYY-MM-DD-sprint.md / -posture.md      ← por sprint
+│   └── YYYY-MM-DD-sprint.md / -posture.md      ← per sprint
 │
 ├── http-protocol-security-auditor/             ← smuggling, HTTP/2, CRLF, redirects
 ├── path-routing-fuzzer/                        ← bypass, traversal, Unicode, differential
 ├── dos-resilience-tester/                      ← complexity, slowloris, bombs
 ├── concurrency-security-auditor/               ← races, pool, TOCTOU, panic recovery
-├── middleware-security-reviewer/               ← audit por middleware
+├── middleware-security-reviewer/               ← audit per middleware
 ├── go-sast-and-memory-auditor/                 ← SAST, CVE, supply chain
 ├── timing-and-sidechannel-analyst/             ← timing leaks, constant-time
-└── fuzzing-and-property-engineer/              ← fuzz contínuo + invariants
+└── fuzzing-and-property-engineer/              ← continuous fuzz + invariants
 ```
 
-Cada subpasta de agente segue a mesma convenção:
+Each agent subdirectory follows the same convention:
 ```
 <agent>/
-├── YYYY-MM-DD-HHMM-<topic>.md                  ← relatórios datados (versionados)
-├── evidence/<date>/                            ← artefactos brutos (gitignored)
-├── harness/                                    ← testes Go reusáveis (versionados)
-└── corpora/                                    ← corpus de fuzz persistido (versionado)
+├── YYYY-MM-DD-HHMM-<topic>.md                  ← dated reports (versioned)
+├── evidence/<date>/                            ← raw artefacts (gitignored)
+├── harness/                                    ← reusable Go tests (versioned)
+└── corpora/                                    ← fuzz corpus persisted (versioned)
 ```
 
-## Classificação
+## Classification
 
-Todos os 9 agentes têm no respectivo frontmatter:
+All 9 agents have in their respective frontmatter:
 - `category: security`
-- `tags: [security, ...]` (primeira tag sempre `security`)
-- prefixo `[SECURITY AGENT]` no início da `description`
+- `tags: [security, ...]` (first tag always `security`)
+- prefix `[SECURITY AGENT]` at the start of `description`
 
-Isto permite:
-- Invocação de grupo natural: "corre todos os agentes de segurança" / "faz auditoria de segurança completa" / "executa o sprint de segurança"
-- Filtragem rápida via grep: `grep -l '^category: security$' .claude/agents/*.md`
-- Identificação visual imediata quando os agentes aparecem em listas
+This enables:
+- Natural group invocation: "run all security agents" / "complete security audit" / "execute security sprint"
+- Quick filtering via grep: `grep -l '^category: security$' .claude/agents/*.md`
+- Immediate visual identification when agents appear in lists
 
-### Como invocar como grupo
+### How to invoke as a group
 
-**Auditoria completa (sprint):** pede ao `threat-modeler-and-zero-day-researcher` para coordenar. Ele cria o sprint plan em `/reports/overview/<data>-sprint.md` e dispatcha os 8 especialistas em paralelo.
+**Complete audit (sprint):** ask the `threat-modeler-and-zero-day-researcher` to coordinate. It creates the sprint plan in `/reports/overview/<date>-sprint.md` and dispatches the 8 specialists in parallel.
 
-**Exemplos de prompt que activam o grupo:**
-- "corre todos os agentes de segurança"
-- "faz um sprint de segurança completo"
-- "auditoria de segurança pré-release"
-- "quero ter evidência de que não há vulnerabilidades antes de taggar"
-- "dispatcha todos os agentes com `category: security`"
+**Prompts that activate the group:**
+- "run all security agents"
+- "complete security sprint"
+- "pre-release security audit"
+- "I want evidence that there are no vulnerabilities before tagging"
+- "dispatch all agents with `category: security`"
 
-**Invocação individual:** usa o nome exacto do agente (ver tabela abaixo). Útil quando a mudança toca apenas uma área.
+**Individual invocation:** use the agent's exact name (see table below). Useful when the change touches only one area.
 
-## Os 9 agentes de segurança
+## The 9 security agents
 
-| # | Agente | Foco principal | Reports em |
+| # | Agent | Primary focus | Reports in |
 |---|---|---|---|
 | 1 | `http-protocol-security-auditor` | HTTP/1.1 + HTTP/2 framing, smuggling, CRLF, redirects | `/reports/http-protocol-security-auditor/` |
-| 2 | `path-routing-fuzzer` | Routing bypass (traversal, Unicode, encoding), differential com competitors | `/reports/path-routing-fuzzer/` |
+| 2 | `path-routing-fuzzer` | Routing bypass (traversal, Unicode, encoding), differential vs competitors | `/reports/path-routing-fuzzer/` |
 | 3 | `dos-resilience-tester` | Complexity attacks, slowloris, gzip bombs, throttle bypass | `/reports/dos-resilience-tester/` |
 | 4 | `concurrency-security-auditor` | Data races, sync.Pool contamination, TOCTOU, goroutine leaks | `/reports/concurrency-security-auditor/` |
-| 5 | `middleware-security-reviewer` | Threat model por middleware (basic_auth, cors, compress, real_ip, etc.) | `/reports/middleware-security-reviewer/` |
+| 5 | `middleware-security-reviewer` | Threat model per middleware (basic_auth, cors, compress, real_ip, etc.) | `/reports/middleware-security-reviewer/` |
 | 6 | `go-sast-and-memory-auditor` | gosec + staticcheck + govulncheck + escape analysis + SBOM | `/reports/go-sast-and-memory-auditor/` |
-| 7 | `timing-and-sidechannel-analyst` | Timing leaks estatísticos (Welch/KS/MWU), constant-time verification | `/reports/timing-and-sidechannel-analyst/` |
-| 8 | `fuzzing-and-property-engineer` | Fuzz contínuo de toda a API pública + property tests (rapid) | `/reports/fuzzing-and-property-engineer/` |
-| 9 | `threat-modeler-and-zero-day-researcher` | Orquestra os 8 anteriores; STRIDE; attack trees; hipóteses zero-day | `/reports/overview/` |
+| 7 | `timing-and-sidechannel-analyst` | Statistical timing leaks (Welch/KS/MWU), constant-time verification | `/reports/timing-and-sidechannel-analyst/` |
+| 8 | `fuzzing-and-property-engineer` | Continuous fuzz of entire public API + property tests (rapid) | `/reports/fuzzing-and-property-engineer/` |
+| 9 | `threat-modeler-and-zero-day-researcher` | Orchestrates the 8 specialists; STRIDE; attack trees; zero-day hypotheses | `/reports/overview/` |
 
-## Quando e como invocar
+## When and how to invoke
 
-### Sprint completo pré-release
+### Complete pre-release sprint
 ```
-Pede ao threat-modeler-and-zero-day-researcher um sprint plan completo.
-Ele dispatcha os 8 especialistas em paralelo e consolida em /reports/overview/.
+Ask the threat-modeler-and-zero-day-researcher for a complete sprint plan.
+It dispatches the 8 specialists in parallel and consolidates in /reports/overview/.
 ```
 
-### Mudança pontual
-Invoca directamente o agente cuja área toca a mudança. Se a mudança cruza domínios, começa pelo `threat-modeler` que redistribui.
+### Targeted change
+Invoke directly the agent whose area the change touches. If the change crosses domains, start with `threat-modeler` who will redistribute.
 
-### Matriz de activação automática
+### Automatic activation matrix
 
-| Ficheiro alterado | Agentes a activar |
+| File changed | Agents to activate |
 |---|---|
 | `mux.go` | http-protocol + path-routing + concurrency + sast |
 | `tree.go` | path-routing + dos-resilience + fuzzing-and-property |
 | `params.go` | concurrency + dos-resilience + sast |
-| `middleware/*.go` | middleware-reviewer + (timing se for auth) + sast |
+| `middleware/*.go` | middleware-reviewer + (timing if auth) + sast |
 | `introspection.go` | concurrency + http-protocol + middleware-reviewer |
 | `response.go` | http-protocol + sast |
 | `go.mod` | sast |
 
-## Contratos entre agentes
+## Contracts between agents
 
-1. **Findings flow:** cada especialista escreve findings no seu relatório local; o `threat-modeler` copia-os para `/reports/overview/findings.md` com ID canónico.
-2. **Severity canónica:** Critical / High / Medium / Low / Info. Toda severidade tem que estar justificada.
-3. **CWE obrigatório:** cada finding cita um CWE (https://cwe.mitre.org).
-4. **Reproducer:** toda finding Critical/High tem que ter um repro_test.go minimal.
-5. **Evidence path:** toda finding cita um caminho de evidência concreto (não "see attached").
+1. **Findings flow:** each specialist writes findings in its local report; the `threat-modeler` copies them to `/reports/overview/findings.md` with canonical ID.
+2. **Canonical severity:** Critical / High / Medium / Low / Info. Every severity must be justified.
+3. **CWE mandatory:** each finding cites a CWE (https://cwe.mitre.org).
+4. **Reproducer:** every Critical/High finding must have a minimal repro_test.go.
+5. **Evidence path:** every finding cites a concrete evidence path (not "see attached").
 6. **Cross-agent escalation:** CRLF → http-protocol; race → concurrency; timing → timing; traversal → path-routing.
 
-## Política de versionamento
+## Versioning policy
 
-Relatórios (`*.md`) são **versionados** em git — são documentação histórica.
-Evidências (`evidence/**`), profiles (`*.pprof`), SARIF (`*.sarif`), CSVs grandes, crashers, são **ignorados** pelo git via `.gitignore` local — estão disponíveis na máquina de auditoria mas não poluem releases.
+Reports (`*.md`) are **versioned** in git — they are historical documentation.
+Evidence (`evidence/**`), profiles (`*.pprof`), SARIF (`*.sarif`), large CSVs, crashers, are **ignored** by git via local `.gitignore` — available on the audit machine but not polluting releases.
 
-Harnesses (`harness/**`) e corpora (`corpora/**`) são **versionados** — são infraestrutura reutilizável e reprodutível.
+Harnesses (`harness/**`) and corpora (`corpora/**`) are **versioned** — they are reusable and reproducible infrastructure.
 
-## SLA / cadência mínima recomendada
+## SLA / recommended minimum cadence
 
-| Trigger | Agentes | Duração típica |
+| Trigger | Agents | Typical duration |
 |---|---|---|
-| Pull-request PR | sast (rápido), fuzzing 30s/target | < 3 min |
-| Merge para main | sast + routing-fuzzer 10min + race | < 30 min |
+| Pull-request PR | sast (fast), fuzzing 30s/target | < 3 min |
+| Merge to main | sast + routing-fuzzer 10min + race | < 30 min |
 | Nightly | fuzzing 2h/target + dos sustained 30min | ~4h |
-| Pré-release | sprint completo (9 agentes) | ~24h agregadas |
-| Incidente | agente relevante + threat-modeler | horas |
+| Pre-release | complete sprint (9 agents) | ~24h aggregate |
+| Incident | relevant agent + threat-modeler | hours |
 
-## Contacto / handoff
+## Contact / handoff
 
-O `threat-modeler-and-zero-day-researcher` é o ponto único de contacto para o maintainer. Ele consolida, prioriza, recomenda decisão de release (ship / hold / conditional).
+The `threat-modeler-and-zero-day-researcher` is the single point of contact for the maintainer. It consolidates, prioritises, and recommends a release decision (ship / hold / conditional).
