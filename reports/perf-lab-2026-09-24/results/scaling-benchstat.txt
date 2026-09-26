@@ -1,0 +1,173 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                                               │ results/scaling-cpu1.txt │ results/scaling-cpu16.txt │
+                                               │          sec/op          │       sec/op        vs base   │
+ParallelStatic                                               16.61n ±  1%
+ParallelParam1                                               143.2n ±  0%
+ParallelParam1Pooled                                         41.53n ±  1%
+ParallelParam3                                               184.8n ±  1%
+ParallelParam3Pooled                                         60.22n ±  1%
+ParallelCatchAll                                             146.7n ±  1%
+ParallelFastParam1                                           49.26n ±  1%
+ParallelFastParam1Pooled                                     39.86n ±  1%
+ParallelMethodNotAllowed                                     202.3n ±  4%
+ParallelOPTIONS                                              190.8n ±  1%
+ParallelRedirectTrailingSlash                                302.9n ±  1%
+ParallelRedirectTrailingSlashWithMiddleware                  363.5n ±  1%
+ParallelNotFound                                             227.9n ±  1%
+ThrottleBacklogParallel                                      38.25n ±  1%
+ThrottlePerIPSingleKey                                       4.082µ ±  0%
+CompressParallel                                             3.168µ ± 14%
+LoggerParallel                                               7.243µ ±  0%
+LoggerParallelRealFile                                       7.242µ ±  0%
+RequestIDParallel                                            1.107µ ±  1%
+RealIPParallel                                               65.61n ±  1%
+RecovererParallel                                            12.44n ±  0%
+TimeoutParallel                                              6.139µ ±  0%
+BasicAuthParallel                                            200.9n ±  0%
+APIKeyParallel                                               522.5n ±  1%
+CORSParallel                                                 236.8n ± 11%
+ParallelStatic-16                                                                  2.533n ± 1%
+ParallelParam1-16                                                                  104.4n ± 1%
+ParallelParam1Pooled-16                                                            7.263n ± 1%
+ParallelParam3-16                                                                  134.2n ± 5%
+ParallelParam3Pooled-16                                                            10.44n ± 7%
+ParallelCatchAll-16                                                                106.0n ± 1%
+ParallelFastParam1-16                                                              16.27n ± 1%
+ParallelFastParam1Pooled-16                                                        5.827n ± 3%
+ParallelMethodNotAllowed-16                                                        44.17n ± 2%
+ParallelOPTIONS-16                                                                 47.06n ± 1%
+ParallelRedirectTrailingSlash-16                                                   98.45n ± 2%
+ParallelRedirectTrailingSlashWithMiddleware-16                                     124.5n ± 1%
+ParallelNotFound-16                                                                48.16n ± 3%
+ThrottleBacklogParallel-16                                                         77.91n ± 4%
+ThrottlePerIPSingleKey-16                                                          645.2n ± 4%
+CompressParallel-16                                                                2.049µ ± 2%
+LoggerParallel-16                                                                  559.6n ± 1%
+LoggerParallelRealFile-16                                                          560.8n ± 1%
+RequestIDParallel-16                                                               297.6n ± 1%
+RealIPParallel-16                                                                  30.55n ± 1%
+RecovererParallel-16                                                               1.737n ± 2%
+TimeoutParallel-16                                                                 634.3n ± 3%
+BasicAuthParallel-16                                                               40.33n ± 2%
+APIKeyParallel-16                                                                  205.1n ± 2%
+CORSParallel-16                                                                    36.08n ± 3%
+geomean                                                      252.1n                66.10n       ? ¹ ²
+¹ benchmark set differs from baseline; geomeans may not be comparable
+² ratios must be >0 to compute geomean
+
+                                               │ results/scaling-cpu1.txt │ results/scaling-cpu16.txt │
+                                               │           B/op           │       B/op        vs base │
+ParallelStatic                                               0.000 ± 0%
+ParallelParam1                                               384.0 ± 0%
+ParallelParam1Pooled                                         0.000 ± 0%
+ParallelParam3                                               480.0 ± 0%
+ParallelParam3Pooled                                         0.000 ± 0%
+ParallelCatchAll                                             384.0 ± 0%
+ParallelFastParam1                                           32.00 ± 0%
+ParallelFastParam1Pooled                                     0.000 ± 0%
+ParallelMethodNotAllowed                                     56.00 ± 0%
+ParallelOPTIONS                                              72.00 ± 0%
+ParallelRedirectTrailingSlash                                192.0 ± 0%
+ParallelRedirectTrailingSlashWithMiddleware                  248.0 ± 0%
+ParallelNotFound                                             48.00 ± 0%
+ThrottleBacklogParallel                                      0.000 ± 0%
+ThrottlePerIPSingleKey                                       376.0 ± 0%
+CompressParallel                                           8.177Ki ± 0%
+LoggerParallel                                               32.00 ± 0%
+LoggerParallelRealFile                                       32.00 ± 0%
+RequestIDParallel                                            464.0 ± 0%
+RealIPParallel                                               80.00 ± 0%
+RecovererParallel                                            0.000 ± 0%
+TimeoutParallel                                              592.0 ± 0%
+BasicAuthParallel                                            48.00 ± 0%
+APIKeyParallel                                               448.0 ± 0%
+CORSParallel                                                 104.0 ± 0%
+ParallelStatic-16                                                                 0.000 ± 0%
+ParallelParam1-16                                                                 384.0 ± 0%
+ParallelParam1Pooled-16                                                           0.000 ± 0%
+ParallelParam3-16                                                                 480.0 ± 0%
+ParallelParam3Pooled-16                                                           0.000 ± 0%
+ParallelCatchAll-16                                                               384.0 ± 0%
+ParallelFastParam1-16                                                             32.00 ± 0%
+ParallelFastParam1Pooled-16                                                       0.000 ± 0%
+ParallelMethodNotAllowed-16                                                       56.00 ± 0%
+ParallelOPTIONS-16                                                                72.00 ± 0%
+ParallelRedirectTrailingSlash-16                                                  192.0 ± 0%
+ParallelRedirectTrailingSlashWithMiddleware-16                                    248.0 ± 0%
+ParallelNotFound-16                                                               48.00 ± 0%
+ThrottleBacklogParallel-16                                                        0.000 ± 0%
+ThrottlePerIPSingleKey-16                                                         248.0 ± 0%
+CompressParallel-16                                                             8.234Ki ± 1%
+LoggerParallel-16                                                                 32.00 ± 0%
+LoggerParallelRealFile-16                                                         32.00 ± 0%
+RequestIDParallel-16                                                              464.0 ± 0%
+RealIPParallel-16                                                                 80.00 ± 0%
+RecovererParallel-16                                                              0.000 ± 0%
+TimeoutParallel-16                                                                592.0 ± 0%
+BasicAuthParallel-16                                                              48.00 ± 0%
+APIKeyParallel-16                                                                 448.0 ± 0%
+CORSParallel-16                                                                   106.0 ± 4%
+geomean                                                                 ¹                     ? ² ¹ ³
+¹ summaries must be >0 to compute geomean
+² benchmark set differs from baseline; geomeans may not be comparable
+³ ratios must be >0 to compute geomean
+
+                                               │ results/scaling-cpu1.txt │ results/scaling-cpu16.txt │
+                                               │        allocs/op         │    allocs/op      vs base │
+ParallelStatic                                               0.000 ± 0%
+ParallelParam1                                               1.000 ± 0%
+ParallelParam1Pooled                                         0.000 ± 0%
+ParallelParam3                                               1.000 ± 0%
+ParallelParam3Pooled                                         0.000 ± 0%
+ParallelCatchAll                                             1.000 ± 0%
+ParallelFastParam1                                           1.000 ± 0%
+ParallelFastParam1Pooled                                     0.000 ± 0%
+ParallelMethodNotAllowed                                     3.000 ± 0%
+ParallelOPTIONS                                              4.000 ± 0%
+ParallelRedirectTrailingSlash                                4.000 ± 0%
+ParallelRedirectTrailingSlashWithMiddleware                  6.000 ± 0%
+ParallelNotFound                                             3.000 ± 0%
+ThrottleBacklogParallel                                      0.000 ± 0%
+ThrottlePerIPSingleKey                                       5.000 ± 0%
+CompressParallel                                             2.000 ± 0%
+LoggerParallel                                               4.000 ± 0%
+LoggerParallelRealFile                                       4.000 ± 0%
+RequestIDParallel                                            7.000 ± 0%
+RealIPParallel                                               2.000 ± 0%
+RecovererParallel                                            0.000 ± 0%
+TimeoutParallel                                              5.000 ± 0%
+BasicAuthParallel                                            2.000 ± 0%
+APIKeyParallel                                               7.000 ± 0%
+CORSParallel                                                 1.000 ± 0%
+ParallelStatic-16                                                                 0.000 ± 0%
+ParallelParam1-16                                                                 1.000 ± 0%
+ParallelParam1Pooled-16                                                           0.000 ± 0%
+ParallelParam3-16                                                                 1.000 ± 0%
+ParallelParam3Pooled-16                                                           0.000 ± 0%
+ParallelCatchAll-16                                                               1.000 ± 0%
+ParallelFastParam1-16                                                             1.000 ± 0%
+ParallelFastParam1Pooled-16                                                       0.000 ± 0%
+ParallelMethodNotAllowed-16                                                       3.000 ± 0%
+ParallelOPTIONS-16                                                                4.000 ± 0%
+ParallelRedirectTrailingSlash-16                                                  4.000 ± 0%
+ParallelRedirectTrailingSlashWithMiddleware-16                                    6.000 ± 0%
+ParallelNotFound-16                                                               3.000 ± 0%
+ThrottleBacklogParallel-16                                                        0.000 ± 0%
+ThrottlePerIPSingleKey-16                                                         3.000 ± 0%
+CompressParallel-16                                                               2.000 ± 0%
+LoggerParallel-16                                                                 4.000 ± 0%
+LoggerParallelRealFile-16                                                         4.000 ± 0%
+RequestIDParallel-16                                                              7.000 ± 0%
+RealIPParallel-16                                                                 2.000 ± 0%
+RecovererParallel-16                                                              0.000 ± 0%
+TimeoutParallel-16                                                                5.000 ± 0%
+BasicAuthParallel-16                                                              2.000 ± 0%
+APIKeyParallel-16                                                                 7.000 ± 0%
+CORSParallel-16                                                                   1.000 ± 0%
+geomean                                                                 ¹                     ? ² ¹ ³
+¹ summaries must be >0 to compute geomean
+² benchmark set differs from baseline; geomeans may not be comparable
+³ ratios must be >0 to compute geomean

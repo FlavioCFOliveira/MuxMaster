@@ -1,0 +1,49 @@
+File: max-performance
+Build ID: 9d3d7ab86ea3c17f0525ed6e90c99dfd450784dd
+Type: alloc_space
+Time: 2026-09-25 12:37:31 WEST
+Duration: 10.01s, Total samples = 1777.83MB 
+Showing nodes accounting for 1729.45MB, 97.28% of 1777.83MB total
+Dropped 91 nodes (cum <= 8.89MB)
+Showing top 40 nodes out of 73
+      flat  flat%   sum%        cum   cum%
+  255.56MB 14.38% 14.38%   255.56MB 14.38%  net/textproto.readMIMEHeader
+  210.06MB 11.82% 26.19%   210.06MB 11.82%  net/http.Header.Clone (inline)
+  209.06MB 11.76% 37.95%   958.23MB 53.90%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  170.05MB  9.57% 47.52%   170.05MB  9.57%  net/http.(*Request).WithContext
+  154.05MB  8.66% 56.18%   522.63MB 29.40%  net/http.readRequestLimit
+  141.03MB  7.93% 64.11%   739.21MB 41.58%  net/http.(*conn).readRequest
+   84.39MB  4.75% 68.86%    84.39MB  4.75%  encoding/json/v2.makeStringArshaler.func2
+   76.51MB  4.30% 73.16%    76.51MB  4.30%  net/url.parse
+   63.13MB  3.55% 76.71%    63.13MB  3.55%  sync.(*Pool).pinSlow
+      53MB  2.98% 79.70%       53MB  2.98%  net.(*conn).Read
+   41.50MB  2.33% 82.03%    41.50MB  2.33%  context.withCancel (inline)
+   41.50MB  2.33% 84.36%    41.50MB  2.33%  reflect.unsafe_New
+   32.51MB  1.83% 86.19%    67.02MB  3.77%  main.configHandler
+   28.01MB  1.58% 87.77%    29.51MB  1.66%  io.ReadAll
+   23.04MB  1.30% 89.07%    23.04MB  1.30%  bufio.NewWriterSize (inline)
+      20MB  1.13% 90.19%       20MB  1.13%  net/textproto.(*Reader).ReadLine (inline)
+      19MB  1.07% 91.26%    47.01MB  2.64%  main.getUser
+   18.50MB  1.04% 92.30%    46.01MB  2.59%  main.getUserOrder
+   17.50MB  0.98% 93.28%    48.51MB  2.73%  main.getUserProfile
+      13MB  0.73% 94.02%       13MB  0.73%  encoding/json/jsontext.NewDecoder (inline)
+      11MB  0.62% 94.63%    37.01MB  2.08%  main.getRepoIssue
+   10.50MB  0.59% 95.23%    10.50MB  0.59%  github.com/FlavioCFOliveira/MuxMaster.init.func4
+   10.50MB  0.59% 95.82%    10.50MB  0.59%  net/http.(*connReader).startBackgroundRead
+    9.50MB  0.53% 96.35%       51MB  2.87%  context.WithCancel
+       9MB  0.51% 96.86%    11.50MB  0.65%  net/http.readTransfer
+    3.50MB   0.2% 97.05%    51.02MB  2.87%  main.postEvent
+       1MB 0.056% 97.11%       14MB  0.79%  encoding/json.NewDecoder
+       1MB 0.056% 97.17%       18MB  1.01%  main.listStaticFile
+    0.50MB 0.028% 97.19%       17MB  0.96%  io.WriteString
+    0.50MB 0.028% 97.22%   131.91MB  7.42%  main.createUser
+    0.50MB 0.028% 97.25%    25.51MB  1.43%  main.metricsFast
+    0.50MB 0.028% 97.28%    27.01MB  1.52%  net/http/pprof.Cmdline
+         0     0% 97.28%    96.40MB  5.42%  encoding/json.(*Decoder).Decode
+         0     0% 97.28%   148.04MB  8.33%  encoding/json.(*Encoder).Encode
+         0     0% 97.28%    46.51MB  2.62%  encoding/json/v2.MarshalEncode
+         0     0% 97.28%    93.40MB  5.25%  encoding/json/v2.Unmarshal
+         0     0% 97.28%       18MB  1.01%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 97.28%    45.01MB  2.53%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 97.28%    85.89MB  4.83%  encoding/json/v2.makeStructArshaler.func3
+         0     0% 97.28%    46.51MB  2.62%  encoding/json/v2.marshalEncode

@@ -1,0 +1,4 @@
+go test fuzz v1
+string("0")
+string("/\xec\x88˙ɯͯ")
+string("0")

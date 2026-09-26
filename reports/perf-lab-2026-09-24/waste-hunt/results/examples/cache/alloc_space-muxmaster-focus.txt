@@ -1,0 +1,65 @@
+File: cache
+Build ID: c5c3dadfa55bdb555cc0934e6f026230d3c42097
+Type: alloc_space
+Time: 2026-09-24 19:54:22 WEST
+Duration: 10.01s, Total samples = 1592.99MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 774.24MB, 48.60% of 1592.99MB total
+Dropped 19 nodes (cum <= 7.96MB)
+      flat  flat%   sum%        cum   cum%
+  225.06MB 14.13% 14.13%   225.06MB 14.13%  net/http.Header.Clone (inline)
+  178.55MB 11.21% 25.34%   650.20MB 40.82%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  135.04MB  8.48% 33.81%   135.04MB  8.48%  net/http.(*Request).WithContext
+   68.02MB  4.27% 38.08%   302.59MB 19.00%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   48.01MB  3.01% 41.10%    48.01MB  3.01%  net/textproto.MIMEHeader.Set (inline)
+   22.01MB  1.38% 42.48%    22.01MB  1.38%  main.errMsg (inline)
+   19.54MB  1.23% 43.71%    19.54MB  1.23%  sync.(*Pool).pinSlow
+   18.50MB  1.16% 44.87%    18.50MB  1.16%  bytes.Clone (inline)
+   11.50MB  0.72% 45.59%    11.50MB  0.72%  net/url.parse
+   11.50MB  0.72% 46.31%       17MB  1.07%  strconv.quoteWith (inline)
+      11MB  0.69% 47.00%    11.50MB  0.72%  fmt.Sprintf
+       6MB  0.38% 47.38%        6MB  0.38%  reflect.unsafe_New
+    5.50MB  0.35% 47.72%    62.51MB  3.92%  net/http.Redirect
+    5.50MB  0.35% 48.07%     5.50MB  0.35%  strconv.appendQuotedWith
+    4.50MB  0.28% 48.35%     4.50MB  0.28%  internal/bytealg.MakeNoZero
+       3MB  0.19% 48.54%       15MB  0.94%  main.etagFor
+       1MB 0.063% 48.60%   151.04MB  9.48%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).serveRedirect
+         0     0% 48.60%    32.52MB  2.04%  encoding/json.Marshal (inline)
+         0     0% 48.60%     5.51MB  0.35%  encoding/json/jsontext.export.GetBufferedEncoder (inline)
+         0     0% 48.60%     5.51MB  0.35%  encoding/json/jsontext.getBufferedEncoder
+         0     0% 48.60%    32.52MB  2.04%  encoding/json/v2.Marshal
+         0     0% 48.60%     7.50MB  0.47%  encoding/json/v2.marshalEncode
+         0     0% 48.60%   105.02MB  6.59%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).HandleE.func1
+         0     0% 48.60%   794.24MB 49.86%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 48.60%   794.24MB 49.86%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 48.60%    62.51MB  3.92%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).serveRedirect.func1
+         0     0% 48.60%   151.55MB  9.51%  github.com/FlavioCFOliveira/MuxMaster.JSON
+         0     0% 48.60%     9.50MB   0.6%  github.com/FlavioCFOliveira/MuxMaster.wrapMiddleware
+         0     0% 48.60%   193.55MB 12.15%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 48.60%   331.60MB 20.82%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 48.60%   300.08MB 18.84%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 48.60%     5.01MB  0.31%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+         0     0% 48.60%       17MB  1.07%  github.com/FlavioCFOliveira/MuxMaster/middleware.sanitiseForLog
+         0     0% 48.60%    31.51MB  1.98%  io.WriteString
+         0     0% 48.60%    37.01MB  2.32%  main.checkNotModified
+         0     0% 48.60%    65.52MB  4.11%  main.main.func1
+         0     0% 48.60%    70.02MB  4.40%  main.main.func2
+         0     0% 48.60%    62.52MB  3.92%  main.main.func4
+         0     0% 48.60%   105.02MB  6.59%  main.main.func6
+         0     0% 48.60%   794.24MB 49.86%  net/http.(*conn).serve
+         0     0% 48.60%   225.06MB 14.13%  net/http.(*response).WriteHeader
+         0     0% 48.60%    31.51MB  1.98%  net/http.(*response).WriteString
+         0     0% 48.60%    31.51MB  1.98%  net/http.(*response).write
+         0     0% 48.60%   650.20MB 40.82%  net/http.HandlerFunc.ServeHTTP
+         0     0% 48.60%    48.01MB  3.01%  net/http.Header.Set (inline)
+         0     0% 48.60%   794.24MB 49.86%  net/http.serverHandler.ServeHTTP
+         0     0% 48.60%    11.50MB  0.72%  net/url.Parse
+         0     0% 48.60%        6MB  0.38%  reflect.New
+         0     0% 48.60%       17MB  1.07%  strconv.QuoteToASCII (inline)
+         0     0% 48.60%     4.50MB  0.28%  strings.(*Builder).Grow
+         0     0% 48.60%     4.50MB  0.28%  strings.(*Builder).grow
+         0     0% 48.60%     4.50MB  0.28%  strings.Join
+         0     0% 48.60%    19.04MB  1.20%  sync.(*Pool).Get
+         0     0% 48.60%     5.51MB  0.35%  sync.(*Pool).Put
+         0     0% 48.60%    19.54MB  1.23%  sync.(*Pool).pin

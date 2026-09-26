@@ -1,0 +1,18 @@
+=== RUN   TestTiming_RedirectFixedPath_Oracle
+    route_existence_timing_test.go:386: RedirectFixedPath oracle (N=200000 per arm)
+    route_existence_timing_test.go:390:   canon:     mean=2820.9ns p50=2374ns p99=8521ns
+    route_existence_timing_test.go:391:   non-canon: mean=2770.5ns p50=2374ns p99=7682ns
+    route_existence_timing_test.go:392:   plain:     mean=2712.4ns p50=1956ns p99=7264ns
+    route_existence_timing_test.go:396:   canon_vs_noncanon (canonicalisable-to-registered (301) vs canonicalisable-but-unmatched (404)): Welch p=0.01883 KS p=1.202e-72 MWU p=0 |mean diff|=9.38ns
+    route_existence_timing_test.go:399:     DISTINGUISHABLE: diff=9.38ns — INFORMATIONAL — below practical LAN exploitation threshold
+    route_existence_timing_test.go:400:   SEVERITY: INFORMATIONAL — diff < 1µs, below practical LAN exploitation threshold
+    route_existence_timing_test.go:396:   canon_vs_plain (canonicalisable-to-registered (301, discloses hidden route) vs plain 404): Welch p=1.289e-147 KS p=0 MWU p=0 |mean diff|=101.46ns
+    route_existence_timing_test.go:399:     DISTINGUISHABLE: diff=101.46ns — INFORMATIONAL — below practical LAN exploitation threshold
+    route_existence_timing_test.go:400:   SEVERITY: INFORMATIONAL — diff < 1µs, below practical LAN exploitation threshold
+    route_existence_timing_test.go:396:   noncanon_vs_plain (double-slash non-canonical 404 vs plain 404): Welch p=3.799e-178 KS p=0 MWU p=0 |mean diff|=110.84ns
+    route_existence_timing_test.go:399:     DISTINGUISHABLE: diff=110.84ns — INFORMATIONAL — below practical LAN exploitation threshold
+    route_existence_timing_test.go:400:   SEVERITY: INFORMATIONAL — diff < 1µs, below practical LAN exploitation threshold
+    route_existence_timing_test.go:405: Verdict: RedirectFixedPath's status-code-level disclosure is already documented and accepted in SECURITY.md ("RedirectFixedPath=true discloses route existence via the redirect status" — default is false). This test quantifies the additional timing signal on top of that already-known, already-accepted disclosure; it does not assert a bound.
+--- PASS: TestTiming_RedirectFixedPath_Oracle (5.99s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	6.250s

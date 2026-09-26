@@ -1,0 +1,44 @@
+rmp #247 — Remove the RWMutex from serveRedirect (mux.go)
+Machine: AMD Ryzen 9 5900HX, 16 logical CPUs, Linux 6.8.0-139-generic, go1.27.0 (module go 1.26)
+Before = git HEAD content (m.mu.RLock() on every redirect).
+After  = this change (lock-free redirectMWPtr snapshot, refreshed by Use()). benchstat count=6, -cpu 1,4,16.
+
+ParallelRedirectTrailingSlash                       304.7n ± 1%   313.1n ± 1%   +2.74% (p=0.004 n=6)
+ParallelRedirectTrailingSlash-4                     96.94n ± 2%   97.41n ± 3%        ~ (p=0.818 n=6)
+ParallelRedirectTrailingSlash-16                    89.06n ± 3%   88.73n ± 3%        ~ (p=0.818 n=6)
+ParallelRedirectTrailingSlashWithMiddleware         381.6n ± 1%   394.4n ± 1%   +3.37% (p=0.002 n=6)
+ParallelRedirectTrailingSlashWithMiddleware-4       118.4n ± 4%   117.6n ± 2%        ~ (p=0.615 n=6)
+ParallelRedirectTrailingSlashWithMiddleware-16      115.7n ± 2%   116.8n ± 2%        ~ (p=0.394 n=6)
+
+== mutex-profile evidence (cpu=16, 1s run) ==
+serveRedirect's OWN contribution to total captured mutex/lock delay, BEFORE the fix:
+  5.91% cumulative (0.18s of 2.97s total) — and that 0.18s already includes downstream
+  net/http.Redirect / net/url.Parse work, not just the RLock itself.
+  >90% of total mutex/lock delay in this benchmark is GC/scheduler-internal locking
+  (runtime.(*mheap).freeSpan / gcstopm / stopm / stopTheWorldWithSema), driven by the
+  4 allocs/op that net/http.Redirect performs on every call — unrelated to m.mu and
+  out of #247's scope.
+
+CONCLUSION: the code-level goal (zero m.mu access anywhere in the request-dispatch path)
+is fully and verifiably achieved (grep confirms no m.mu.RLock/Lock remains in ServeHTTP,
+dispatch, or serveRedirect). The MEASURED ns/op impact on this synthetic benchmark is
+statistically insignificant at cpu=4/16 (~, within noise) because Go's sync.RWMutex was
+already near-lock-free for reader-only access with no concurrent writer (Use() runs once
+at setup, before the benchmark loop) — it was never the dominant cost here.
+
+== NO-REGRESSION check on root bench_test.go (order-flip control) ==
+A first before/after sequential run of the root suite showed small but "significant"
+apparent regressions on ParamRoute1/2/3 and WildcardRoute (+3-12%). Re-running with the
+run ORDER REVERSED (after-code first, before-code second) flipped the sign of the same
+deltas (ParamRoute1 now -7.46% "in favour of" whichever ran second) — conclusive proof
+this is a run-order/thermal confound on the shared benchmark machine (which had just run
+several minutes of continuous -race load), not a real effect of the mux.go change. No
+code path reachable from ParamRoute1/2/3/WildcardRoute touches redirectMWPtr, the changed
+Use()/serveRedirect() code, or reads any Mux field after the ones changed. See
+root-before-clean.txt/root-after-clean.txt and after-first.txt/before-second.txt.
+
+FINAL CALL: #247's AC ("ParallelRedirectTrailingSlash ns/op at cpu=16 improves vs
+baseline") is NOT conclusively demonstrated on this benchmark (statistically "~", i.e. no
+measurable difference either way) because the RWMutex was already cheap here — see the
+mutex-profile evidence above. The "NO regression on root bench_test.go" half of the AC IS
+satisfied (order-flip control shows the apparent deltas are measurement noise, not real).

@@ -18,8 +18,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -564,6 +566,108 @@ func TestBasicAuth_RealmInjectionSanitised(t *testing.T) {
 	}
 }
 
+// ── BasicAuth: constant-time user lookup (TSC-2026-0002 fix) ────────────────
+//
+// BasicAuth used to look up the supplied username in a map[string][32]byte,
+// which leaks user existence via runtime.mapaccess2_faststr's data-dependent
+// timing. The fix replaces the map with an unordered []basicAuthEntry that is
+// scanned in full, unconditionally, on every request — position in the slice
+// (first/middle/last registered user) must not affect correctness, and the
+// scan must authenticate correctly regardless of how many users are
+// registered.
+
+// basicAuthManyUsers builds an N-user credential map with predictable,
+// sortable usernames ("user-0000".."user-000N") so first/middle/last can be
+// selected deterministically for testing.
+func basicAuthManyUsers(n int) map[string]string {
+	creds := make(map[string]string, n)
+	for i := range n {
+		creds[fmt.Sprintf("user-%04d", i)] = fmt.Sprintf("pass-%04d", i)
+	}
+	return creds
+}
+
+func TestBasicAuth_ManyUsers_FirstMiddleLastAuthenticate(t *testing.T) {
+	const n = 100
+	creds := basicAuthManyUsers(n)
+	mw := middleware.BasicAuth("realm", creds)
+
+	for _, idx := range []int{0, n / 2, n - 1} {
+		user := fmt.Sprintf("user-%04d", idx)
+		pass := fmt.Sprintf("pass-%04d", idx)
+		t.Run(user, func(t *testing.T) {
+			rec := serve(mw, "GET", "/", func(req *http.Request) {
+				req.SetBasicAuth(user, pass)
+			})
+			if rec.Code != http.StatusOK {
+				t.Fatalf("valid credentials for %q (index %d of %d): got %d, want 200", user, idx, n, rec.Code)
+			}
+		})
+	}
+}
+
+func TestBasicAuth_ManyUsers_WrongPasswordRejected(t *testing.T) {
+	const n = 100
+	creds := basicAuthManyUsers(n)
+	mw := middleware.BasicAuth("realm", creds)
+
+	for _, idx := range []int{0, n / 2, n - 1} {
+		user := fmt.Sprintf("user-%04d", idx)
+		t.Run(user, func(t *testing.T) {
+			rec := serve(mw, "GET", "/", func(req *http.Request) {
+				req.SetBasicAuth(user, "definitely-wrong-password")
+			})
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("wrong password for %q: got %d, want 401", user, rec.Code)
+			}
+		})
+	}
+}
+
+func TestBasicAuth_ManyUsers_UnknownUserRejected(t *testing.T) {
+	const n = 100
+	creds := basicAuthManyUsers(n)
+	mw := middleware.BasicAuth("realm", creds)
+
+	rec := serve(mw, "GET", "/", func(req *http.Request) {
+		req.SetBasicAuth("user-9999", "anything")
+	})
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unknown user among %d registered: got %d, want 401", n, rec.Code)
+	}
+}
+
+func TestBasicAuth_EmptyUsernameAndPassword(t *testing.T) {
+	// "Basic Og==" is base64("") — an empty user:pass pair — against a
+	// credential set that does not register the empty username.
+	mw := middleware.BasicAuth("realm", map[string]string{"alice": "secret"})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(":")))
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("empty user:pass (Basic Og==): got %d, want 401", rec.Code)
+	}
+}
+
+func TestBasicAuth_EmptyUsernameRegistered(t *testing.T) {
+	// When the empty username IS registered, it must authenticate exactly
+	// like any other entry — the constant-time scan makes no exception for
+	// the empty string.
+	mw := middleware.BasicAuth("realm", map[string]string{"": "secret", "alice": "other"})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(":secret")))
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("registered empty username with correct password: got %d, want 200", rec.Code)
+	}
+}
+
 // ── RequestID (Phase 5.3) ────────────────────────────────────────────────────
 
 func TestRequestID_ValidPropagated(t *testing.T) {
@@ -725,64 +829,124 @@ func TestThrottlePerIP_AllowsDifferentIPs(t *testing.T) {
 
 // MSR-2026-0068 — ThrottlePerIP must bound its per-key map to defend against
 // IP-churn memory exhaustion.
+//
+// Closed-task audit #285 (rmp #285), row #74: the previous version of this
+// test only asserted "at least one 503 happened" and never asserted the
+// actual invariant MSR-2026-0068 is about — that the table's PEAK
+// concurrently-held population never exceeds maxTableSize. Its
+// synchronisation (a WaitGroup signalled right after the start barrier,
+// plus a 20 ms sleep) only approximated "every goroutine has reached
+// acquire()" — a goroutine could still be scheduled out before calling
+// acquire() when release closed, and once released, an accepted entry's
+// decRefs could free a slot for a not-yet-attempted request, letting
+// `accepted` legitimately grow past maxTable without that being a real
+// cap-overshoot. That raciness made a hard peak-size assertion unsound on
+// the old structure.
+//
+// This version removes the race by splitting the test into two
+// deterministic phases:
+//
+//  1. Saturate: issue exactly maxTable requests, one per distinct key —
+//     since maxTable == the cap and there is no other traffic, every one
+//     of them MUST be accepted. Poll (bounded by a generous deadline,
+//     not a fixed sleep) until all maxTable have actually entered the
+//     handler (i.e. passed acquire() and are now blocked on release) —
+//     this is the actual, unambiguous peak: no entry can have been
+//     reclaimed yet, because release has not been closed.
+//  2. Probe while saturated: with the table provably holding exactly
+//     maxTable live entries and release still closed (nothing can drain),
+//     fire further distinct-key requests and assert every single one is
+//     rejected with 503 — this is the direct, race-free proof that peak
+//     table size never exceeds maxTableSize.
 func TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn(t *testing.T) {
 	const maxTable = 64
 	mw := middleware.ThrottlePerIPCapped(1, 100*time.Millisecond, maxTable, func(r *http.Request) string {
 		host, _, _ := net.SplitHostPort(r.RemoteAddr)
 		return host
 	})
-	// release gates handler completion so every goroutine has reached acquire()
-	// before any accepted entry is freed. Without this barrier the test is
-	// flaky under slow schedulers (e.g. QEMU emulation in CI), where early
-	// handlers can finish and free their slot before late goroutines arrive.
+
 	release := make(chan struct{})
-	var entered sync.WaitGroup
-	entered.Add(maxTable * 2)
+	var enteredHandler atomic.Int64 // count of requests that passed acquire() and are blocked below
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		enteredHandler.Add(1)
 		<-release
 		w.WriteHeader(200)
 	})
 
-	// Hold many keys in flight by issuing concurrent requests, each from a
-	// distinct IP. After maxTable distinct keys are tracked, NEW keys must
-	// be rejected with 503 immediately.
+	// Phase 1 — saturate: exactly maxTable distinct-IP requests, held open.
 	var wg sync.WaitGroup
-	rejected := make(chan int, maxTable*2)
-	accepted := make(chan int, maxTable*2)
-	start := make(chan struct{})
-	for i := 0; i < maxTable*2; i++ {
+	phase1Codes := make(chan int, maxTable)
+	for i := 0; i < maxTable; i++ {
 		wg.Add(1)
 		go func(ip int) {
 			defer wg.Done()
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/", nil)
 			req.RemoteAddr = fmt.Sprintf("10.0.%d.%d:1000", (ip>>8)&0xff, ip&0xff)
-			<-start
-			entered.Done()
 			mw(inner).ServeHTTP(rec, req)
-			if rec.Code == http.StatusServiceUnavailable {
-				rejected <- ip
-			} else {
-				accepted <- ip
-			}
+			phase1Codes <- rec.Code
 		}(i)
 	}
-	close(start)
-	// Wait for every goroutine to be past the start barrier, then give the
-	// scheduler a brief window for acquire() to be entered before releasing.
-	entered.Wait()
-	time.Sleep(20 * time.Millisecond)
+
+	deadline := time.Now().Add(5 * time.Second)
+	for enteredHandler.Load() < maxTable {
+		if time.Now().After(deadline) {
+			t.Fatalf("phase 1: only %d/%d requests entered the handler within 5s (cap=%d, no contention expected) — "+
+				"scheduler starvation or a regression that rejects fresh, well-within-cap capacity",
+				enteredHandler.Load(), maxTable, maxTable)
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	// Phase 2 — probe while deterministically saturated. release is still
+	// closed-shut (not closed yet), so none of the phase-1 entries can have
+	// been reclaimed: the table holds EXACTLY maxTable live entries right
+	// now. Any further distinct-key request must be rejected.
+	const probes = 8
+	rejectedDuringSaturation := 0
+	for i := 0; i < probes; i++ {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/", nil)
+		req.RemoteAddr = fmt.Sprintf("10.1.%d.%d:2000", (i>>8)&0xff, i&0xff)
+		mw(inner).ServeHTTP(rec, req) // rejected fast path returns immediately, does not block
+		switch rec.Code {
+		case http.StatusServiceUnavailable:
+			rejectedDuringSaturation++
+		default:
+			t.Errorf("MSR-2026-0068 REGRESSION: a probe request was ACCEPTED (code=%d) while the table "+
+				"already held %d live entries at maxTableSize=%d — peak table size exceeded the bound",
+				rec.Code, maxTable, maxTable)
+		}
+	}
+	if rejectedDuringSaturation != probes {
+		t.Fatalf("expected all %d probe requests to be rejected while the table is saturated at maxTableSize=%d; got %d rejections",
+			probes, maxTable, rejectedDuringSaturation)
+	}
+
 	close(release)
 	wg.Wait()
-	close(rejected)
-	close(accepted)
+	close(phase1Codes)
 
-	// At least one request must have been rejected because of the cap.
-	if len(rejected) == 0 {
-		t.Fatalf("expected at least one 503 due to MaxTableSize cap; got 0 rejections (cap=%d, requests=%d)", maxTable, maxTable*2)
+	accepted := 0
+	for code := range phase1Codes {
+		if code == http.StatusOK {
+			accepted++
+		}
 	}
-	t.Logf("ThrottlePerIPCapped(maxTable=%d) under %d concurrent unique IPs: accepted=%d rejected=%d",
-		maxTable, maxTable*2, len(accepted), len(rejected))
+
+	// The definitive MSR-2026-0068 assertion the closed-task audit (#285,
+	// row #74) flagged as missing: peak table size must never exceed
+	// maxTableSize. `accepted` here IS the peak concurrently-held
+	// population — phase 2's probes (all rejected, asserted above) prove
+	// no capacity existed beyond it while these entries were live.
+	if accepted > maxTable {
+		t.Fatalf("MSR-2026-0068 REGRESSION: peak table size %d exceeded maxTableSize=%d", accepted, maxTable)
+	}
+	if accepted != maxTable {
+		t.Fatalf("expected exactly %d accepted (maxTable distinct keys, no contention, within cap), got %d", maxTable, accepted)
+	}
+	t.Logf("MSR-2026-0068 PASS: ThrottlePerIPCapped(maxTable=%d) peak table size = %d (<= cap); "+
+		"%d/%d saturation probes correctly rejected with 503", maxTable, accepted, rejectedDuringSaturation, probes)
 }
 
 // ── CleanPath (Phase 5.8) ────────────────────────────────────────────────────
@@ -840,6 +1004,66 @@ func TestStripSlashes_MultipleTrailing(t *testing.T) {
 		mw(inner).ServeHTTP(rec, req)
 		if captured != want {
 			t.Errorf("StripSlashes(%q): got %q, want %q", input, captured, want)
+		}
+	}
+}
+
+// TestStripSlashes_EncodedTrailingSlashKeepsRawPathInSync is a regression
+// test for a defect found while restoring FuzzStripSlashesIdempotency (rmp
+// #274 part 5b): a trailing decoded slash spelled as a percent-encoded
+// "%2F"/"%2f" in RawPath (e.g. a client request line "GET /a%2f") was left
+// untouched while the corresponding literal '/' was stripped from Path,
+// desynchronising Path ("/a") from RawPath ("/a%2f", which still decodes to
+// "/a/"). Any RawPath-based consumer downstream (UseRawPath=true routing,
+// logging, a reverse proxy) would then disagree with Path about the
+// request's actual target.
+func TestStripSlashes_EncodedTrailingSlashKeepsRawPathInSync(t *testing.T) {
+	mw := middleware.StripSlashes()
+	var capturedPath, capturedRaw string
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedPath = r.URL.Path
+		capturedRaw = r.URL.RawPath
+		w.WriteHeader(200)
+	})
+	for _, tc := range []struct {
+		raw      string // raw request-target, as a client would send it
+		wantPath string
+		wantRaw  string
+	}{
+		{"/a%2f", "/a", "/a"},
+		{"/a%2F", "/a", "/a"},
+		{"/a/b%2f", "/a/b", "/a/b"},
+		{"/a%2f%2f", "/a", "/a"},
+		{"/a%2f/", "/a", "/a"},
+	} {
+		u, err := url.ParseRequestURI(tc.raw)
+		if err != nil {
+			t.Fatalf("ParseRequestURI(%q): %v", tc.raw, err)
+		}
+		capturedPath, capturedRaw = "", ""
+		req := &http.Request{
+			Method:     http.MethodGet,
+			URL:        u,
+			Header:     make(http.Header),
+			Body:       http.NoBody,
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+		}
+		rec := httptest.NewRecorder()
+		mw(inner).ServeHTTP(rec, req)
+		if capturedPath != tc.wantPath || capturedRaw != tc.wantRaw {
+			t.Errorf("StripSlashes(raw=%q): got Path=%q RawPath=%q, want Path=%q RawPath=%q",
+				tc.raw, capturedPath, capturedRaw, tc.wantPath, tc.wantRaw)
+		}
+		// RawPath must stay a valid net/url encoding of Path (empty, or
+		// EscapedPath() round-trips it exactly).
+		if capturedRaw != "" {
+			check := &url.URL{Path: capturedPath, RawPath: capturedRaw}
+			if check.EscapedPath() != capturedRaw {
+				t.Errorf("StripSlashes(raw=%q): output Path=%q/RawPath=%q is not a valid net/url pair (EscapedPath()=%q)",
+					tc.raw, capturedPath, capturedRaw, check.EscapedPath())
+			}
 		}
 	}
 }
@@ -1004,6 +1228,58 @@ func TestSec_TSC_2026_0008_APIKey_HeaderSymmetry(t *testing.T) {
 	}
 }
 
+// TestSec_APIKey_WWWAuthenticate_MissingAndInvalid — MM-2026-0052 (rmp #5).
+// RFC 7235 §4.1 requires a 401 response to carry WWW-Authenticate. APIKey
+// has two independent 401 branches (middleware/api_key.go): the
+// missing-key branch (extracted key == "") and the invalid-key branch
+// (extracted key non-empty but no hash match). Both branches must set
+// WWW-Authenticate exactly once — zero times would violate RFC 7235,
+// more than once would emit a duplicated header line that some HTTP
+// clients/proxies handle inconsistently. Four properties are checked (one
+// presence + one uniqueness assertion per branch):
+//  1. missing header  -> WWW-Authenticate present
+//  2. missing header  -> WWW-Authenticate set exactly once
+//  3. invalid key     -> WWW-Authenticate present
+//  4. invalid key     -> WWW-Authenticate set exactly once
+func TestSec_APIKey_WWWAuthenticate_MissingAndInvalid(t *testing.T) {
+	mw := middleware.APIKey(middleware.APIKeyOptions{
+		Keys: map[string]string{"valid-key": "svc"},
+	})
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	cases := []struct {
+		name      string
+		setHeader func(r *http.Request)
+	}{
+		{"missing_header", func(_ *http.Request) {}},
+		{"invalid_key", func(r *http.Request) { r.Header.Set("X-API-Key", "wrong-key") }},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			tc.setHeader(req)
+			wrapped.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("%s: got status %d, want 401", tc.name, rec.Code)
+			}
+			values := rec.Header().Values("WWW-Authenticate")
+			if len(values) == 0 || values[0] == "" {
+				t.Errorf("MM-2026-0052: %s: WWW-Authenticate missing on 401 (RFC 7235 §4.1). Header=%v",
+					tc.name, rec.Header())
+			}
+			if len(values) != 1 {
+				t.Errorf("MM-2026-0052: %s: WWW-Authenticate set %d times, want exactly 1 (uniqueness). Values=%v",
+					tc.name, len(values), values)
+			}
+		})
+	}
+}
+
 // COV-2026-009 — Compress middleware edge cases.
 func TestCompress_SkipNonAcceptingClient(t *testing.T) {
 	mw := middleware.Compress(5)
@@ -1075,6 +1351,43 @@ func TestCompress_SmallPayloadBelowThreshold(t *testing.T) {
 	wrapped.ServeHTTP(rec, req)
 	if rec.Header().Get("Content-Encoding") == "gzip" {
 		t.Error("tiny payload should not be compressed")
+	}
+}
+
+// TestSec_Compress_SmallResponseVaryPresent — MSR-2026-0060 (rmp #45).
+// compress.go's commit() unconditionally adds "Vary: Accept-Encoding"
+// (see the MSR-2026-0060 comment at compress.go's commit method) even when
+// the response is below minCompressSize and therefore served uncompressed:
+// without it, a CDN or shared cache could key its cache entry without
+// Accept-Encoding and later serve this small, uncompressed response to a
+// client that requested (and would otherwise receive) gzip on a
+// byte-larger version of the same resource. This is the specified
+// behaviour — the below-threshold skip path in commit() calls
+// hdr.Add("Vary", "Accept-Encoding") before writing the uncompressed body,
+// unconditionally on whether compression was actually applied.
+func TestSec_Compress_SmallResponseVaryPresent(t *testing.T) {
+	mw := middleware.Compress(5)
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte("tiny")) // well below minCompressSize (1024 bytes)
+	}))
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	wrapped.ServeHTTP(rec, req)
+
+	if rec.Header().Get("Content-Encoding") == "gzip" {
+		t.Fatal("tiny payload should not be compressed (test precondition violated)")
+	}
+	vary := rec.Header().Values("Vary")
+	found := false
+	for _, v := range vary {
+		if strings.Contains(v, "Accept-Encoding") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("MSR-2026-0060: Vary: Accept-Encoding missing on below-threshold (uncompressed) response. Got Vary=%v", vary)
 	}
 }
 
@@ -2211,7 +2524,7 @@ func ExampleOAuth2Introspect() {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		Endpoint:   mockServer.URL,
-		CacheTTL:   0, // Disable caching for this example.
+		CacheTTL:   -1, // Disable caching for this example (0 = default 60s, -1 = disabled).
 		HTTPClient: mockServer.Client(),
 	})
 

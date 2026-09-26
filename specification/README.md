@@ -49,6 +49,7 @@ The following terms are used consistently throughout all specification files. Wh
 | **TSR** | Trailing Slash Redirect. A redirect issued when a route exists at the alternate trailing-slash path. |
 | **Fixed path** | A path produced by `path.Clean` that differs from the original but has a registered handler. Used by the `RedirectFixedPath` feature. |
 | **Allow header** | The `Allow` HTTP response header listing the HTTP methods registered for a given path. Used in 405 and OPTIONS responses. |
+| **Shallow request copy** | A new `*http.Request` value created by copying the original request struct by value and replacing only its `URL` field with a new `*url.URL` value (itself copied from the original). It shares the original request's header map and context, and it never causes the original request to be mutated. Used wherever only the request path needs to change before delegating to another handler: `Mount` and `ServeFiles` (see [groups.md](groups.md) and [static-files.md](static-files.md)) and the `StripSlashes` and `CleanPath` middleware (see [middleware-stdlib.md](middleware-stdlib.md)). Distinct from a **request bundle**, which is a heap allocation used for a different purpose (carrying path parameters). |
 | **Pool** | A `sync.Pool` used internally to recycle a fixed-size allocation — a parameter slice for `FastHandler` routes, or a request bundle for `Handle` routes — across requests, avoiding a fresh heap allocation each time. Pooling is opt-in per mechanism; see `PoolFastParams` and `PoolRequestBundle` in [configuration.md](configuration.md). |
 | **Request bundle** | The single heap allocation that fuses a request-scoped context wrapper with a copy of `*http.Request`, used for `Handle` routes with path parameters. Tiered by parameter count (1, 2, or 3 or more). See [performance.md](performance.md). |
 | **Configuration snapshot** | The one-time, immutable copy of `Mux` configuration fields captured on the first `ServeHTTP` call. Reset by `(*Mux).Rebuild()`. See [configuration.md](configuration.md). |
@@ -64,6 +65,7 @@ These principles are non-negotiable. They constrain all implementation decisions
 3. **Performance first.** Every design decision weighs impact on ns/op and allocs/op. The target is to match or beat `httprouter` and `bunrouter`. Features that add per-request allocation or overhead when disabled are not acceptable.
 4. **Idiomatic Go.** Follows Go naming conventions. Zero-values are useful where possible. Interfaces are small. No magic.
 5. **Zero overhead when optional features are disabled.** Features controlled by boolean flags or nil handlers must have zero cost at request time when they are not configured.
+6. **Per-request header isolation.** Every response header value written by the router or by any middleware in this project belongs to that one request. It is never a slice shared with, or mutated by, another request — even when a performance optimization writes directly into `w.Header()` instead of calling `Header.Set`. A handler or middleware that indexes into a header's value slice must never be able to corrupt a different request's response.
 
 ---
 
@@ -77,7 +79,7 @@ These principles are non-negotiable. They constrain all implementation decisions
 | [groups.md](groups.md) | `Group`, `Route` (inline group), `Mount`, and sub-groups |
 | [error-handling.md](error-handling.md) | `NotFound`, `MethodNotAllowed`, `PanicHandler`, `GlobalOPTIONS`, `HandlerFuncE`, `HTTPError`, and `ErrorHandler` |
 | [configuration.md](configuration.md) | All `Mux` fields, their default values, and their behavior when toggled |
-| [introspection.md](introspection.md) | `Lookup`, `Routes`, `Walk`, and `RoutePattern` |
+| [introspection.md](introspection.md) | `Lookup`, `Routes`, `Walk`, `WalkFast`, and `RoutePattern` |
 | [static-files.md](static-files.md) | `ServeFiles` behavior and constraints |
 | [response-helpers.md](response-helpers.md) | `JSON`, `XML`, `Text`, `Redirect`, and `NoContent` |
 | [middleware-stdlib.md](middleware-stdlib.md) | Each middleware in the `muxmaster/middleware` sub-package |
@@ -107,6 +109,8 @@ muxmaster/
 ├── group.go        # Group, Route (inline), Mount, With
 ├── handler.go      # HandlerFuncE, HTTPError, error adapters
 ├── response.go     # JSON, XML, Text, Redirect, NoContent
+├── introspection.go # Lookup, Routes, Walk, WalkFast
+├── doc.go          # package-level GoDoc
 ├── middleware/
 │   ├── logger.go
 │   ├── recoverer.go
@@ -115,13 +119,17 @@ muxmaster/
 │   ├── timeout.go
 │   ├── compress.go
 │   ├── basic_auth.go
+│   ├── api_key.go
+│   ├── jwt_auth.go
+│   ├── oauth2.go
 │   ├── cors.go
 │   ├── throttle.go
 │   ├── no_cache.go
 │   ├── strip_slashes.go
 │   ├── clean_path.go
 │   ├── set_header.go
-│   └── with_value.go
+│   ├── with_value.go
+│   └── doc.go
 ├── mux_test.go
 ├── bench_test.go
 ├── go.mod

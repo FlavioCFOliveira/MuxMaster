@@ -771,14 +771,26 @@ func TestThrottlePerIPCappedSaturationRevalidation(t *testing.T) {
 
 	// Phase 1: send attackerIPs concurrent requests, each from a distinct IP,
 	// and hold them open (blockingHandler blocks).
-	w := httptest.NewRecorder()
+	//
+	// GATE-2026-0925 fix: each goroutine gets its OWN httptest.ResponseRecorder.
+	// The original code shared a single `w` across all 100 goroutines, each
+	// calling r.ServeHTTP(w, req) concurrently — httptest.ResponseRecorder is
+	// an ordinary, non-synchronised struct (its WriteHeader/Write/Header
+	// methods do not lock), so concurrent calls into the SAME recorder from
+	// different goroutines is a genuine data race regardless of which router
+	// serves the request. This was a pre-existing bug in the test harness
+	// (present unchanged since the v1.0.0 release, commit e9fd648), not in
+	// MuxMaster: the attacker goroutines here only need to WIN a throttle
+	// token, never assert on their own individual response, so a private
+	// recorder per goroutine removes the race without changing what the test
+	// verifies (attackerSucceeded is still counted the same way).
 	for i := range attackerIPs {
 		attackHandlerDone.Add(1)
 		go func(i int) {
 			defer attackHandlerDone.Done()
 			req := httptest.NewRequest("GET", "http://x/protected", nil)
 			req.RemoteAddr = fmt.Sprintf("10.%d.%d.%d:1234", (i/65536)%256, (i/256)%256, i%256)
-			r.ServeHTTP(w, req)
+			r.ServeHTTP(httptest.NewRecorder(), req)
 			atomic.AddInt64(&attackerSucceeded, 1)
 		}(i)
 	}

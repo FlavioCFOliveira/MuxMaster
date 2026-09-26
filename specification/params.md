@@ -85,9 +85,11 @@ type Param struct {
 
 26. `RoutePattern(r *http.Request) string` returns the matched route pattern for the current request.
 27. Example: a request to `/users/42` matched by the pattern `/users/:id` causes `RoutePattern` to return `"/users/:id"`.
-28. `RoutePattern` returns `""` when called outside a handler that was dispatched by the router (for example, in pre-routing middleware or in a manually constructed request).
-29. The primary use cases for `RoutePattern` are structured logging, metrics (to avoid high-cardinality labels from raw paths), distributed tracing (span names), and OpenAPI generation.
-30. `RoutePattern` is a package-level function.
+28. `RoutePattern` returns `""` when called outside a handler that was dispatched by the router (for example, in `Pre` middleware, which runs before route lookup, or in a manually constructed request).
+29. `RoutePattern` also returns `""` for a static route — one whose pattern declares no named, regex, or catch-all parameter — because only a route with at least one parameter stores its pattern in the request context (see [introspection.md](introspection.md) section 5, rule 27). For the same reason, it returns `""` inside `NotFound`, `MethodNotAllowed`, the automatic `OPTIONS` responder, and a trailing-slash or fixed-path redirect handler: none of these carries a stored pattern.
+30. A static route belonging to a `*Mux` attached with `Mount` is the one exception to rule 29: `RoutePattern` returns the mount's own pattern, `prefix + "/*mux_mount"`, because the context stores the nearest parameterized match, and `Mount` registers the mounted sub-router behind a catch-all (see [groups.md](groups.md)).
+31. The primary use cases for `RoutePattern` are structured logging, metrics (to avoid high-cardinality labels from raw paths), distributed tracing (span names), and OpenAPI generation.
+32. `RoutePattern` is a package-level function.
 
 ---
 
@@ -104,3 +106,9 @@ This section describes internal behavior. It is specified here because it affect
 34. Whether the underlying storage is drawn from a `sync.Pool` and recycled after the handler returns is controlled independently for each route type: `Mux.PoolRequestBundle` for `Handle` routes and `Mux.PoolFastParams` for `FastHandler` routes (see [configuration.md](configuration.md) sections 4.6 and 4.5). Both default to `false`.
 35. When the relevant pooling flag is `false` (the default for both), the `Params` slice — and, for `Handle` routes, the request context and `*http.Request` that carry it — remain valid indefinitely after the handler returns and are safe to retain across goroutines.
 36. When the relevant pooling flag is `true`, the underlying storage is returned to a `sync.Pool` the instant the handler returns. Handlers MUST NOT retain the `Params` slice — nor, for pooled `Handle` routes, the `*http.Request` — past their return. See [configuration.md](configuration.md) sections 4.5 and 4.6 for the full lifetime contract.
+
+---
+
+## 6. Captured Values Are Never Empty
+
+37. As of [routing.md](routing.md) section 12, a named parameter and a regex parameter never capture an empty string: `Value` is always at least one byte long for a `Param` produced by either kind. A catch-all parameter's captured value is also never empty, because a catch-all pattern requires a literal `/` immediately preceding the `*` token (routing.md rule 16), so its minimum possible capture is the single character `/`. Consequently, every `Param` produced by ordinary route matching has a non-empty `Value`. Rule 12 remains a correct, general statement of the `Lookup` API's contract for an empty-valued key; as of this rule, it no longer describes a case that ordinary route matching itself can produce.

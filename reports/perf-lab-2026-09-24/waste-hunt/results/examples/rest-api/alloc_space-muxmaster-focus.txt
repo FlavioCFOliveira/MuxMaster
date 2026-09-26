@@ -1,0 +1,71 @@
+File: rest-api
+Build ID: 4b8baa8639964aa2c48adae079ae129e2d4dd77e
+Type: alloc_space
+Time: 2026-09-24 19:54:07 WEST
+Duration: 10.01s, Total samples = 2475.03MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 1541.52MB, 62.28% of 2475.03MB total
+Dropped 103 nodes (cum <= 12.38MB)
+Showing top 60 nodes out of 101
+      flat  flat%   sum%        cum   cum%
+  338.10MB 13.66% 13.66%   338.10MB 13.66%  net/http.(*Request).WithContext
+  239.07MB  9.66% 23.32%   239.07MB  9.66%  net/http.Header.Clone (inline)
+  172.05MB  6.95% 30.27%     1478MB 59.72%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+   73.28MB  2.96% 33.23%    73.28MB  2.96%  bufio.NewWriterSize (inline)
+   70.53MB  2.85% 36.08%   790.31MB 31.93%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   68.01MB  2.75% 38.83%   103.52MB  4.18%  context.(*cancelCtx).propagateCancel
+   67.31MB  2.72% 41.55%    67.31MB  2.72%  encoding/json/v2.makeStringArshaler.func2
+   58.51MB  2.36% 43.91%    58.51MB  2.36%  time.newTimer
+   50.61MB  2.04% 45.96%    50.61MB  2.04%  sync.(*Pool).pinSlow
+   40.50MB  1.64% 47.59%    66.01MB  2.67%  time.NewTimer
+   36.50MB  1.47% 49.07%   173.02MB  6.99%  context.WithDeadlineCause
+   36.50MB  1.47% 50.54%   982.81MB 39.71%  github.com/FlavioCFOliveira/MuxMaster/middleware.Compress.func2.1
+   35.50MB  1.43% 51.98%    35.50MB  1.43%  context.(*cancelCtx).Done
+      35MB  1.41% 53.39%       35MB  1.41%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*gzipResponseWriter).Write
+   26.51MB  1.07% 54.46%    26.51MB  1.07%  net/textproto.MIMEHeader.Set (inline)
+   26.50MB  1.07% 55.53%    26.50MB  1.07%  bytes.Clone (inline)
+   23.50MB  0.95% 56.48%    23.50MB  0.95%  reflect.unsafe_New
+   19.01MB  0.77% 57.25%    19.01MB  0.77%  net/textproto.MIMEHeader.Add (inline)
+   18.50MB  0.75% 58.00%    18.50MB  0.75%  context.WithValue
+      16MB  0.65% 58.65%       16MB  0.65%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*throttleTable).acquire
+      16MB  0.65% 59.29%    22.50MB  0.91%  strconv.quoteWith (inline)
+      11MB  0.44% 59.74%    84.52MB  3.41%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams2
+      11MB  0.44% 60.18%       14MB  0.57%  main.main.func7
+    8.50MB  0.34% 60.53%     8.50MB  0.34%  time.Duration.String
+       8MB  0.32% 60.85%    35.51MB  1.43%  net/http.(*Request).Clone
+       8MB  0.32% 61.17%    36.01MB  1.46%  main.fastEcho
+    6.50MB  0.26% 61.43%    17.51MB  0.71%  main.(*Store).getBookDetails
+    5.50MB  0.22% 61.66%    16.01MB  0.65%  main.adminDashboard
+    3.50MB  0.14% 61.80%    76.78MB  3.10%  encoding/xml.NewEncoder (inline)
+       3MB  0.12% 61.92%    36.01MB  1.45%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).mountAt.func1
+    2.50MB   0.1% 62.02%    11.02MB  0.45%  encoding/json/v2.getStrings
+    1.50MB 0.061% 62.08%    13.50MB  0.55%  net/http.Redirect
+    1.50MB 0.061% 62.14%    24.51MB  0.99%  main.(*Store).listBooks
+       1MB  0.04% 62.18%       10MB   0.4%  main.(*Store).featuredBooks
+       1MB  0.04% 62.22%       14MB  0.57%  main.listCategories
+       1MB  0.04% 62.26%    58.02MB  2.34%  main.fastTimer.func1
+    0.50MB  0.02% 62.28%    98.33MB  3.97%  main.(*Store).patchBook
+         0     0% 62.28%    73.28MB  2.96%  bufio.NewWriter (inline)
+         0     0% 62.28%   173.02MB  6.99%  context.WithDeadline (inline)
+         0     0% 62.28%   173.02MB  6.99%  context.WithTimeout
+         0     0% 62.28%    92.33MB  3.73%  encoding/json.(*Decoder).Decode
+         0     0% 62.28%    18.51MB  0.75%  encoding/json.(*Encoder).Encode
+         0     0% 62.28%    64.53MB  2.61%  encoding/json.Marshal (inline)
+         0     0% 62.28%     9.01MB  0.36%  encoding/json/jsontext.export.GetBufferedDecoder (inline)
+         0     0% 62.28%     9.01MB  0.36%  encoding/json/jsontext.export.GetBufferedEncoder (inline)
+         0     0% 62.28%     9.01MB  0.36%  encoding/json/jsontext.getBufferedDecoder
+         0     0% 62.28%     9.01MB  0.36%  encoding/json/jsontext.getBufferedEncoder
+         0     0% 62.28%    64.53MB  2.61%  encoding/json/v2.Marshal
+         0     0% 62.28%    88.33MB  3.57%  encoding/json/v2.Unmarshal
+         0     0% 62.28%    25.02MB  1.01%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 62.28%    78.31MB  3.16%  encoding/json/v2.makeMapArshaler.func3
+         0     0% 62.28%    36.02MB  1.46%  encoding/json/v2.marshalEncode
+         0     0% 62.28%     8.50MB  0.34%  encoding/json/v2.newAddressableValue
+         0     0% 62.28%    78.31MB  3.16%  encoding/json/v2.unmarshalDecode
+         0     0% 62.28%    82.28MB  3.32%  encoding/xml.Marshal
+         0     0% 62.28%    12.52MB  0.51%  fmt.newPrinter
+         0     0% 62.28%    14.01MB  0.57%  github.com/FlavioCFOliveira/MuxMaster.(*Group).HandleE.func1
+         0     0% 62.28%  1636.55MB 66.12%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 62.28%  1656.06MB 66.91%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 62.28%  1636.55MB 66.12%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch

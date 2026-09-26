@@ -1,0 +1,49 @@
+File: upload-file
+Build ID: 76671e74dc807238a9e4c7b770f63a5cd009d415
+Type: cpu
+Time: 2026-09-24 19:52:39 WEST
+Duration: 10.01s, Total samples = 71.80s (717.61%)
+Showing nodes accounting for 58.44s, 81.39% of 71.80s total
+Dropped 730 nodes (cum <= 0.36s)
+Showing top 40 nodes out of 156
+      flat  flat%   sum%        cum   cum%
+    28.68s 39.94% 39.94%     28.68s 39.94%  internal/runtime/syscall/linux.Syscall6
+     6.93s  9.65% 49.60%      6.93s  9.65%  runtime.memclrNoHeapPointers
+     4.68s  6.52% 56.11%      4.68s  6.52%  crypto/internal/fips140/sha256.blockSHANI
+     4.26s  5.93% 62.05%      4.26s  5.93%  internal/bytealg.LastIndexByte (inline)
+     3.99s  5.56% 67.60%      3.99s  5.56%  time.runtimeNow
+     3.30s  4.60% 72.20%      3.30s  4.60%  runtime.nanotime (inline)
+     3.11s  4.33% 76.53%      3.11s  4.33%  runtime.memmove
+     0.53s  0.74% 77.27%      0.53s  0.74%  runtime.futex
+     0.28s  0.39% 77.66%      0.75s  1.04%  runtime.sweepone
+     0.20s  0.28% 77.94%      0.42s  0.58%  runtime.pcvalue
+     0.19s  0.26% 78.20%     12.98s 18.08%  mime/multipart.partReader.Read
+     0.18s  0.25% 78.45%      0.37s  0.52%  runtime.(*unwinder).resolveInternal
+     0.14s  0.19% 78.65%      0.70s  0.97%  runtime.markroot
+     0.12s  0.17% 78.82%     10.17s 14.16%  bufio.(*Reader).Peek
+     0.12s  0.17% 78.98%      7.73s 10.77%  bufio.(*Reader).Read
+     0.12s  0.17% 79.15%      1.65s  2.30%  net/http.(*chunkWriter).writeHeader
+     0.11s  0.15% 79.30%      4.53s  6.31%  runtime.mallocgc
+     0.10s  0.14% 79.44%      1.19s  1.66%  net/http.readRequestLimit
+     0.09s  0.13% 79.57%      0.38s  0.53%  runtime.casgstatus
+     0.09s  0.13% 79.69%      4.10s  5.71%  runtime.systemstack
+     0.08s  0.11% 79.81%      9.37s 13.05%  internal/poll.(*FD).Read
+     0.08s  0.11% 79.92%     28.50s 39.69%  syscall.RawSyscall6
+     0.07s 0.097% 80.01%     10.13s 14.11%  bufio.(*Reader).fill
+     0.07s 0.097% 80.11%      1.09s  1.52%  internal/poll.runtime_pollSetDeadline
+     0.07s 0.097% 80.21%      2.98s  4.15%  net/http.(*conn).readRequest
+     0.07s 0.097% 80.31%     22.93s 31.94%  syscall.Syscall
+     0.06s 0.084% 80.39%     10.79s 15.03%  bytes.(*Buffer).grow
+     0.06s 0.084% 80.47%     10.73s 14.94%  bytes.growSlice
+     0.06s 0.084% 80.56%     36.34s 50.61%  io.copyBuffer
+     0.06s 0.084% 80.64%      1.37s  1.91%  runtime.(*mheap).allocSpan
+     0.06s 0.084% 80.72%      0.45s  0.63%  runtime.(*sweepLocked).sweep
+     0.06s 0.084% 80.81%      2.59s  3.61%  runtime.growslice
+     0.06s 0.084% 80.89%      0.61s  0.85%  runtime.mallocgcSmallScanNoHeader
+     0.06s 0.084% 80.97%      2.32s  3.23%  runtime.schedule
+     0.05s  0.07% 81.04%      0.70s  0.97%  encoding/json/v2.makeMapArshaler.func2
+     0.05s  0.07% 81.11%     22.18s 30.89%  mime/multipart.(*Reader).readForm
+     0.05s  0.07% 81.18%      7.74s 10.78%  mime/multipart.(*stickyErrorReader).Read
+     0.05s  0.07% 81.25%      4.56s  6.35%  mime/multipart.scanUntilBoundary
+     0.05s  0.07% 81.32%      9.54s 13.29%  net.(*conn).Read
+     0.05s  0.07% 81.39%      0.83s  1.16%  net/textproto.readMIMEHeader

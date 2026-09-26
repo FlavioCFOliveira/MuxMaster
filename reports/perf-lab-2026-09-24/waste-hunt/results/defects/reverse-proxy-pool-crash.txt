@@ -1,0 +1,30 @@
+# reverse-proxy example as shipped (PoolRequestBundle=true), waste-hunt examples phase, 2026-09-24T19:49:43+01:00
+# warm-up load: 32 conns, 2 s — process crashed; every later request failed at connection level
+scenario=reverse-proxy conns=32 duration=2s
+requests=78 req/s=39 p50=2.975482ms p90=6.101194ms p99=8.095745ms
+  GET /api/*path (round-robin)             expect=200 got 200×19 ERR×48353
+  POST /api/*path                          expect=200 got 200×15 ERR×48360
+  GET /static/*path                        expect=200 got 200×13 ERR×48360
+
+panic: runtime error: invalid memory address or nil pointer dereference
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x30 pc=0x71147c]
+
+goroutine 263 [running]:
+github.com/FlavioCFOliveira/MuxMaster.(*requestCtx1).Value(0x433917?, {0xb37fb8?, 0xc09d80?})
+	/data/dev/github.com/FlavioCFOliveira/MuxMaster/params.go:133 +0x3c
+context.value({0xb85710?, 0x2a661998c640?}, {0xb37fb8, 0xc09d80})
+	/usr/local/go/src/context/context.go:804 +0x212
+context.(*cancelCtx).Value(...)
+	/usr/local/go/src/context/context.go:446
+net.(*Dialer).DialContext(0x2a66192ee120, {0xb85710?, 0x2a661998c640?}, {0x7b5276, 0x3}, {0x2a66193901b0, 0xe})
+	/usr/local/go/src/net/dial.go:535 +0xac
+net/http.(*Transport).dial(0x0?, {0xb85710?, 0x2a661998c640?}, {0x7b5276?, 0x7c07a5?}, {0x2a66193901b0?, 0x2a66193901b0?})
+	/usr/local/go/src/net/http/transport.go:1374 +0xdc
+net/http.(*Transport).dialConn(0xbe0cf8, {0xb85710, 0x2a661998c640}, {{}, 0x0, {0x7c07a5, 0x4}, {0x2a66193901b0, 0xe}, 0x0}, ...)
+	/usr/local/go/src/net/http/transport.go:1920 +0x9b9
+net/http.(*Transport).dialConnFor(0xbe0cf8, 0x2a66197f00b0)
+	/usr/local/go/src/net/http/transport.go:1715 +0x8e
+net/http.(*Transport).startDialConnForLocked.func1()
+	/usr/local/go/src/net/http/transport.go:1696 +0x35
+created by net/http.(*Transport).startDialConnForLocked in goroutine 70
+	/usr/local/go/src/net/http/transport.go:1695 +0x11c

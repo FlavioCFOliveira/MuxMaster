@@ -1,0 +1,264 @@
+{
+ "name": "rest-api",
+ "requests": [
+  {
+   "name": "GET /health (fast)",
+   "method": "GET",
+   "path": "/health",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /version",
+   "method": "GET",
+   "path": "/version",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /books (handler redirect)",
+   "method": "GET",
+   "path": "/books",
+   "expect": 301,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/books",
+   "method": "GET",
+   "path": "/api/v1/books",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/books/:id",
+   "method": "GET",
+   "path": "/api/v1/books/1",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "HEAD /api/v1/books/:id",
+   "method": "HEAD",
+   "path": "/api/v1/books/1",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "PATCH /api/v1/books/:id",
+   "method": "PATCH",
+   "path": "/api/v1/books/3",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Content-Type": "application/json"
+   },
+   "body": "{\"genre\":\"sci-fi\"}"
+  },
+  {
+   "name": "GET /api/v1/books/{id}/details",
+   "method": "GET",
+   "path": "/api/v1/books/2/details",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/books/:id/reviews",
+   "method": "GET",
+   "path": "/api/v1/books/1/reviews",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/books/:id/reviews/:rid (404 via ErrorHandler)",
+   "method": "GET",
+   "path": "/api/v1/books/1/reviews/9",
+   "expect": 404,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/books/featured",
+   "method": "GET",
+   "path": "/api/v1/books/featured",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/books/ping (ANY)",
+   "method": "GET",
+   "path": "/api/v1/books/ping",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/categories",
+   "method": "GET",
+   "path": "/api/v1/categories",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/categories/:slug",
+   "method": "GET",
+   "path": "/api/v1/categories/tech",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/authors/:id/xml (CORS)",
+   "method": "GET",
+   "path": "/api/v1/authors/1/xml",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Origin": "http://localhost:3000"
+   }
+  },
+  {
+   "name": "GET /api/v1/admin/dashboard (BasicAuth)",
+   "method": "GET",
+   "path": "/api/v1/admin/dashboard",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Authorization": "Basic YWRtaW46czNjcjN0IQ=="
+   }
+  },
+  {
+   "name": "GET /metrics (fast)",
+   "method": "GET",
+   "path": "/metrics",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "POST /api/v1/fast/echo (fast)",
+   "method": "POST",
+   "path": "/api/v1/fast/echo",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Content-Type": "application/json"
+   },
+   "body": "{\"hello\":\"world\"}"
+  },
+  {
+   "name": "GET /legacy/api/books/:id (Mount)",
+   "method": "GET",
+   "path": "/legacy/api/books/2",
+   "expect": 308,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /api/v1/books/ (Pre CleanPath strips slash -> 200)",
+   "method": "GET",
+   "path": "/api/v1/books/",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "DELETE /api/v1/categories (405)",
+   "method": "DELETE",
+   "path": "/api/v1/categories",
+   "expect": 405,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "OPTIONS /api/v1/books/1 (auto OPTIONS)",
+   "method": "OPTIONS",
+   "path": "/api/v1/books/1",
+   "expect": 204,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  },
+  {
+   "name": "GET /nope (404)",
+   "method": "GET",
+   "path": "/nope",
+   "expect": 404,
+   "weight": 1,
+   "headers": {
+    "X-Forwarded-For": "203.0.113.9",
+    "Accept-Encoding": "gzip, deflate, br"
+   }
+  }
+ ]
+}

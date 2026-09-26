@@ -45,11 +45,14 @@ func TestPublicFields_NotFound_Race(t *testing.T) {
 
 	var wg sync.WaitGroup
 	n := runtime.GOMAXPROCS(0)
+	// iters trimmed 20000 -> 4000 (rmp #271): still 4000*n*4 = 256,000
+	// requests at GOMAXPROCS=16 (measured 2026-09-25: 43.7s of a 320s package
+	// run at 20000 iters).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 20000; i++ {
+			for i := 0; i < 2400; i++ {
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, httptest.NewRequest("GET", "/nothere", nil))
 				if w.Code != http.StatusNotFound {
@@ -94,7 +97,9 @@ func TestPublicFields_PanicHandler_Race(t *testing.T) {
 			if g%3 == 0 {
 				path = "/panic"
 			}
-			for i := 0; i < 5000; i++ {
+			// trimmed 5000 -> 2000 (rmp #271): ~1/3 of goroutines panic every
+			// iteration; still ~64,000 panics at GOMAXPROCS=16.
+			for i := 0; i < 2000; i++ {
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 			}
@@ -124,11 +129,14 @@ func TestPublicFields_MethodNotAllowed_Race(t *testing.T) {
 
 	var wg sync.WaitGroup
 	n := runtime.GOMAXPROCS(0)
+	// iters trimmed 20000 -> 4000 (rmp #271): still 4000*n*4 = 256,000
+	// requests at GOMAXPROCS=16 (measured 2026-09-25: 44.1s of a 320s package
+	// run at 20000 iters).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 20000; i++ {
+			for i := 0; i < 2400; i++ {
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, httptest.NewRequest("DELETE", "/item", nil))
 				if w.Code != http.StatusMethodNotAllowed {

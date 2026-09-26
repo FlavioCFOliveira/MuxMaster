@@ -1,0 +1,19 @@
+{
+ "name": "graceful-shutdown",
+ "requests": [
+  {
+   "name": "GET /",
+   "method": "GET",
+   "path": "/",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /nope (404)",
+   "method": "GET",
+   "path": "/nope",
+   "expect": 404,
+   "weight": 1
+  }
+ ]
+}

@@ -1,0 +1,52 @@
+# Out-of-scope defect evidence: Logger's statusRecorder and Compress's gzipResponseWriter hide the
+# optional ResponseWriter interfaces (http.Flusher, io.ReaderFrom) and provide no Unwrap(), so even
+# http.ResponseController cannot flush (streaming such as SSE breaks behind them).
+# Reproduction (go test -v in a scratch module replacing MuxMaster with this repository):
+
+package cz
+
+import (
+	"compress/gzip"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	mw "github.com/FlavioCFOliveira/MuxMaster/middleware"
+)
+
+func TestWrappersHideInterfaces(t *testing.T) {
+	probe := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, f := w.(http.Flusher)
+		_, rf := w.(io.ReaderFrom)
+		_, u := w.(interface{ Unwrap() http.ResponseWriter })
+		err := http.NewResponseController(w).Flush()
+		t.Logf("%-8s Flusher=%v ReaderFrom=%v Unwrap=%v ResponseController.Flush err=%v", r.URL.Path, f, rf, u, err)
+	})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/bare":
+			probe.ServeHTTP(w, r)
+		case "/logger":
+			mw.Logger(io.Discard)(probe).ServeHTTP(w, r)
+		case "/gzip":
+			mw.Compress(gzip.BestSpeed)(probe).ServeHTTP(w, r)
+		}
+	}))
+	defer srv.Close()
+	for _, p := range []string{"/bare", "/logger", "/gzip"} {
+		req, _ := http.NewRequest("GET", srv.URL+p, nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+		resp, err := http.DefaultTransport.RoundTrip(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+	}
+}
+
+# Output:
+    fl_test.go:19: /bare    Flusher=true ReaderFrom=true Unwrap=false ResponseController.Flush err=<nil>
+    fl_test.go:19: /logger  Flusher=false ReaderFrom=false Unwrap=false ResponseController.Flush err=feature not supported
+    fl_test.go:19: /gzip    Flusher=false ReaderFrom=false Unwrap=false ResponseController.Flush err=feature not supported
+ok  	cz	0.005s

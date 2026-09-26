@@ -1,0 +1,4 @@
+date: 2026-09-25T12:36:12+01:00
+go: go version go1.27.0 linux/amd64
+git HEAD (uncommitted sprint 18 tree): d980583 + uncommitted
+CONNS=32 LOAD_S=12 PROF_S=10

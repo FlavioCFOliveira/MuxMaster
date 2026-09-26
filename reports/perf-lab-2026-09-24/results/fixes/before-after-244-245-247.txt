@@ -1,0 +1,100 @@
+before-all.txt:78: parsing iteration count: invalid syntax
+before-all.txt:82: parsing iteration count: invalid syntax
+before-all.txt:87: parsing iteration count: invalid syntax
+before-all.txt:92: parsing iteration count: invalid syntax
+before-all.txt:97: parsing iteration count: invalid syntax
+before-all.txt:102: parsing iteration count: invalid syntax
+before-all.txt:107: parsing iteration count: invalid syntax
+before-all.txt:112: parsing iteration count: invalid syntax
+before-all.txt:118: parsing iteration count: invalid syntax
+before-all.txt:124: parsing iteration count: invalid syntax
+before-all.txt:130: parsing iteration count: invalid syntax
+before-all.txt:135: parsing iteration count: invalid syntax
+before-all.txt:141: parsing iteration count: invalid syntax
+before-all.txt:146: parsing iteration count: invalid syntax
+before-all.txt:151: parsing iteration count: invalid syntax
+before-all.txt:156: parsing iteration count: invalid syntax
+before-all.txt:161: parsing iteration count: invalid syntax
+before-all.txt:166: parsing iteration count: invalid syntax
+after-all.txt:78: parsing iteration count: invalid syntax
+after-all.txt:82: parsing iteration count: invalid syntax
+after-all.txt:87: parsing iteration count: invalid syntax
+after-all.txt:92: parsing iteration count: invalid syntax
+after-all.txt:97: parsing iteration count: invalid syntax
+after-all.txt:102: parsing iteration count: invalid syntax
+after-all.txt:107: parsing iteration count: invalid syntax
+after-all.txt:112: parsing iteration count: invalid syntax
+after-all.txt:117: parsing iteration count: invalid syntax
+after-all.txt:122: parsing iteration count: invalid syntax
+after-all.txt:127: parsing iteration count: invalid syntax
+after-all.txt:132: parsing iteration count: invalid syntax
+after-all.txt:137: parsing iteration count: invalid syntax
+after-all.txt:142: parsing iteration count: invalid syntax
+after-all.txt:147: parsing iteration count: invalid syntax
+after-all.txt:152: parsing iteration count: invalid syntax
+after-all.txt:157: parsing iteration count: invalid syntax
+after-all.txt:162: parsing iteration count: invalid syntax
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                                               │ before-all.txt │           after-all.txt            │
+                                               │     sec/op     │   sec/op     vs base               │
+ParallelRedirectTrailingSlash                       304.7n ± 1%   313.1n ± 1%   +2.74% (p=0.004 n=6)
+ParallelRedirectTrailingSlash-4                     96.94n ± 2%   97.41n ± 3%        ~ (p=0.818 n=6)
+ParallelRedirectTrailingSlash-16                    89.06n ± 3%   88.73n ± 3%        ~ (p=0.818 n=6)
+ParallelRedirectTrailingSlashWithMiddleware         381.6n ± 1%   394.4n ± 1%   +3.37% (p=0.002 n=6)
+ParallelRedirectTrailingSlashWithMiddleware-4       118.4n ± 4%   117.6n ± 2%        ~ (p=0.615 n=6)
+ParallelRedirectTrailingSlashWithMiddleware-16      115.7n ± 2%   116.8n ± 2%        ~ (p=0.394 n=6)
+ThrottleBacklogParallel                             39.12n ± 1%   22.76n ± 1%  -41.81% (p=0.002 n=6)
+ThrottleBacklogParallel-4                           62.83n ± 2%   59.45n ± 2%   -5.37% (p=0.002 n=6)
+ThrottleBacklogParallel-16                          76.15n ± 2%   66.23n ± 5%  -13.02% (p=0.002 n=6)
+ThrottlePerIPSingleKey                              4.120µ ± 1%   4.159µ ± 1%   +0.95% (p=0.026 n=6)
+ThrottlePerIPSingleKey-4                            881.2n ± 1%   882.2n ± 1%        ~ (p=0.485 n=6)
+ThrottlePerIPSingleKey-16                           657.1n ± 4%   629.6n ± 3%   -4.18% (p=0.015 n=6)
+RequestIDParallel                                  1123.5n ± 1%   471.6n ± 2%  -58.03% (p=0.002 n=6)
+RequestIDParallel-4                                 305.2n ± 3%   163.5n ± 4%  -46.41% (p=0.002 n=6)
+RequestIDParallel-16                                276.5n ± 9%   197.0n ± 1%  -28.77% (p=0.002 n=6)
+geomean                                             242.3n        204.6n       -15.56%
+
+                                               │ before-all.txt │           after-all.txt            │
+                                               │      B/op      │    B/op     vs base                │
+ParallelRedirectTrailingSlash                      192.0 ± 0%     192.0 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlash-4                    192.0 ± 0%     192.0 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlash-16                   192.0 ± 0%     192.0 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlashWithMiddleware        248.0 ± 0%     248.0 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlashWithMiddleware-4      248.0 ± 0%     248.0 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlashWithMiddleware-16     248.0 ± 0%     248.0 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottleBacklogParallel                            0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottleBacklogParallel-4                          0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottleBacklogParallel-16                         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottlePerIPSingleKey                             376.0 ± 0%     376.0 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottlePerIPSingleKey-4                           248.0 ± 0%     248.0 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottlePerIPSingleKey-16                          248.0 ± 0%     248.0 ± 0%       ~ (p=1.000 n=6) ¹
+RequestIDParallel                                  464.0 ± 0%     464.0 ± 0%       ~ (p=1.000 n=6) ¹
+RequestIDParallel-4                                464.0 ± 0%     464.0 ± 0%       ~ (p=1.000 n=6) ¹
+RequestIDParallel-16                               464.0 ± 0%     472.0 ± 0%  +1.72% (p=0.002 n=6)
+geomean                                                       ²               +0.11%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                               │ before-all.txt │           after-all.txt            │
+                                               │   allocs/op    │ allocs/op   vs base                │
+ParallelRedirectTrailingSlash                      4.000 ± 0%     4.000 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlash-4                    4.000 ± 0%     4.000 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlash-16                   4.000 ± 0%     4.000 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlashWithMiddleware        6.000 ± 0%     6.000 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlashWithMiddleware-4      6.000 ± 0%     6.000 ± 0%       ~ (p=1.000 n=6) ¹
+ParallelRedirectTrailingSlashWithMiddleware-16     6.000 ± 0%     6.000 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottleBacklogParallel                            0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottleBacklogParallel-4                          0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottleBacklogParallel-16                         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottlePerIPSingleKey                             5.000 ± 0%     5.000 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottlePerIPSingleKey-4                           3.000 ± 0%     3.000 ± 0%       ~ (p=1.000 n=6) ¹
+ThrottlePerIPSingleKey-16                          3.000 ± 0%     3.000 ± 0%       ~ (p=1.000 n=6) ¹
+RequestIDParallel                                  7.000 ± 0%     7.000 ± 0%       ~ (p=1.000 n=6) ¹
+RequestIDParallel-4                                7.000 ± 0%     7.000 ± 0%       ~ (p=1.000 n=6) ¹
+RequestIDParallel-16                               7.000 ± 0%     7.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                                       ²               +0.00%               ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

@@ -1,0 +1,60 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/middleware
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkOAuth2CacheSetAtSaturation-16     	  364050	      3195 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16     	  374281	      3187 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16     	  363591	      3194 ns/op	     288 B/op	       2 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client-16         	10377693	       115.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client-16         	10537444	       113.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client-16         	10516791	       118.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap-16       	 8618714	       128.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap-16       	 9902889	       127.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap-16       	 9968318	       119.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLogger-16                                      	  211447	      5671 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLogger-16                                      	  211432	      5668 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLogger-16                                      	  211405	      5672 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecoverer_NoPanic-16                           	60594898	        19.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecoverer_NoPanic-16                           	59158855	        19.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecoverer_NoPanic-16                           	61245259	        20.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecovererWithLogger_NoPanic-16                 	58866986	        20.09 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecovererWithLogger_NoPanic-16                 	59629636	        20.14 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecovererWithLogger_NoPanic-16                 	60593830	        20.12 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCompress/small-600B-16                         	 3758418	       318.5 ns/op	      32 B/op	       2 allocs/op
+BenchmarkCompress/small-600B-16                         	 3743131	       316.5 ns/op	      32 B/op	       2 allocs/op
+BenchmarkCompress/small-600B-16                         	 3794796	       316.6 ns/op	      32 B/op	       2 allocs/op
+BenchmarkCompress/chunked-12KiB-16                      	  153938	      7765 ns/op	      58 B/op	       3 allocs/op
+BenchmarkCompress/chunked-12KiB-16                      	  150116	      7757 ns/op	      59 B/op	       3 allocs/op
+BenchmarkCompress/chunked-12KiB-16                      	  151047	      7815 ns/op	      53 B/op	       3 allocs/op
+BenchmarkRealIP/1-hop-16                                	 8306151	       142.6 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/1-hop-16                                	 8294503	       144.1 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/1-hop-16                                	 8345160	       143.6 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/3-hops-16                               	 6638491	       178.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/3-hops-16                               	 6591794	       178.7 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/3-hops-16                               	 6651860	       179.0 ns/op	      16 B/op	       1 allocs/op
+BenchmarkAPIKeyHit-16                                   	 2638688	       453.3 ns/op	     416 B/op	       6 allocs/op
+BenchmarkAPIKeyHit-16                                   	 2657715	       454.6 ns/op	     416 B/op	       6 allocs/op
+BenchmarkAPIKeyHit-16                                   	 2647568	       451.7 ns/op	     416 B/op	       6 allocs/op
+BenchmarkBasicAuth/1-users/hit-16                       	 3770143	       319.5 ns/op	      32 B/op	       2 allocs/op
+BenchmarkBasicAuth/1-users/hit-16                       	 3753451	       319.1 ns/op	      32 B/op	       2 allocs/op
+BenchmarkBasicAuth/1-users/hit-16                       	 3740300	       319.6 ns/op	      32 B/op	       2 allocs/op
+BenchmarkBasicAuth/10-users/hit-16                      	 2189997	       549.7 ns/op	      32 B/op	       2 allocs/op
+BenchmarkBasicAuth/10-users/hit-16                      	 2174378	       547.7 ns/op	      32 B/op	       2 allocs/op
+BenchmarkBasicAuth/10-users/hit-16                      	 2182372	       549.8 ns/op	      32 B/op	       2 allocs/op
+BenchmarkBasicAuth/100-users/hit-16                     	  412506	      2849 ns/op	      32 B/op	       2 allocs/op
+BenchmarkBasicAuth/100-users/hit-16                     	  425694	      2834 ns/op	      32 B/op	       2 allocs/op
+BenchmarkBasicAuth/100-users/hit-16                     	  420477	      2836 ns/op	      32 B/op	       2 allocs/op
+BenchmarkBasicAuth/1-users/miss-16                      	 1642093	       729.6 ns/op	     168 B/op	       8 allocs/op
+BenchmarkBasicAuth/1-users/miss-16                      	 1636215	       733.3 ns/op	     168 B/op	       8 allocs/op
+BenchmarkBasicAuth/1-users/miss-16                      	 1639826	       734.7 ns/op	     168 B/op	       8 allocs/op
+BenchmarkBasicAuth/10-users/miss-16                     	 1250478	       958.8 ns/op	     168 B/op	       8 allocs/op
+BenchmarkBasicAuth/10-users/miss-16                     	 1254238	       958.4 ns/op	     168 B/op	       8 allocs/op
+BenchmarkBasicAuth/10-users/miss-16                     	 1247396	       959.8 ns/op	     168 B/op	       8 allocs/op
+BenchmarkBasicAuth/100-users/miss-16                    	  366160	      3231 ns/op	     168 B/op	       8 allocs/op
+BenchmarkBasicAuth/100-users/miss-16                    	  366506	      3232 ns/op	     168 B/op	       8 allocs/op
+BenchmarkBasicAuth/100-users/miss-16                    	  363096	      3233 ns/op	     168 B/op	       8 allocs/op
+BenchmarkJWTAuthHS256-16                                	  263094	      4381 ns/op	     738 B/op	       7 allocs/op
+BenchmarkJWTAuthHS256-16                                	  266830	      4354 ns/op	     738 B/op	       7 allocs/op
+BenchmarkJWTAuthHS256-16                                	  260188	      4353 ns/op	     738 B/op	       7 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/middleware	77.351s

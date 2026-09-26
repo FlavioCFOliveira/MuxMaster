@@ -1,0 +1,238 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                                                               │ wastehunt-claims-head.txt │
+                                                               │          sec/op           │
+APIKeyHit/current-16                                                          447.2n ± ∞ ¹
+APIKeyHit/alternative-16                                                      449.0n ± ∞ ¹
+JWTAuthHS256-16                                                               4.420µ ± ∞ ¹
+JWTParts/[]byte(signingInput)-escaping-16                                     35.79n ± ∞ ¹
+JWTParts/hmac.Sum(nil)-16                                                     207.2n ± ∞ ¹
+JWTParts/hmac.Sum(stack)-16                                                   194.6n ± ∞ ¹
+JWTHeaderStep/current(decode+unmarshal)-16                                    412.0n ± ∞ ¹
+JWTHeaderStep/alternative(memo-hit)-16                                        4.014n ± ∞ ¹
+Mount/current-16                                                              237.5n ± ∞ ¹
+Mount/no-redundant-url-16                                                     985.1n ± ∞ ¹
+Mount/shallow-copy-16                                                         254.7n ± ∞ ¹
+Mount/dispatch-only-16                                                        116.6n ± ∞ ¹
+ServeFilesCopy/current-replica-16                                             1.029µ ± ∞ ¹
+ServeFilesCopy/shallow-copy-16                                                252.9n ± ∞ ¹
+CleanPathChanged/current-16                                                   145.4n ± ∞ ¹
+CleanPathChanged/shallow-copy-16                                              140.3n ± ∞ ¹
+Compress/small-600B/current-16                                                309.4n ± ∞ ¹
+Compress/small-600B/alternative-16                                            309.5n ± ∞ ¹
+Compress/chunked-12KiB/current-16                                             7.773µ ± ∞ ¹
+Compress/chunked-12KiB/alternative-16                                         7.830µ ± ∞ ¹
+FileServe/no-logger/small.css-16                                              134.9µ ± ∞ ¹
+FileServe/no-logger/16k.js-16                                                 140.4µ ± ∞ ¹
+FileServe/no-logger/128k.js-16                                                182.6µ ± ∞ ¹
+FileServe/no-logger/large.bin-16                                              602.8µ ± ∞ ¹
+FileServe/Logger-current/small.css-16                                         138.8µ ± ∞ ¹
+FileServe/Logger-current/16k.js-16                                            145.3µ ± ∞ ¹
+FileServe/Logger-current/128k.js-16                                           184.7µ ± ∞ ¹
+FileServe/Logger-current/large.bin-16                                         602.0µ ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/small.css-16                                 139.8µ ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/16k.js-16                                    146.0µ ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/128k.js-16                                   185.3µ ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/large.bin-16                                 604.7µ ± ∞ ¹
+SetHeaderX4/current-16                                                        177.6n ± ∞ ¹
+SetHeaderX4/alternative-16                                                    115.4n ± ∞ ¹
+Text/current-16                                                               60.39n ± ∞ ¹
+Text/alternative-16                                                           45.41n ± ∞ ¹
+JSONHelper-16                                                                 514.1n ± ∞ ¹
+XMLHelper-16                                                                  2.333µ ± ∞ ¹
+HeaderSetConst/Header.Set-16                                                  38.88n ± ∞ ¹
+HeaderSetConst/prealloc-assign-16                                             9.589n ± ∞ ¹
+Logger/current-16                                                             5.667µ ± ∞ ¹
+Logger/alternative-16                                                         5.664µ ± ∞ ¹
+Logger/alt-single-clock-only-16                                               5.922µ ± ∞ ¹
+Logger/alt-no-alloc-only-16                                                   7.029µ ± ∞ ¹
+Clock/time.Now-16                                                             2.786µ ± ∞ ¹
+Clock/time.Since-16                                                           1.411µ ± ∞ ¹
+LoggerParts/QuoteToASCII-path-16                                              145.6n ± ∞ ¹
+LoggerParts/appendSanitised-path-16                                           14.42n ± ∞ ¹
+LoggerParts/Duration.String-16                                                25.41n ± ∞ ¹
+LoggerParts/appendDuration-16                                                 12.90n ± ∞ ¹
+RedirectTrailingSlashWithMiddleware-16                                        7.769µ ± ∞ ¹
+MatchedRouteWithMiddleware-16                                                 6.860µ ± ∞ ¹
+RedirectTrailingSlashNoMiddleware-16                                          258.9n ± ∞ ¹
+MethodNotAllowed-16                                                           155.1n ± ∞ ¹
+AutoOPTIONS-16                                                                132.6n ± ∞ ¹
+StaticDispatch-16                                                             23.36n ± ∞ ¹
+StaticDispatchMixedTree-16                                                    30.64n ± ∞ ¹
+RegisterRoutes/N=100-16                                                       64.42µ ± ∞ ¹
+RegisterRoutes/N=1000-16                                                      773.2µ ± ∞ ¹
+RegisterRoutes/N=5000-16                                                      4.793m ± ∞ ¹
+RealIP/1-hop/current-16                                                       142.1n ± ∞ ¹
+RealIP/1-hop/alternative-16                                                   147.9n ± ∞ ¹
+RealIP/3-hops/current-16                                                      184.7n ± ∞ ¹
+RealIP/3-hops/alternative-16                                                  182.7n ± ∞ ¹
+ThrottlePerIP/sequential-one-client/current-16                                116.9n ± ∞ ¹
+ThrottlePerIP/sequential-one-client/alternative-16                            109.3n ± ∞ ¹
+ThrottlePerIP/sequential-one-client/alt-timer-fastpath-only-16                734.4n ± ∞ ¹
+ThrottlePerIP/sequential-one-client/alt-entry-reuse-only-16                   3.296µ ± ∞ ¹
+ThrottlePerIP/many-clients/current-16                                         121.6n ± ∞ ¹
+ThrottlePerIP/many-clients/alternative-16                                     111.8n ± ∞ ¹
+geomean                                                                       1.251µ
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                                               │ wastehunt-claims-head.txt │
+                                                               │           B/op            │
+APIKeyHit/current-16                                                           416.0 ± ∞ ¹
+APIKeyHit/alternative-16                                                       416.0 ± ∞ ¹
+JWTAuthHS256-16                                                                738.0 ± ∞ ¹
+JWTParts/[]byte(signingInput)-escaping-16                                      128.0 ± ∞ ¹
+JWTParts/hmac.Sum(nil)-16                                                      160.0 ± ∞ ¹
+JWTParts/hmac.Sum(stack)-16                                                    128.0 ± ∞ ¹
+JWTHeaderStep/current(decode+unmarshal)-16                                     80.00 ± ∞ ¹
+JWTHeaderStep/alternative(memo-hit)-16                                         0.000 ± ∞ ¹
+Mount/current-16                                                               864.0 ± ∞ ¹
+Mount/no-redundant-url-16                                                    1.742Ki ± ∞ ¹
+Mount/shallow-copy-16                                                          848.0 ± ∞ ¹
+Mount/dispatch-only-16                                                         384.0 ± ∞ ¹
+ServeFilesCopy/current-replica-16                                            1.883Ki ± ∞ ¹
+ServeFilesCopy/shallow-copy-16                                                 848.0 ± ∞ ¹
+CleanPathChanged/current-16                                                    464.0 ± ∞ ¹
+CleanPathChanged/shallow-copy-16                                               464.0 ± ∞ ¹
+Compress/small-600B/current-16                                                 32.00 ± ∞ ¹
+Compress/small-600B/alternative-16                                             32.00 ± ∞ ¹
+Compress/chunked-12KiB/current-16                                              58.00 ± ∞ ¹
+Compress/chunked-12KiB/alternative-16                                          58.00 ± ∞ ¹
+FileServe/no-logger/small.css-16                                             8.263Ki ± ∞ ¹
+FileServe/no-logger/16k.js-16                                                8.213Ki ± ∞ ¹
+FileServe/no-logger/128k.js-16                                               8.209Ki ± ∞ ¹
+FileServe/no-logger/large.bin-16                                             8.402Ki ± ∞ ¹
+FileServe/Logger-current/small.css-16                                        8.324Ki ± ∞ ¹
+FileServe/Logger-current/16k.js-16                                           8.294Ki ± ∞ ¹
+FileServe/Logger-current/128k.js-16                                          8.256Ki ± ∞ ¹
+FileServe/Logger-current/large.bin-16                                        8.304Ki ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/small.css-16                                8.479Ki ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/16k.js-16                                   8.341Ki ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/128k.js-16                                  8.271Ki ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/large.bin-16                                8.502Ki ± ∞ ¹
+SetHeaderX4/current-16                                                         64.00 ± ∞ ¹
+SetHeaderX4/alternative-16                                                     0.000 ± ∞ ¹
+Text/current-16                                                                16.00 ± ∞ ¹
+Text/alternative-16                                                            0.000 ± ∞ ¹
+JSONHelper-16                                                                  176.0 ± ∞ ¹
+XMLHelper-16                                                                 4.566Ki ± ∞ ¹
+HeaderSetConst/Header.Set-16                                                   16.00 ± ∞ ¹
+HeaderSetConst/prealloc-assign-16                                              0.000 ± ∞ ¹
+Logger/current-16                                                              0.000 ± ∞ ¹
+Logger/alternative-16                                                          0.000 ± ∞ ¹
+Logger/alt-single-clock-only-16                                                104.0 ± ∞ ¹
+Logger/alt-no-alloc-only-16                                                    0.000 ± ∞ ¹
+Clock/time.Now-16                                                              0.000 ± ∞ ¹
+Clock/time.Since-16                                                            0.000 ± ∞ ¹
+LoggerParts/QuoteToASCII-path-16                                               80.00 ± ∞ ¹
+LoggerParts/appendSanitised-path-16                                            0.000 ± ∞ ¹
+LoggerParts/Duration.String-16                                                 16.00 ± ∞ ¹
+LoggerParts/appendDuration-16                                                  0.000 ± ∞ ¹
+RedirectTrailingSlashWithMiddleware-16                                       1.287Ki ± ∞ ¹
+MatchedRouteWithMiddleware-16                                                  873.0 ± ∞ ¹
+RedirectTrailingSlashNoMiddleware-16                                           80.00 ± ∞ ¹
+MethodNotAllowed-16                                                            48.00 ± ∞ ¹
+AutoOPTIONS-16                                                                 16.00 ± ∞ ¹
+StaticDispatch-16                                                              0.000 ± ∞ ¹
+StaticDispatchMixedTree-16                                                     0.000 ± ∞ ¹
+RegisterRoutes/N=100-16                                                      86.31Ki ± ∞ ¹
+RegisterRoutes/N=1000-16                                                     1.041Mi ± ∞ ¹
+RegisterRoutes/N=5000-16                                                     6.084Mi ± ∞ ¹
+RealIP/1-hop/current-16                                                        16.00 ± ∞ ¹
+RealIP/1-hop/alternative-16                                                    16.00 ± ∞ ¹
+RealIP/3-hops/current-16                                                       16.00 ± ∞ ¹
+RealIP/3-hops/alternative-16                                                   16.00 ± ∞ ¹
+ThrottlePerIP/sequential-one-client/current-16                                 0.000 ± ∞ ¹
+ThrottlePerIP/sequential-one-client/alternative-16                             0.000 ± ∞ ¹
+ThrottlePerIP/sequential-one-client/alt-timer-fastpath-only-16                 128.0 ± ∞ ¹
+ThrottlePerIP/sequential-one-client/alt-entry-reuse-only-16                    248.0 ± ∞ ¹
+ThrottlePerIP/many-clients/current-16                                          0.000 ± ∞ ¹
+ThrottlePerIP/many-clients/alternative-16                                      0.000 ± ∞ ¹
+geomean                                                                                  ²
+¹ need >= 6 samples for confidence interval at level 0.95
+² summaries must be >0 to compute geomean
+
+                                                               │ wastehunt-claims-head.txt │
+                                                               │         allocs/op         │
+APIKeyHit/current-16                                                           6.000 ± ∞ ¹
+APIKeyHit/alternative-16                                                       6.000 ± ∞ ¹
+JWTAuthHS256-16                                                                7.000 ± ∞ ¹
+JWTParts/[]byte(signingInput)-escaping-16                                      1.000 ± ∞ ¹
+JWTParts/hmac.Sum(nil)-16                                                      2.000 ± ∞ ¹
+JWTParts/hmac.Sum(stack)-16                                                    1.000 ± ∞ ¹
+JWTHeaderStep/current(decode+unmarshal)-16                                     2.000 ± ∞ ¹
+JWTHeaderStep/alternative(memo-hit)-16                                         0.000 ± ∞ ¹
+Mount/current-16                                                               2.000 ± ∞ ¹
+Mount/no-redundant-url-16                                                      8.000 ± ∞ ¹
+Mount/shallow-copy-16                                                          3.000 ± ∞ ¹
+Mount/dispatch-only-16                                                         1.000 ± ∞ ¹
+ServeFilesCopy/current-replica-16                                              9.000 ± ∞ ¹
+ServeFilesCopy/shallow-copy-16                                                 3.000 ± ∞ ¹
+CleanPathChanged/current-16                                                    2.000 ± ∞ ¹
+CleanPathChanged/shallow-copy-16                                               2.000 ± ∞ ¹
+Compress/small-600B/current-16                                                 2.000 ± ∞ ¹
+Compress/small-600B/alternative-16                                             2.000 ± ∞ ¹
+Compress/chunked-12KiB/current-16                                              3.000 ± ∞ ¹
+Compress/chunked-12KiB/alternative-16                                          3.000 ± ∞ ¹
+FileServe/no-logger/small.css-16                                               98.00 ± ∞ ¹
+FileServe/no-logger/16k.js-16                                                  98.00 ± ∞ ¹
+FileServe/no-logger/128k.js-16                                                 98.00 ± ∞ ¹
+FileServe/no-logger/large.bin-16                                               98.00 ± ∞ ¹
+FileServe/Logger-current/small.css-16                                          98.00 ± ∞ ¹
+FileServe/Logger-current/16k.js-16                                             98.00 ± ∞ ¹
+FileServe/Logger-current/128k.js-16                                            98.00 ± ∞ ¹
+FileServe/Logger-current/large.bin-16                                          98.00 ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/small.css-16                                  102.0 ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/16k.js-16                                     102.0 ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/128k.js-16                                    102.0 ± ∞ ¹
+FileServe/Logger-with-ReaderFrom/large.bin-16                                  102.0 ± ∞ ¹
+SetHeaderX4/current-16                                                         4.000 ± ∞ ¹
+SetHeaderX4/alternative-16                                                     0.000 ± ∞ ¹
+Text/current-16                                                                1.000 ± ∞ ¹
+Text/alternative-16                                                            0.000 ± ∞ ¹
+JSONHelper-16                                                                  3.000 ± ∞ ¹
+XMLHelper-16                                                                   11.00 ± ∞ ¹
+HeaderSetConst/Header.Set-16                                                   1.000 ± ∞ ¹
+HeaderSetConst/prealloc-assign-16                                              0.000 ± ∞ ¹
+Logger/current-16                                                              0.000 ± ∞ ¹
+Logger/alternative-16                                                          0.000 ± ∞ ¹
+Logger/alt-single-clock-only-16                                                5.000 ± ∞ ¹
+Logger/alt-no-alloc-only-16                                                    0.000 ± ∞ ¹
+Clock/time.Now-16                                                              0.000 ± ∞ ¹
+Clock/time.Since-16                                                            0.000 ± ∞ ¹
+LoggerParts/QuoteToASCII-path-16                                               2.000 ± ∞ ¹
+LoggerParts/appendSanitised-path-16                                            0.000 ± ∞ ¹
+LoggerParts/Duration.String-16                                                 1.000 ± ∞ ¹
+LoggerParts/appendDuration-16                                                  0.000 ± ∞ ¹
+RedirectTrailingSlashWithMiddleware-16                                         11.00 ± ∞ ¹
+MatchedRouteWithMiddleware-16                                                  7.000 ± ∞ ¹
+RedirectTrailingSlashNoMiddleware-16                                           2.000 ± ∞ ¹
+MethodNotAllowed-16                                                            1.000 ± ∞ ¹
+AutoOPTIONS-16                                                                 1.000 ± ∞ ¹
+StaticDispatch-16                                                              0.000 ± ∞ ¹
+StaticDispatchMixedTree-16                                                     0.000 ± ∞ ¹
+RegisterRoutes/N=100-16                                                       1.135k ± ∞ ¹
+RegisterRoutes/N=1000-16                                                      13.40k ± ∞ ¹
+RegisterRoutes/N=5000-16                                                      75.94k ± ∞ ¹
+RealIP/1-hop/current-16                                                        1.000 ± ∞ ¹
+RealIP/1-hop/alternative-16                                                    1.000 ± ∞ ¹
+RealIP/3-hops/current-16                                                       1.000 ± ∞ ¹
+RealIP/3-hops/alternative-16                                                   1.000 ± ∞ ¹
+ThrottlePerIP/sequential-one-client/current-16                                 0.000 ± ∞ ¹
+ThrottlePerIP/sequential-one-client/alternative-16                             0.000 ± ∞ ¹
+ThrottlePerIP/sequential-one-client/alt-timer-fastpath-only-16                 2.000 ± ∞ ¹
+ThrottlePerIP/sequential-one-client/alt-entry-reuse-only-16                    3.000 ± ∞ ¹
+ThrottlePerIP/many-clients/current-16                                          0.000 ± ∞ ¹
+ThrottlePerIP/many-clients/alternative-16                                      0.000 ± ∞ ¹
+geomean                                                                                  ²
+¹ need >= 6 samples for confidence interval at level 0.95
+² summaries must be >0 to compute geomean
+
+                         │ wastehunt-claims-head.txt │
+                         │         sec/route         │
+RegisterRoutes/N=100-16                 644.2n ± ∞ ¹
+RegisterRoutes/N=1000-16                773.2n ± ∞ ¹
+RegisterRoutes/N=5000-16                958.7n ± ∞ ¹
+geomean                                 781.6n
+¹ need >= 6 samples for confidence interval at level 0.95

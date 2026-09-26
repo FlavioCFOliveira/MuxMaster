@@ -54,7 +54,11 @@ MuxMaster will not provide session management. Session state is application stat
 
 ### 2.6 Authentication and Authorization Logic
 
-MuxMaster will not provide authentication or authorization engines. The `BasicAuth` middleware in [middleware-stdlib.md](middleware-stdlib.md) is a narrow, low-level HTTP primitive. Full auth systems (OAuth, JWT, RBAC) are out of scope.
+MuxMaster will not provide full authentication or authorization engines: session management, RBAC, and policy evaluation remain out of scope. Four middleware in the `muxmaster/middleware` sub-package are narrow, low-level exceptions that validate a credential or a bearer token for a single request and stop there — they do not issue tokens, manage sessions, or make authorization decisions: `BasicAuth` ([middleware-stdlib.md](middleware-stdlib.md) section 9), `APIKey` (section 18), `JWTAuth` (section 19), and `OAuth2Introspect` (section 20).
+
+### 2.7 Custom and Extension HTTP Methods
+
+MuxMaster will not support registering handlers for custom or extension HTTP methods, such as the WebDAV method `PROPFIND` or the informal `PURGE` method used by some caching proxies, and provides no function or other mechanism to declare or register a custom or extension method. The set of method tokens the router recognizes — the ten standard methods (GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE, QUERY) plus the internal `"*"` token used by `Mount` — is a fixed array indexed by a compile-time constant (`methodIdx`), replacing a `map[string]*node` lookup so that method dispatch on the request-time hot path is an O(1) array access rather than a hash-map lookup. Supporting an open-ended set of method strings would require reintroducing a map, or an equivalent dynamic structure, on that hot path, which conflicts with the performance-first design principle (see [README.md](README.md) "Design Principles" and [performance.md](performance.md) section 7, Lock-Free Dispatch). See [routing.md](routing.md) section 2.3 for the resulting registration-time panic behavior.
 
 ---
 
@@ -94,9 +98,10 @@ MuxMaster will not implement automatic content negotiation (selecting a response
 
 The `muxmaster/middleware` sub-package provides general-purpose HTTP middleware. The following are explicitly out of scope for that sub-package:
 
-- Rate limiting backed by external stores (Redis, Memcached). The `ThrottleBacklog` middleware is in-process only.
-- OAuth2 or JWT middleware.
+- Rate limiting backed by external stores (Redis, Memcached). `ThrottleBacklog` and `ThrottlePerIP`/`ThrottlePerIPCapped` ([middleware-stdlib.md](middleware-stdlib.md) sections 11 and 21) are in-process only; each tracks its state (a concurrency count, or a per-key table) purely in the memory of the running process, and neither state nor the applied limit is shared across separate processes or replicas.
 - CSRF protection middleware (requires session state or signed tokens, which is application territory).
 - Prometheus middleware (would require importing the Prometheus client, violating zero-dependency).
 - OpenTelemetry middleware (same reason).
 - IP allowlist/denylist middleware.
+
+JWT Bearer-token validation and OAuth2 token introspection are no longer excluded from this sub-package — see section 2.6.

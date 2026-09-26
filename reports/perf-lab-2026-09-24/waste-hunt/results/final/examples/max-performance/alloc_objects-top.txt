@@ -1,0 +1,49 @@
+File: max-performance
+Build ID: 9d3d7ab86ea3c17f0525ed6e90c99dfd450784dd
+Type: alloc_objects
+Time: 2026-09-25 12:37:31 WEST
+Duration: 10.01s, Total samples = 16601906 
+Showing nodes accounting for 16243371, 97.84% of 16601906 total
+Dropped 88 nodes (cum <= 83009)
+Showing top 40 nodes out of 76
+      flat  flat%   sum%        cum   cum%
+   2907670 17.51% 17.51%    2907670 17.51%  net/textproto.readMIMEHeader
+   2818085 16.97% 34.49%    2818085 16.97%  reflect.unsafe_New
+   1453914  8.76% 43.25%    1453914  8.76%  net/http.Header.Clone (inline)
+    992484  5.98% 49.22%    8161176 49.16%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    991919  5.97% 55.20%    7009283 42.22%  net/http.(*conn).readRequest
+    694735  4.18% 59.38%     694735  4.18%  net.(*conn).Read
+    688139  4.14% 63.53%     688139  4.14%  net/http.(*connReader).startBackgroundRead
+    622602  3.75% 67.28%    1166592  7.03%  context.WithCancel
+    606228  3.65% 70.93%     606228  3.65%  net/textproto.(*Reader).ReadLine (inline)
+    557226  3.36% 74.29%     557226  3.36%  net/http.(*Request).WithContext
+    557133  3.36% 77.64%     557133  3.36%  net/url.parse
+    543990  3.28% 80.92%     543990  3.28%  context.withCancel (inline)
+    504781  3.04% 83.96%    4838289 29.14%  net/http.readRequestLimit
+    336812  2.03% 85.99%    1256921  7.57%  main.configHandler
+    304032  1.83% 87.82%     931078  5.61%  main.getUserOrder
+    238496  1.44% 89.26%     996456  6.00%  main.getUser
+    189342  1.14% 90.40%     745249  4.49%  main.getUserProfile
+    172952  1.04% 91.44%     871758  5.25%  main.getRepoIssue
+    131074  0.79% 92.23%     144067  0.87%  main.postEvent.func1
+    131073  0.79% 93.02%     131073  0.79%  io.LimitReader (inline)
+    131073  0.79% 93.81%     131073  0.79%  net/textproto.MIMEHeader.Set (inline)
+    117974  0.71% 94.52%     227202  1.37%  net/http.readTransfer
+     98305  0.59% 95.11%      98305  0.59%  encoding/json/jsontext.(*objectNameStack).push (inline)
+     98305  0.59% 95.70%      98305  0.59%  encoding/json/jsontext.(*stateMachine).pushObject (inline)
+     92850  0.56% 96.26%      92850  0.56%  sync.(*poolChain).pushHead
+     57372  0.35% 96.61%     131101  0.79%  io.ReadAll
+     57347  0.35% 96.95%     305884  1.84%  main.postEvent
+     32769   0.2% 97.15%     179745  1.08%  main.listStaticFile
+     32769   0.2% 97.35%     238028  1.43%  main.metricsFast
+     32768   0.2% 97.54%     528118  3.18%  main.createUser
+     32768   0.2% 97.74%     295889  1.78%  net/http/pprof.Cmdline
+     16384 0.099% 97.84%     146976  0.89%  io.WriteString
+         0     0% 97.84%     300417  1.81%  encoding/json.(*Decoder).Decode
+         0     0% 97.84%    3561695 21.45%  encoding/json.(*Encoder).Encode
+         0     0% 97.84%      98305  0.59%  encoding/json/jsontext.(*Decoder).ReadToken
+         0     0% 97.84%     172034  1.04%  encoding/json/jsontext.(*Decoder).ReadValue (inline)
+         0     0% 97.84%      98305  0.59%  encoding/json/jsontext.(*decoderState).ReadToken
+         0     0% 97.84%     172034  1.04%  encoding/json/jsontext.(*decoderState).ReadValue
+         0     0% 97.84%    2836976 17.09%  encoding/json/v2.MarshalEncode
+         0     0% 97.84%     128383  0.77%  encoding/json/v2.Unmarshal

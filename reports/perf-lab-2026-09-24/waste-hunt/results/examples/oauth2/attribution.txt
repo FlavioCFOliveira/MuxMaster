@@ -1,0 +1,62 @@
+### cpu
+owner share (nearest owning frame, leaf -> root):
+  net/http                  61.18%
+  runtime (no owner)        21.25%
+  MuxMaster/middleware      11.95%
+  MuxMaster/root             5.06%
+  example                    0.56%
+
+top MuxMaster owning functions (share of whole profile):
+    4.60%  muxmaster.JSON
+    4.33%  middleware.ThrottlePerIPCapped.func2.1
+    3.49%  middleware.(*oauth2Cache).get
+    1.29%  middleware.OAuth2Introspect.func2.1
+    1.09%  middleware.(*throttleTable).acquire
+    0.78%  middleware.RealIP.func1.1
+    0.29%  middleware.selectXFFRightmost
+    0.25%  muxmaster.(*Mux).dispatch
+    0.22%  middleware.extractBearerToken
+    0.13%  middleware.ThrottlePerIPCapped.func1
+    0.13%  middleware.ThrottlePerIPCapped.func2.1.1
+    0.09%  muxmaster.(*Mux).ServeHTTP
+    0.07%  middleware.(*throttleTable).decRefs
+    0.07%  middleware.selectXFFRightmost.func1
+    0.05%  muxmaster.prefixMatch
+    0.04%  middleware.GetOAuth2Claims
+    0.02%  middleware.(*throttleTable).shardFor
+    0.02%  muxmaster.(*Mux).Pre.func1
+    0.02%  muxmaster.(*node).getValueStatic
+    0.02%  muxmaster.(*Mux).config
+
+### alloc_space
+owner share (nearest owning frame, leaf -> root):
+  net/http                  56.92%
+  MuxMaster/middleware      20.48%
+  MuxMaster/root            14.36%
+  example                    8.24%
+
+top MuxMaster owning functions (share of whole profile):
+   14.36%  muxmaster.JSON
+   10.31%  middleware.OAuth2Introspect.func2.1
+    7.08%  middleware.ThrottlePerIPCapped.func2.1
+    1.32%  middleware.(*throttleTable).acquire
+    0.96%  middleware.ThrottlePerIPCapped.func1
+    0.62%  middleware.RealIP.func1.1
+    0.21%  middleware.selectXFFRightmost
+
+### alloc_objects
+owner share (nearest owning frame, leaf -> root):
+  net/http                  50.85%
+  MuxMaster/middleware      21.84%
+  MuxMaster/root            21.74%
+  example                    5.57%
+
+top MuxMaster owning functions (share of whole profile):
+   21.74%  muxmaster.JSON
+    8.02%  middleware.ThrottlePerIPCapped.func2.1
+    5.37%  middleware.OAuth2Introspect.func2.1
+    3.41%  middleware.RealIP.func1.1
+    2.63%  middleware.ThrottlePerIPCapped.func1
+    1.28%  middleware.(*throttleTable).acquire
+    1.14%  middleware.selectXFFRightmost
+

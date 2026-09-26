@@ -1,0 +1,71 @@
+File: reverse-proxy
+Build ID: abfed2559a9f102901351053e0e2eac26d73a4cf
+Type: cpu
+Time: 2026-09-24 19:51:37 WEST
+Duration: 10s, Total samples = 68.45s (684.46%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 6.07s, 8.87% of 68.45s total
+Dropped 289 nodes (cum <= 0.34s)
+Showing top 60 nodes out of 227
+      flat  flat%   sum%        cum   cum%
+     0.80s  1.17%  1.17%      0.80s  1.17%  runtime.memclrNoHeapPointers
+     0.68s  0.99%  2.16%      0.68s  0.99%  runtime.nanotime (inline)
+     0.60s  0.88%  3.04%      0.60s  0.88%  time.runtimeNow
+     0.43s  0.63%  3.67%      0.43s  0.63%  internal/runtime/syscall/linux.Syscall6
+     0.29s  0.42%  4.09%      0.45s  0.66%  runtime.tryDeferToSpanScan
+     0.23s  0.34%  4.43%      0.23s  0.34%  runtime.memmove
+     0.20s  0.29%  4.72%      0.20s  0.29%  net/textproto.validHeaderFieldByte (inline)
+     0.14s   0.2%  4.92%      0.46s  0.67%  runtime.selectgo
+     0.14s   0.2%  5.13%      0.14s   0.2%  runtime.spanClass.sizeclass (inline)
+     0.11s  0.16%  5.29%      0.11s  0.16%  runtime.futex
+     0.09s  0.13%  5.42%      0.11s  0.16%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.09s  0.13%  5.55%      7.68s 11.22%  net/http/httputil.(*ReverseProxy).ServeHTTP
+     0.08s  0.12%  5.67%      0.11s  0.16%  context.value
+     0.08s  0.12%  5.79%      9.07s 13.25%  net/http.HandlerFunc.ServeHTTP
+     0.08s  0.12%  5.90%      0.08s  0.12%  runtime.nextFreeFast (inline)
+     0.08s  0.12%  6.02%      0.15s  0.22%  runtime.scanObjectsSmall
+     0.07s   0.1%  6.12%         1s  1.46%  net/http.(*persistConn).roundTrip
+     0.07s   0.1%  6.22%      0.66s  0.96%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.06s 0.088%  6.31%      0.16s  0.23%  internal/runtime/maps.(*Iter).Next
+     0.06s 0.088%  6.40%      0.06s 0.088%  internal/runtime/maps.memHashAES
+     0.06s 0.088%  6.49%      0.26s  0.38%  net/textproto.CanonicalMIMEHeaderKey
+     0.06s 0.088%  6.57%      0.84s  1.23%  runtime.mallocgcSmallScanSlowPath
+     0.06s 0.088%  6.66%      0.37s  0.54%  runtime.mapassign_faststr
+     0.06s 0.088%  6.75%      0.06s 0.088%  runtime.procyieldAsm
+     0.06s 0.088%  6.84%      0.47s  0.69%  runtime.wbBufFlush1
+     0.06s 0.088%  6.92%      0.06s 0.088%  vendor/golang.org/x/net/http/httpguts.ValidHeaderFieldName (inline)
+     0.05s 0.073%  7.00%      8.16s 11.92%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.05s 0.073%  7.07%      0.08s  0.12%  github.com/FlavioCFOliveira/MuxMaster.(*node).getValue
+     0.05s 0.073%  7.14%      0.06s 0.088%  internal/runtime/maps.(*Map).putSlotSmallFastStr
+     0.05s 0.073%  7.22%      0.05s 0.073%  memeqbody
+     0.05s 0.073%  7.29%      3.28s  4.79%  net/http.(*Transport).roundTrip
+     0.05s 0.073%  7.36%      0.05s 0.073%  net/http.(*conn).hijacked
+     0.05s 0.073%  7.44%      0.05s 0.073%  runtime.(*mspan).writeHeapBitsSmall
+     0.05s 0.073%  7.51%      0.05s 0.073%  runtime.acquireSudog
+     0.05s 0.073%  7.58%      0.10s  0.15%  runtime.lock2
+     0.05s 0.073%  7.66%      0.24s  0.35%  runtime.makechan
+     0.05s 0.073%  7.73%      0.53s  0.77%  runtime.newobject
+     0.05s 0.073%  7.80%      0.06s 0.088%  runtime.sellock
+     0.04s 0.058%  7.86%      9.06s 13.24%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+     0.04s 0.058%  7.92%      0.09s  0.13%  internal/runtime/maps.(*Map).Delete
+     0.04s 0.058%  7.98%      1.53s  2.24%  net/http.(*Transport).getConn
+     0.04s 0.058%  8.04%      1.12s  1.64%  net/http.(*Transport).queueForIdleConn
+     0.04s 0.058%  8.09%      0.05s 0.073%  runtime.(*gcControllerState).trigger
+     0.04s 0.058%  8.15%      2.99s  4.37%  runtime.mallocgc
+     0.04s 0.058%  8.21%      0.17s  0.25%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.04s 0.058%  8.27%      0.10s  0.15%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.04s 0.058%  8.33%      0.07s   0.1%  runtime.typedmemmove
+     0.03s 0.044%  8.37%      0.15s  0.22%  context.(*cancelCtx).Done
+     0.03s 0.044%  8.41%      0.23s  0.34%  gcWriteBarrier
+     0.03s 0.044%  8.46%      1.96s  2.86%  net/http/httputil.(*ReverseProxy).copyBuffer
+     0.03s 0.044%  8.50%      0.07s   0.1%  runtime.(*pageAlloc).find
+     0.03s 0.044%  8.55%      0.06s 0.088%  runtime.(*spanSet).pop
+     0.03s 0.044%  8.59%      0.10s  0.15%  runtime.gcmarknewobject
+     0.03s 0.044%  8.63%      0.13s  0.19%  runtime.mallocgcSmallNoscan
+     0.03s 0.044%  8.68%      0.14s   0.2%  runtime.mapaccess2_faststr
+     0.03s 0.044%  8.72%      0.06s 0.088%  runtime.pcvalue
+     0.03s 0.044%  8.77%      0.07s   0.1%  runtime.typedslicecopy
+     0.03s 0.044%  8.81%      0.06s 0.088%  strings.indexFunc (inline)
+     0.02s 0.029%  8.84%      0.11s  0.16%  context.(*cancelCtx).Value
+     0.02s 0.029%  8.87%      0.18s  0.26%  context.(*cancelCtx).propagateCancel

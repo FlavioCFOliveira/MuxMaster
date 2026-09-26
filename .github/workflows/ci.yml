@@ -70,6 +70,103 @@ jobs:
             golang:1.26 \
             sh -c 'go test -count=1 $(go list ./... | grep -v "/reports/")'
 
+  harness-test:
+    name: Harness tests (security auditors)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # rmp #289: Test harness modules to ensure SAST/security auditors
+    # exercise current MuxMaster code (not stale vendor copies).
+    # Separate from fast unit tests to avoid bloating PR latency.
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Vet root-level harness packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Root-level harnesses (no go.mod of their own, use main module).
+          # Includes all sub-packages (use /...).
+          # Excluded: timing-and-sidechannel-analyst (build tag timing, nightly only).
+          go vet ./reports/http-protocol-security-auditor/harness/...
+          go vet ./reports/concurrency-security-auditor/harness/...
+
+      - name: Test root-level harness packages (-race)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Root-level harnesses: http-protocol-auditor and concurrency-auditor.
+          # Skips timing-and-sidechannel-analyst (long-running, nightly only).
+          go test -race -count=1 -short ./reports/http-protocol-security-auditor/harness/...
+          go test -race -count=1 -short ./reports/concurrency-security-auditor/harness/...
+
+      - name: Test harness modules (explicit list, -mod=mod)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Module harnesses with go.mod (exclude benchmarks: perf-lab and
+          # dos-resilience-tester/2026-05-08-loadtest).
+          #
+          # rmp #292: reports/fuzzing-and-property-engineer/harness runs here
+          # (-short) so its seed corpora execute as ordinary unit tests on
+          # every PR. fuzz.yml's nightly job only runs `-fuzz=...` (mutation
+          # fuzzing, `-run='^$'` skips the seed corpus as unit tests) — it
+          # never exercised the corpus this way, which is how a seed-corpus
+          # regression (FuzzMount panicking on a context-less request,
+          # CSA-2026-00xx) went undetected by CI until this was added.
+          harnesses=(
+            "reports/path-routing-fuzzer/harness"
+            "reports/dos-resilience-tester/harness"
+            "reports/middleware-security-reviewer/harness"
+            "reports/middleware-security-reviewer/harness/2026-05-08-S10-PreMSR"
+            "reports/http-protocol-security-auditor/harness/h2harness"
+            "reports/fuzzing-and-property-engineer/harness"
+          )
+          for harness in "${harnesses[@]}"; do
+            echo "::group::Testing $harness"
+            cd "$harness"
+            # Use -mod=mod to bypass vendor; replace directives ensure current code
+            go test -mod=mod -race -count=1 -short ./...
+            cd - > /dev/null
+            echo "::endgroup::"
+          done
+
+  gotip:
+    name: Go tip (canary)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    # rmp #289: Early warning for breaking changes to http.Request layout
+    # on Go tip. The reqbundle optimisation uses unsafe.Pointer to set the
+    # private ctx field; a future Go version may remove or move it.
+    # rmp #289: Allowed to fail without blocking PR merge (advisory only).
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - name: Install Go tip
+        # actions/setup-go does not support go-version: tip; install gotip binary
+        run: |
+          go install golang.org/dl/gotip@latest
+          gotip download
+
+      - name: Build root package (Go tip)
+        run: gotip build -v .
+
+      - name: Test layout assumptions (Go tip)
+        # rmp #289: Validates http.Request.ctx field offset is still accessible
+        # via reflect. Includes layout_test.go and reqbundle_test.go.
+        run: gotip test -v -run="TestBundle|TestReqBundle" .
+
+      - name: Test root package (Go tip, -race)
+        # rmp #289: Early warning for race conditions on tip
+        run: gotip test -race -count=1 $(gotip list ./... | grep -v '/reports/')
+
   lint:
     name: Lint (golangci-lint)
     runs-on: ubuntu-latest
@@ -141,6 +238,33 @@ jobs:
 
       - name: Run govulncheck
         run: govulncheck $(go list ./... | grep -v '/reports/')
+
+  semgrep-custom:
+    name: SAST (semgrep custom rules)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Install semgrep
+        # Pinned version for reproducibility
+        run: pip install semgrep==1.178.0
+
+      - name: Test custom semgrep rules
+        # Validate rule syntax and test cases
+        run: semgrep --test reports/go-sast-and-memory-auditor/semgrep-rules/
+
+      - name: Run semgrep with custom MuxMaster rules
+        # Custom rule file at reports/go-sast-and-memory-auditor/semgrep-rules/muxmaster.yml
+        # Scans the root Go package, excluding: reports/**, competitor/**, testdata/**, .claude/**
+        run: |
+          semgrep scan \
+            --config reports/go-sast-and-memory-auditor/semgrep-rules/muxmaster.yml \
+            --error \
+            --exclude=reports \
+            --exclude=competitor \
+            --exclude=testdata \
+            --exclude=.claude \
+            .
 
   changelog-touched:
     name: CHANGELOG.md updated
@@ -285,3 +409,4 @@ jobs:
           coverage=$(go tool cover -func=coverage.out | awk '/^total:/ {print substr($NF, 1, length($NF)-1)}')
           echo "Total coverage: ${coverage}%"
           awk -v c="$coverage" -v t=80 'BEGIN { if (c+0 < t+0) { print "FAIL: coverage " c "% < " t "%"; exit 1 } print "OK: coverage " c "% >= " t "%" }'
+

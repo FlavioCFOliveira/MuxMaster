@@ -43,7 +43,14 @@ func TestHandleFast_PanicHandler_Covers(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 5000
+	// iters trimmed 5000 -> 1500 (rmp #271): every iteration triggers a real
+	// panic/recover + PanicHandler dispatch, which is far more expensive per
+	// call than a normal ServeHTTP round trip (stack unwinding, defer chain
+	// walking). At n*4 goroutines this still exercises 1500*n*4 = 96,000
+	// concurrent panics at GOMAXPROCS=16, plenty to prove PanicHandler
+	// coverage is race-free and never crashes the process (measured
+	// 2026-09-25: this test was 39.4s of a 320s package run at 5000 iters).
+	const iters = 1500
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {

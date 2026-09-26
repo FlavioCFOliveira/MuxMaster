@@ -1,0 +1,48 @@
+File: graceful-shutdown
+Build ID: d00e4eb8415b84d68d07dc985455d140af387a99
+Type: alloc_objects
+Time: 2026-09-25 12:37:01 WEST
+Duration: 10s, Total samples = 17464073 
+Showing nodes accounting for 17358920, 99.40% of 17464073 total
+Dropped 37 nodes (cum <= 87320)
+      flat  flat%   sum%        cum   cum%
+   3096348 17.73% 17.73%    3096348 17.73%  net/textproto.readMIMEHeader
+   1823395 10.44% 28.17%    4118262 23.58%  context.WithDeadlineCause
+   1644578  9.42% 37.59%    1644578  9.42%  net/http.Header.Clone (inline)
+   1150986  6.59% 44.18%    8966753 51.34%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+   1115092  6.39% 50.56%    1770523 10.14%  context.(*cancelCtx).propagateCancel
+   1114452  6.38% 56.94%    1114452  6.38%  net/http.(*Request).WithContext
+   1094607  6.27% 63.21%    7177433 41.10%  net/http.(*conn).readRequest
+    688139  3.94% 67.15%     688139  3.94%  net/http.(*connReader).startBackgroundRead
+    655431  3.75% 70.91%     655431  3.75%  context.(*cancelCtx).Done
+    644450  3.69% 74.60%     644450  3.69%  net/textproto.(*Reader).ReadLine (inline)
+    629193  3.60% 78.20%     629193  3.60%  context.withCancel (inline)
+    589869  3.38% 81.58%     589869  3.38%  net.(*conn).Read
+    589832  3.38% 84.95%     589832  3.38%  net/textproto.MIMEHeader.Set (inline)
+    581809  3.33% 88.29%    4887934 27.99%  net/http.readRequestLimit
+    564415  3.23% 91.52%     564415  3.23%  net/url.parse
+    557064  3.19% 94.71%    1186257  6.79%  context.WithCancel
+    524344  3.00% 97.71%     524344  3.00%  time.newTimer
+    294916  1.69% 99.40%    1741754  9.97%  net/http.Error
+         0     0% 99.40%    4118262 23.58%  context.WithDeadline (inline)
+         0     0% 99.40%    4118262 23.58%  context.WithTimeout
+         0     0% 99.40%     795126  4.55%  fmt.Fprintln
+         0     0% 99.40%    7238929 41.45%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 99.40%    8966753 51.34%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 99.40%    7238929 41.45%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 99.40%     853571  4.89%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 99.40%    2581469 14.78%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 99.40%    8966753 51.34%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 99.40%    7238929 41.45%  github.com/FlavioCFOliveira/MuxMaster/middleware.Timeout.func1.1
+         0     0% 99.40%     791691  4.53%  main.main.func1
+         0     0% 99.40%   16874204 96.62%  net/http.(*conn).serve
+         0     0% 99.40%     589869  3.38%  net/http.(*connReader).backgroundRead
+         0     0% 99.40%     791007  4.53%  net/http.(*response).Write
+         0     0% 99.40%    1644578  9.42%  net/http.(*response).WriteHeader
+         0     0% 99.40%     791007  4.53%  net/http.(*response).write
+         0     0% 99.40%    8966982 51.35%  net/http.HandlerFunc.ServeHTTP
+         0     0% 99.40%     589832  3.38%  net/http.Header.Set (inline)
+         0     0% 99.40%    1741754  9.97%  net/http.NotFound
+         0     0% 99.40%    8966982 51.35%  net/http.serverHandler.ServeHTTP
+         0     0% 99.40%     564415  3.23%  net/url.ParseRequestURI
+         0     0% 99.40%     524344  3.00%  time.AfterFunc

@@ -1730,6 +1730,16 @@ func TestSec_CleanPath_TraversalNormalised(t *testing.T) {
 	}
 }
 
+// TestSec_CleanPath_RawPathWithTraversalZeroed — MSR-2026-0061 (rmp #46).
+// A RawPath like /a/%2e%2e/etc/passwd is byte-for-byte identical after
+// path.Clean (path.Clean does not decode percent-escapes), but its DECODED
+// form (/a/../etc/passwd) cleans to a different path than r.URL.Path. If
+// RawPath survived unzeroed, a router that dispatches on RawPath/EscapedPath
+// would see the un-normalised traversal sequence while every other
+// consumer of r.URL.Path (this test's own gate logic, logging, etc.) sees
+// the already-cleaned path — a classic decode-then-clean-then-re-encode
+// desync. clean_path.go's MSR-2026-0061 fix must zero RawPath in exactly
+// this case; this test FAILS (not merely logs) if it regresses.
 func TestSec_CleanPath_RawPathWithTraversalZeroed(t *testing.T) {
 	mw := middleware.CleanPath()
 	var capturedRaw string
@@ -1741,9 +1751,9 @@ func TestSec_CleanPath_RawPathWithTraversalZeroed(t *testing.T) {
 	// Simulate RawPath set by Go's HTTP server for percent-encoded paths.
 	req.URL.RawPath = "/a/%2e%2e/etc/passwd"
 	mw(inner).ServeHTTP(httptest.NewRecorder(), req)
-	// path.Clean on the RawPath would produce a different result → RawPath zeroed.
-	if capturedRaw == "/a/%2e%2e/etc/passwd" {
-		t.Logf("Note: RawPath with encoded traversal was not zeroed: %q", capturedRaw)
+	if capturedRaw != "" {
+		t.Errorf("MSR-2026-0061: RawPath with encoded traversal (%%2e%%2e) was not zeroed: got RawPath=%q, want \"\"",
+			capturedRaw)
 	}
 }
 
@@ -1856,9 +1866,21 @@ func TestSec_WithValue_TypedKeyNoCollision(t *testing.T) {
 	}
 }
 
+// TestSec_WithValue_StringKeyCollisionRisk — MSR-2026-0059 (rmp #44).
+// Demonstrates BOTH halves of the collision risk: (1) two WithValue calls
+// using the same string key DO collide — the inner (later-applied)
+// middleware's value silently wins, exactly as CWE-1021 predicts; and (2)
+// WithValue emits a slog.Warn at CONSTRUCTION time whenever the key's
+// reflect.Kind is String (with_value.go), so operators get a build-time
+// signal instead of discovering the collision at runtime. Both properties
+// are asserted, not merely logged — a regression in either the collision
+// behaviour or the warning text now fails the test.
 func TestSec_WithValue_StringKeyCollisionRisk(t *testing.T) {
-	// Demonstrate that string keys CAN collide — this is an anti-pattern.
-	// The middleware itself doesn't enforce typed keys, but the doc comment warns.
+	var logBuf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	defer slog.SetDefault(prev)
+
 	// Both string "user" keys would collide — the inner one wins (last write).
 	mw1 := middleware.WithValue("user", "alice")
 	mw2 := middleware.WithValue("user", "attacker")
@@ -1873,8 +1895,21 @@ func TestSec_WithValue_StringKeyCollisionRisk(t *testing.T) {
 	req := httptest.NewRequest("GET", "/", nil)
 	chain.ServeHTTP(rec, req)
 
-	// Document the collision: the last WithValue set wins.
-	t.Logf("String key collision test: r.Context().Value(\"user\") = %v (inner mw2 wins)", gotUser)
+	// (1) Collision: the last (innermost) WithValue call wins.
+	if gotUser != "attacker" {
+		t.Errorf("string key collision: r.Context().Value(\"user\") = %v, want \"attacker\" (inner WithValue wins)", gotUser)
+	}
+
+	// (2) Construction-time warning: emitted once per string-kind key, so
+	// two WithValue("user", ...) calls above must have logged it twice.
+	warnCount := strings.Count(logBuf.String(), "string context key is a cross-package collision risk")
+	if warnCount != 2 {
+		t.Errorf("MSR-2026-0059: expected 2 construction-time slog.Warn calls (one per WithValue(\"user\", ...) "+
+			"call above), got %d. Log output: %q", warnCount, logBuf.String())
+	}
+	if !strings.Contains(logBuf.String(), "CWE-1021") {
+		t.Errorf("MSR-2026-0059: warning text missing CWE-1021 reference. Log output: %q", logBuf.String())
+	}
 }
 
 func TestSec_WithValue_PanicsOnNilKey(t *testing.T) {
@@ -2131,6 +2166,73 @@ func TestSec_Composition_CompressWithCORSSensitiveData(t *testing.T) {
 		rec.Header().Get("Content-Encoding"))
 }
 
+// TestSec_MSR_INT_001_CompressCORS_VaryBothPresent — MSR-INT-001 (rmp #4 /
+// MM-2026-0051). When Compress and CORS are composed on the same response,
+// downstream caches (CDNs, shared proxies) must vary on BOTH signals: a
+// per-origin reflected ACAO (cors.go's Vary: Origin, MM-2026-0051) and the
+// client's Accept-Encoding (compress.go commit()'s Vary: Accept-Encoding,
+// MSR-2026-0060, which is unconditional — see
+// TestSec_Compress_SmallResponseVaryPresent in middleware/middleware_test.go
+// for the standalone Compress guarantee). Losing either would let a cache
+// serve one client's compressed/origin-specific response to another client
+// with a different Accept-Encoding or Origin. This test drives BOTH
+// middlewares together (unlike TestSec_Composition_CompressWithCORSSensitiveData
+// above, which only documents the BREACH angle and asserts nothing about
+// Vary) with an explicit, non-wildcard AllowedOrigins so ACAO reflects the
+// specific origin. TM-2026-033 (spec section 16, rmp #291) made CORS's
+// Vary: Origin unconditional, so as of that fix it is emitted in wildcard
+// mode too — see middleware/cors.go and
+// middleware/cors_vary_origin_test.go for the full matrix.
+func TestSec_MSR_INT_001_CompressCORS_VaryBothPresent(t *testing.T) {
+	compress := middleware.Compress(gzip.DefaultCompression)
+	cors := middleware.CORS(middleware.CORSOptions{
+		AllowedOrigins: []string{"https://app.example.com"},
+	})
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// >= minCompressSize (1024 bytes) so Compress actually commits to
+		// gzip rather than the below-threshold skip path.
+		_, _ = w.Write([]byte(`{"data":"` + strings.Repeat("x", 2048) + `"}`))
+	})
+
+	for _, order := range []struct {
+		name  string
+		chain http.Handler
+	}{
+		{"CORS_outer_Compress_inner", cors(compress(inner))},
+		{"Compress_outer_CORS_inner", compress(cors(inner))},
+	} {
+		t.Run(order.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/api", nil)
+			req.Header.Set("Accept-Encoding", "gzip")
+			req.Header.Set("Origin", "https://app.example.com")
+			rec := httptest.NewRecorder()
+			order.chain.ServeHTTP(rec, req)
+
+			if rec.Header().Get("Access-Control-Allow-Origin") != "https://app.example.com" {
+				t.Fatalf("ACAO not set for allowed origin: %v", rec.Header())
+			}
+			if rec.Header().Get("Content-Encoding") != "gzip" {
+				t.Fatalf("response was not compressed (Content-Encoding=%q) — Vary:Accept-Encoding "+
+					"guarantee must hold regardless, but the >minCompressSize body should have triggered gzip",
+					rec.Header().Get("Content-Encoding"))
+			}
+
+			varyValues := rec.Header().Values("Vary")
+			joined := strings.Join(varyValues, ", ")
+			if !strings.Contains(joined, "Origin") {
+				t.Errorf("MSR-INT-001: Vary missing \"Origin\" with CORS+Compress composed (order=%s). Got Vary=%v",
+					order.name, varyValues)
+			}
+			if !strings.Contains(joined, "Accept-Encoding") {
+				t.Errorf("MSR-INT-001: Vary missing \"Accept-Encoding\" with CORS+Compress composed (order=%s). Got Vary=%v",
+					order.name, varyValues)
+			}
+		})
+	}
+}
+
 func TestSec_Composition_RecovererAndTimeout_PanicAfterTimeout(t *testing.T) {
 	// H-C: panic after timeout fired must not cause double-WriteHeader.
 	var logBuf bytes.Buffer
@@ -2345,46 +2447,39 @@ func TestSec_NoCache_CDNHeadersMissing(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MSR-2026-0060: Compress Vary absent on sub-minCompressSize responses
+// MSR-2026-0060: Compress Vary on sub-minCompressSize responses
 // ═══════════════════════════════════════════════════════════════════════════════
-
-func TestSec_Compress_SmallResponseVaryAbsent(t *testing.T) {
-	// MSR-2026-0060: a small response (< 1024 bytes) that is not compressed
-	// does NOT get Vary: Accept-Encoding. CDN caches the uncompressed response
-	// keyed without Accept-Encoding, and may serve it to clients that requested gzip.
-	mw := middleware.Compress(1) // BestSpeed
-	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Write exactly 100 bytes — well below 1024 minCompressSize.
-		w.Write(bytes.Repeat([]byte("x"), 100))
-	})
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("Accept-Encoding", "gzip")
-	mw(inner).ServeHTTP(rec, req)
-
-	// Compression must be skipped (small body).
-	if rec.Header().Get("Content-Encoding") == "gzip" {
-		t.Error("small response should not be compressed")
-	}
-	// MSR-2026-0060: Vary: Accept-Encoding should be set even for uncompressed responses
-	// when the client sent Accept-Encoding. Currently absent — document.
-	vary := rec.Header().Get("Vary")
-	if !strings.Contains(vary, "Accept-Encoding") {
-		t.Logf("MSR-2026-0060 CONFIRMED: Vary: Accept-Encoding absent for small (uncompressed) response "+
-			"when client sent Accept-Encoding: gzip. Got Vary: %q. "+
-			"CDN may serve cached uncompressed response to gzip-capable clients.", vary)
-	}
-}
+//
+// TestSec_Compress_SmallResponseVaryAbsent was renamed/superseded (rmp #285):
+// its name and its lone t.Logf both claimed Vary: Accept-Encoding is ABSENT
+// on a small (uncompressed) response — that was true when the test was
+// written, but compress.go's commit() now adds Vary: Accept-Encoding
+// unconditionally (MSR-2026-0060 fix), so the claim is stale and the test
+// never failed on a regression either way. The asserting replacement,
+// TestSec_Compress_SmallResponseVaryPresent, lives in
+// middleware/middleware_test.go (rmp #285) — kept there rather than
+// duplicated here because it exercises Compress in isolation with no
+// harness-specific composition or fixture.
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MSR-2026-0061: CleanPath percent-encoded traversal bypass (%2e%2e)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-func TestSec_CleanPath_PercentEncodedDotTraversal_RawPathBypass(t *testing.T) {
-	// MSR-2026-0061: path.Clean("/a/%2e%2e/etc/passwd") returns "/a/%2e%2e/etc/passwd"
-	// unchanged because path.Clean does not decode %2e → ".". The decoded Path is
-	// cleaned to "/etc/passwd", but RawPath retains the encoded form.
-	// A router using RawPath (when non-empty) will see the encoded traversal.
+// TestSec_CleanPath_PercentEncodedDotTraversal_RawPathZeroed — MSR-2026-0061
+// (rmp #285). Renamed from ..._RawPathBypass: the original name and its
+// t.Logf asserted a BYPASS ("Currently it is NOT zeroed") that does not
+// exist at HEAD — clean_path.go's MSR-2026-0061 fix DOES zero RawPath in
+// this exact case. path.Clean("/a/%2e%2e/etc/passwd") returns the string
+// unchanged (path.Clean does not decode %2e -> "."), but its DECODED form
+// (/a/../etc/passwd) cleans to a different path than r.URL.Path — the
+// desync clean_path.go detects and reacts to by zeroing RawPath, forcing
+// any RawPath-preferring consumer back onto the already-cleaned Path. A
+// regression that stops zeroing RawPath here now fails this test instead of
+// silently logging. (Largely the same invariant as
+// TestSec_CleanPath_RawPathWithTraversalZeroed above, kept as a separate
+// test because it also asserts the decoded-Path side of the fix in the
+// same request.)
+func TestSec_CleanPath_PercentEncodedDotTraversal_RawPathZeroed(t *testing.T) {
 	mw := middleware.CleanPath()
 	var capturedPath, capturedRaw string
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2398,17 +2493,17 @@ func TestSec_CleanPath_PercentEncodedDotTraversal_RawPathBypass(t *testing.T) {
 	req.URL.Path = "/a/../etc/passwd" // decoded form
 	mw(inner).ServeHTTP(httptest.NewRecorder(), req)
 
-	// The decoded Path should be cleaned.
-	if capturedPath == "/a/../etc/passwd" {
-		t.Error("decoded path not cleaned by CleanPath")
+	// The decoded Path must be cleaned.
+	if capturedPath != "/etc/passwd" {
+		t.Errorf("decoded path not cleaned by CleanPath: got %q, want /etc/passwd", capturedPath)
 	}
 
-	// MSR-2026-0061: RawPath should be zeroed when encoded form contains traversal
-	// that was cleaned from the decoded Path. Currently it is NOT zeroed.
-	if capturedRaw == "/a/%2e%2e/etc/passwd" {
-		t.Logf("MSR-2026-0061 CONFIRMED: RawPath '/a/%%2e%%2e/etc/passwd' not zeroed after CleanPath. "+
-			"Decoded path cleaned to %q but RawPath still contains encoded traversal. "+
-			"Routers preferring RawPath may bypass CleanPath protection.", capturedPath)
+	// RawPath must be zeroed once its decoded form disagrees with the
+	// cleaned Path — otherwise a RawPath-preferring router/consumer would
+	// see the raw encoded traversal instead of the cleaned path.
+	if capturedRaw != "" {
+		t.Errorf("MSR-2026-0061: RawPath not zeroed after CleanPath: got %q, want \"\" (decoded path cleaned to %q)",
+			capturedRaw, capturedPath)
 	}
 }
 

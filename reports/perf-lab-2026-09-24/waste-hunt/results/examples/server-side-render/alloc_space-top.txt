@@ -1,0 +1,49 @@
+File: server-side-render
+Build ID: d9827cd5156412e6ee7ac09211b247c8c7787dbd
+Type: alloc_space
+Time: 2026-09-24 19:52:19 WEST
+Duration: 10.01s, Total samples = 2775.03MB 
+Showing nodes accounting for 2677.28MB, 96.48% of 2775.03MB total
+Dropped 88 nodes (cum <= 13.88MB)
+Showing top 40 nodes out of 81
+      flat  flat%   sum%        cum   cum%
+  270.29MB  9.74%  9.74%   270.79MB  9.76%  io.copyBuffer
+  234.06MB  8.43% 18.17%   234.06MB  8.43%  net/textproto.readMIMEHeader
+  233.07MB  8.40% 26.57%   233.07MB  8.40%  net/http.Header.Clone (inline)
+  201.06MB  7.25% 33.82%  2038.60MB 73.46%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  181.01MB  6.52% 40.34%   518.01MB 18.67%  reflect.Value.call
+  160.05MB  5.77% 46.11%   160.05MB  5.77%  net/http.(*Request).WithContext
+  145.54MB  5.24% 51.35%   466.12MB 16.80%  net/http.readRequestLimit
+  134.53MB  4.85% 56.20%   655.67MB 23.63%  net/http.(*conn).readRequest
+     122MB  4.40% 60.60%      122MB  4.40%  reflect.unsafe_New
+   92.51MB  3.33% 63.93%   738.53MB 26.61%  text/template.(*state).walkTemplate
+      82MB  2.95% 66.89%      147MB  5.30%  reflect.MakeSlice
+      68MB  2.45% 69.34%       68MB  2.45%  html/template.htmlReplacer
+      65MB  2.34% 71.68%       65MB  2.34%  reflect.unsafe_NewArray
+   63.01MB  2.27% 73.95%    63.01MB  2.27%  net/url.parse
+   60.50MB  2.18% 76.13%   660.52MB 23.80%  text/template.(*state).evalCall
+   56.02MB  2.02% 78.15%    56.02MB  2.02%  net/url.parseQuery
+      52MB  1.87% 80.02%   953.57MB 34.36%  text/template.(*Template).execute
+      41MB  1.48% 81.50%       41MB  1.48%  text/template.(*state).validateType
+   38.02MB  1.37% 82.87%    40.52MB  1.46%  io.ReadAll
+   37.50MB  1.35% 84.22%    37.50MB  1.35%  net.(*conn).Read
+   37.01MB  1.33% 85.56%    37.01MB  1.33%  net/http.copyValues (inline)
+   35.50MB  1.28% 86.83%    35.50MB  1.28%  context.withCancel (inline)
+   34.01MB  1.23% 88.06%    34.01MB  1.23%  main.validateGuestbook
+   32.51MB  1.17% 89.23%   632.08MB 22.78%  main.main.func5
+   29.01MB  1.05% 90.28%   483.35MB 17.42%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   28.01MB  1.01% 91.29%    68.52MB  2.47%  net/http.(*Request).Clone
+      27MB  0.97% 92.26%   976.07MB 35.17%  main.(*Templates).render
+      25MB   0.9% 93.16%    92.50MB  3.33%  text/template.(*state).evalArg
+      18MB  0.65% 93.81%    74.02MB  2.67%  net/url.ParseQuery (inline)
+   17.04MB  0.61% 94.42%    17.04MB  0.61%  sync.(*Pool).pinSlow
+      16MB  0.58% 95.00%       16MB  0.58%  text/template.(*state).evalEmptyInterface
+   14.03MB  0.51% 95.50%    14.03MB  0.51%  bufio.NewWriterSize (inline)
+      10MB  0.36% 95.87%   386.82MB 13.94%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeFiles.func1
+       5MB  0.18% 96.05%    40.50MB  1.46%  context.WithCancel
+       4MB  0.14% 96.19%   129.54MB  4.67%  net/http.(*Request).ParseForm
+       4MB  0.14% 96.33%   138.50MB  4.99%  text/template.(*state).walkRange
+    2.50MB  0.09% 96.42%    85.03MB  3.06%  net/http.parsePostForm
+    1.50MB 0.054% 96.48%   662.02MB 23.86%  text/template.(*state).evalCommand
+         0     0% 96.48%  2067.61MB 74.51%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 96.48%  2067.61MB 74.51%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP

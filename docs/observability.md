@@ -1,12 +1,12 @@
 # Observability
 
-MuxMaster ships with two first-class observability primitives — a
-structured `Logger` middleware (built on `log/slog`) and a `RequestID`
-middleware that attaches an `X-Request-Id` header to every response.
-Everything else (metrics, tracing, profiling) is intentionally
-**operator-supplied**: the router exposes the hooks, and you bring the
-backend (Prometheus, OpenTelemetry, Datadog, etc.). This page documents
-the recommended integration patterns.
+MuxMaster ships with three observability primitives in its `middleware`
+package — an access-log `Logger`, a `RequestID` middleware that attaches an
+`X-Request-ID` header to every response, and `RecovererWithLogger`, which
+logs panics through `log/slog`. Everything else (metrics, tracing,
+profiling) is intentionally **operator-supplied**: the router exposes the
+hooks, and you bring the backend (Prometheus, OpenTelemetry, Datadog,
+etc.). This page documents the recommended integration patterns.
 
 ## Why no built-in metrics or tracing?
 
@@ -15,77 +15,85 @@ high-throughput edge proxies, internal microservices, CLI-served
 admin UIs. A built-in Prometheus exporter would force a dependency on
 `github.com/prometheus/client_golang` (violating MuxMaster's zero-deps
 invariant); a built-in OpenTelemetry SDK would have the same problem.
-By keeping the surface to `http.Handler` and per-request `slog`
-events, you can plug any observability stack with a thin middleware
-of your own — with no abandoned defaults to migrate away from later.
+By keeping the surface to `http.Handler` middleware, you can plug any
+observability stack with a thin middleware of your own — with no
+abandoned defaults to migrate away from later.
 
-## Structured logging (slog)
+## Access logging
 
-`middleware.Logger` writes one structured event per request. It uses
-`log/slog` from the stdlib so the output format is controlled by your
-default `*slog.Logger` (text vs JSON, level filter, custom handlers).
+`middleware.Logger(out io.Writer)` writes one plain-text line per request
+to `out` after the handler returns. It does not use `log/slog`. The format
+is:
 
-```go
-import "log/slog"
-
-logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-    Level: slog.LevelInfo,
-}))
-slog.SetDefault(logger)
-
-mux := muxmaster.New()
-mux.Pre(middleware.RequestID())              // attach X-Request-Id first
-mux.Use(middleware.Logger(os.Stdout))         // logs method, path, status, duration
-mux.Use(middleware.RecovererWithLogger(logger))
+```
+<time RFC 3339> <method> <path> <status> <duration>
+2026-04-17T10:05:31Z GET /users/42 200 1.243ms
 ```
 
-Each Logger event includes:
+The method and path are sanitised before they are written, so control
+characters in the request cannot forge log lines. The status is the final
+status code (a 1xx informational response is not logged as the status).
+`Logger` panics if `out` is `nil`.
 
-| Field      | Type     | Notes                                                    |
-|------------|----------|----------------------------------------------------------|
-| `time`     | RFC 3339 | Set by slog                                              |
-| `level`    | string   | INFO for normal requests, WARN/ERROR for ≥500 responses  |
-| `method`   | string   | Sanitised (CRLF-stripped — HPS-2026-0001)                |
-| `path`     | string   | `r.URL.Path` (sanitised; param values are NOT included)  |
-| `status`   | int      | Captured response status                                 |
-| `duration` | string   | `time.Duration.String()` of the handler execution        |
+```go
+import (
+    "log/slog"
+    "os"
 
-If you need to add custom fields (tenant ID, user agent, response size)
-write your own middleware that wraps `http.ResponseWriter` and emits a
-`slog` event of its own — `Logger` is intentionally minimal so it
-composes cleanly.
+    "github.com/FlavioCFOliveira/MuxMaster/middleware"
+)
+
+logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+mux := muxmaster.New()
+mux.Pre(middleware.RequestID())                 // attach X-Request-ID first
+mux.Use(middleware.Logger(os.Stdout))           // access log line per request
+mux.Use(middleware.RecovererWithLogger(logger)) // panics logged through slog
+```
+
+For structured (JSON) access logs, or extra fields such as a tenant ID
+or response size, write your own middleware that wraps
+`http.ResponseWriter` and emits a `slog` event — see
+[Request logging with structured output](cookbook.md#request-logging-with-structured-output).
 
 ## Request correlation
 
-`middleware.RequestID` generates a 16-byte cryptographically random ID
-(crypto/rand) per request, attaches it as `X-Request-Id` on the
-response, and stores it in the request context.
+`middleware.RequestID` generates a 16-byte random ID from `crypto/rand`
+per request, encoded as 32 lowercase hexadecimal characters, sets it as
+the `X-Request-ID` response header, and stores it in the request context.
 
 ```go
 mux.Pre(middleware.RequestID())
 
 mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
-    rid, _ := middleware.GetRequestID(r.Context())
     slog.InfoContext(r.Context(), "user lookup",
-        "request_id", rid,
+        "request_id", middleware.GetRequestID(r.Context()),
         "user_id", muxmaster.PathParam(r, "id"),
     )
 })
 ```
 
-If a client supplies its own `X-Request-Id`, the middleware respects it
-(after sanitisation). Pass `RequestID()` via `Pre(...)` so the ID is
-attached BEFORE any other middleware logs the request.
+If a client supplies its own `X-Request-ID`, the middleware propagates it
+only if it is 1–128 characters of ASCII letters, digits, `-`, `_` or `.`;
+any other value is replaced with a freshly generated ID. Register
+`RequestID()` with `Pre(...)` so the ID exists before any other middleware
+logs the request.
 
 ## Custom metrics middleware (Prometheus pattern)
 
-The recommended pattern is a single user-side middleware that captures
-the per-route latency and increments counters. MuxMaster's
-`Mux.Routes()` and `Mux.Walk()` introspection let you pre-register
-counters at startup so the cardinality is bounded.
+Label metrics by the matched route pattern, never by the raw URL, which
+would create one series per unique path. `muxmaster.RoutePattern(r)` is
+not enough for this: it returns `""` for static routes and for the 404,
+405 and redirect responses (it is set only for routes with parameters).
+The reliable approach is to attach the pattern when you register the
+route:
 
 ```go
 import (
+    "net/http"
+    "strconv"
+    "time"
+
     "github.com/prometheus/client_golang/prometheus"
     "github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -108,16 +116,15 @@ func init() {
     prometheus.MustRegister(reqCount, reqDuration)
 }
 
-// Metrics records one observation per request, keyed on the matched
-// route pattern (NOT the raw URL — that would explode cardinality).
-func Metrics(next http.Handler) http.Handler {
+// instrument wraps h with metrics labelled by the route pattern, which is
+// known here at registration time for every route, static or not.
+func instrument(method, pattern string, h http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         start := time.Now()
-        rec := &statusRecorder{ResponseWriter: w, status: 200}
-        next.ServeHTTP(rec, r)
-        route := muxmaster.RoutePattern(r) // bounded label cardinality
-        reqCount.WithLabelValues(r.Method, route, strconv.Itoa(rec.status)).Inc()
-        reqDuration.WithLabelValues(r.Method, route).Observe(time.Since(start).Seconds())
+        rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+        h.ServeHTTP(rec, r)
+        reqCount.WithLabelValues(method, pattern, strconv.Itoa(rec.status)).Inc()
+        reqDuration.WithLabelValues(method, pattern).Observe(time.Since(start).Seconds())
     })
 }
 
@@ -130,26 +137,28 @@ func (r *statusRecorder) WriteHeader(code int) {
     r.status = code
     r.ResponseWriter.WriteHeader(code)
 }
+
+// Unwrap lets http.ResponseController reach the underlying writer.
+func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
 ```
 
-Register the metrics middleware via `Use` (it must observe the matched
-route pattern, which is only available inside the dispatch frame). Then
-expose `/metrics`:
+Register routes through the wrapper and expose `/metrics`:
 
 ```go
-mux.Use(Metrics)
-mux.GET("/metrics", promhttp.Handler().ServeHTTP)
+mux.Handle(http.MethodGet, "/orders/:id", instrument(http.MethodGet, "/orders/:id", http.HandlerFunc(getOrder)))
+mux.Handle(http.MethodGet, "/metrics", promhttp.Handler())
 ```
 
-`muxmaster.RoutePattern(r)` returns the matched pattern (e.g.
-`/users/:id`) — using the raw `r.URL.Path` would create one Prometheus
-series per unique URL and pin the metric server's heap.
+A small helper of your own that calls `mux.Handle(method, pattern,
+instrument(method, pattern, h))` removes the repetition. `Mux.Routes()`
+lists every registered pattern if you want to pre-create the label
+values at start-up.
 
 ## Distributed tracing (OpenTelemetry pattern)
 
-The same middleware-injection model applies to OpenTelemetry. Wrap
-`Pre` so the span boundary covers the entire dispatch (including
-`HandleFast` routes):
+The same middleware-injection model applies to OpenTelemetry. Register the
+tracing middleware with `Pre` so the span covers the entire dispatch,
+including `HandleFast` routes, 404, 405 and redirects:
 
 ```go
 import (
@@ -162,7 +171,7 @@ func Tracing(tracer trace.Tracer, prop propagation.TextMapPropagator) func(http.
     return func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             ctx := prop.Extract(r.Context(), propagation.HeaderCarrier(r.Header))
-            ctx, span := tracer.Start(ctx, muxmaster.RoutePattern(r))
+            ctx, span := tracer.Start(ctx, "HTTP "+r.Method)
             defer span.End()
             next.ServeHTTP(w, r.WithContext(ctx))
         })
@@ -172,19 +181,30 @@ func Tracing(tracer trace.Tracer, prop propagation.TextMapPropagator) func(http.
 mux.Pre(Tracing(otel.Tracer("api"), otel.GetTextMapPropagator()))
 ```
 
-Operator notes:
+`Pre` middleware runs before routing, so `RoutePattern(r)` is always
+`""` there; the span starts with a method-only name. To name it after the
+route, rename it from a wrapper attached at registration, as with metrics:
 
-- Span name uses `RoutePattern` (not raw URL) for the same cardinality
-  reason as metrics.
-- Place `Tracing` in `Pre`, BEFORE `RequestID`, so the trace ID is the
-  source of truth and `RequestID` becomes a fallback only. If you need
-  both (legacy callers without W3C trace headers), have your handler
-  emit the OTel trace ID into the `X-Request-Id` response header so
-  log-trace correlation works in either direction.
+```go
+func traced(pattern string, h http.HandlerFunc) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        trace.SpanFromContext(r.Context()).SetName(r.Method + " " + pattern)
+        h(w, r)
+    }
+}
+
+mux.GET("/items/:id", traced("/items/:id", getItem))
+```
+
+Never use the raw URL as the span name, for the same cardinality reason
+as metrics. `RequestID` and tracing are independent; if you need both,
+log the request ID and the trace ID together.
 
 ## Health checks
 
-Add a couple of fast routes that bypass middleware:
+Health endpoints can be `HandleFast` routes, which `Use` middleware
+never wraps. Register them **before** any `Use` call: registering a
+`HandleFast` route on a `Mux` that already has `Use` middleware panics.
 
 ```go
 // /healthz returns 200 unconditionally — used by k8s liveness probes.
@@ -202,9 +222,9 @@ mux.GETFast("/readyz", func(w http.ResponseWriter, _ *http.Request, _ muxmaster.
 })
 ```
 
-Health endpoints registered as `HandleFast` skip the `Use(...)` chain
-entirely — useful so they remain reachable even if `JWTAuth` or
-`ThrottlePerIP` is misbehaving.
+These routes skip the `Use(...)` chain, so they stay reachable even if
+an authentication or throttling middleware registered with `Use` is
+failing. `Pre` middleware still runs for them.
 
 ## pprof / runtime introspection
 
@@ -229,8 +249,12 @@ debug.GET("/debug/pprof/:profile", pprof.Index) // heap, goroutine, …
 go http.ListenAndServe("127.0.0.1:6060", debug)
 ```
 
-`Mux.Routes()` and `Mux.Walk()` are also useful for an internal admin
-endpoint that lists every registered route:
+Do not use `Mount` for pprof: it strips the prefix, and `pprof.Index`
+needs the full `/debug/pprof/` path.
+
+`Mux.Routes()` lists every registered route, both `Handle` and
+`HandleFast` (`Walk` visits only `Handle` routes and `WalkFast` only
+`HandleFast` routes). It is useful for an internal admin endpoint:
 
 ```go
 debug.GET("/debug/routes", func(w http.ResponseWriter, _ *http.Request) {
@@ -249,7 +273,7 @@ mux := muxmaster.New()
 
 // Pre — runs OUTSIDE dispatch; covers Handle and HandleFast routes.
 mux.Pre(Tracing(tracer, propagator))               // span boundary
-mux.Pre(middleware.RequestID())                    // X-Request-Id
+mux.Pre(middleware.RequestID())                    // X-Request-ID
 mux.Pre(middleware.RecovererWithLogger(logger))    // panic safety net
 mux.Pre(middleware.RealIP(&trustedProxyCIDR))      // before throttle
 
@@ -257,8 +281,10 @@ mux.Pre(middleware.RealIP(&trustedProxyCIDR))      // before throttle
 mux.Use(middleware.Timeout(5 * time.Second))
 mux.Use(middleware.ThrottlePerIP(100, time.Second, nil))
 mux.Use(middleware.Logger(os.Stdout))
-mux.Use(Metrics)                                   // your custom Prometheus mw
 ```
+
+Register `HandleFast` routes (such as the health checks above) before the
+`Use` calls, and attach metrics per route with `instrument`.
 
 See [`examples/graceful-shutdown`](../examples/graceful-shutdown/) for a
 self-contained program demonstrating signal-driven shutdown, the
@@ -270,8 +296,8 @@ yields to context cancellation.
 - [Performance](performance.md) — measured throughput and allocation
   profile under realistic load.
 - [Middleware](middleware.md) — full reference for built-in
-  middleware, including `Logger`, `RequestID`, `Recoverer`,
-  `Timeout`, and the four scopes (`Pre`, `Use`, group, per-route).
+  middleware, including `Logger`, `RequestID`, `RecovererWithLogger`,
+  `Timeout`, and the `Pre` / `Use` / `UseFast` scopes.
 - [`SECURITY.md`](../SECURITY.md) — operator-required defaults
   (`http.Server` timeouts, `RealIP` trusted CIDRs, `JWTAuth`
   `RequireExpiry`, OAuth2 HTTPS endpoint).

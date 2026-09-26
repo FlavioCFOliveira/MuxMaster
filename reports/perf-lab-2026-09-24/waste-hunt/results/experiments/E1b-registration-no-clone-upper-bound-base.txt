@@ -1,0 +1,80 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1684	    693741 ns/op	      6937 ns/route	 1487303 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      15	  74724003 ns/op	     74724 ns/route	146633775 B/op	 1937266 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2240243476 ns/op	    448048 ns/route	3661210272 B/op	48353135 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1672	    685739 ns/op	      6857 ns/route	 1487300 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      16	  72085885 ns/op	     72086 ns/route	146633514 B/op	 1937266 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2247817425 ns/op	    449563 ns/route	3661208784 B/op	48353122 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1683	    679611 ns/op	      6796 ns/route	 1487303 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      15	  71658151 ns/op	     71658 ns/route	146633610 B/op	 1937267 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2229066233 ns/op	    445813 ns/route	3661217096 B/op	48353148 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1620	    687130 ns/op	      6871 ns/route	 1487301 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      15	  72069665 ns/op	     72070 ns/route	146633606 B/op	 1937267 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2249235844 ns/op	    449847 ns/route	3661209824 B/op	48353132 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1670	    681687 ns/op	      6817 ns/route	 1487302 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      16	  70565515 ns/op	     70565 ns/route	146633334 B/op	 1937267 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2219712565 ns/op	    443942 ns/route	3661215992 B/op	48353143 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1706	    697710 ns/op	      6977 ns/route	 1487306 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      15	  72554392 ns/op	     72554 ns/route	146633069 B/op	 1937266 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2258815096 ns/op	    451763 ns/route	3661215592 B/op	48353136 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1630	    686105 ns/op	      6861 ns/route	 1487307 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      16	  72073824 ns/op	     72074 ns/route	146633728 B/op	 1937268 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2226183567 ns/op	    445236 ns/route	3661208736 B/op	48353123 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1693	    693695 ns/op	      6937 ns/route	 1487303 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      16	  76272740 ns/op	     76273 ns/route	146633998 B/op	 1937268 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2222998769 ns/op	    444599 ns/route	3661212224 B/op	48353151 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1666	    683469 ns/op	      6835 ns/route	 1487303 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      16	  72177976 ns/op	     72178 ns/route	146633873 B/op	 1937267 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2238365623 ns/op	    447673 ns/route	3661208864 B/op	48353125 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkRegisterRoutes/N=100-16         	    1696	    679014 ns/op	      6790 ns/route	 1487307 B/op	   19722 allocs/op
+BenchmarkRegisterRoutes/N=1000-16        	      15	  71155307 ns/op	     71155 ns/route	146633586 B/op	 1937267 allocs/op
+BenchmarkRegisterRoutes/N=5000-16        	       1	2226389947 ns/op	    445278 ns/route	3661210784 B/op	48353135 allocs/op
+PASS

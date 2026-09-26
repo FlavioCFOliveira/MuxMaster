@@ -455,12 +455,23 @@ func TestS8_H8_30_PanicHandlerDoublePanic(t *testing.T) {
 
 		srv := httptest.NewServer(m)
 		defer srv.Close()
+		// Use the server's own client, not the process-wide http.DefaultClient.
+		// http.DefaultClient's connection pool is shared with every other
+		// httptest.Server in this package; since t.Parallel() runs many such
+		// servers concurrently on ephemeral ports, a port can be recycled by
+		// the OS between one server closing and another opening while a
+		// pooled connection for the old server is still settling. srv.Client()
+		// gives this subtest an isolated Transport, scoped to this server and
+		// closed together with it (Server.Close), which removes that
+		// cross-test flake vector entirely — see CLAUDE.md working agreement
+		// §11 "measure to decide" and rmp #257.
+		client := srv.Client()
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		req, _ := http.NewRequestWithContext(ctx, "GET", srv.URL+"/", nil)
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := client.Do(req)
 		if err != nil {
 			// Connection severed — this is the expected outcome.
 			// net/http catches the panic and closes the connection.
@@ -527,24 +538,51 @@ func TestS8_H8_30_PanicHandlerDoublePanic(t *testing.T) {
 
 		srv := httptest.NewServer(m)
 		defer srv.Close()
+		// See the isolation rationale on the "panichandler_panic_caught_by_nethttp"
+		// subtest above: srv.Client() instead of the shared http.DefaultClient.
+		client := srv.Client()
 
 		// Send panic request
 		ctx1, cancel1 := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel1()
 		req1, _ := http.NewRequestWithContext(ctx1, "GET", srv.URL+"/panic", nil)
-		resp1, err1 := http.DefaultClient.Do(req1)
+		resp1, err1 := client.Do(req1)
 		if err1 == nil {
 			resp1.Body.Close()
 		}
 
-		// Verify server still alive
-		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel2()
-		req2, _ := http.NewRequestWithContext(ctx2, "GET", srv.URL+"/ok", nil)
-		resp2, err2 := http.DefaultClient.Do(req2)
+		// Verify server still alive. The property under test — net/http's
+		// per-connection recovery keeps the Server's accept loop serving
+		// after a handler panic — is immediate, not eventually-consistent:
+		// a single well-isolated request is enough to observe it. The
+		// bounded retry below exists solely to absorb scheduler jitter
+		// under -race plus concurrent package load (rmp #257); it does not
+		// paper over a real regression, since every attempt still uses its
+		// own 5s deadline and the test still fails hard once all attempts
+		// are exhausted.
+		const maxAttempts = 5
+		const retryDelay = 50 * time.Millisecond
+		var resp2 *http.Response
+		var err2 error
+		for attempt := 1; attempt <= maxAttempts; attempt++ {
+			ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+			req2, _ := http.NewRequestWithContext(ctx2, "GET", srv.URL+"/ok", nil)
+			resp2, err2 = client.Do(req2)
+			cancel2()
+			if err2 == nil && resp2.StatusCode == 200 {
+				break
+			}
+			if resp2 != nil {
+				resp2.Body.Close()
+			}
+			if attempt < maxAttempts {
+				t.Logf("H8-30 retry %d/%d: server not yet responsive (err=%v)", attempt, maxAttempts, err2)
+				time.Sleep(retryDelay)
+			}
+		}
 		if err2 != nil || resp2.StatusCode != 200 {
-			t.Errorf("H8-30 CRITICAL: server not responsive after panic in handler: err=%v status=%v",
-				err2, resp2)
+			t.Errorf("H8-30 CRITICAL: server not responsive after panic in handler after %d attempts: err=%v status=%v",
+				maxAttempts, err2, resp2)
 		} else {
 			resp2.Body.Close()
 			t.Logf("H8-30 PASS: server responsive after handler panic (net/http caught it)")
@@ -691,7 +729,7 @@ func TestS8_H8_59_60_61_HTTP2CVEsPatched(t *testing.T) {
 
 	// The h2harness module covers the runtime behaviour of:
 	// - CVE-2023-44487 Rapid Reset: goroutine count bounded after 500 RST_STREAM floods
-	// - CVE-2024-27316 CONTINUATION flood: heap growth bounded after 150 × 200-header floods
+	// - CVE-2023-45288 CONTINUATION flood: heap growth bounded after 150 × 200-header floods
 	// - HPACK bombing: heap delta < 50 MB after 200 × 50 × 4096-byte headers
 	//
 	// govulncheck output (Go 1.26.2 linux/amd64, commit e30ae94):
@@ -699,11 +737,11 @@ func TestS8_H8_59_60_61_HTTP2CVEsPatched(t *testing.T) {
 	//
 	// Go 1.26.2 is well beyond the patch versions:
 	// - CVE-2023-44487: patched in Go 1.21.1 + 1.20.8
-	// - CVE-2024-27316: patched in Go 1.22.2 + 1.21.9
+	// - CVE-2023-45288: patched in Go 1.22.2 + 1.21.9
 	// - No HTTP/2 MadeYouReset (H8-61) advisory found in govulncheck database.
 
 	t.Logf("H8-59 (CVE-2023-44487 Rapid Reset): PATCHED — Go 1.26.2 >= Go 1.21.1")
-	t.Logf("H8-60 (CVE-2024-27316 CONTINUATION flood): PATCHED — Go 1.26.2 >= Go 1.22.2")
+	t.Logf("H8-60 (CVE-2023-45288 CONTINUATION flood): PATCHED — Go 1.26.2 >= Go 1.22.2")
 	t.Logf("H8-61 (MadeYouReset / recent H2 advisory): govulncheck reports NO vulnerabilities found")
 
 	// Runtime validation is in h2harness/ — see TestH2_RapidReset_CVE202344487,

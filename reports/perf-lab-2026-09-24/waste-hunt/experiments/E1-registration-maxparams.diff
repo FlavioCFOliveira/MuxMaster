@@ -1,0 +1,42 @@
+--- a/tree.go	2026-09-24 19:51:34.913778598 +0100
++++ b/tree.go	2026-09-24 19:51:34.926778585 +0100
+@@ -107,6 +107,20 @@
+ 	return mine + childMax
+ }
+ 
++// countPatternParams returns the number of wildcard tokens (:name, *name,
++// {name:expr}) in a registration pattern ([waste-hunt E1]).
++func countPatternParams(p string) int {
++	n := 0
++	for {
++		wc, i, _ := findWildcard(p)
++		if i < 0 {
++			return n
++		}
++		n++
++		p = p[i+max(len(wc), 1):]
++	}
++}
++
+ // cloneTree returns a deep copy of the radix subtree rooted at n. The clone
+ // shares immutable string and Handler/FastHandler values with the original
+ // (those are never mutated in place by addRoute), but allocates fresh node
+@@ -188,8 +202,17 @@
+ 	// that dispatch can skip paramsBuf allocation for purely static trees.
+ 	// Capture origRoot here — n is reassigned during tree traversal below.
+ 	// This runs at registration time only — never in the hot path.
++	// [waste-hunt E1] Routes are only ever added, never removed, so the
++	// maximum wildcard depth over all paths can only grow: fold the new
++	// pattern's own wildcard count into the root's value instead of
++	// re-walking the entire tree (calcPathMaxParams) on every registration.
++	// Saturates at 255 (the previous uint8 sum wrapped).
+ 	origRoot := n
+-	defer func() { origRoot.maxParams = calcPathMaxParams(origRoot) }()
++	defer func() {
++		if c := countPatternParams(fullPath); c > int(origRoot.maxParams) {
++			origRoot.maxParams = uint8(min(c, 255))
++		}
++	}()
+ 
+ 	n.priority++
+ 

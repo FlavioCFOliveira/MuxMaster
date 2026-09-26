@@ -13,9 +13,24 @@ import (
 // for blocked syscalls. Handlers MUST observe ctx.Done() on every blocking
 // call (DB, network, file I/O); a handler that ignores ctx.Done() will run
 // to completion regardless of the timeout, accumulating goroutines under
-// load and exhausting memory or upstream connections. Co-design Timeout
-// with handler-level cooperation (use the *Context variants of the stdlib
-// — sql.DB.QueryContext, net/http with http.Request, etc.).
+// load and exhausting memory or upstream connections.
+//
+// Example of a timeout-aware handler:
+//
+//	func myHandler(w http.ResponseWriter, r *http.Request) {
+//	    ctx := r.Context()
+//	    result := make(chan interface{}, 1)
+//	    go func() { result <- doExpensiveWork() }()
+//	    select {
+//	    case val := <-result:
+//	        w.Write([]byte(val.(string)))
+//	    case <-ctx.Done():
+//	        http.Error(w, "request timeout", http.StatusGatewayTimeout)
+//	    }
+//	}
+//
+// Co-design Timeout with handler-level cooperation (use the *Context variants
+// of the stdlib — sql.DB.QueryContext, net/http with http.Request, etc.).
 func Timeout(d time.Duration) func(http.Handler) http.Handler {
 	if d <= 0 {
 		panic("middleware: Timeout duration must be positive")

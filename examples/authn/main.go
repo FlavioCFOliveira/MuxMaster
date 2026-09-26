@@ -62,6 +62,21 @@ func main() {
 
 	r := mm.New()
 
+	// ── Fast routes ────────────────────────────────────────────────────────────
+	//
+	// HandleFast (via GETFast) must be registered before Use(): stdlib
+	// middleware never wraps the FastHandler path (see the Pre vs Use vs
+	// UseFast policy matrix in README.md), so MuxMaster panics at
+	// registration if a fast route is added after Use() has already been
+	// called — this catches the mistake of assuming Use() protects it.
+	// /health is intentionally public, so no auth is dropped here.
+	//
+	// FastHandler: zero allocation — ideal for high-frequency health probes.
+	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"status":"ok"}`)
+	})
+
 	// ── Global middleware ─────────────────────────────────────────────────────
 	r.Use(
 		mw.RequestID(),
@@ -86,12 +101,6 @@ func main() {
 	}
 
 	// ── Public routes — no authentication required ────────────────────────────
-
-	// FastHandler: zero allocation — ideal for high-frequency health probes.
-	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"status":"ok"}`)
-	})
 
 	r.GET("/", func(w http.ResponseWriter, _ *http.Request) {
 		_ = mm.JSON(w, http.StatusOK, map[string]string{

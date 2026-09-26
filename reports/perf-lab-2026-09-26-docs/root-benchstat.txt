@@ -1,0 +1,152 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                               │ root-v110.txt │             root-head.txt             │
+                               │    sec/op     │    sec/op     vs base                 │
+StaticRoute-16                    26.95n ± ∞ ¹   28.63n ± ∞ ¹        ~ (p=0.100 n=3) ²
+ParamRoute1-16                    119.5n ± ∞ ¹   118.5n ± ∞ ¹        ~ (p=0.400 n=3) ²
+ParamRoute2-16                   1635.0n ± ∞ ¹   130.1n ± ∞ ¹        ~ (p=0.100 n=3) ²
+ParamRoute3-16                   1496.0n ± ∞ ¹   149.6n ± ∞ ¹        ~ (p=0.600 n=3) ²
+WildcardRoute-16                  109.5n ± ∞ ¹   132.4n ± ∞ ¹        ~ (p=0.100 n=3) ²
+NotFound-16                       216.6n ± ∞ ¹   208.0n ± ∞ ¹        ~ (p=0.400 n=3) ²
+ParallelStaticRoute-16            3.731n ± ∞ ¹   4.249n ± ∞ ¹        ~ (p=0.100 n=3) ²
+ParallelParamRoute-16             105.3n ± ∞ ¹   104.5n ± ∞ ¹        ~ (p=0.100 n=3) ²
+FastStaticRoute-16                25.45n ± ∞ ¹   28.91n ± ∞ ¹        ~ (p=0.100 n=3) ²
+FastParamRoute1-16                43.31n ± ∞ ¹   46.15n ± ∞ ¹        ~ (p=0.100 n=3) ²
+FastParamRoute2-16                61.58n ± ∞ ¹   68.96n ± ∞ ¹        ~ (p=0.100 n=3) ²
+FastParamRoute3-16                85.23n ± ∞ ¹   79.72n ± ∞ ¹        ~ (p=0.100 n=3) ²
+FastParallelParamRoute-16         15.53n ± ∞ ¹   16.31n ± ∞ ¹        ~ (p=0.100 n=3) ²
+PooledParamRoute1-16              42.20n ± ∞ ¹   48.51n ± ∞ ¹        ~ (p=0.100 n=3) ²
+PooledParamRoute2-16              55.05n ± ∞ ¹   59.76n ± ∞ ¹        ~ (p=0.100 n=3) ²
+PooledParamRoute3-16              58.60n ± ∞ ¹   61.76n ± ∞ ¹        ~ (p=0.100 n=3) ²
+PooledWildcardRoute-16            41.11n ± ∞ ¹   44.95n ± ∞ ¹        ~ (p=0.100 n=3) ²
+PooledParallelParamRoute-16       6.347n ± ∞ ¹   6.901n ± ∞ ¹        ~ (p=0.100 n=3) ²
+RegisterRoutes/N=100-16                          56.17µ ± ∞ ¹
+RegisterRoutes/N=1000-16                         693.1µ ± ∞ ¹
+RegisterRoutes/N=5000-16                         4.698m ± ∞ ¹
+ServeFiles-16                                    808.1n ± ∞ ¹
+GroupServeFiles-16                               811.9n ± ∞ ¹
+AdversarialBacktracking/1-16                     165.0n ± ∞ ¹
+AdversarialBacktracking/2-16                     194.6n ± ∞ ¹
+AdversarialBacktracking/4-16                     536.1n ± ∞ ¹
+AdversarialBacktracking/8-16                     1.188µ ± ∞ ¹
+AdversarialBacktracking/16-16                    2.176µ ± ∞ ¹
+AdversarialBacktracking/32-16                    4.168µ ± ∞ ¹
+AdversarialBacktracking/64-16                    7.944µ ± ∞ ¹
+AdversarialBacktracking/128-16                   15.55µ ± ∞ ¹
+QuadraticBacktracking/2-16                       197.4n ± ∞ ¹
+QuadraticBacktracking/4-16                       551.3n ± ∞ ¹
+QuadraticBacktracking/8-16                       1.220µ ± ∞ ¹
+QuadraticBacktracking/16-16                      2.240µ ± ∞ ¹
+QuadraticBacktracking/32-16                      4.406µ ± ∞ ¹
+QuadraticBacktracking/64-16                      8.771µ ± ∞ ¹
+Mount_Static-16                                  376.6n ± ∞ ¹
+Mount_Param-16                                   519.6n ± ∞ ¹
+Mount_TSRRedirect-16                             568.6n ± ∞ ¹
+geomean                           62.85n         453.8n        -18.93%
+¹ need >= 6 samples for confidence interval at level 0.95
+² need >= 4 samples to detect a difference at alpha level 0.05
+
+                               │ root-v110.txt │             root-head.txt             │
+                               │     B/op      │     B/op       vs base                │
+StaticRoute-16                     0.000 ± ∞ ¹     0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+ParamRoute1-16                     384.0 ± ∞ ¹     384.0 ± ∞ ¹       ~ (p=1.000 n=3) ²
+ParamRoute2-16                     416.0 ± ∞ ¹     416.0 ± ∞ ¹       ~ (p=1.000 n=3) ²
+ParamRoute3-16                     480.0 ± ∞ ¹     480.0 ± ∞ ¹       ~ (p=1.000 n=3) ²
+WildcardRoute-16                   384.0 ± ∞ ¹     384.0 ± ∞ ¹       ~ (p=1.000 n=3) ²
+NotFound-16                        93.00 ± ∞ ¹     91.00 ± ∞ ¹       ~ (p=0.300 n=3) ³
+ParallelStaticRoute-16             0.000 ± ∞ ¹     0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+ParallelParamRoute-16              384.0 ± ∞ ¹     384.0 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastStaticRoute-16                 0.000 ± ∞ ¹     0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastParamRoute1-16                 32.00 ± ∞ ¹     32.00 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastParamRoute2-16                 64.00 ± ∞ ¹     64.00 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastParamRoute3-16                 96.00 ± ∞ ¹     96.00 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastParallelParamRoute-16          32.00 ± ∞ ¹     32.00 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledParamRoute1-16               0.000 ± ∞ ¹     0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledParamRoute2-16               0.000 ± ∞ ¹     0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledParamRoute3-16               0.000 ± ∞ ¹     0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledWildcardRoute-16             0.000 ± ∞ ¹     0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledParallelParamRoute-16        0.000 ± ∞ ¹     0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+RegisterRoutes/N=100-16                          86.31Ki ± ∞ ¹
+RegisterRoutes/N=1000-16                         1.041Mi ± ∞ ¹
+RegisterRoutes/N=5000-16                         6.084Mi ± ∞ ¹
+ServeFiles-16                                      709.0 ± ∞ ¹
+GroupServeFiles-16                                 709.0 ± ∞ ¹
+AdversarialBacktracking/1-16                       384.0 ± ∞ ¹
+AdversarialBacktracking/2-16                       416.0 ± ∞ ¹
+AdversarialBacktracking/4-16                       896.0 ± ∞ ¹
+AdversarialBacktracking/8-16                     2.031Ki ± ∞ ¹
+AdversarialBacktracking/16-16                    3.719Ki ± ∞ ¹
+AdversarialBacktracking/32-16                    7.469Ki ± ∞ ¹
+AdversarialBacktracking/64-16                    14.97Ki ± ∞ ¹
+AdversarialBacktracking/128-16                   30.72Ki ± ∞ ¹
+QuadraticBacktracking/2-16                         416.0 ± ∞ ¹
+QuadraticBacktracking/4-16                         896.0 ± ∞ ¹
+QuadraticBacktracking/8-16                       2.031Ki ± ∞ ¹
+QuadraticBacktracking/16-16                      3.719Ki ± ∞ ¹
+QuadraticBacktracking/32-16                      7.469Ki ± ∞ ¹
+QuadraticBacktracking/64-16                      14.97Ki ± ∞ ¹
+Mount_Static-16                                    864.0 ± ∞ ¹
+Mount_Param-16                                   1.219Ki ± ∞ ¹
+Mount_TSRRedirect-16                               920.0 ± ∞ ¹
+geomean                                      ⁴                  -0.12%               ⁴
+¹ need >= 6 samples for confidence interval at level 0.95
+² all samples are equal
+³ need >= 4 samples to detect a difference at alpha level 0.05
+⁴ summaries must be >0 to compute geomean
+
+                               │ root-v110.txt │            root-head.txt             │
+                               │   allocs/op   │  allocs/op    vs base                │
+StaticRoute-16                     0.000 ± ∞ ¹    0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+ParamRoute1-16                     1.000 ± ∞ ¹    1.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+ParamRoute2-16                     1.000 ± ∞ ¹    1.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+ParamRoute3-16                     1.000 ± ∞ ¹    1.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+WildcardRoute-16                   1.000 ± ∞ ¹    1.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+NotFound-16                        3.000 ± ∞ ¹    3.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+ParallelStaticRoute-16             0.000 ± ∞ ¹    0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+ParallelParamRoute-16              1.000 ± ∞ ¹    1.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastStaticRoute-16                 0.000 ± ∞ ¹    0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastParamRoute1-16                 1.000 ± ∞ ¹    1.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastParamRoute2-16                 1.000 ± ∞ ¹    1.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastParamRoute3-16                 1.000 ± ∞ ¹    1.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+FastParallelParamRoute-16          1.000 ± ∞ ¹    1.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledParamRoute1-16               0.000 ± ∞ ¹    0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledParamRoute2-16               0.000 ± ∞ ¹    0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledParamRoute3-16               0.000 ± ∞ ¹    0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledWildcardRoute-16             0.000 ± ∞ ¹    0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+PooledParallelParamRoute-16        0.000 ± ∞ ¹    0.000 ± ∞ ¹       ~ (p=1.000 n=3) ²
+RegisterRoutes/N=100-16                          1.135k ± ∞ ¹
+RegisterRoutes/N=1000-16                         13.40k ± ∞ ¹
+RegisterRoutes/N=5000-16                         75.94k ± ∞ ¹
+ServeFiles-16                                     8.000 ± ∞ ¹
+GroupServeFiles-16                                8.000 ± ∞ ¹
+AdversarialBacktracking/1-16                      1.000 ± ∞ ¹
+AdversarialBacktracking/2-16                      1.000 ± ∞ ¹
+AdversarialBacktracking/4-16                      6.000 ± ∞ ¹
+AdversarialBacktracking/8-16                      11.00 ± ∞ ¹
+AdversarialBacktracking/16-16                     13.00 ± ∞ ¹
+AdversarialBacktracking/32-16                     15.00 ± ∞ ¹
+AdversarialBacktracking/64-16                     17.00 ± ∞ ¹
+AdversarialBacktracking/128-16                    19.00 ± ∞ ¹
+QuadraticBacktracking/2-16                        1.000 ± ∞ ¹
+QuadraticBacktracking/4-16                        6.000 ± ∞ ¹
+QuadraticBacktracking/8-16                        11.00 ± ∞ ¹
+QuadraticBacktracking/16-16                       13.00 ± ∞ ¹
+QuadraticBacktracking/32-16                       15.00 ± ∞ ¹
+QuadraticBacktracking/64-16                       17.00 ± ∞ ¹
+Mount_Static-16                                   2.000 ± ∞ ¹
+Mount_Param-16                                    3.000 ± ∞ ¹
+Mount_TSRRedirect-16                              6.000 ± ∞ ¹
+geomean                                      ³                 +0.00%               ³
+¹ need >= 6 samples for confidence interval at level 0.95
+² all samples are equal
+³ summaries must be >0 to compute geomean
+
+                         │ root-head.txt │
+                         │   sec/route   │
+RegisterRoutes/N=100-16     561.7n ± ∞ ¹
+RegisterRoutes/N=1000-16    693.1n ± ∞ ¹
+RegisterRoutes/N=5000-16    939.6n ± ∞ ¹
+geomean                     715.2n
+¹ need >= 6 samples for confidence interval at level 0.95

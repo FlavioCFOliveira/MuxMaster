@@ -1,0 +1,49 @@
+File: cache
+Build ID: 914e44d39a2aa75060787d0bfc91ada9eebed2a7
+Type: alloc_space
+Time: 2026-09-25 12:36:46 WEST
+Duration: 10s, Total samples = 1653.28MB 
+Showing nodes accounting for 1626.47MB, 98.38% of 1653.28MB total
+Dropped 64 nodes (cum <= 8.27MB)
+Showing top 40 nodes out of 53
+      flat  flat%   sum%        cum   cum%
+  250.56MB 15.16% 15.16%   250.56MB 15.16%  net/textproto.readMIMEHeader
+  222.56MB 13.46% 28.62%   222.56MB 13.46%  net/http.Header.Clone (inline)
+  208.06MB 12.58% 41.20%   675.21MB 40.84%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  173.55MB 10.50% 51.70%   517.63MB 31.31%  net/http.readRequestLimit
+  150.03MB  9.07% 60.77%   732.19MB 44.29%  net/http.(*conn).readRequest
+  143.04MB  8.65% 69.43%   143.04MB  8.65%  net/http.(*Request).WithContext
+   77.51MB  4.69% 74.11%    77.51MB  4.69%  net/url.parse
+   75.53MB  4.57% 78.68%   342.60MB 20.72%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+   48.50MB  2.93% 81.62%    48.50MB  2.93%  net.(*conn).Read
+   45.51MB  2.75% 84.37%    45.51MB  2.75%  net/textproto.MIMEHeader.Set (inline)
+   43.50MB  2.63% 87.00%    43.50MB  2.63%  context.withCancel (inline)
+   35.51MB  2.15% 89.15%   159.05MB  9.62%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).serveRedirect
+   27.01MB  1.63% 90.78%    27.01MB  1.63%  main.errMsg (inline)
+   24.05MB  1.45% 92.24%    24.05MB  1.45%  sync.(*Pool).pinSlow
+   22.50MB  1.36% 93.60%    22.50MB  1.36%  bytes.Clone (inline)
+   13.52MB  0.82% 94.42%    13.52MB  0.82%  bufio.NewWriterSize (inline)
+   12.50MB  0.76% 95.17%    12.50MB  0.76%  net/textproto.(*Reader).ReadLine (inline)
+   11.50MB   0.7% 95.87%    11.50MB   0.7%  net/http.(*connReader).startBackgroundRead
+       9MB  0.54% 96.41%        9MB  0.54%  strconv.quoteWith (inline)
+    6.50MB  0.39% 96.81%       50MB  3.02%  context.WithCancel
+       6MB  0.36% 97.17%    51.51MB  3.12%  github.com/FlavioCFOliveira/MuxMaster.writeRedirect
+       6MB  0.36% 97.53%    20.50MB  1.24%  main.etagFor
+    5.50MB  0.33% 97.86%   142.54MB  8.62%  github.com/FlavioCFOliveira/MuxMaster.JSON
+    4.50MB  0.27% 98.14%    41.01MB  2.48%  io.WriteString
+       4MB  0.24% 98.38%    11.01MB  0.67%  fmt.Sprintf
+         0     0% 98.38%    33.01MB  2.00%  encoding/json.Marshal (inline)
+         0     0% 98.38%    33.01MB  2.00%  encoding/json/v2.Marshal
+         0     0% 98.38%   117.53MB  7.11%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).HandleE.func1
+         0     0% 98.38%   854.27MB 51.67%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 98.38%   854.27MB 51.67%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 98.38%    53.51MB  3.24%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).lazyRedirect.func1
+         0     0% 98.38%   186.05MB 11.25%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 98.38%   321.10MB 19.42%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 98.38%   309.58MB 18.73%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 98.38%    43.01MB  2.60%  main.checkNotModified
+         0     0% 98.38%    68.02MB  4.11%  main.main.func1
+         0     0% 98.38%    65.02MB  3.93%  main.main.func2
+         0     0% 98.38%    73.52MB  4.45%  main.main.func4
+         0     0% 98.38%   117.53MB  7.11%  main.main.func6
+         0     0% 98.38%  1603.76MB 97.01%  net/http.(*conn).serve

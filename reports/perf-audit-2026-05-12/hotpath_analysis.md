@@ -385,7 +385,7 @@ This would reduce allocs/op for FastParam routes to 0 and eliminate GC-triggered
 
 A 1008-byte frame costs a stack growth check at entry (`morestack` call if < 1008 B remaining). On Linux with GOMAXPROCS=16, each goroutine gets a 2KB initial stack. A 1008-byte frame is feasible without growth, but in practice the benchmark goroutines have calling frames above dispatch (testing.B, ServeHTTP), leaving <800 B free. This can trigger `morestack` on some goroutines.
 
-**O10 — Move `var ps2 paramsBuf` into a separate function `dispatchWildcard`.**
+**O14 — Move `var ps2 paramsBuf` into a separate function `dispatchWildcard`.** *(formerly labelled O10 in this draft; renumbered to O14 because the audit later reassigned O10 to the applied "drop doDispatch1/doDispatch2 function-pointer indirection" optimisation, commit `6cc0686`. This dispatchWildcard idea was itself implemented and empirically rejected — no net gain, regression on every benchmark — commit `943a1d1`.)*
 
 ```go
 // Only called when the method tree missed and a wildcard tree exists.
@@ -450,7 +450,7 @@ The current layout was deliberately tuned for "successful static route match rea
 | O2 | Merge double `prefixMatch` calls (terminal node) | 2×prefixMatch per terminal | 1×prefixMatch or direct compare | **2–4 ns/op** all routes | NO | S | **P1** |
 | O9 | `sync.Pool` for FastHandler Params slices | 1 alloc/op, ±63% variance | 0 allocs, stable variance | **30–50 ns/op** FastParam2/3, eliminates GC pauses | NO | S | **P1** |
 | O5a | Read `r.ctx` via unsafe instead of `r.Context()` | 1 method call per param req | Direct unsafe load | **2–5 ns/op** all param routes | SEGURO | S | **P1** |
-| O10 | Move `var ps2 paramsBuf` to `dispatchWildcard` function | 1008B frame | ~880B frame | **2–4 ns/op** all routes | NO | M | **P2** |
+| O14 | Move `var ps2 paramsBuf` to `dispatchWildcard` function (formerly O10 — id freed, see note above; REJECTED, `943a1d1`) | 1008B frame | ~880B frame | **2–4 ns/op** all routes | NO | M | **P2** |
 | O3 | Remove `children := n.children[:...]` slice header inside `getValue` loop | 3 writes/iter | Direct `n.children[j]` | **1–2 ns/op** all routes | NO | S | **P2** |
 | O4 | `prefixEq(s, prefix string)` without ci parameter on static path | 1 branch/call | 0 branches | **<1 ns/op** | NO | S | **P3** |
 | O8 | Defer `paramsBuf` zeroing past `maxParams==0` check | 128B zero on every req | Conditional zero | **1–3 ns/op** static-only trees only | NO | S | **P3** |

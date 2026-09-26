@@ -1,0 +1,5 @@
+scenario=graceful-shutdown conns=32 duration=5.009s
+requests=12211 req/s=2438 p50=8.758669ms p90=26.106079ms p99=58.705083ms
+  GET /                                    expect=200 got 200×6106
+  GET /nope (404)                          expect=404 got 404×6105
+STATUS-OK: every response matched its expected status

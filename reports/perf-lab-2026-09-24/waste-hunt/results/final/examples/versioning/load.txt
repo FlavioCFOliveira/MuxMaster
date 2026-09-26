@@ -1,0 +1,13 @@
+scenario=versioning conns=32 duration=12.001s
+requests=682417 req/s=56865 p50=339.922µs p90=1.275249ms p99=2.397055ms
+  GET /api/v1/users/:id                    expect=200 got 200×68244
+  GET /api/v2/users/:id                    expect=200 got 200×68243
+  GET /api/v1/users                        expect=200 got 200×68242
+  GET /api/v2/users                        expect=200 got 200×68240
+  GET /api/v1/health                       expect=200 got 200×68242
+  GET /api/v2/health                       expect=200 got 200×68241
+  GET /api/users/:id (Accept v=2 rewrite)  expect=200 got 200×68241
+  GET /api/v1/admin/dashboard              expect=200 got 200×68241
+  GET /api/v2/admin/users/:id/audit        expect=200 got 200×68241
+  GET /                                    expect=200 got 200×68242
+STATUS-OK: every response matched its expected status

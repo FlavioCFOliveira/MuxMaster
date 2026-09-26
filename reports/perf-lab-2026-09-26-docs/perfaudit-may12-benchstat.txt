@@ -1,0 +1,164 @@
+perfaudit-may12-head.txt:81: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:85: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:90: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:96: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:101: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:107: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:114: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:118: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:123: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:162: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:167: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:173: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:192: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:196: parsing iteration count: invalid syntax
+perfaudit-may12-head.txt:201: parsing iteration count: invalid syntax
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-audit-2026-05-12
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                                     │ perfaudit-may12-head.txt │
+                                     │          sec/op          │
+NotFoundClean-16                                   197.3n ± ∞ ¹
+NotFoundCustomHandler-16                           16.74n ± ∞ ¹
+NotFoundWithMethodAllowedLookup-16                 219.8n ± ∞ ¹
+MethodNotAllowed-16                                109.6n ± ∞ ¹
+OPTIONSAuto-16                                     61.92n ± ∞ ¹
+GroupDispatch-16                                   107.3n ± ∞ ¹
+NestedGroupDispatch-16                             107.1n ± ∞ ¹
+RedirectTSL-16                                     641.3n ± ∞ ¹
+RedirectTSLWithMiddleware-16                       760.7n ± ∞ ¹
+ParallelRedirectTrailingSlash-16                   119.5n ± ∞ ¹
+PathParamLookup-16                                 121.3n ± ∞ ¹
+PathParamFast-16                                   35.18n ± ∞ ¹
+ParamsFromContext-16                               115.9n ± ∞ ¹
+Middleware_APIKey_Hit-16                           434.0n ± ∞ ¹
+Middleware_APIKey_Miss-16                          404.3n ± ∞ ¹
+Middleware_BasicAuth_Hit-16                        327.4n ± ∞ ¹
+Middleware_BasicAuth_Miss-16                       661.8n ± ∞ ¹
+Middleware_CleanPath_Clean-16                      20.39n ± ∞ ¹
+Middleware_CleanPath_Dirty-16                      195.2n ± ∞ ¹
+Middleware_Compress_NoGzip-16                      28.37n ± ∞ ¹
+Middleware_Compress_SmallBody-16                   283.3n ± ∞ ¹
+Middleware_Compress_LargeBody-16                   299.7n ± ∞ ¹
+Middleware_CORS_NoOrigin-16                        77.77n ± ∞ ¹
+Middleware_CORS_AllowedOrigin-16                   259.8n ± ∞ ¹
+Middleware_CORS_Preflight-16                       266.3n ± ∞ ¹
+Middleware_Logger-16                               5.673µ ± ∞ ¹
+Middleware_NoCache-16                              228.1n ± ∞ ¹
+Middleware_RealIP_NoHeader-16                      124.3n ± ∞ ¹
+Middleware_RealIP_XFF-16                           50.63n ± ∞ ¹
+Middleware_Recoverer_NoPanic-16                    16.96n ± ∞ ¹
+Middleware_RequestID_Generate-16                   323.8n ± ∞ ¹
+Middleware_RequestID_Propagate-16                  310.8n ± ∞ ¹
+Middleware_SetHeader-16                            165.3n ± ∞ ¹
+Middleware_StripSlashes_Clean-16                   3.976n ± ∞ ¹
+Middleware_StripSlashes_Dirty-16                   143.8n ± ∞ ¹
+Middleware_ThrottleBacklog_NoWait-16               10.01n ± ∞ ¹
+Middleware_Timeout-16                              6.133µ ± ∞ ¹
+Middleware_WithValue-16                            116.3n ± ∞ ¹
+Chain_Production-16                                6.699µ ± ∞ ¹
+Chain_AuthBasic-16                                 346.8n ± ∞ ¹
+Chain_Security-16                                  1.330µ ± ∞ ¹
+Chain_Heavy-16                                     7.942µ ± ∞ ¹
+Chain_Minimal-16                                   16.80n ± ∞ ¹
+geomean                                            181.1n
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                     │ perfaudit-may12-head.txt │
+                                     │           B/op           │
+NotFoundClean-16                                    89.00 ± ∞ ¹
+NotFoundCustomHandler-16                            0.000 ± ∞ ¹
+NotFoundWithMethodAllowedLookup-16                  95.00 ± ∞ ¹
+MethodNotAllowed-16                                 91.00 ± ∞ ¹
+OPTIONSAuto-16                                      16.00 ± ∞ ¹
+GroupDispatch-16                                    384.0 ± ∞ ¹
+NestedGroupDispatch-16                              384.0 ± ∞ ¹
+RedirectTSL-16                                    1.062Ki ± ∞ ¹
+RedirectTSLWithMiddleware-16                      1.406Ki ± ∞ ¹
+ParallelRedirectTrailingSlash-16                    368.0 ± ∞ ¹
+PathParamLookup-16                                  384.0 ± ∞ ¹
+PathParamFast-16                                    32.00 ± ∞ ¹
+ParamsFromContext-16                                416.0 ± ∞ ¹
+Middleware_APIKey_Hit-16                            416.0 ± ∞ ¹
+Middleware_APIKey_Miss-16                           96.00 ± ∞ ¹
+Middleware_BasicAuth_Hit-16                         48.00 ± ∞ ¹
+Middleware_BasicAuth_Miss-16                        152.0 ± ∞ ¹
+Middleware_CleanPath_Clean-16                       0.000 ± ∞ ¹
+Middleware_CleanPath_Dirty-16                       504.0 ± ∞ ¹
+Middleware_Compress_NoGzip-16                       0.000 ± ∞ ¹
+Middleware_Compress_SmallBody-16                    95.00 ± ∞ ¹
+Middleware_Compress_LargeBody-16                    87.00 ± ∞ ¹
+Middleware_CORS_NoOrigin-16                         112.0 ± ∞ ¹
+Middleware_CORS_AllowedOrigin-16                    512.0 ± ∞ ¹
+Middleware_CORS_Preflight-16                        512.0 ± ∞ ¹
+Middleware_Logger-16                                0.000 ± ∞ ¹
+Middleware_NoCache-16                               480.0 ± ∞ ¹
+Middleware_RealIP_NoHeader-16                       16.00 ± ∞ ¹
+Middleware_RealIP_XFF-16                            80.00 ± ∞ ¹
+Middleware_Recoverer_NoPanic-16                     0.000 ± ∞ ¹
+Middleware_RequestID_Generate-16                    801.0 ± ∞ ¹
+Middleware_RequestID_Propagate-16                   800.0 ± ∞ ¹
+Middleware_SetHeader-16                             416.0 ± ∞ ¹
+Middleware_StripSlashes_Clean-16                    0.000 ± ∞ ¹
+Middleware_StripSlashes_Dirty-16                    464.0 ± ∞ ¹
+Middleware_ThrottleBacklog_NoWait-16                0.000 ± ∞ ¹
+Middleware_Timeout-16                               592.0 ± ∞ ¹
+Middleware_WithValue-16                             368.0 ± ∞ ¹
+Chain_Production-16                                 996.0 ± ∞ ¹
+Chain_AuthBasic-16                                  32.00 ± ∞ ¹
+Chain_Security-16                                 1.728Ki ± ∞ ¹
+Chain_Heavy-16                                    1.828Ki ± ∞ ¹
+Chain_Minimal-16                                    0.000 ± ∞ ¹
+geomean                                                       ²
+¹ need >= 6 samples for confidence interval at level 0.95
+² summaries must be >0 to compute geomean
+
+                                     │ perfaudit-may12-head.txt │
+                                     │        allocs/op         │
+NotFoundClean-16                                    3.000 ± ∞ ¹
+NotFoundCustomHandler-16                            0.000 ± ∞ ¹
+NotFoundWithMethodAllowedLookup-16                  3.000 ± ∞ ¹
+MethodNotAllowed-16                                 1.000 ± ∞ ¹
+OPTIONSAuto-16                                      1.000 ± ∞ ¹
+GroupDispatch-16                                    1.000 ± ∞ ¹
+NestedGroupDispatch-16                              1.000 ± ∞ ¹
+RedirectTSL-16                                      10.00 ± ∞ ¹
+RedirectTSLWithMiddleware-16                        11.00 ± ∞ ¹
+ParallelRedirectTrailingSlash-16                    2.000 ± ∞ ¹
+PathParamLookup-16                                  1.000 ± ∞ ¹
+PathParamFast-16                                    1.000 ± ∞ ¹
+ParamsFromContext-16                                1.000 ± ∞ ¹
+Middleware_APIKey_Hit-16                            6.000 ± ∞ ¹
+Middleware_APIKey_Miss-16                           6.000 ± ∞ ¹
+Middleware_BasicAuth_Hit-16                         2.000 ± ∞ ¹
+Middleware_BasicAuth_Miss-16                        8.000 ± ∞ ¹
+Middleware_CleanPath_Clean-16                       0.000 ± ∞ ¹
+Middleware_CleanPath_Dirty-16                       4.000 ± ∞ ¹
+Middleware_Compress_NoGzip-16                       0.000 ± ∞ ¹
+Middleware_Compress_SmallBody-16                    0.000 ± ∞ ¹
+Middleware_Compress_LargeBody-16                    0.000 ± ∞ ¹
+Middleware_CORS_NoOrigin-16                         1.000 ± ∞ ¹
+Middleware_CORS_AllowedOrigin-16                    3.000 ± ∞ ¹
+Middleware_CORS_Preflight-16                        3.000 ± ∞ ¹
+Middleware_Logger-16                                0.000 ± ∞ ¹
+Middleware_NoCache-16                               3.000 ± ∞ ¹
+Middleware_RealIP_NoHeader-16                       1.000 ± ∞ ¹
+Middleware_RealIP_XFF-16                            2.000 ± ∞ ¹
+Middleware_Recoverer_NoPanic-16                     0.000 ± ∞ ¹
+Middleware_RequestID_Generate-16                    4.000 ± ∞ ¹
+Middleware_RequestID_Propagate-16                   4.000 ± ∞ ¹
+Middleware_SetHeader-16                             3.000 ± ∞ ¹
+Middleware_StripSlashes_Clean-16                    0.000 ± ∞ ¹
+Middleware_StripSlashes_Dirty-16                    2.000 ± ∞ ¹
+Middleware_ThrottleBacklog_NoWait-16                0.000 ± ∞ ¹
+Middleware_Timeout-16                               5.000 ± ∞ ¹
+Middleware_WithValue-16                             2.000 ± ∞ ¹
+Chain_Production-16                                 7.000 ± ∞ ¹
+Chain_AuthBasic-16                                  2.000 ± ∞ ¹
+Chain_Security-16                                   14.00 ± ∞ ¹
+Chain_Heavy-16                                      14.00 ± ∞ ¹
+Chain_Minimal-16                                    0.000 ± ∞ ¹
+geomean                                                       ²
+¹ need >= 6 samples for confidence interval at level 0.95
+² summaries must be >0 to compute geomean

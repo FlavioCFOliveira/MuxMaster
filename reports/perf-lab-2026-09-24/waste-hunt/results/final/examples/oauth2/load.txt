@@ -1,0 +1,5 @@
+scenario=oauth2 conns=32 duration=12.001s
+requests=701723 req/s=58474 p50=272.455µs p90=1.250246ms p99=2.360178ms
+  GET /api/me (good token, cache hit)      expect=200 got 200×666639
+  GET /api/me (no token -> 401)            expect=401 got 401×35084
+STATUS-OK: every response matched its expected status

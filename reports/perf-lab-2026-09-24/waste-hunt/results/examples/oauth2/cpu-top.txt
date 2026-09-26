@@ -1,0 +1,49 @@
+File: oauth2
+Build ID: 7dd73c75fb2a94c3182df7a0e45653fda4add4d0
+Type: cpu
+Time: 2026-09-24 19:51:07 WEST
+Duration: 10s, Total samples = 55.04s (550.35%)
+Showing nodes accounting for 39.42s, 71.62% of 55.04s total
+Dropped 658 nodes (cum <= 0.28s)
+Showing top 40 nodes out of 162
+      flat  flat%   sum%        cum   cum%
+    14.88s 27.03% 27.03%     14.88s 27.03%  internal/runtime/syscall/linux.Syscall6
+    10.05s 18.26% 45.29%     10.05s 18.26%  time.runtimeNow
+     4.73s  8.59% 53.89%      4.73s  8.59%  runtime.nanotime (inline)
+     1.93s  3.51% 57.39%      1.93s  3.51%  runtime.usleep
+     1.66s  3.02% 60.41%      1.66s  3.02%  runtime.futex
+     0.33s   0.6% 61.01%      2.98s  5.41%  runtime.stealWork
+     0.32s  0.58% 61.59%      2.88s  5.23%  runtime.mallocgc
+     0.32s  0.58% 62.17%      0.32s  0.58%  runtime.procyieldAsm
+     0.30s  0.55% 62.72%      0.30s  0.55%  internal/runtime/maps.memHashAES
+     0.29s  0.53% 63.24%      0.29s  0.53%  runtime.osyield
+     0.29s  0.53% 63.77%      0.44s   0.8%  runtime.scanObjectsSmall
+     0.28s  0.51% 64.28%      0.28s  0.51%  runtime.memclrNoHeapPointers
+     0.26s  0.47% 64.75%      0.53s  0.96%  runtime.tryDeferToSpanScan
+     0.24s  0.44% 65.19%      0.39s  0.71%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.21s  0.38% 65.57%      0.67s  1.22%  runtime.mapaccess2_faststr
+     0.21s  0.38% 65.95%      2.18s  3.96%  runtime.runqgrab
+     0.20s  0.36% 66.32%      0.55s     1%  time.Time.appendFormat
+     0.19s  0.35% 66.66%      1.63s  2.96%  encoding/json/v2.makeMapArshaler.func2
+     0.18s  0.33% 66.99%      8.78s 15.95%  runtime.findRunnable
+     0.17s  0.31% 67.30%      0.28s  0.51%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.17s  0.31% 67.61%      0.59s  1.07%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.16s  0.29% 67.90%      0.30s  0.55%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.16s  0.29% 68.19%      9.49s 17.24%  runtime.schedule
+     0.15s  0.27% 68.46%     41.55s 75.49%  net/http.(*conn).serve
+     0.14s  0.25% 68.71%      6.48s 11.77%  net/http.(*conn).readRequest
+     0.14s  0.25% 68.97%         1s  1.82%  runtime.lock2
+     0.13s  0.24% 69.20%      0.37s  0.67%  encoding/json/jsontext.(*encoderState).WriteToken
+     0.13s  0.24% 69.44%      3.55s  6.45%  net/http.(*chunkWriter).writeHeader
+     0.12s  0.22% 69.66%      0.39s  0.71%  runtime.unlock2
+     0.11s   0.2% 69.86%      9.48s 17.22%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.11s   0.2% 70.06%      1.76s  3.20%  net/textproto.readMIMEHeader
+     0.11s   0.2% 70.26%      0.52s  0.94%  runtime.scanObject
+     0.10s  0.18% 70.44%      0.28s  0.51%  internal/poll.runtime_pollSetDeadline
+     0.10s  0.18% 70.62%      0.34s  0.62%  runtime.chansend
+     0.10s  0.18% 70.80%      1.32s  2.40%  runtime.newobject
+     0.09s  0.16% 70.97%      3.14s  5.70%  bufio.(*Reader).Peek
+     0.09s  0.16% 71.13%      3.05s  5.54%  bufio.(*Reader).fill
+     0.09s  0.16% 71.29%     10.14s 18.42%  net/http.HandlerFunc.ServeHTTP
+     0.09s  0.16% 71.46%      0.37s  0.67%  net/textproto.canonicalMIMEHeaderKey
+     0.09s  0.16% 71.62%      1.22s  2.22%  runtime.mallocgcSmallScanNoHeader

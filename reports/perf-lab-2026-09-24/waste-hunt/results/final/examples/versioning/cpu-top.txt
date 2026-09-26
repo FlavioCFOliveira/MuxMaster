@@ -1,0 +1,49 @@
+File: versioning
+Build ID: b142ae72192d96c7028f9c60218c915ed6e68cff
+Type: cpu
+Time: 2026-09-25 12:39:22 WEST
+Duration: 10s, Total samples = 51.25s (512.48%)
+Showing nodes accounting for 35.91s, 70.07% of 51.25s total
+Dropped 665 nodes (cum <= 0.26s)
+Showing top 40 nodes out of 185
+      flat  flat%   sum%        cum   cum%
+    14.85s 28.98% 28.98%     14.85s 28.98%  internal/runtime/syscall/linux.Syscall6
+     8.54s 16.66% 45.64%      8.54s 16.66%  time.runtimeNow
+     3.63s  7.08% 52.72%      3.63s  7.08%  runtime.nanotime (inline)
+     1.58s  3.08% 55.80%      1.58s  3.08%  runtime.usleep
+     1.48s  2.89% 58.69%      1.48s  2.89%  runtime.futex
+     0.47s  0.92% 59.61%      0.47s  0.92%  runtime.procyieldAsm
+     0.38s  0.74% 60.35%      0.38s  0.74%  runtime.memmove
+     0.33s  0.64% 61.00%      0.57s  1.11%  runtime.scanObjectsSmall
+     0.32s  0.62% 61.62%      0.52s  1.01%  runtime.tryDeferToSpanScan
+     0.29s  0.57% 62.19%      0.29s  0.57%  runtime.osyield
+     0.28s  0.55% 62.73%      2.76s  5.39%  runtime.stealWork
+     0.19s  0.37% 63.10%      0.55s  1.07%  time.Time.appendFormat
+     0.18s  0.35% 63.45%      2.87s  5.60%  encoding/json/v2.makeMapArshaler.func2
+     0.17s  0.33% 63.79%      8.94s 17.44%  runtime.findRunnable
+     0.17s  0.33% 64.12%      0.26s  0.51%  runtime.typePointers.next
+     0.16s  0.31% 64.43%      0.45s  0.88%  net/http/internal.DetectContentType
+     0.15s  0.29% 64.72%      1.04s  2.03%  runtime.casgstatus
+     0.15s  0.29% 65.01%      2.40s  4.68%  runtime.mallocgc
+     0.15s  0.29% 65.31%      0.34s  0.66%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.15s  0.29% 65.60%      1.31s  2.56%  runtime.netpoll
+     0.14s  0.27% 65.87%      0.35s  0.68%  internal/poll.runtime_pollSetDeadline
+     0.14s  0.27% 66.15%      0.41s   0.8%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.14s  0.27% 66.42%      0.35s  0.68%  runtime.pcvalue
+     0.14s  0.27% 66.69%      1.75s  3.41%  runtime.runqgrab
+     0.14s  0.27% 66.97%      8.68s 16.94%  time.Now
+     0.13s  0.25% 67.22%      0.47s  0.92%  runtime.mapaccess2_faststr
+     0.12s  0.23% 67.45%     37.30s 72.78%  net/http.(*conn).serve
+     0.12s  0.23% 67.69%      0.51s     1%  net/http.Header.writeSubset
+     0.12s  0.23% 67.92%      0.37s  0.72%  sync.(*Pool).Get
+     0.11s  0.21% 68.14%      0.47s  0.92%  encoding/json/jsontext.(*encoderState).WriteToken
+     0.11s  0.21% 68.35%      3.12s  6.09%  net/http.readRequestLimit
+     0.11s  0.21% 68.57%      0.35s  0.68%  runtime.unlock2
+     0.10s   0.2% 68.76%      6.09s 11.88%  net/http.(*conn).readRequest
+     0.10s   0.2% 68.96%      1.04s  2.03%  runtime.lock2
+     0.10s   0.2% 69.15%      0.53s  1.03%  runtime.mallocgcSmallScanSlowPath
+     0.10s   0.2% 69.35%      0.53s  1.03%  runtime.scanObject
+     0.10s   0.2% 69.54%      9.72s 18.97%  runtime.schedule
+     0.09s  0.18% 69.72%      4.08s  7.96%  net/http.(*chunkWriter).writeHeader
+     0.09s  0.18% 69.89%      0.27s  0.53%  net/http.readTransfer
+     0.09s  0.18% 70.07%      0.94s  1.83%  runtime.mallocgcSmallScanNoHeader

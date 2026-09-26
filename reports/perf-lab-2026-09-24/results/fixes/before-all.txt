@@ -1,0 +1,190 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkParallelRedirectTrailingSlash                     	  717975	       303.6 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash                     	  692203	       304.0 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash                     	  710420	       304.8 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash                     	  695608	       308.7 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash                     	  697118	       305.4 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash                     	  712645	       304.6 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-4                   	 2521406	        97.85 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-4                   	 2487592	        95.62 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-4                   	 2403087	        97.04 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-4                   	 2481146	        96.84 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-4                   	 2418522	        97.79 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-4                   	 2498143	        95.23 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16                  	 2852324	        87.52 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16                  	 2690844	        89.07 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16                  	 2688045	        88.88 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16                  	 2685284	        89.05 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16                  	 2595613	        91.82 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16                  	 2638101	        90.20 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware       	  622370	       386.5 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware       	  539815	       385.6 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware       	  527890	       381.7 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware       	  530703	       381.1 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware       	  535166	       379.2 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware       	  540537	       381.5 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-4     	 1965942	       117.2 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-4     	 2033948	       120.5 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-4     	 2037780	       119.6 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-4     	 2036804	       113.7 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-4     	 2053860	       116.9 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-4     	 2025334	       120.2 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-16    	 2137287	       115.9 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-16    	 2111992	       114.5 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-16    	 2105504	       114.7 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-16    	 2082705	       115.5 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-16    	 2076884	       117.7 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-16    	 2076226	       115.8 ns/op	     248 B/op	       6 allocs/op
+BenchmarkThrottleBacklogParallel                           	 5932800	        39.37 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                           	 6162464	        39.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                           	 6163603	        39.18 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                           	 6197373	        38.92 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                           	 6195574	        38.99 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                           	 6172782	        39.08 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-4                         	 3854782	        63.26 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-4                         	 3787675	        64.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-4                         	 3848836	        62.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-4                         	 3806762	        62.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-4                         	 3843486	        62.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-4                         	 3891490	        63.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-16                        	 3191642	        76.76 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-16                        	 3044776	        75.29 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-16                        	 3254596	        75.13 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-16                        	 3231160	        75.54 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-16                        	 3136490	        77.70 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel-16                        	 3088968	        77.86 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIPSingleKey                            	   56134	      4165 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                            	   56523	      4134 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                            	   56491	      4108 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                            	   56882	      4117 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                            	   56824	      4121 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                            	   56974	      4119 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey-4                          	  266708	       876.1 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-4                          	  272906	       877.5 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-4                          	  267291	       882.5 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-4                          	  271188	       880.9 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-4                          	  260156	       881.6 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-4                          	  268837	       883.4 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-16                         	  375294	       642.8 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-16                         	  341566	       658.3 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-16                         	  373287	       628.2 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-16                         	  378555	       661.4 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-16                         	  368986	       673.5 ns/op	     248 B/op	       3 allocs/op
+BenchmarkThrottlePerIPSingleKey-16                         	  366202	       655.9 ns/op	     248 B/op	       3 allocs/op
+2026/09/24 17:07:17 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+BenchmarkThrottlePerIPManyKeys                             	2026/09/24 17:07:17 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:17 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:17 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   57117	      4124 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                             	2026/09/24 17:07:17 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:17 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:17 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:17 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   56798	      4125 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                             	2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   56928	      4140 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                             	2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   57547	      4106 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                             	2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   57090	      4172 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                             	2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:18 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   57080	      4147 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-4                           	2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  126871	      1577 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-4                           	2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  156150	      1436 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-4                           	2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:19 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  175230	      1435 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-4                           	2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  159103	      1440 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-4                           	2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  131269	      1530 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-4                           	2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:20 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  160093	      1419 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-16                          	2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  113380	      2152 ns/op	     377 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-16                          	2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  108913	      2096 ns/op	     377 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-16                          	2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:21 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  106788	      2057 ns/op	     377 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-16                          	2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  109784	      2119 ns/op	     377 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-16                          	2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  103712	      2109 ns/op	     377 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys-16                          	2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 17:07:22 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+  119685	      2152 ns/op	     376 B/op	       5 allocs/op
+BenchmarkRequestIDParallel                                 	  217669	      1132 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                                 	  201672	      1124 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                                 	  200695	      1130 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                                 	  201801	      1123 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                                 	  202020	      1115 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                                 	  199953	      1120 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4                               	  773149	       306.1 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4                               	  760059	       304.3 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4                               	  710245	       301.2 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4                               	  674990	       313.7 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4                               	  752025	       307.6 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-4                               	  728277	       301.2 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16                              	 1000000	       259.5 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16                              	  841902	       277.2 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16                              	  794944	       287.5 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16                              	  771510	       300.7 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16                              	  858240	       275.3 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel-16                              	  834764	       275.8 ns/op	     464 B/op	       7 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness	31.438s

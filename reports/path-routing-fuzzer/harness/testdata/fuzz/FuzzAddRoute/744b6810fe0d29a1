@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/\xfa\xfa\x98\n\x90")

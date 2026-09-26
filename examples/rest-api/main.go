@@ -13,6 +13,9 @@
 //	curl -X POST http://localhost:8080/api/v1/books \
 //	     -H 'Content-Type: application/json' \
 //	     -d '{"title":"The Go Programming Language","author":"Donovan","year":2015}'
+//	curl -X QUERY http://localhost:8080/api/v1/books/search \
+//	     -H 'Content-Type: application/json' \
+//	     -d '{"genre":"tech"}'
 //	curl http://localhost:8080/debug/routes
 package main
 
@@ -28,6 +31,7 @@ import (
 	"net/netip"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -184,6 +188,35 @@ func main() {
 	// be an alternative, but CleanPath is safer for REST APIs.
 	r.Pre(mw.CleanPath())
 
+	// ── Fast routes ────────────────────────────────────────────────────────────
+	//
+	// HandleFast (via GETFast/HandleFast) and UseFast must be registered
+	// before Use(): stdlib middleware (registered below with Use) never
+	// wraps the FastHandler path (see the Pre vs Use vs UseFast policy
+	// matrix in README.md), so MuxMaster panics at registration if a fast
+	// route is added after Use() has already been called — this catches the
+	// mistake of assuming Use() protects it. None of the fast routes below
+	// need authentication or rate limiting by design: /health is a public
+	// probe, /metrics is an unauthenticated demo endpoint (as it was before
+	// this reorder — Use()'s middleware never wrapped it either way), and
+	// the fast echo endpoint only reflects back its own request.
+
+	// FastHandler: bypasses context allocation — zero allocs for static routes.
+	// Ideal for health-check endpoints that are hit thousands of times per second.
+	r.GETFast("/health", func(w http.ResponseWriter, req *http.Request, _ mm.Params) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"status":"ok"}`)
+	})
+
+	// UseFast registers middleware that applies only to HandleFast routes below.
+	r.UseFast(fastTimer)
+
+	// GETFast: metrics endpoint — no context allocation, direct Params argument.
+	r.GETFast("/metrics", metricsHandler)
+
+	// POSTFast via HandleFast: demonstrates HandleFast with explicit method.
+	r.HandleFast(http.MethodPost, "/api/v1/fast/echo", fastEcho)
+
 	// ── Global middleware (applied to every registered route below) ───────────
 
 	// Trusted proxy CIDRs for RealIP — localhost + RFC-1918 private ranges.
@@ -216,13 +249,6 @@ func main() {
 	)
 
 	// ── Public convenience routes ─────────────────────────────────────────────
-
-	// FastHandler: bypasses context allocation — zero allocs for static routes.
-	// Ideal for health-check endpoints that are hit thousands of times per second.
-	r.GETFast("/health", func(w http.ResponseWriter, req *http.Request, _ mm.Params) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"status":"ok"}`)
-	})
 
 	// Standard HandlerFunc: version endpoint reads the injected app version.
 	r.GET("/version", func(w http.ResponseWriter, req *http.Request) {
@@ -284,33 +310,46 @@ func main() {
 	// POST /api/v1/books — create; uses POSTE (error-returning handler).
 	books.POSTE("", store.createBook)
 
-	// HEAD /api/v1/books/:id — check existence without transferring the body.
-	books.HEAD("/:id", store.headBook)
+	// Book IDs are always numeric (Store hands them out via a sequential
+	// counter), so every "/books/{id}..." route below uses the regex
+	// parameter {id:[0-9]+} instead of the plain named parameter :id.
+	//
+	// This is not just style: a regex parameter and a plain named parameter
+	// cannot share the same tree position (specification/routing.md §71 — a
+	// wildcard conflicts with an already-registered wildcard at the same
+	// position). Mixing ":id" here with "{id:[0-9]+}" on the sibling
+	// "/details" route below panics at registration. Using the regex form
+	// consistently also rejects non-numeric ids at the router, before they
+	// ever reach a handler. PathParam(r, "id") is unaffected: a regex
+	// parameter's captured value is still stored under its name, "id".
 
-	// GET /api/v1/books/:id — get by id; PathParam demo.
-	books.GETE("/:id", store.getBook)
+	// HEAD /api/v1/books/{id:[0-9]+} — check existence without transferring the body.
+	books.HEAD("/{id:[0-9]+}", store.headBook)
+
+	// GET /api/v1/books/{id:[0-9]+} — get by id; PathParam demo.
+	books.GETE("/{id:[0-9]+}", store.getBook)
 
 	// GET /api/v1/books/{id:[0-9]+}/details — regex param: only numeric IDs.
 	// PathParam still returns the matched segment (e.g. "42") under key "id".
 	books.GET("/{id:[0-9]+}/details", store.getBookDetails)
 
-	// PUT /api/v1/books/:id — full replacement; PUTE demo.
-	books.PUTE("/:id", store.replaceBook)
+	// PUT /api/v1/books/{id:[0-9]+} — full replacement; PUTE demo.
+	books.PUTE("/{id:[0-9]+}", store.replaceBook)
 
-	// PATCH /api/v1/books/:id — partial update.
-	books.PATCH("/:id", store.patchBook)
+	// PATCH /api/v1/books/{id:[0-9]+} — partial update.
+	books.PATCH("/{id:[0-9]+}", store.patchBook)
 
-	// DELETE /api/v1/books/:id — delete; DELETEE demo.
-	books.DELETEE("/:id", store.deleteBook)
+	// DELETE /api/v1/books/{id:[0-9]+} — delete; DELETEE demo.
+	books.DELETEE("/{id:[0-9]+}", store.deleteBook)
 
-	// Nested resource: /api/v1/books/:id/reviews
+	// Nested resource: /api/v1/books/{id:[0-9]+}/reviews
 	// Two path parameters in a single route — uses ParamsFromContext.
-	books.GET("/:id/reviews", store.listReviews)
-	books.POSTE("/:id/reviews", store.createReview)
+	books.GET("/{id:[0-9]+}/reviews", store.listReviews)
+	books.POSTE("/{id:[0-9]+}/reviews", store.createReview)
 
 	// Three path parameters: book → reviews → review.
 	// Demonstrates Params.Map() and RoutePattern().
-	books.GETE("/:id/reviews/:rid", store.getReview)
+	books.GETE("/{id:[0-9]+}/reviews/:rid", store.getReview)
 
 	// Match registers one handler for multiple methods (GET + HEAD share logic).
 	books.Match(
@@ -327,6 +366,14 @@ func main() {
 	// ServeFiles from the local filesystem. The catch-all param is "filepath".
 	// HEAD requests are automatically registered alongside GET by ServeFiles.
 	books.ServeFiles("/files/*filepath", http.Dir("./static/books"))
+
+	// QUERY /api/v1/books/search — HTTP QUERY (RFC 10008): safe and
+	// idempotent like GET, but carries a JSON query body like POST.
+	// store.searchBooks enforces the Content-Type validation RFC 10008
+	// section 2.1 requires (400 when missing, 415 when unsupported) and
+	// advertises the accepted query format via Accept-Query (RFC 10008
+	// section 3) — the router itself performs none of this validation.
+	books.QUERY("/search", store.searchBooks)
 
 	// ── Authors (With: scoped CORS + XML demo) ────────────────────────────────
 
@@ -365,17 +412,6 @@ func main() {
 	admin.GET("/routes", func(w http.ResponseWriter, req *http.Request) {
 		_ = mm.JSON(w, http.StatusOK, r.Routes())
 	})
-
-	// ── Fast routes with FastMiddleware ──────────────────────────────────────
-
-	// UseFast registers middleware that applies only to HandleFast routes below.
-	r.UseFast(fastTimer)
-
-	// GETFast: metrics endpoint — no context allocation, direct Params argument.
-	r.GETFast("/metrics", metricsHandler)
-
-	// POSTFast via HandleFast: demonstrates HandleFast with explicit method.
-	r.HandleFast(http.MethodPost, "/api/v1/fast/echo", fastEcho)
 
 	// ── Mount: attach a sub-handler at a prefix ───────────────────────────────
 
@@ -434,6 +470,15 @@ func main() {
 // FastMiddleware wraps FastHandler the same way stdlib middleware wraps http.Handler.
 func fastTimer(next mm.FastHandler) mm.FastHandler {
 	return func(w http.ResponseWriter, r *http.Request, ps mm.Params) {
+		// slog.Debug uses the package-level default logger, whose level is
+		// Info here (the example's own *slog.Logger at Debug level is never
+		// installed via slog.SetDefault). Reading the clock and boxing the
+		// log arguments on every fast request only to have them dropped is
+		// pure waste — skip both when Debug is not enabled.
+		if !slog.Default().Enabled(r.Context(), slog.LevelDebug) {
+			next(w, r, ps)
+			return
+		}
 		start := time.Now()
 		next(w, r, ps)
 		slog.Debug("fast", "path", r.URL.Path, "elapsed", time.Since(start))
@@ -611,6 +656,61 @@ func (s *Store) featuredBooks(w http.ResponseWriter, r *http.Request) {
 	_ = mm.JSON(w, http.StatusOK, list)
 }
 
+// searchQuery is the request body a QUERY /api/v1/books/search caller sends —
+// analogous to POST's request body, but for a read-only, side-effect-free
+// query (RFC 10008 section 2).
+type searchQuery struct {
+	Genre string `json:"genre"`
+}
+
+// searchBooks implements QUERY /api/v1/books/search (RFC 10008). It performs
+// the Content-Type validation RFC 10008 section 2.1 requires of a
+// conformant QUERY handler — MuxMaster itself performs none of this — and
+// advertises the accepted query media type via Accept-Query (RFC 10008
+// section 3) on every response, success or failure.
+func (s *Store) searchBooks(w http.ResponseWriter, r *http.Request) {
+	// Accept-Query is a Structured Field List (RFC 9651); "application/json"
+	// is encoded here as a Structured Field String.
+	w.Header().Set("Accept-Query", `"application/json"`)
+
+	switch ct := r.Header.Get("Content-Type"); {
+	case ct == "":
+		// RFC 10008 section 2.1: fail when Content-Type is missing.
+		_ = mm.JSON(w, http.StatusBadRequest, ErrorResponse{
+			Error: "Content-Type is required for a QUERY request",
+			Code:  400,
+		})
+		return
+	case ct != "application/json":
+		// RFC 10008 section 2.1: fail on an unsupported media type.
+		_ = mm.JSON(w, http.StatusUnsupportedMediaType, ErrorResponse{
+			Error: fmt.Sprintf("unsupported query media type: %s (expected application/json)", ct),
+			Code:  415,
+		})
+		return
+	}
+
+	var q searchQuery
+	if err := json.NewDecoder(r.Body).Decode(&q); err != nil {
+		_ = mm.JSON(w, http.StatusBadRequest, ErrorResponse{
+			Error: fmt.Sprintf("invalid JSON query body: %v", err),
+			Code:  400,
+		})
+		return
+	}
+
+	s.mu.RLock()
+	results := make([]*Book, 0, len(s.books))
+	for _, b := range s.books {
+		if q.Genre == "" || b.Genre == q.Genre {
+			results = append(results, b)
+		}
+	}
+	s.mu.RUnlock()
+
+	_ = mm.JSON(w, http.StatusOK, results)
+}
+
 // ─── Review handlers ──────────────────────────────────────────────────────────
 
 // listReviews demonstrates ParamsFromContext to read path params.
@@ -764,20 +864,25 @@ func buildLegacyMux() http.Handler {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// findBookByID looks up a book by its string id. books is keyed by int, so
+// the id is parsed once and used as a direct map key — O(1) instead of a
+// linear scan that re-formats every book's ID with fmt.Sprint on each call.
 func findBookByID(s *Store, id string) (*Book, bool) {
-	for _, b := range s.books {
-		if fmt.Sprint(b.ID) == id {
-			return b, true
-		}
+	n, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, false
 	}
-	return nil, false
+	b, ok := s.books[n]
+	return b, ok
 }
 
+// findAuthorByID mirrors findBookByID: a direct map lookup instead of a
+// linear scan with per-element fmt.Sprint formatting.
 func findAuthorByID(s *Store, id string) (*Author, bool) {
-	for _, a := range s.authors {
-		if fmt.Sprint(a.ID) == id {
-			return a, true
-		}
+	n, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, false
 	}
-	return nil, false
+	a, ok := s.authors[n]
+	return a, ok
 }

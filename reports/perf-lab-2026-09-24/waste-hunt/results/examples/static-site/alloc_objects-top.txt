@@ -1,0 +1,49 @@
+File: static-site
+Build ID: 73ea6150d83e07f769e1bb2dbda235b9de7cbb57
+Type: alloc_objects
+Time: 2026-09-24 19:54:37 WEST
+Duration: 10.01s, Total samples = 21144735 
+Showing nodes accounting for 20392908, 96.44% of 21144735 total
+Dropped 89 nodes (cum <= 105723)
+Showing top 40 nodes out of 112
+      flat  flat%   sum%        cum   cum%
+   3241680 15.33% 15.33%    3241680 15.33%  net/textproto.readMIMEHeader
+   3145973 14.88% 30.21%    3145973 14.88%  net/textproto.MIMEHeader.Set (inline)
+   2299068 10.87% 41.08%    2299068 10.87%  net/http.Header.Clone (inline)
+    891404  4.22% 45.30%    6410448 30.32%  net/http.(*conn).readRequest
+    775520  3.67% 48.97%     775520  3.67%  reflect.unsafe_New
+    596809  2.82% 51.79%   12285011 58.10%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    535284  2.53% 54.32%     535284  2.53%  net/url.parse
+    524296  2.48% 56.80%     943758  4.46%  context.WithCancel
+    486089  2.30% 59.10%     486089  2.30%  os.newFile
+    475281  2.25% 61.35%    4565140 21.59%  net/http.readRequestLimit
+    457254  2.16% 63.51%     457254  2.16%  net/http.(*Request).WithContext
+    450360  2.13% 65.64%     450360  2.13%  net.(*conn).Read
+    419462  1.98% 67.62%     419462  1.98%  context.withCancel (inline)
+    412905  1.95% 69.57%   10388296 49.13%  github.com/FlavioCFOliveira/MuxMaster/middleware.Compress.func2.1
+    360454  1.70% 71.28%     360454  1.70%  net/http.(*connReader).startBackgroundRead
+    331311  1.57% 72.85%     331311  1.57%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*gzipResponseWriter).Write
+    327687  1.55% 74.40%     327687  1.55%  net/textproto.(*Reader).ReadLine (inline)
+    327685  1.55% 75.95%     327685  1.55%  strings.genSplit
+    294916  1.39% 77.34%     294916  1.39%  net/textproto.MIMEHeader.Add (inline)
+    294916  1.39% 78.74%     360453  1.70%  strconv.appendQuotedWith
+    294914  1.39% 80.13%     294914  1.39%  net/netip.Addr.String
+    278534  1.32% 81.45%     638987  3.02%  strconv.quoteWith (inline)
+    273069  1.29% 82.74%     273069  1.29%  path.(*lazybuf).string (inline)
+    252566  1.19% 83.93%     480103  2.27%  io.copyBuffer
+    246508  1.17% 85.10%    1300552  6.15%  main.serveConfig
+    231942  1.10% 86.20%     231942  1.10%  os.(*File).Stat
+    229380  1.08% 87.28%     229380  1.08%  internal/filepathlite.(*lazybuf).append (inline)
+    229380  1.08% 88.37%    1747671  8.27%  net/http.Dir.Open
+    196614  0.93% 89.30%     196614  0.93%  time.Time.Format
+    196610  0.93% 90.23%     196610  0.93%  time.Duration.String
+    171315  0.81% 91.04%    1867119  8.83%  github.com/FlavioCFOliveira/MuxMaster/middleware.NoCache.func1.1
+    163841  0.77% 91.81%     163841  0.77%  syscall.ByteSliceFromString
+    147501   0.7% 92.51%     645058  3.05%  net/http.(*Request).Clone
+    141995  0.67% 93.18%     141995  0.67%  path.(*lazybuf).append (inline)
+    131090  0.62% 93.80%     131090  0.62%  net/url.(*URL).Clone (inline)
+    131072  0.62% 94.42%     131072  0.62%  internal/filepathlite.(*lazybuf).string (inline)
+    120151  0.57% 94.99%     362820  1.72%  net/http.Redirect
+    109227  0.52% 95.50%     109227  0.52%  io.LimitReader (inline)
+    107558  0.51% 96.01%     177783  0.84%  context.(*cancelCtx).propagateCancel
+     91287  0.43% 96.44%     334613  1.58%  context.WithDeadlineCause

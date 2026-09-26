@@ -1,0 +1,132 @@
+=== DERIVATION RUN 1 ===
+=== RUN   TestTiming_Throttle_BoundaryOracle
+    throttle_timing_test.go:212: Throttle near-limit timing oracle (interleaved): limit=16 backlog=0 N=100000/fill
+    throttle_timing_test.go:215:   fill=0/16: mean=5018.5ns std=8014.8ns p50=4260ns p99=12362ns
+    throttle_timing_test.go:215:   fill=1/16: mean=5047.8ns std=11124.2ns p50=4260ns p99=12014ns
+    throttle_timing_test.go:215:   fill=8/16: mean=5027.8ns std=9836.1ns p50=4260ns p99=12083ns
+    throttle_timing_test.go:215:   fill=14/16: mean=4958.7ns std=9310.4ns p50=4260ns p99=11943ns
+    throttle_timing_test.go:215:   fill=15/16: mean=4930.2ns std=8167.3ns p50=4260ns p99=12013ns
+    throttle_timing_test.go:234:   fill=0 vs fill=1: Welch p=1.301e-08 KS p=0.002194 MWU p=0.3383 |mean diff|=37.93ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=37.93ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=8: Welch p=1.288e-15 KS p=2.461e-07 MWU p=2.206e-05 |mean diff|=53.28ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=53.28ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=14: Welch p=1.452e-33 KS p=1.055e-18 MWU p=4.369e-11 |mean diff|=79.64ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=79.64ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=15: Welch p=3.151e-51 KS p=3.764e-26 MWU p=4.725e-11 |mean diff|=98.35ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=98.35ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:242: Worst-case Welch p-value across fill=0 vs {1,8,14,15}: 3.151e-51
+    throttle_timing_test.go:243: Worst-case |mean diff| across fill=0 vs {1,8,14,15}: 98.35ns
+    throttle_timing_test.go:251: Verdict: throttleSem.tryAcquire is a single atomic Load+CAS independent of the current in-use count (middleware/throttle.go CH-02); the interleaved comparison above bounds any residual difference as scheduler/GC noise proportional to the number of additional live (parked) goroutines, not a property of remaining throttle budget (TSC-2026-0014, accepted bound below).
+--- PASS: TestTiming_Throttle_BoundaryOracle (4.25s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	4.453s
+=== DERIVATION RUN 2 ===
+=== RUN   TestTiming_Throttle_BoundaryOracle
+    throttle_timing_test.go:212: Throttle near-limit timing oracle (interleaved): limit=16 backlog=0 N=100000/fill
+    throttle_timing_test.go:215:   fill=0/16: mean=4982.2ns std=6821.7ns p50=4260ns p99=12362ns
+    throttle_timing_test.go:215:   fill=1/16: mean=5043.0ns std=9030.5ns p50=4260ns p99=12222ns
+    throttle_timing_test.go:215:   fill=8/16: mean=5064.3ns std=8874.2ns p50=4260ns p99=12362ns
+    throttle_timing_test.go:215:   fill=14/16: mean=5094.1ns std=10873.2ns p50=4260ns p99=12362ns
+    throttle_timing_test.go:215:   fill=15/16: mean=5091.4ns std=11125.5ns p50=4260ns p99=12152ns
+    throttle_timing_test.go:234:   fill=0 vs fill=1: Welch p=0.3441 KS p=0.008441 MWU p=0.01856 |mean diff|=6.23ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=6.23ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=8: Welch p=0.008856 KS p=0.07032 MWU p=0.007562 |mean diff|=17.48ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=17.48ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=14: Welch p=0.2997 KS p=0.1183 MWU p=0.3003 |mean diff|=6.87ns
+    throttle_timing_test.go:239:     NOT distinguishable at p<0.01
+    throttle_timing_test.go:234:   fill=0 vs fill=15: Welch p=0.06102 KS p=0.04897 MWU p=0.06986 |mean diff|=12.28ns
+    throttle_timing_test.go:239:     NOT distinguishable at p<0.01
+    throttle_timing_test.go:242: Worst-case Welch p-value across fill=0 vs {1,8,14,15}: 0.008856
+    throttle_timing_test.go:243: Worst-case |mean diff| across fill=0 vs {1,8,14,15}: 17.48ns
+    throttle_timing_test.go:251: Verdict: throttleSem.tryAcquire is a single atomic Load+CAS independent of the current in-use count (middleware/throttle.go CH-02); the interleaved comparison above bounds any residual difference as scheduler/GC noise proportional to the number of additional live (parked) goroutines, not a property of remaining throttle budget (TSC-2026-0014, accepted bound below).
+--- PASS: TestTiming_Throttle_BoundaryOracle (4.29s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	4.505s
+=== DERIVATION RUN 3 ===
+=== RUN   TestTiming_Throttle_BoundaryOracle
+    throttle_timing_test.go:212: Throttle near-limit timing oracle (interleaved): limit=16 backlog=0 N=100000/fill
+    throttle_timing_test.go:215:   fill=0/16: mean=5071.6ns std=12035.6ns p50=4260ns p99=11943ns
+    throttle_timing_test.go:215:   fill=1/16: mean=4959.9ns std=7693.5ns p50=4260ns p99=12013ns
+    throttle_timing_test.go:215:   fill=8/16: mean=5024.1ns std=9972.0ns p50=4260ns p99=12083ns
+    throttle_timing_test.go:215:   fill=14/16: mean=5093.3ns std=11905.8ns p50=4260ns p99=12013ns
+    throttle_timing_test.go:215:   fill=15/16: mean=5011.4ns std=10066.5ns p50=4260ns p99=12292ns
+    throttle_timing_test.go:234:   fill=0 vs fill=1: Welch p=0.005917 KS p=0.003331 MWU p=0.002873 |mean diff|=17.55ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=17.55ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=8: Welch p=0.3039 KS p=0.9114 MWU p=0.3317 |mean diff|=6.55ns
+    throttle_timing_test.go:239:     NOT distinguishable at p<0.01
+    throttle_timing_test.go:234:   fill=0 vs fill=14: Welch p=1.751e-06 KS p=0.00105 MWU p=6.021e-05 |mean diff|=30.70ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=30.70ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=15: Welch p=0.267 KS p=0.4408 MWU p=0.5646 |mean diff|=7.09ns
+    throttle_timing_test.go:239:     NOT distinguishable at p<0.01
+    throttle_timing_test.go:242: Worst-case Welch p-value across fill=0 vs {1,8,14,15}: 1.751e-06
+    throttle_timing_test.go:243: Worst-case |mean diff| across fill=0 vs {1,8,14,15}: 30.70ns
+    throttle_timing_test.go:251: Verdict: throttleSem.tryAcquire is a single atomic Load+CAS independent of the current in-use count (middleware/throttle.go CH-02); the interleaved comparison above bounds any residual difference as scheduler/GC noise proportional to the number of additional live (parked) goroutines, not a property of remaining throttle budget (TSC-2026-0014, accepted bound below).
+--- PASS: TestTiming_Throttle_BoundaryOracle (4.27s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	4.480s
+=== DERIVATION RUN 4 ===
+=== RUN   TestTiming_Throttle_BoundaryOracle
+    throttle_timing_test.go:212: Throttle near-limit timing oracle (interleaved): limit=16 backlog=0 N=100000/fill
+    throttle_timing_test.go:215:   fill=0/16: mean=5042.3ns std=10226.2ns p50=4260ns p99=11943ns
+    throttle_timing_test.go:215:   fill=1/16: mean=5012.4ns std=8354.0ns p50=4260ns p99=12083ns
+    throttle_timing_test.go:215:   fill=8/16: mean=5020.3ns std=9769.6ns p50=4260ns p99=12013ns
+    throttle_timing_test.go:215:   fill=14/16: mean=5134.6ns std=12269.1ns p50=4260ns p99=12292ns
+    throttle_timing_test.go:215:   fill=15/16: mean=5079.9ns std=11323.6ns p50=4260ns p99=12013ns
+    throttle_timing_test.go:234:   fill=0 vs fill=1: Welch p=1.399e-07 KS p=0.0007792 MWU p=5.01e-06 |mean diff|=34.08ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=34.08ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=8: Welch p=0.1763 KS p=0.1614 MWU p=0.9102 |mean diff|=8.60ns
+    throttle_timing_test.go:239:     NOT distinguishable at p<0.01
+    throttle_timing_test.go:234:   fill=0 vs fill=14: Welch p=2.497e-16 KS p=5.446e-07 MWU p=1.136e-10 |mean diff|=53.63ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=53.63ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=15: Welch p=0.094 KS p=0.06909 MWU p=0.01911 |mean diff|=10.76ns
+    throttle_timing_test.go:239:     NOT distinguishable at p<0.01
+    throttle_timing_test.go:242: Worst-case Welch p-value across fill=0 vs {1,8,14,15}: 2.497e-16
+    throttle_timing_test.go:243: Worst-case |mean diff| across fill=0 vs {1,8,14,15}: 53.63ns
+    throttle_timing_test.go:251: Verdict: throttleSem.tryAcquire is a single atomic Load+CAS independent of the current in-use count (middleware/throttle.go CH-02); the interleaved comparison above bounds any residual difference as scheduler/GC noise proportional to the number of additional live (parked) goroutines, not a property of remaining throttle budget (TSC-2026-0014, accepted bound below).
+--- PASS: TestTiming_Throttle_BoundaryOracle (4.28s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	4.491s
+=== DERIVATION RUN 5 ===
+=== RUN   TestTiming_Throttle_BoundaryOracle
+    throttle_timing_test.go:212: Throttle near-limit timing oracle (interleaved): limit=16 backlog=0 N=100000/fill
+    throttle_timing_test.go:215:   fill=0/16: mean=4951.7ns std=7542.3ns p50=4260ns p99=12222ns
+    throttle_timing_test.go:215:   fill=1/16: mean=4938.8ns std=9948.6ns p50=4260ns p99=12013ns
+    throttle_timing_test.go:215:   fill=8/16: mean=4981.1ns std=9778.2ns p50=4260ns p99=12222ns
+    throttle_timing_test.go:215:   fill=14/16: mean=5014.4ns std=6818.8ns p50=4260ns p99=12362ns
+    throttle_timing_test.go:215:   fill=15/16: mean=4975.7ns std=8230.0ns p50=4260ns p99=12362ns
+    throttle_timing_test.go:234:   fill=0 vs fill=1: Welch p=4.342e-20 KS p=1.811e-15 MWU p=0.0006404 |mean diff|=58.96ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=58.96ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=8: Welch p=4.895e-05 KS p=0.00018 MWU p=0.3148 |mean diff|=26.44ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=26.44ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=14: Welch p=2.625e-37 KS p=1.567e-14 MWU p=0 |mean diff|=87.34ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=87.34ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=15: Welch p=0.5849 KS p=0.1658 MWU p=0.9526 |mean diff|=3.61ns
+    throttle_timing_test.go:239:     NOT distinguishable at p<0.01
+    throttle_timing_test.go:242: Worst-case Welch p-value across fill=0 vs {1,8,14,15}: 2.625e-37
+    throttle_timing_test.go:243: Worst-case |mean diff| across fill=0 vs {1,8,14,15}: 87.34ns
+    throttle_timing_test.go:251: Verdict: throttleSem.tryAcquire is a single atomic Load+CAS independent of the current in-use count (middleware/throttle.go CH-02); the interleaved comparison above bounds any residual difference as scheduler/GC noise proportional to the number of additional live (parked) goroutines, not a property of remaining throttle budget (TSC-2026-0014, accepted bound below).
+--- PASS: TestTiming_Throttle_BoundaryOracle (4.23s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	4.439s
+=== DERIVATION RUN 6 ===
+=== RUN   TestTiming_Throttle_BoundaryOracle
+    throttle_timing_test.go:212: Throttle near-limit timing oracle (interleaved): limit=16 backlog=0 N=100000/fill
+    throttle_timing_test.go:215:   fill=0/16: mean=5076.5ns std=9589.1ns p50=4260ns p99=12362ns
+    throttle_timing_test.go:215:   fill=1/16: mean=5042.8ns std=7823.0ns p50=4260ns p99=12361ns
+    throttle_timing_test.go:215:   fill=8/16: mean=4990.0ns std=9300.4ns p50=4260ns p99=11803ns
+    throttle_timing_test.go:215:   fill=14/16: mean=4998.0ns std=8596.5ns p50=4260ns p99=12012ns
+    throttle_timing_test.go:215:   fill=15/16: mean=5009.6ns std=8321.5ns p50=4260ns p99=11873ns
+    throttle_timing_test.go:234:   fill=0 vs fill=1: Welch p=0.4737 KS p=0.4456 MWU p=0.1591 |mean diff|=4.85ns
+    throttle_timing_test.go:239:     NOT distinguishable at p<0.01
+    throttle_timing_test.go:234:   fill=0 vs fill=8: Welch p=1.638e-38 KS p=1.486e-17 MWU p=2.01e-13 |mean diff|=84.62ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=84.62ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=14: Welch p=9.001e-18 KS p=5.085e-09 MWU p=0.0001934 |mean diff|=56.58ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=56.58ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:234:   fill=0 vs fill=15: Welch p=1.49e-15 KS p=1.9e-10 MWU p=0.06553 |mean diff|=52.45ns
+    throttle_timing_test.go:237:     DISTINGUISHABLE: diff=52.45ns — INFORMATIONAL — below practical LAN exploitation threshold
+    throttle_timing_test.go:242: Worst-case Welch p-value across fill=0 vs {1,8,14,15}: 1.638e-38
+    throttle_timing_test.go:243: Worst-case |mean diff| across fill=0 vs {1,8,14,15}: 84.62ns
+    throttle_timing_test.go:251: Verdict: throttleSem.tryAcquire is a single atomic Load+CAS independent of the current in-use count (middleware/throttle.go CH-02); the interleaved comparison above bounds any residual difference as scheduler/GC noise proportional to the number of additional live (parked) goroutines, not a property of remaining throttle budget (TSC-2026-0014, accepted bound below).
+--- PASS: TestTiming_Throttle_BoundaryOracle (4.26s)
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	4.468s

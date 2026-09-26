@@ -1,0 +1,29 @@
+{
+ "name": "server-sent-events",
+ "streams": [
+  {
+   "path": "/events/news",
+   "count": 64
+  }
+ ],
+ "requests": [
+  {
+   "name": "POST /publish",
+   "method": "POST",
+   "path": "/publish",
+   "expect": 200,
+   "weight": 8,
+   "headers": {
+    "Content-Type": "application/json"
+   },
+   "body": "{\"topic\":\"news\",\"msg\":\"hello subscribers\"}"
+  },
+  {
+   "name": "GET /",
+   "method": "GET",
+   "path": "/",
+   "expect": 200,
+   "weight": 1
+  }
+ ]
+}

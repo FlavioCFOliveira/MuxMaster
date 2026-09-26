@@ -1,0 +1,49 @@
+File: static-site
+Build ID: 81f0f8db5675d45ba15ba4253fbefea2b0138db7
+Type: alloc_objects
+Time: 2026-09-25 12:39:02 WEST
+Duration: 10.01s, Total samples = 20550791 
+Showing nodes accounting for 19962652, 97.14% of 20550791 total
+Dropped 75 nodes (cum <= 102753)
+Showing top 40 nodes out of 108
+      flat  flat%   sum%        cum   cum%
+   3096280 15.07% 15.07%    3161817 15.39%  net/textproto.readMIMEHeader
+   2055643 10.00% 25.07%    2055643 10.00%  net/textproto.MIMEHeader.Set (inline)
+   1899385  9.24% 34.31%    1899385  9.24%  net/http.Header.Clone (inline)
+   1802262  8.77% 43.08%    8618637 41.94%  github.com/FlavioCFOliveira/MuxMaster/middleware.SetHeader.func1.1
+    948222  4.61% 47.70%    6509628 31.68%  net/http.(*conn).readRequest
+    713593  3.47% 51.17%   11841520 57.62%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    655366  3.19% 54.36%     655366  3.19%  reflect.unsafe_New
+    524296  2.55% 56.91%     910988  4.43%  context.WithCancel
+    517077  2.52% 59.42%     517077  2.52%  net/url.parse
+    502455  2.44% 61.87%     502455  2.44%  net/textproto.(*Reader).ReadLine (inline)
+    497005  2.42% 64.29%     497005  2.42%  os.newFile
+    485004  2.36% 66.65%     485004  2.36%  net.(*conn).Read
+    458892  2.23% 68.88%    4621123 22.49%  net/http.readRequestLimit
+    437935  2.13% 71.01%     437935  2.13%  net/textproto.MIMEHeader.Add (inline)
+    422836  2.06% 73.07%     422836  2.06%  net/http.(*Request).WithContext
+    393222  1.91% 74.98%     393222  1.91%  net/http.(*connReader).startBackgroundRead
+    393221  1.91% 76.90%     393221  1.91%  net/netip.Addr.String
+    386692  1.88% 78.78%     386692  1.88%  context.withCancel (inline)
+    316761  1.54% 80.32%    2190044 10.66%  net/http.Dir.Open
+    283992  1.38% 81.70%     283992  1.38%  path.(*lazybuf).string (inline)
+    253247  1.23% 82.93%    1720916  8.37%  github.com/FlavioCFOliveira/MuxMaster/middleware.NoCache.func1.1
+    231427  1.13% 84.06%   13060067 63.55%  github.com/FlavioCFOliveira/MuxMaster/middleware.CleanPath.func1.1
+    223920  1.09% 85.15%     223920  1.09%  internal/filepathlite.(*lazybuf).string (inline)
+    223919  1.09% 86.24%     223919  1.09%  syscall.ByteSliceFromString
+    222841  1.08% 87.32%    1077669  5.24%  main.serveConfig
+    218456  1.06% 88.39%     218456  1.06%  path.(*lazybuf).append (inline)
+    212998  1.04% 89.42%     212998  1.04%  time.Time.Format
+    212995  1.04% 90.46%     212995  1.04%  internal/bytealg.MakeNoZero
+    206732  1.01% 91.46%     206732  1.01%  os.(*File).Stat
+    191150  0.93% 92.39%     191150  0.93%  internal/filepathlite.(*lazybuf).append (inline)
+    190137  0.93% 93.32%     190137  0.93%  io.copyBuffer
+    185689   0.9% 94.22%     364351  1.77%  net/http.Redirect
+    109226  0.53% 94.75%     109226  0.53%  io.LimitReader (inline)
+    105138  0.51% 95.27%     105138  0.51%  sync.(*poolChain).pushHead
+    102992   0.5% 95.77%     337555  1.64%  context.WithDeadlineCause
+     94114  0.46% 96.23%     178383  0.87%  context.(*cancelCtx).propagateCancel
+     65536  0.32% 96.54%     470395  2.29%  github.com/FlavioCFOliveira/MuxMaster/middleware.CORS.func1.1
+     50980  0.25% 96.79%     404859  1.97%  github.com/FlavioCFOliveira/MuxMaster.(*Group).ServeFiles.func1
+     49170  0.24% 97.03%    1189547  5.79%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+     21846  0.11% 97.14%     742770  3.61%  os.openFileNolog

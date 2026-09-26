@@ -1,0 +1,79 @@
+File: oauth2
+Build ID: 7dd73c75fb2a94c3182df7a0e45653fda4add4d0
+Type: cpu
+Time: 2026-09-24 19:51:07 WEST
+Duration: 10s, Total samples = 55.04s (550.35%)
+Showing nodes accounting for 37.25s, 67.68% of 55.04s total
+Dropped 658 nodes (cum <= 0.28s)
+Showing top 70 nodes out of 162
+      flat  flat%   sum%        cum   cum%
+     0.15s  0.27%  0.27%     41.55s 75.49%  net/http.(*conn).serve
+     0.08s  0.15%  0.42%     17.15s 31.16%  net/http.(*response).finishRequest
+    14.88s 27.03% 27.45%     14.88s 27.03%  internal/runtime/syscall/linux.Syscall6
+     0.05s 0.091% 27.54%     14.58s 26.49%  bufio.(*Writer).Flush
+         0     0% 27.54%     14.41s 26.18%  internal/poll.ignoringEINTRIO (inline)
+     0.02s 0.036% 27.58%     14.28s 25.94%  syscall.Syscall
+     0.04s 0.073% 27.65%     13.81s 25.09%  syscall.RawSyscall6
+     0.03s 0.055% 27.71%     10.93s 19.86%  net/http.checkConnErrorWriter.Write
+         0     0% 27.71%     10.90s 19.80%  net.(*conn).Write
+     0.04s 0.073% 27.78%     10.90s 19.80%  net.(*netFD).Write
+         0     0% 27.78%     10.86s 19.73%  internal/poll.(*FD).Write
+     0.03s 0.055% 27.83%     10.79s 19.60%  syscall.Write (inline)
+     0.01s 0.018% 27.85%     10.76s 19.55%  syscall.write
+     0.04s 0.073% 27.93%     10.22s 18.57%  net/http.serverHandler.ServeHTTP
+     0.03s 0.055% 27.98%     10.18s 18.50%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.09s  0.16% 28.14%     10.14s 18.42%  net/http.HandlerFunc.ServeHTTP
+     0.08s  0.15% 28.29%     10.13s 18.40%  time.Now
+     0.05s 0.091% 28.38%     10.12s 18.39%  github.com/FlavioCFOliveira/MuxMaster/middleware.RealIP.func1.1
+    10.05s 18.26% 46.64%     10.05s 18.26%  time.runtimeNow
+     0.06s  0.11% 46.75%      9.69s 17.61%  runtime.mcall
+     0.01s 0.018% 46.77%      9.49s 17.24%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+     0.16s  0.29% 47.06%      9.49s 17.24%  runtime.schedule
+     0.11s   0.2% 47.26%      9.48s 17.22%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.02s 0.036% 47.29%      9.30s 16.90%  github.com/FlavioCFOliveira/MuxMaster/middleware.ThrottlePerIPCapped.func2.1
+     0.02s 0.036% 47.33%      9.02s 16.39%  runtime.park_m
+     0.18s  0.33% 47.66%      8.78s 15.95%  runtime.findRunnable
+     0.14s  0.25% 47.91%      6.48s 11.77%  net/http.(*conn).readRequest
+     0.04s 0.073% 47.98%      6.13s 11.14%  github.com/FlavioCFOliveira/MuxMaster/middleware.OAuth2Introspect.func2.1
+     4.73s  8.59% 56.58%      4.73s  8.59%  runtime.nanotime (inline)
+     0.06s  0.11% 56.69%      4.40s  7.99%  net.(*conn).Read
+     0.02s 0.036% 56.72%      3.90s  7.09%  net.(*netFD).Read
+     0.07s  0.13% 56.85%      3.86s  7.01%  internal/poll.(*FD).Read
+     0.04s 0.073% 56.92%      3.60s  6.54%  net/http.(*chunkWriter).Write
+     0.01s 0.018% 56.94%      3.57s  6.49%  syscall.Read (inline)
+     0.03s 0.055% 56.99%      3.56s  6.47%  syscall.read
+     0.13s  0.24% 57.23%      3.55s  6.45%  net/http.(*chunkWriter).writeHeader
+     0.05s 0.091% 57.32%      3.41s  6.20%  runtime.systemstack
+     0.07s  0.13% 57.45%      3.36s  6.10%  net/http.readRequestLimit
+         0     0% 57.45%      3.33s  6.05%  main.main.func2
+     0.07s  0.13% 57.58%      3.19s  5.80%  net/http.(*conn).setState
+     0.09s  0.16% 57.74%      3.14s  5.70%  bufio.(*Reader).Peek
+     0.09s  0.16% 57.90%      3.05s  5.54%  bufio.(*Reader).fill
+     0.02s 0.036% 57.94%         3s  5.45%  github.com/FlavioCFOliveira/MuxMaster.JSON
+     0.33s   0.6% 58.54%      2.98s  5.41%  runtime.stealWork
+     0.02s 0.036% 58.58%      2.96s  5.38%  net/http.(*connReader).Read
+     0.32s  0.58% 59.16%      2.88s  5.23%  runtime.mallocgc
+     0.04s 0.073% 59.23%      2.40s  4.36%  net/http.(*connReader).abortPendingRead
+     0.05s 0.091% 59.32%      2.28s  4.14%  net.(*conn).SetReadDeadline
+     0.01s 0.018% 59.34%      2.26s  4.11%  encoding/json.Marshal (inline)
+     0.02s 0.036% 59.38%      2.25s  4.09%  encoding/json/v2.Marshal
+     0.06s  0.11% 59.48%      2.23s  4.05%  internal/poll.setDeadlineImpl
+         0     0% 59.48%      2.22s  4.03%  internal/poll.(*FD).SetReadDeadline (inline)
+         0     0% 59.48%      2.22s  4.03%  net.(*netFD).SetReadDeadline (inline)
+     0.01s 0.018% 59.50%      2.19s  3.98%  runtime.runqsteal
+     0.21s  0.38% 59.88%      2.18s  3.96%  runtime.runqgrab
+     0.05s 0.091% 59.97%      1.96s  3.56%  encoding/json/v2.marshalEncode
+     1.93s  3.51% 63.48%      1.93s  3.51%  runtime.usleep
+     0.03s 0.055% 63.54%      1.92s  3.49%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*oauth2Cache).get
+     0.02s 0.036% 63.57%      1.82s  3.31%  time.Until
+     0.11s   0.2% 63.77%      1.76s  3.20%  net/textproto.readMIMEHeader
+     0.06s  0.11% 63.88%      1.74s  3.16%  net/http.(*connReader).backgroundRead
+     1.66s  3.02% 66.90%      1.66s  3.02%  runtime.futex
+     0.19s  0.35% 67.24%      1.63s  2.96%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 67.24%      1.52s  2.76%  runtime.gcBgMarkWorker
+     0.10s  0.18% 67.42%      1.32s  2.40%  runtime.newobject
+     0.01s 0.018% 67.44%      1.28s  2.33%  time.NewTimer
+     0.09s  0.16% 67.61%      1.22s  2.22%  runtime.mallocgcSmallScanNoHeader
+     0.03s 0.055% 67.66%      1.22s  2.22%  runtime.netpoll
+         0     0% 67.66%      1.19s  2.16%  runtime.gcBgMarkWorker.func2
+     0.01s 0.018% 67.68%      1.19s  2.16%  runtime.gcDrain

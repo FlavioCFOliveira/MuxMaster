@@ -1,0 +1,31 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                         │     base     │               patched               │
+                         │    sec/op    │   sec/op     vs base                │
+RegisterRoutes/N=100-16    685.92µ ± 1%   63.75µ ± 1%  -90.71% (p=0.000 n=10)
+RegisterRoutes/N=1000-16   72.080m ± 4%   3.967m ± 1%  -94.50% (p=0.000 n=10)
+RegisterRoutes/N=5000-16   2233.7m ± 1%   101.5m ± 1%  -95.46% (p=0.000 n=10)
+geomean                     47.98m        2.950m       -93.85%
+
+                         │     base     │               patched               │
+                         │  sec/route   │  sec/route   vs base                │
+RegisterRoutes/N=100-16    6859.0n ± 1%   637.5n ± 1%  -90.70% (p=0.000 n=10)
+RegisterRoutes/N=1000-16   72.080µ ± 4%   3.967µ ± 1%  -94.50% (p=0.000 n=10)
+RegisterRoutes/N=5000-16   446.74µ ± 1%   20.29µ ± 1%  -95.46% (p=0.000 n=10)
+geomean                     60.45µ        3.716µ       -93.85%
+
+                         │      base       │               patched                │
+                         │      B/op       │     B/op      vs base                │
+RegisterRoutes/N=100-16     1452.44Ki ± 0%   38.98Ki ± 0%  -97.32% (p=0.000 n=10)
+RegisterRoutes/N=1000-16   143196.9Ki ± 0%   388.5Ki ± 0%  -99.73% (p=0.000 n=10)
+RegisterRoutes/N=5000-16   3491.602Mi ± 0%   1.897Mi ± 0%  -99.95% (p=0.000 n=10)
+geomean                       88.47Mi        308.7Ki       -99.66%
+
+                         │      base      │               patched               │
+                         │   allocs/op    │  allocs/op   vs base                │
+RegisterRoutes/N=100-16      19722.0 ± 0%    633.0 ± 0%  -96.79% (p=0.000 n=10)
+RegisterRoutes/N=1000-16   1937.267k ± 0%   6.363k ± 0%  -99.67% (p=0.000 n=10)
+RegisterRoutes/N=5000-16   48353.14k ± 0%   31.83k ± 0%  -99.93% (p=0.000 n=10)
+geomean                       1.227M        5.042k       -99.59%

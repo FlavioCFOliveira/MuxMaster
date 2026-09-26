@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/\x8c\t\x9a\x8c\t\x9a")

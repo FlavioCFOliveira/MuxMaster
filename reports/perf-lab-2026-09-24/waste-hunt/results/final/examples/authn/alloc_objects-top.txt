@@ -1,0 +1,49 @@
+File: authn
+Build ID: 26233eda2c1cd46b66b4783daaa869a6a58db938
+Type: alloc_objects
+Time: 2026-09-25 12:36:31 WEST
+Duration: 10.01s, Total samples = 17292855 
+Showing nodes accounting for 17220549, 99.58% of 17292855 total
+Dropped 62 nodes (cum <= 86464)
+Showing top 40 nodes out of 65
+      flat  flat%   sum%        cum   cum%
+   3150961 18.22% 18.22%    3544183 20.50%  net/textproto.readMIMEHeader
+   1746873 10.10% 28.32%    1746873 10.10%  net/http.Header.Clone (inline)
+   1409040  8.15% 36.47%    1409040  8.15%  reflect.unsafe_New
+   1245204  7.20% 43.67%    1245204  7.20%  net/textproto.canonicalMIMEHeaderKey
+   1074940  6.22% 49.89%    7465382 43.17%  net/http.(*conn).readRequest
+    955234  5.52% 55.41%    7915546 45.77%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    699809  4.05% 59.46%     699809  4.05%  net/http.(*Request).WithContext (partial-inline)
+    655370  3.79% 63.25%    1238685  7.16%  context.WithCancel
+    622601  3.60% 66.85%     622601  3.60%  net/http.(*connReader).startBackgroundRead
+    609532  3.52% 70.37%     609532  3.52%  net.(*conn).Read
+    583315  3.37% 73.75%     583315  3.37%  context.withCancel (inline)
+    555587  3.21% 76.96%    5125683 29.64%  net/http.readRequestLimit
+    535285  3.10% 80.05%     535285  3.10%  net/url.parse
+    531765  3.08% 83.13%     892219  5.16%  net/textproto.MIMEHeader.Set (inline)
+    469688  2.72% 85.85%     469688  2.72%  net/textproto.(*Reader).ReadLine (inline)
+    365383  2.11% 87.96%     365383  2.11%  bytes.Clone (inline)
+    294917  1.71% 89.66%     393223  2.27%  net/http.parseBasicAuth
+    262153  1.52% 91.18%    3875397 22.41%  github.com/FlavioCFOliveira/MuxMaster/middleware.APIKey.func2.1
+    229379  1.33% 92.51%    3028671 17.51%  github.com/FlavioCFOliveira/MuxMaster.JSON
+    222118  1.28% 93.79%    1144695  6.62%  main.main.func6
+    213016  1.23% 95.02%     970613  5.61%  main.main.func9
+    188485  1.09% 96.11%    2884660 16.68%  github.com/FlavioCFOliveira/MuxMaster.dispatchParams1
+    174790  1.01% 97.12%     727023  4.20%  main.main.func5
+    131074  0.76% 97.88%     461648  2.67%  net/http.Error
+    100144  0.58% 98.46%     896408  5.18%  main.main.func8
+     98306  0.57% 99.03%      98306  0.57%  encoding/base64.(*Encoding).DecodeString
+     95580  0.55% 99.58%      95580  0.55%  sync.(*poolChain).pushHead
+         0     0% 99.58%    1777886 10.28%  encoding/json.Marshal (inline)
+         0     0% 99.58%    1777886 10.28%  encoding/json/v2.Marshal
+         0     0% 99.58%     196611  1.14%  encoding/json/v2.makeInterfaceArshaler.func1
+         0     0% 99.58%    1147807  6.64%  encoding/json/v2.makeMapArshaler.func2
+         0     0% 99.58%    1409952  8.15%  encoding/json/v2.marshalEncode
+         0     0% 99.58%     720905  4.17%  encoding/json/v2.newAddressableValue
+         0     0% 99.58%    1182148  6.84%  github.com/FlavioCFOliveira/MuxMaster.(*Group).HandleE.func1
+         0     0% 99.58%    8558374 49.49%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 99.58%    8558374 49.49%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 99.58%     211535  1.22%  github.com/FlavioCFOliveira/MuxMaster.NoContent (inline)
+         0     0% 99.58%    1496611  8.65%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 99.58%     196611  1.14%  github.com/FlavioCFOliveira/MuxMaster/middleware.APIKey.func1
+         0     0% 99.58%    1749453 10.12%  github.com/FlavioCFOliveira/MuxMaster/middleware.BasicAuth.func1.1

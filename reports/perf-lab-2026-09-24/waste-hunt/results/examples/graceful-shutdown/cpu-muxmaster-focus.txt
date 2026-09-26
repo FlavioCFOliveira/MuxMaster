@@ -1,0 +1,71 @@
+File: graceful-shutdown
+Build ID: 3b879e2905e681b7bcfa7e43cf9b88d89b516135
+Type: cpu
+Time: 2026-09-24 19:50:22 WEST
+Duration: 10s, Total samples = 68.94s (689.40%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 10.21s, 14.81% of 68.94s total
+Dropped 246 nodes (cum <= 0.34s)
+Showing top 60 nodes out of 113
+      flat  flat%   sum%        cum   cum%
+     4.90s  7.11%  7.11%      4.90s  7.11%  time.runtimeNow
+     2.64s  3.83% 10.94%      2.64s  3.83%  runtime.nanotime (inline)
+     0.51s  0.74% 11.68%      0.51s  0.74%  internal/runtime/syscall/linux.Syscall6
+     0.13s  0.19% 11.87%      1.04s  1.51%  runtime.mallocgc
+     0.12s  0.17% 12.04%      0.12s  0.17%  runtime.memclrNoHeapPointers
+     0.09s  0.13% 12.17%      0.12s  0.17%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.08s  0.12% 12.29%      6.48s  9.40%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.07s   0.1% 12.39%     11.77s 17.07%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.07s   0.1% 12.49%     12.45s 18.06%  net/http.HandlerFunc.ServeHTTP
+     0.07s   0.1% 12.59%      0.07s   0.1%  runtime.(*mspan).writeHeapBitsSmall
+     0.07s   0.1% 12.69%      0.13s  0.19%  runtime.makechan
+     0.07s   0.1% 12.79%      0.08s  0.12%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.07s   0.1% 12.90%      0.07s   0.1%  runtime.memmove
+     0.07s   0.1% 13.00%      0.12s  0.17%  sync.(*Pool).Get
+     0.06s 0.087% 13.08%     12.52s 18.16%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.06s 0.087% 13.17%      0.59s  0.86%  runtime.mallocgcSmallScanNoHeader
+     0.05s 0.073% 13.24%      2.94s  4.26%  context.WithDeadlineCause
+     0.05s 0.073% 13.32%      0.09s  0.13%  fmt.(*pp).printArg
+     0.05s 0.073% 13.39%      0.07s   0.1%  internal/runtime/maps.(*Iter).Next
+     0.05s 0.073% 13.46%      0.09s  0.13%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.05s 0.073% 13.53%      0.13s  0.19%  time.Time.appendFormatRFC3339
+     0.04s 0.058% 13.59%      0.34s  0.49%  internal/runtime/maps.(*Map).growToSmall
+     0.04s 0.058% 13.65%      0.09s  0.13%  runtime.mallocgcTinySC2
+     0.03s 0.044% 13.69%      0.26s  0.38%  context.(*timerCtx).cancel
+     0.03s 0.044% 13.74%      0.29s  0.42%  context.WithDeadlineCause.func3
+     0.03s 0.044% 13.78%      0.42s  0.61%  fmt.Fprintln
+     0.03s 0.044% 13.82%     12.44s 18.04%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+     0.03s 0.044% 13.87%     11.66s 16.91%  github.com/FlavioCFOliveira/MuxMaster/middleware.Timeout.func1.1
+     0.03s 0.044% 13.91%      0.34s  0.49%  main.main.func1
+     0.03s 0.044% 13.95%      0.28s  0.41%  net/http.(*Request).WithContext
+     0.03s 0.044% 14.00%      0.67s  0.97%  os.(*File).Write
+     0.03s 0.044% 14.04%      0.07s   0.1%  runtime.mallocgcSmallScanNoHeaderSC4
+     0.03s 0.044% 14.08%      0.11s  0.16%  runtime.mallocgcSmallScanSlowPath
+     0.03s 0.044% 14.13%      0.53s  0.77%  runtime.newobject
+     0.03s 0.044% 14.17%      0.07s   0.1%  strconv.appendEscapedRune
+     0.03s 0.044% 14.22%      0.23s  0.33%  strconv.appendQuotedWith
+     0.03s 0.044% 14.26%      4.93s  7.15%  time.Now
+     0.02s 0.029% 14.29%      0.21s   0.3%  context.(*cancelCtx).Done
+     0.02s 0.029% 14.32%      0.57s  0.83%  context.(*cancelCtx).propagateCancel
+     0.02s 0.029% 14.35%     12.37s 17.94%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+     0.02s 0.029% 14.37%      0.14s   0.2%  github.com/FlavioCFOliveira/MuxMaster/middleware.nextRandomID
+     0.02s 0.029% 14.40%      0.47s  0.68%  net/http.Header.Clone (inline)
+     0.02s 0.029% 14.43%      0.22s  0.32%  runtime.(*mcentral).cacheSpan
+     0.02s 0.029% 14.46%      0.11s  0.16%  runtime.makeslice
+     0.02s 0.029% 14.49%      0.10s  0.15%  runtime.mapIterStart
+     0.02s 0.029% 14.52%      0.08s  0.12%  runtime.mapaccess2_faststr
+     0.02s 0.029% 14.55%      0.19s  0.28%  runtime.mapassign
+     0.02s 0.029% 14.58%      0.09s  0.13%  runtime.reentersyscall
+     0.02s 0.029% 14.61%      0.07s   0.1%  sync/atomic.(*Value).Store
+     0.02s 0.029% 14.64%      0.90s  1.31%  time.Since
+     0.02s 0.029% 14.66%      0.24s  0.35%  time.newTimer
+     0.02s 0.029% 14.69%      2.63s  3.81%  time.runtimeNano
+     0.01s 0.015% 14.71%      0.14s   0.2%  context.removeChild
+     0.01s 0.015% 14.72%      0.11s  0.16%  fmt.(*pp).doPrintln
+     0.01s 0.015% 14.74%     11.79s 17.10%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+     0.01s 0.015% 14.75%      0.63s  0.91%  internal/poll.(*FD).Write
+     0.01s 0.015% 14.77%      0.57s  0.83%  net/http.(*response).WriteHeader
+     0.01s 0.015% 14.78%      0.68s  0.99%  net/http.NotFound
+     0.01s 0.015% 14.80%      0.12s  0.17%  runtime.(*mheap).allocSpan
+     0.01s 0.015% 14.81%      0.08s  0.12%  runtime.heapSetTypeNoHeader (inline)

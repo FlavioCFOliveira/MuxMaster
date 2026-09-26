@@ -1,0 +1,24 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/middleware
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkOAuth2CacheSetAtSaturation       	   71421	      3259 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	   74778	      3278 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	   74733	      3278 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	   74732	      3283 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	   74436	      3267 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation       	   74778	      3256 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	  142837	      1501 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	  144366	      1456 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	  134031	      1564 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	  160936	      1550 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	  138228	      1574 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-4     	  144889	      1461 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	  107160	      2133 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	  106330	      2130 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	  109256	      2146 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	  102205	      2147 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	  103767	      2145 ns/op	     288 B/op	       2 allocs/op
+BenchmarkOAuth2CacheSetAtSaturation-16    	  106485	      2161 ns/op	     288 B/op	       2 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/middleware	4.944s

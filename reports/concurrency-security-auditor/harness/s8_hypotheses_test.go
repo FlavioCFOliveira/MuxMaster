@@ -12,6 +12,8 @@ package muxmaster_test
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
@@ -63,7 +65,10 @@ func TestH8_01_Pre_WrapsHandleFast(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 5000
+	// iters trimmed 5000 -> 2000 (rmp #271): pure ServeHTTP volume, still
+	// 2000*n*4*2 = 256,000 requests at GOMAXPROCS=16 (measured 2026-09-25:
+	// 30.5s of a 76s package run at 5000 iters).
+	const iters = 2000
 
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
@@ -160,7 +165,11 @@ func TestH8_01b_Pre_WrapsHandleFast_WithPanicHandler(t *testing.T) {
 func TestH8_05_Compress_Recoverer_PanicMidWrite(t *testing.T) {
 	t.Parallel()
 	r := mm.New()
-	r.Use(mw.Recoverer())
+	// discardRecoverer (panic_pool_cleanliness_test.go, same package): every
+	// iteration here panics, and mw.Recoverer()'s slog.Default() write is a
+	// contended, largely GOMAXPROCS-insensitive cost under concurrent panics
+	// (rmp #271). Still exercises the identical recover()/dispatch path.
+	r.Use(discardRecoverer())
 	r.Use(mw.Compress(5))
 
 	// Handler that panics after starting to write a body.
@@ -177,11 +186,13 @@ func TestH8_05_Compress_Recoverer_PanicMidWrite(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
+	// iters trimmed 500 -> 250 (rmp #271): every iteration panics and does
+	// real gzip compression work.
 	for g := 0; g < n*2; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 500; i++ {
+			for i := 0; i < 250; i++ {
 				// Panic route — must not crash the server.
 				req := httptest.NewRequest("GET", "/compress-panic", nil)
 				req.Header.Set("Accept-Encoding", "gzip")
@@ -305,7 +316,12 @@ func TestH8_24_SetReqCtxUnsafe_NoFunctionPointerRace(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
-	const iters = 10000
+	// iters trimmed 10000 -> 1500 (rmp #271; further trimmed from an
+	// intermediate 2500 on 2026-09-25 after the isolated -count=10 run
+	// still timed out at 600s with the intermediate values): each iteration
+	// issues 2 ServeHTTP calls, so this still exercises 1500*n*8*2 = 384,000
+	// requests at GOMAXPROCS=16.
+	const iters = 1500
 	for g := 0; g < n*8; g++ {
 		wg.Add(1)
 		go func(g int) {
@@ -345,11 +361,16 @@ func TestH8_28_WalkFast_VsConcurrentHandle(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// Concurrent WalkFast goroutines.
+	// iters trimmed 2000 -> 500 (rmp #271): each iteration calls
+	// WalkFast/Walk/Routes, each of which walks/copies the full route table
+	// and (for Routes) does a reflect.ValueOf + runtime.FuncForPC per route —
+	// this was the dominant cost of this test, matching the same pattern
+	// fixed in h027_introspection_race_test.go.
 	for g := 0; g < n*2; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 2000; i++ {
+			for i := 0; i < 500; i++ {
 				_ = r.WalkFast(func(method, pattern string, h mm.FastHandler) error {
 					return nil
 				})
@@ -362,11 +383,12 @@ func TestH8_28_WalkFast_VsConcurrentHandle(t *testing.T) {
 	}
 
 	// Concurrent ServeHTTP goroutines.
+	// iters trimmed 5000 -> 2000 (rmp #271).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 5000; i++ {
+			for i := 0; i < 2000; i++ {
 				idx := (g * i) % 30
 				r.ServeHTTP(httptest.NewRecorder(),
 					httptest.NewRequest("GET", fmt.Sprintf("/init/%d/val", idx), nil))
@@ -451,18 +473,36 @@ func TestH8_30_PanicHandler_Panics_IsContained(t *testing.T) {
 	})
 
 	// Wrap in an httptest.Server so net/http's recovery is active.
-	srv := httptest.NewServer(r)
+	//
+	// Every "boom" request double-panics (handler panics, then our
+	// PanicHandler panics again), which net/http's own server-side recovery
+	// catches — and that recovery path logs "http: panic serving ..." plus a
+	// full stack trace via the standard log package to its ErrorLog (stderr
+	// by default). Under n*2 goroutines all double-panicking concurrently,
+	// that synchronous stderr write was the dominant, largely
+	// GOMAXPROCS-insensitive cost of this test (rmp #271, measured
+	// 2026-09-25: 62.3s of a 76s package run). Redirecting ErrorLog to
+	// io.Discard removes that contended I/O without changing what is under
+	// test: net/http's own outer panic containment still runs identically,
+	// it just doesn't write to stderr.
+	srv := httptest.NewUnstartedServer(r)
+	srv.Config.ErrorLog = log.New(io.Discard, "", 0)
+	srv.Start()
 	defer srv.Close()
 
 	client := srv.Client()
 
 	var wg sync.WaitGroup
 	n := runtime.GOMAXPROCS(0)
+	// iters trimmed 100 -> 50 (rmp #271): each iteration is a real TCP round
+	// trip through httptest's loopback listener plus a double-panic; still
+	// 50*n*2 = 1,600 double-panics at GOMAXPROCS=16 (measured 2026-09-25:
+	// 26.0s of a 76s package run at 100 iters, after the ErrorLog fix above).
 	for g := 0; g < n*2; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 100; i++ {
+			for i := 0; i < 50; i++ {
 				// Trigger double-panic.
 				resp, err := client.Get(srv.URL + fmt.Sprintf("/boom/%d", i))
 				if err == nil {
@@ -607,12 +647,13 @@ func TestH8_70_CfgCAS_NoAliasing(t *testing.T) {
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
 
-	// Serve goroutines — read cfg on every request.
+	// Serve goroutines — read cfg on every request. iters trimmed 5000 -> 3000
+	// (rmp #271).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 5000; i++ {
+			for i := 0; i < 3000; i++ {
 				req := httptest.NewRequest("GET", "/hello", nil)
 				w := httptest.NewRecorder()
 				r.ServeHTTP(w, req)
@@ -624,11 +665,12 @@ func TestH8_70_CfgCAS_NoAliasing(t *testing.T) {
 		}(g)
 	}
 
-	// Rebuild goroutine — cycles cfg pointer nil → new.
+	// Rebuild goroutine — cycles cfg pointer nil → new. trimmed 2000 -> 1200
+	// (rmp #271).
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for i := 0; i < 2000; i++ {
+		for i := 0; i < 1200; i++ {
 			r.Rebuild()
 			runtime.Gosched()
 		}
@@ -708,11 +750,12 @@ func TestH8_71b_Use_LazySnapshot_ConcurrentInvalidation(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// Goroutines hitting not-found path — triggers lazyNotFound rebuilds.
+	// iters trimmed 5000 -> 2500 (rmp #271).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 5000; i++ {
+			for i := 0; i < 2500; i++ {
 				r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/missing", nil))
 			}
 		}()
@@ -799,12 +842,12 @@ func TestH8_72b_TwoPhase_Rollback_ConcurrentServe(t *testing.T) {
 	var wg sync.WaitGroup
 	var errCount int64
 
-	// Serve goroutines.
+	// Serve goroutines. iters trimmed 5000 -> 2500 (rmp #271).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 5000; i++ {
+			for i := 0; i < 2500; i++ {
 				idx := (g * i) % 50
 				req := httptest.NewRequest("GET", fmt.Sprintf("/stable/%d/val", idx), nil)
 				w := httptest.NewRecorder()
@@ -866,20 +909,37 @@ func TestS8_PoolCanary_DeadBeef(t *testing.T) {
 	})
 
 	// Route that "would" plant canary if pool were used.
+	//
+	// runtime.GC() forces a full, synchronous, effectively stop-the-world GC
+	// cycle. Forcing it on every one of the n*8*10000 hits to this route
+	// (1.28M calls at GOMAXPROCS=16) serialized every concurrently-running
+	// goroutine on every request and was the dominant cost of this test (rmp
+	// #271: 128.8s of a 320s package run, measured 2026-09-25 under go test
+	// -race -count=1 in isolation). One forced GC every gcEveryNCanaryHits
+	// requests still interleaves hundreds of real GC cycles against
+	// thousands of concurrently in-flight requests.
+	const gcEveryNCanaryHits = 4000
+	var canaryHits int64
 	r.GET("/canary/:id", func(w http.ResponseWriter, req *http.Request) {
 		ps := mm.ParamsFromContext(req.Context())
 		_ = ps
-		runtime.GC() // encourage reuse if pooling exists
+		if atomic.AddInt64(&canaryHits, 1)%gcEveryNCanaryHits == 0 {
+			runtime.GC() // encourage reuse if pooling exists
+		}
 		w.WriteHeader(http.StatusOK)
 	})
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
+	// outer iters trimmed 10000 -> 2500 (rmp #271; further trimmed from an
+	// intermediate 4000 on 2026-09-25): after bounding the forced-GC
+	// frequency above, the remaining cost here is pure ServeHTTP volume;
+	// still 2500*n*8*2 = 640,000 requests at GOMAXPROCS=16.
 	for g := 0; g < n*8; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 10000; i++ {
+			for i := 0; i < 2500; i++ {
 				r.ServeHTTP(httptest.NewRecorder(),
 					httptest.NewRequest("GET", "/canary/"+sentinel, nil))
 				r.ServeHTTP(httptest.NewRecorder(),

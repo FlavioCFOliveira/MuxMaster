@@ -1,0 +1,51 @@
+### cpu
+owner share (nearest owning frame, leaf -> root):
+  net/http                  65.86%
+  runtime (no owner)        23.57%
+  example                    8.49%
+  MuxMaster/middleware       1.38%
+  MuxMaster/root             0.70%
+
+top MuxMaster owning functions (share of whole profile):
+    1.01%  middleware.RequestID.func1.1
+    0.29%  middleware.nextRandomID
+    0.18%  muxmaster.(*Mux).ServeHTTP
+    0.16%  muxmaster.(*Mux).dispatch
+    0.14%  muxmaster.(*node).getValue
+    0.10%  muxmaster.dispatchParams1Pooled
+    0.08%  middleware.RecovererWithLogger.func1.1.1
+    0.06%  muxmaster.(*Mux).config
+    0.04%  muxmaster.prefixMatch
+    0.02%  muxmaster.Params.Get
+    0.02%  muxmaster.methodIdx
+
+### alloc_space
+owner share (nearest owning frame, leaf -> root):
+  net/http                  58.47%
+  MuxMaster/middleware      22.28%
+  example                   18.90%
+  MuxMaster/root             0.33%
+  runtime (no owner)         0.03%
+
+top MuxMaster owning functions (share of whole profile):
+   21.98%  middleware.RequestID.func1.1
+    0.19%  muxmaster.dispatchParams1Pooled
+    0.19%  middleware.nextRandomID
+    0.14%  muxmaster.init.func1
+    0.11%  middleware.newExhaustedRequestIDBuf
+
+### alloc_objects
+owner share (nearest owning frame, leaf -> root):
+  net/http                  51.17%
+  example                   40.18%
+  MuxMaster/middleware       8.61%
+  MuxMaster/root             0.04%
+  runtime (no owner)         0.00%
+
+top MuxMaster owning functions (share of whole profile):
+    8.60%  middleware.RequestID.func1.1
+    0.03%  muxmaster.init.func1
+    0.01%  muxmaster.dispatchParams1Pooled
+    0.01%  middleware.nextRandomID
+    0.00%  middleware.newExhaustedRequestIDBuf
+

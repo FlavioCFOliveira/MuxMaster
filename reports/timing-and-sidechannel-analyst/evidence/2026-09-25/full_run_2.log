@@ -1,0 +1,151 @@
+=== RUN   TestTiming_APIKey_HitVsMiss
+    api_key_timing_test.go:99: APIKey hit/miss timing comparison (N=200000 each)
+    api_key_timing_test.go:100:   Hit:  mean=6282.3ns std=8965.9ns p50=4819ns p99=14667ns
+    api_key_timing_test.go:101:   Miss: mean=6695.5ns std=10234.3ns p50=5238ns p99=15366ns
+    api_key_timing_test.go:102:   Welch p=0  KS p=0  MWU p=0  |mean diff|=377.17ns
+    api_key_timing_test.go:106: TIMING DIFFERENCE DETECTED (map lookup is not constant-time by design): Welch p=0, KS p=0, MWU p=0, mean-diff=377.17ns
+    api_key_timing_test.go:112: Effect size too large: mean timing diff 377.17ns > 100ns threshold — exploitable oracle
+--- FAIL: TestTiming_APIKey_HitVsMiss (4.34s)
+=== RUN   TestTiming_APIKey_EmptyVsPresent
+    api_key_timing_test.go:168: APIKey empty-header vs invalid-key timing (N=200000 each)
+    api_key_timing_test.go:169:   Empty:   mean=5922.2ns std=8974.5ns p50=4889ns p99=14317ns
+    api_key_timing_test.go:170:   Present: mean=6044.3ns std=9548.1ns p50=4889ns p99=14528ns
+    api_key_timing_test.go:171:   Welch p=4.323e-11  KS p=1.369e-05  MWU p=0.08482  |mean diff|=46.10ns
+--- PASS: TestTiming_APIKey_EmptyVsPresent (3.83s)
+=== RUN   TestTiming_BasicAuth_ValidVsInvalid
+    basic_auth_timing_test.go:98: BasicAuth valid/invalid timing comparison (N=200000 each)
+    basic_auth_timing_test.go:99:   Valid:   mean=5393.8ns std=8528.9ns p50=4749ns p99=13759ns
+    basic_auth_timing_test.go:100:   Invalid: mean=6380.3ns std=9733.7ns p50=5238ns p99=15715ns
+    basic_auth_timing_test.go:101:   Welch p=0  KS p=0  MWU p=0  |mean diff|=922.86ns
+    basic_auth_timing_test.go:105: TIMING LEAK DETECTED: valid/invalid password timing is distinguishable (Welch p=0, KS p=0, MWU p=0, mean-diff=922.86ns)
+--- FAIL: TestTiming_BasicAuth_ValidVsInvalid (3.94s)
+=== RUN   TestTiming_BasicAuth_UserExistsVsNotExists
+    basic_auth_timing_test.go:167: BasicAuth user-exists vs not-exists timing comparison (N=200000 each)
+    basic_auth_timing_test.go:168:   Exists:   mean=6432.9ns std=9739.6ns p50=5308ns p99=16622ns
+    basic_auth_timing_test.go:169:   NotExist: mean=6506.8ns std=10566.5ns p50=5308ns p99=16623ns
+    basic_auth_timing_test.go:170:   Welch p=2.813e-18  KS p=5.104e-268  MWU p=0  |mean diff|=64.78ns
+    basic_auth_timing_test.go:174: TIMING LEAK DETECTED: user-exists vs not-exists is distinguishable (Welch p=2.813e-18, KS p=5.104e-268, MWU p=0, mean-diff=64.78ns)
+--- FAIL: TestTiming_BasicAuth_UserExistsVsNotExists (4.20s)
+=== RUN   TestTiming_ErrorOracle_404vs405
+    error_oracle_test.go:150: Error oracle: 404 vs 405 timing (N=150000 each)
+    error_oracle_test.go:151:   404: mean=2211.9ns p50=1956ns p99=3283ns
+    error_oracle_test.go:152:   405: mean=2541.2ns p50=1886ns p99=7263ns
+    error_oracle_test.go:153:   Welch p=0  KS p=0  MWU p=0  |mean diff|=244.50ns
+    error_oracle_test.go:157: ERROR ORACLE: 404 vs 405 timing is distinguishable — route existence leaks
+    error_oracle_test.go:158:   Effect size: 244.50ns — LOW — exploitable at LAN with ~100k requests
+--- PASS: TestTiming_ErrorOracle_404vs405 (2.58s)
+=== RUN   TestTiming_ErrorOracle_404vs401
+    error_oracle_test.go:214: Error oracle: 404 vs 401 timing (N=150000 each)
+    error_oracle_test.go:215:   404: mean=2390.3ns p50=1956ns p99=7054ns
+    error_oracle_test.go:216:   401: mean=3027.9ns p50=2375ns p99=7822ns
+    error_oracle_test.go:217:   Welch p=0  KS p=0  MWU p=0  |mean diff|=562.38ns
+    error_oracle_test.go:221: ERROR ORACLE (404 vs 401): timing distinguishable — confirms route existence when auth required
+    error_oracle_test.go:222:   Effect size: 562.38ns — LOW — exploitable at LAN with ~100k requests
+    error_oracle_test.go:223:   NOTE: 401 includes SHA-256 hash overhead from BasicAuth — expected difference
+--- PASS: TestTiming_ErrorOracle_404vs401 (2.80s)
+=== RUN   TestTiming_ErrorOracle_200vs401
+    error_oracle_test.go:293: Error oracle: 200 (valid auth) vs 401 (wrong password) timing (N=150000 each)
+    error_oracle_test.go:294:   200: mean=1891.7ns p50=1886ns p99=2793ns
+    error_oracle_test.go:295:   401: mean=3196.2ns p50=2375ns p99=9079ns
+    error_oracle_test.go:296:   Welch p=0  KS p=0  MWU p=0  |mean diff|=1140.58ns
+--- PASS: TestTiming_ErrorOracle_200vs401 (2.83s)
+=== RUN   TestTiming_ErrorOracle_Panic
+    error_oracle_test.go:366: Panic recovery: clean path vs panic path timing (N=50000 each)
+    error_oracle_test.go:367:   Clean: mean=1598.9ns p50=1467ns p99=1956ns
+    error_oracle_test.go:368:   Panic: mean=2672.2ns p50=2375ns p99=3841ns
+    error_oracle_test.go:369:   Welch p=0  KS p=0  MWU p=0  |mean diff|=989.57ns (0.99µs)
+    error_oracle_test.go:375: Panic path distinguishable from clean path: diff=0.99µs — INFORMATIONAL
+--- PASS: TestTiming_ErrorOracle_Panic (0.77s)
+=== RUN   TestTiming_JWT_HS256vsRS256_PathLatency
+2026/09/25 17:43:43 WARN JWTAuth: Algorithms mixes algorithm families — timing oracle (TSC-2026-0003) leaks alg path via response latency; configure one family per endpoint. algorithms="[HS256 RS256]"
+2026/09/25 17:43:43 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+    jwt_alg_confusion_timing_test.go:183: JWT HS256 vs RS256 path timing (N=200000 each)
+    jwt_alg_confusion_timing_test.go:184:   HS256: mean=8097.0ns (8.1µs) std=11996.3ns p50=6286ns p99=18439ns
+    jwt_alg_confusion_timing_test.go:186:   RS256: mean=33791.5ns (33.8µs) std=21217.8ns p50=32477ns p99=46375ns
+    jwt_alg_confusion_timing_test.go:188:   Welch p=0  KS p=0  MWU p=0  |mean diff|=25119.64ns (25.12µs)
+    jwt_alg_confusion_timing_test.go:196: HYPOTHESIS #1 CONFIRMED: JWT alg-confusion timing oracle detected.
+    jwt_alg_confusion_timing_test.go:197:   HS256 path: 8.1µs mean | RS256 path: 33.8µs mean | diff: 25.1µs
+    jwt_alg_confusion_timing_test.go:201:   SEVERITY: HIGH — 25µs difference is easily measurable from a network attacker
+--- PASS: TestTiming_JWT_HS256vsRS256_PathLatency (10.71s)
+=== RUN   TestTiming_JWT_HS256vsES256_PathLatency
+2026/09/25 17:43:54 WARN JWTAuth: Algorithms mixes algorithm families — timing oracle (TSC-2026-0003) leaks alg path via response latency; configure one family per endpoint. algorithms="[HS256 ES256]"
+2026/09/25 17:43:54 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+    jwt_alg_confusion_timing_test.go:274: JWT HS256 vs ES256 path timing (N=200000 each)
+    jwt_alg_confusion_timing_test.go:275:   HS256: mean=7125.6ns (7.1µs) p50=6146ns
+    jwt_alg_confusion_timing_test.go:276:   ES256: mean=7030.1ns (7.0µs) p50=5797ns
+    jwt_alg_confusion_timing_test.go:277:   Welch p=2.964e-19  KS p=0  MWU p=0  |mean diff|=0.07µs
+    jwt_alg_confusion_timing_test.go:280: JWT HS256 vs ES256 alg-path timing CONFIRMED distinguishable: diff=0.07µs
+--- PASS: TestTiming_JWT_HS256vsES256_PathLatency (4.43s)
+=== RUN   TestTiming_JWT_AlgNoneVsHS256
+2026/09/25 17:43:58 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+    jwt_alg_confusion_timing_test.go:348: JWT alg=none vs HS256 timing (N=200000 each)
+    jwt_alg_confusion_timing_test.go:349:   none:  mean=6553.6ns p50=5657ns
+    jwt_alg_confusion_timing_test.go:350:   HS256: mean=6203.4ns p50=5238ns
+    jwt_alg_confusion_timing_test.go:351:   Welch p=0  KS p=0  MWU p=0  |mean diff|=324.34ns
+--- PASS: TestTiming_JWT_AlgNoneVsHS256 (4.03s)
+=== RUN   TestTiming_JWT_ECDSA_ZeroSig
+2026/09/25 17:44:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+    jwt_alg_confusion_timing_test.go:437: ECDSA zero-sig vs max-sig timing (N=100000 each)
+    jwt_alg_confusion_timing_test.go:438:   Zero sig: mean=5453.5ns p50=4679ns
+    jwt_alg_confusion_timing_test.go:439:   Max  sig: mean=6865.2ns p50=5587ns
+    jwt_alg_confusion_timing_test.go:440:   Welch p=0  KS p=0  MWU p=0  |mean diff|=1345.44ns
+--- PASS: TestTiming_JWT_ECDSA_ZeroSig (2.09s)
+=== RUN   TestTiming_JWT_HMACPool_WarmVsCold
+2026/09/25 17:44:04 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+    jwt_alg_confusion_timing_test.go:499: JWT HMAC pool warm vs cold (first/last quarter, N=25000 each)
+    jwt_alg_confusion_timing_test.go:500:   First 25%: mean=7559.0ns p50=7124ns
+    jwt_alg_confusion_timing_test.go:501:   Last  25%: mean=10172.3ns p50=8661ns
+    jwt_alg_confusion_timing_test.go:502:   Welch p=0  KS p=0  MWU p=0  |mean diff|=2515.21ns
+    jwt_alg_confusion_timing_test.go:507: NOTE: HMAC pool shows temporal drift of 2515.21ns — may indicate pool eviction or CPU frequency scaling artefact
+--- PASS: TestTiming_JWT_HMACPool_WarmVsCold (1.20s)
+=== RUN   TestTiming_OAuth2_CacheHit_ActiveVsInactive
+2026/09/25 17:44:06 WARN OAuth2Introspect: insecure plaintext endpoint accepted via AllowInsecureEndpoint — bearer tokens transmitted in clear host=127.0.0.1:38613 scheme=http
+2026/09/25 17:44:06 INFO OAuth2Introspect: configured host=127.0.0.1:38613 scheme=http
+2026/09/25 17:44:06 WARN OAuth2Introspect: insecure plaintext endpoint accepted via AllowInsecureEndpoint — bearer tokens transmitted in clear host=127.0.0.1:46725 scheme=http
+2026/09/25 17:44:06 INFO OAuth2Introspect: configured host=127.0.0.1:46725 scheme=http
+    oauth2_cache_timing_test.go:154: OAuth2 cache: active vs inactive cached token timing (N=100000 each)
+    oauth2_cache_timing_test.go:155:   Active:   mean=11289.5ns std=4109.5ns p50=9987ns p99=23397ns
+    oauth2_cache_timing_test.go:156:   Inactive: mean=178114.8ns std=20945.1ns p50=175723ns p99=240047ns
+    oauth2_cache_timing_test.go:157:   Welch p=0  KS p=0  MWU p=0  |mean diff|=166128.58ns
+    oauth2_cache_timing_test.go:164: NOTE: Cache hit timing differs between active/inactive branches: diff=166128.58ns — expected due to next.ServeHTTP vs http.Error path length difference
+--- PASS: TestTiming_OAuth2_CacheHit_ActiveVsInactive (23.58s)
+=== RUN   TestTiming_OAuth2_Cache_RWMutex_Contention
+2026/09/25 17:44:29 WARN OAuth2Introspect: insecure plaintext endpoint accepted via AllowInsecureEndpoint — bearer tokens transmitted in clear host=127.0.0.1:44375 scheme=http
+2026/09/25 17:44:29 INFO OAuth2Introspect: configured host=127.0.0.1:44375 scheme=http
+    oauth2_cache_timing_test.go:219: OAuth2 cache hit (single-threaded, RLock path) (N=100000)
+    oauth2_cache_timing_test.go:220:   mean=6310.1ns std=5551.3ns p50=6077ns p95=7264ns p99=13968ns
+    oauth2_cache_timing_test.go:222:   Expected: ~200-800ns (RLock + map lookup + RUnlock + context setup)
+--- PASS: TestTiming_OAuth2_Cache_RWMutex_Contention (1.07s)
+=== RUN   TestTiming_Route_RegisteredVsUnregistered
+    route_existence_timing_test.go:132: Route existence oracle: /users (registered) vs /totally-random-zzz (unregistered)
+    route_existence_timing_test.go:133:   Registered:   mean=1598.2ns std=4047.2ns p50=1466ns p99=2864ns
+    route_existence_timing_test.go:134:   Unregistered: mean=2613.7ns std=4356.5ns p50=1956ns p99=7613ns
+    route_existence_timing_test.go:135:   Welch p=0  KS p=0  MWU p=0  |mean diff|=962.39ns
+    route_existence_timing_test.go:140: ROUTE ORACLE CONFIRMED (MM-2026-0026): diff=962.39ns
+    route_existence_timing_test.go:141:   SEVERITY: INFORMATIONAL — diff < 1µs, below practical LAN exploitation threshold
+--- PASS: TestTiming_Route_RegisteredVsUnregistered (3.48s)
+=== RUN   TestTiming_Route_AdminHiddenVsRandom
+    route_existence_timing_test.go:186: Route oracle: /admin (registered+auth) vs /xyzxyz (unregistered)
+    route_existence_timing_test.go:187:   Admin:  mean=1567.3ns p50=1466ns p99=1956ns
+    route_existence_timing_test.go:188:   Random: mean=2650.9ns p50=1955ns p99=7543ns
+    route_existence_timing_test.go:189:   Welch p=0  KS p=0  MWU p=0  |mean diff|=958.95ns
+    route_existence_timing_test.go:193: ADMIN ROUTE EXISTENCE ORACLE: diff=958.95ns — admin paths are timing-discoverable
+    route_existence_timing_test.go:195:   SEVERITY: INFORMATIONAL — diff < 1µs, below practical LAN exploitation threshold
+--- PASS: TestTiming_Route_AdminHiddenVsRandom (3.38s)
+=== RUN   TestTiming_Route_DepthCorrelation
+    route_existence_timing_test.go:237: Route depth correlation (registered routes):
+    route_existence_timing_test.go:239:   depth-1 (/): mean=1532.4ns p50=1466ns
+    route_existence_timing_test.go:239:   depth-2 (/users): mean=1557.3ns p50=1466ns
+    route_existence_timing_test.go:239:   depth-3 (/users/list): mean=1625.9ns p50=1467ns
+    route_existence_timing_test.go:239:   depth-4 (/users/detail/view): mean=1636.0ns p50=1467ns
+    route_existence_timing_test.go:239:   depth-5 (/users/detail/view/extended/info): mean=1650.0ns p50=1467ns
+--- PASS: TestTiming_Route_DepthCorrelation (4.11s)
+=== RUN   TestTiming_Route_Param_vs_Static
+    route_existence_timing_test.go:289: Route: /users/list (static) vs /users/alice (param :id)
+    route_existence_timing_test.go:290:   Static: mean=1579.4ns p50=1467ns
+    route_existence_timing_test.go:291:   Param:  mean=1959.3ns p50=1885ns
+    route_existence_timing_test.go:292:   Welch p=0  KS p=0  MWU p=0  |mean diff|=333.73ns
+--- PASS: TestTiming_Route_Param_vs_Static (3.16s)
+FAIL
+FAIL	github.com/FlavioCFOliveira/MuxMaster/reports/timing-and-sidechannel-analyst/harness	86.753s
+FAIL

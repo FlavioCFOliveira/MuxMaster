@@ -1,0 +1,49 @@
+File: jwt
+Build ID: 34d1b1315d2624ab5d3a5bc5ea6c85d446c4b854
+Type: cpu
+Time: 2026-09-25 12:37:06 WEST
+Duration: 10s, Total samples = 67.30s (672.98%)
+Showing nodes accounting for 49.24s, 73.16% of 67.30s total
+Dropped 776 nodes (cum <= 0.34s)
+Showing top 40 nodes out of 159
+      flat  flat%   sum%        cum   cum%
+    15.63s 23.22% 23.22%     15.63s 23.22%  time.runtimeNow
+    13.78s 20.48% 43.70%     13.78s 20.48%  internal/runtime/syscall/linux.Syscall6
+    10.11s 15.02% 58.72%     10.11s 15.02%  runtime.nanotime (inline)
+     1.66s  2.47% 61.19%      1.66s  2.47%  runtime.usleep
+     1.58s  2.35% 63.54%      1.58s  2.35%  runtime.futex
+     0.40s  0.59% 64.13%      0.40s  0.59%  runtime.procyieldAsm
+     0.39s  0.58% 64.71%      0.61s  0.91%  runtime.tryDeferToSpanScan
+     0.34s  0.51% 65.22%      0.34s  0.51%  runtime.memmove
+     0.33s  0.49% 65.71%      0.59s  0.88%  runtime.scanObjectsSmall
+     0.27s   0.4% 66.11%      0.80s  1.19%  runtime.mallocgcSmallScanNoHeaderSC7
+     0.26s  0.39% 66.49%      2.75s  4.09%  runtime.mallocgc
+     0.25s  0.37% 66.86%      9.55s 14.19%  runtime.findRunnable
+     0.23s  0.34% 67.21%      0.35s  0.52%  runtime.typePointers.next
+     0.22s  0.33% 67.53%      0.46s  0.68%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.21s  0.31% 67.85%      3.27s  4.86%  net/http.(*chunkWriter).writeHeader
+     0.19s  0.28% 68.13%      3.62s  5.38%  internal/poll.runtime_pollSetDeadline
+     0.18s  0.27% 68.40%      1.12s  1.66%  runtime.lock2
+     0.18s  0.27% 68.66%      1.85s  2.75%  runtime.runqgrab
+     0.17s  0.25% 68.92%      8.23s 12.23%  internal/poll.setDeadlineImpl
+     0.17s  0.25% 69.17%      0.51s  0.76%  sync.(*Pool).Get
+     0.16s  0.24% 69.41%      0.40s  0.59%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.16s  0.24% 69.64%     15.79s 23.46%  time.Now
+     0.15s  0.22% 69.87%      1.12s  1.66%  encoding/json/v2.makeStructArshaler.func3
+     0.15s  0.22% 70.09%      0.95s  1.41%  runtime.casgstatus
+     0.15s  0.22% 70.31%      0.66s  0.98%  runtime.mapaccess2_faststr
+     0.15s  0.22% 70.53%      0.65s  0.97%  runtime.scanObject
+     0.15s  0.22% 70.76%     10.28s 15.27%  runtime.schedule
+     0.14s  0.21% 70.97%     52.31s 77.73%  net/http.(*conn).serve
+     0.14s  0.21% 71.17%      0.39s  0.58%  net/textproto.canonicalMIMEHeaderKey
+     0.14s  0.21% 71.38%      3.21s  4.77%  runtime.(*timers).check
+     0.14s  0.21% 71.59%      0.38s  0.56%  time.Time.appendFormat
+     0.13s  0.19% 71.78%      0.38s  0.56%  encoding/json/jsontext.(*decoderState).consumeValue
+     0.13s  0.19% 71.98%      3.26s  4.84%  net/http.readRequestLimit
+     0.13s  0.19% 72.17%      2.23s  3.31%  runtime.stealWork
+     0.12s  0.18% 72.35%      1.13s  1.68%  encoding/json/v2.makeMapArshaler.func2
+     0.12s  0.18% 72.53%     12.32s 18.31%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.11s  0.16% 72.69%     11.37s 16.89%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+     0.11s  0.16% 72.85%      0.63s  0.94%  net/http.Header.writeSubset
+     0.11s  0.16% 73.02%      0.94s  1.40%  runtime.mallocgcSmallScanNoHeader
+     0.10s  0.15% 73.16%     10.29s 15.29%  net/http.(*conn).readRequest

@@ -1,0 +1,4 @@
+go test fuzz v1
+string("0")
+string("/0000000000000000000000\xff00")
+string("/0\xa100000")

@@ -1,0 +1,70 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9828474	       124.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11531828	       106.7 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9733183	       122.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11317678	       107.5 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9827512	       127.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11366676	       109.8 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9727524	       123.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11549602	       108.1 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9875838	       122.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11484876	       107.1 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9777777	       123.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11270055	       106.5 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9890238	       125.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11216618	       105.5 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9790129	       123.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11409882	       105.6 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9809300	       123.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11450158	       105.4 ns/op	       0 B/op	       0 allocs/op
+PASS
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkMethodNotAllowed-16    	 9870783	       123.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkAutoOPTIONS-16         	11489176	       105.8 ns/op	       0 B/op	       0 allocs/op
+PASS

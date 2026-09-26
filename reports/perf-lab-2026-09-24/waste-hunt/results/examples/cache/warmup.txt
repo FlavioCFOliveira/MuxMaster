@@ -1,0 +1,9 @@
+scenario=cache conns=32 duration=2.001s
+requests=81966 req/s=40962 p50=604.903µs p90=1.631231ms p99=2.724749ms
+  GET /health (fast)                       expect=200 got 200×13659
+  GET /articles (cache HIT)                expect=200 got 200×13662
+  GET /articles/:id                        expect=200 got 200×13662
+  GET /articles/:id (If-None-Match -> 304) expect=304 got 304×13663
+  GET /nope (404)                          expect=404 got 404×13662
+  GET /articles/ (RedirectTrailingSlash + Use chain) expect=301 got 301×13658
+STATUS-OK: every response matched its expected status

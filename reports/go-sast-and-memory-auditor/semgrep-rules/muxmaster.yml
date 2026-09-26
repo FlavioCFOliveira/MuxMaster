@@ -1,0 +1,76 @@
+rules:
+  - id: muxmaster-context-string-key
+    message: "Using string literals as context.WithValue keys risks cross-package collision. Use a typed key."
+    pattern: context.WithValue($CTX, "...", $V)
+    severity: ERROR
+    languages: [go]
+
+  - id: muxmaster-non-constant-time-compare
+    message: "Comparing secrets with bytes.Equal leaks timing. Use crypto/subtle.ConstantTimeCompare."
+    pattern: bytes.Equal($SECRET, $OTHER)
+    severity: ERROR
+    languages: [go]
+
+  - id: muxmaster-panic-on-hotpath
+    message: "panic() in request handling path (getValue, ServeHTTP, handler); ensure Mux.PanicHandler covers this."
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: panic(...)
+              - pattern-inside: |
+                  func (n *node) getValue($PATH, $PARAMS, $REGEX) (...) {
+                    ...
+                  }
+          - patterns:
+              - pattern: panic(...)
+              - pattern-inside: |
+                  func (m *Mux) ServeHTTP($W, $R) {
+                    ...
+                  }
+          - patterns:
+              - pattern: panic(...)
+              - pattern-inside: |
+                  func ($R *$T) ServeHTTP($W, $R) error {
+                    ...
+                  }
+    severity: WARNING
+    languages: [go]
+
+  # Removed muxmaster-sync-pool-without-reset: rule had invalid semgrep pattern syntax.
+  # Pattern "$RESET_FUNC($X, ...)" is not valid Go. The pool reset pattern is complex
+  # and better checked via manual code review. sync.Pool usage is audited manually in rmp #295.
+
+  - id: muxmaster-xff-unconditional-trust
+    message: "Overwriting r.RemoteAddr from X-Forwarded-For without trusted-proxies allowlist permits spoofing."
+    pattern-either:
+      - pattern: $R.RemoteAddr = $HEADER
+    paths:
+      include:
+        - "**/middleware/real_ip.go"
+    severity: WARNING
+    languages: [go]
+
+  - id: muxmaster-unbounded-buffer-append
+    message: "Unbounded append to buffer during handler write — consider streaming or bound-cap."
+    patterns:
+      - pattern: $BUF = append($BUF, $IN...)
+      - pattern-inside: |
+          func ($R *$T) Write($B []byte) (int, error) {
+            ...
+          }
+    paths:
+      include:
+        - "**/middleware/compress.go"
+    severity: WARNING
+    languages: [go]
+
+  - id: muxmaster-unsafe-ptr-without-checkptr-note
+    message: "unsafe.Add without documented checkptr safety note."
+    patterns:
+      - pattern: unsafe.Add(unsafe.Pointer($P), $OFF)
+      - pattern-not-inside: |
+          // $COMMENT ...
+          ...
+          unsafe.Add(unsafe.Pointer($P), $OFF)
+    severity: INFO
+    languages: [go]

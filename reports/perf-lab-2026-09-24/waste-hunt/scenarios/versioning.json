@@ -1,0 +1,84 @@
+{
+ "name": "versioning",
+ "requests": [
+  {
+   "name": "GET /api/v1/users/:id",
+   "method": "GET",
+   "path": "/api/v1/users/42",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /api/v2/users/:id",
+   "method": "GET",
+   "path": "/api/v2/users/42",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /api/v1/users",
+   "method": "GET",
+   "path": "/api/v1/users",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /api/v2/users",
+   "method": "GET",
+   "path": "/api/v2/users",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /api/v1/health",
+   "method": "GET",
+   "path": "/api/v1/health",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /api/v2/health",
+   "method": "GET",
+   "path": "/api/v2/health",
+   "expect": 200,
+   "weight": 1
+  },
+  {
+   "name": "GET /api/users/:id (Accept v=2 rewrite)",
+   "method": "GET",
+   "path": "/api/users/42",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "Accept": "application/vnd.muxmaster+json;v=2"
+   }
+  },
+  {
+   "name": "GET /api/v1/admin/dashboard",
+   "method": "GET",
+   "path": "/api/v1/admin/dashboard",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Admin-Token": "letmein"
+   }
+  },
+  {
+   "name": "GET /api/v2/admin/users/:id/audit",
+   "method": "GET",
+   "path": "/api/v2/admin/users/42/audit",
+   "expect": 200,
+   "weight": 1,
+   "headers": {
+    "X-Admin-Token": "letmein"
+   }
+  },
+  {
+   "name": "GET /",
+   "method": "GET",
+   "path": "/",
+   "expect": 200,
+   "weight": 1
+  }
+ ]
+}

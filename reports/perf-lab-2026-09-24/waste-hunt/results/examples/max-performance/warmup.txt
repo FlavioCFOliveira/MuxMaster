@@ -1,0 +1,14 @@
+scenario=max-performance conns=32 duration=2.001s
+requests=72350 req/s=36157 p50=728.593µs p90=1.789983ms p99=2.975691ms
+  GET /v1/users/:id                        expect=200 got 200×6577
+  GET /v1/users/:id/orders/:orderID        expect=200 got 200×6577
+  GET /v1/orgs/:org/repos/:repo/issues/:num expect=200 got 200×6577
+  GET /v1/static/*filepath                 expect=200 got 200×6576
+  GET /v1/profiles/{id:[0-9]+}             expect=200 got 200×6576
+  POST /v1/users                           expect=201 got 201×6576
+  POST /v1/events                          expect=202 got 202×6579
+  GET /v1/health (fast)                    expect=200 got 200×6579
+  GET /v1/metrics/:metric (fast)           expect=200 got 200×6578
+  GET /config                              expect=200 got 200×6578
+  GET /debug/pprof/cmdline (Mount; 404 = example defect, prefix stripped) expect=404 got 404×6577
+STATUS-OK: every response matched its expected status

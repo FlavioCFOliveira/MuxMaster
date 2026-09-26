@@ -1,0 +1,32 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/waste-hunt/bench
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                         │    base     │              patched               │
+                         │   sec/op    │   sec/op     vs base               │
+RegisterRoutes/N=100-16    682.8µ ± 1%   646.8µ ± 1%  -5.28% (p=0.000 n=10)
+RegisterRoutes/N=1000-16   71.46m ± 1%   67.67m ± 1%  -5.31% (p=0.000 n=10)
+RegisterRoutes/N=5000-16    2.233 ± 1%    2.125 ± 1%  -4.81% (p=0.000 n=10)
+geomean                    47.76m        45.31m       -5.13%
+
+                         │    base     │              patched               │
+                         │  sec/route  │  sec/route   vs base               │
+RegisterRoutes/N=100-16    6.829µ ± 1%   6.468µ ± 1%  -5.28% (p=0.000 n=10)
+RegisterRoutes/N=1000-16   71.46µ ± 1%   67.67µ ± 1%  -5.31% (p=0.000 n=10)
+RegisterRoutes/N=5000-16   446.6µ ± 1%   425.1µ ± 1%  -4.81% (p=0.000 n=10)
+geomean                    60.18µ        57.09µ       -5.13%
+
+                         │     base     │               patched               │
+                         │     B/op     │     B/op      vs base               │
+RegisterRoutes/N=100-16    1.418Mi ± 0%   1.418Mi ± 0%       ~ (p=0.638 n=10)
+RegisterRoutes/N=1000-16   139.8Mi ± 0%   139.8Mi ± 0%       ~ (p=0.225 n=10)
+RegisterRoutes/N=5000-16   3.410Gi ± 0%   3.410Gi ± 0%       ~ (p=0.579 n=10)
+geomean                    88.47Mi        88.47Mi       -0.00%
+
+                         │    base     │               patched                │
+                         │  allocs/op  │  allocs/op   vs base                 │
+RegisterRoutes/N=100-16    19.72k ± 0%   19.72k ± 0%       ~ (p=1.000 n=10) ¹
+RegisterRoutes/N=1000-16   1.937M ± 0%   1.937M ± 0%  -0.00% (p=0.041 n=10)
+RegisterRoutes/N=5000-16   48.35M ± 0%   48.35M ± 0%       ~ (p=0.566 n=10)
+geomean                    1.227M        1.227M       -0.00%
+¹ all samples are equal

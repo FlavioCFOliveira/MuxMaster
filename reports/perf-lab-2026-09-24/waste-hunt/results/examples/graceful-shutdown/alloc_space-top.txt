@@ -1,0 +1,49 @@
+File: graceful-shutdown
+Build ID: 3b879e2905e681b7bcfa7e43cf9b88d89b516135
+Type: alloc_space
+Time: 2026-09-24 19:50:32 WEST
+Duration: 10.01s, Total samples = 2049.19MB 
+Showing nodes accounting for 2019.52MB, 98.55% of 2049.19MB total
+Dropped 46 nodes (cum <= 10.25MB)
+Showing top 40 nodes out of 46
+      flat  flat%   sum%        cum   cum%
+  350.11MB 17.09% 17.09%   350.11MB 17.09%  net/http.(*Request).WithContext
+  272.07MB 13.28% 30.36%   272.07MB 13.28%  net/textproto.readMIMEHeader
+  251.07MB 12.25% 42.61%  1222.31MB 59.65%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  240.57MB 11.74% 54.35%   240.57MB 11.74%  net/http.Header.Clone (inline)
+  179.55MB  8.76% 63.12%   540.14MB 26.36%  net/http.readRequestLimit
+  159.03MB  7.76% 70.88%   766.70MB 37.41%  net/http.(*conn).readRequest
+  131.02MB  6.39% 77.27%   196.53MB  9.59%  context.(*cancelCtx).propagateCancel
+   84.01MB  4.10% 81.37%   338.54MB 16.52%  context.WithDeadlineCause
+   70.01MB  3.42% 84.79%    70.01MB  3.42%  net/url.parse
+   65.51MB  3.20% 87.98%    65.51MB  3.20%  context.(*cancelCtx).Done
+   58.01MB  2.83% 90.81%    58.01MB  2.83%  time.newTimer
+   43.50MB  2.12% 92.94%    43.50MB  2.12%  net.(*conn).Read
+      42MB  2.05% 94.99%       42MB  2.05%  context.withCancel (inline)
+      15MB  0.73% 95.72%       15MB  0.73%  net/textproto.(*Reader).ReadLine (inline)
+   13.03MB  0.64% 96.35%    13.03MB  0.64%  sync.(*Pool).pinSlow
+   13.03MB  0.64% 96.99%    13.03MB  0.64%  bufio.NewWriterSize (inline)
+   11.50MB  0.56% 97.55%    53.50MB  2.61%  context.WithCancel
+   10.50MB  0.51% 98.06%    10.50MB  0.51%  net/http.(*connReader).startBackgroundRead
+    5.50MB  0.27% 98.33%       13MB  0.63%  strconv.quoteWith (inline)
+    4.50MB  0.22% 98.55%   137.54MB  6.71%  net/http.Error
+         0     0% 98.55%   338.54MB 16.52%  context.WithDeadline (inline)
+         0     0% 98.55%   338.54MB 16.52%  context.WithTimeout
+         0     0% 98.55%   118.54MB  5.78%  fmt.Fprintln
+         0     0% 98.55%   805.18MB 39.29%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 98.55%  1222.31MB 59.65%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 98.55%   805.18MB 39.29%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 98.55%   124.03MB  6.05%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 98.55%   280.08MB 13.67%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 98.55%  1222.31MB 59.65%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 98.55%   805.18MB 39.29%  github.com/FlavioCFOliveira/MuxMaster/middleware.Timeout.func1.1
+         0     0% 98.55%       13MB  0.63%  github.com/FlavioCFOliveira/MuxMaster/middleware.sanitiseForLog
+         0     0% 98.55%   117.54MB  5.74%  main.main.func1
+         0     0% 98.55%  2005.69MB 97.88%  net/http.(*conn).serve
+         0     0% 98.55%    43.50MB  2.12%  net/http.(*connReader).backgroundRead
+         0     0% 98.55%   116.53MB  5.69%  net/http.(*response).Write
+         0     0% 98.55%   240.57MB 11.74%  net/http.(*response).WriteHeader
+         0     0% 98.55%   116.53MB  5.69%  net/http.(*response).write
+         0     0% 98.55%  1223.48MB 59.71%  net/http.HandlerFunc.ServeHTTP
+         0     0% 98.55%   137.54MB  6.71%  net/http.NotFound
+         0     0% 98.55%    14.03MB  0.68%  net/http.newBufioWriterSize

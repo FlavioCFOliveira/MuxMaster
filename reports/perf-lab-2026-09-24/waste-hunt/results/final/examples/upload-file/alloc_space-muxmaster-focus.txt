@@ -1,0 +1,34 @@
+File: upload-file
+Build ID: b577b88df8b62e651989ea469b17bd5506848be3
+Type: alloc_space
+Time: 2026-09-25 12:39:17 WEST
+Duration: 10.01s, Total samples = 48.42GB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 47.68GB, 98.48% of 48.42GB total
+Dropped 74 nodes (cum <= 0.24GB)
+      flat  flat%   sum%        cum   cum%
+   44.21GB 91.31% 91.31%    44.21GB 91.31%  bytes.growSlice
+    2.73GB  5.63% 96.94%    46.93GB 96.94%  io.copyBuffer
+    0.53GB  1.10% 98.04%     0.53GB  1.10%  bufio.NewReaderSize (inline)
+    0.08GB  0.16% 98.20%    33.43GB 69.04%  mime/multipart.(*Reader).readForm
+    0.06GB  0.13% 98.33%    48.12GB 99.39%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+    0.02GB 0.049% 98.38%     0.56GB  1.15%  mime/multipart.NewReader
+    0.02GB 0.037% 98.41%    12.80GB 26.44%  main.multiUpload
+    0.02GB 0.035% 98.45%    22.32GB 46.10%  main.asyncProcessUpload
+    0.01GB 0.026% 98.48%    12.87GB 26.59%  main.singleUpload
+         0     0% 98.48%    44.21GB 91.31%  bytes.(*Buffer).ReadFrom
+         0     0% 98.48%    44.21GB 91.31%  bytes.(*Buffer).grow
+         0     0% 98.48%       48GB 99.15%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 98.48%    48.12GB 99.39%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 98.48%       48GB 99.15%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 98.48%       48GB 99.15%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 98.48%    46.93GB 96.94%  io.Copy (inline)
+         0     0% 98.48%    33.22GB 68.61%  io.CopyN
+         0     0% 98.48%     2.77GB  5.72%  main.saveFile
+         0     0% 98.48%    33.43GB 69.04%  mime/multipart.(*Reader).ReadForm (inline)
+         0     0% 98.48%    34.09GB 70.40%  net/http.(*Request).ParseMultipartForm
+         0     0% 98.48%     0.60GB  1.23%  net/http.(*Request).multipartReader
+         0     0% 98.48%    48.12GB 99.39%  net/http.(*conn).serve
+         0     0% 98.48%    48.12GB 99.39%  net/http.HandlerFunc.ServeHTTP
+         0     0% 98.48%    48.12GB 99.39%  net/http.serverHandler.ServeHTTP

@@ -1,0 +1,67 @@
+rmp #245 — RequestID: batched crypto/rand reads + allocation rewrite
+Machine: AMD Ryzen 9 5900HX, 16 logical CPUs, Linux 6.8.0-139-generic, go1.27.0 (module go 1.26)
+Before = git HEAD content (rand.Read(16 bytes) per request; context.WithValue; hex.EncodeToString;
+         non-canonical "X-Request-ID" literal passed to Header.Get/Set on every call).
+After  = (1) batching (sync.Pool of 4KiB buffers, 256 IDs/refill; safe math/rand/v2 fallback only
+         on a genuine crypto/rand.Read error) PLUS (2) the coordinator-requested follow-up:
+         precomputed canonical header-key constant + direct map access (no per-call
+         CanonicalMIMEHeaderKey), and a fused *requestIDCtx (embeds context.Context, overrides
+         Value only for requestIDKey{}) that carries the context node, the hex digit buffer
+         (unsafe.String-aliased, no copy), AND the response header's []string backing array
+         in ONE allocation — replacing context.WithValue + interface-boxing + hex.EncodeToString
+         + the header-value slice with a single allocation. r.WithContext's *http.Request copy
+         is kept (unavoidable for a stdlib middleware, per instruction).
+
+== ALLOCATIONS (measured via testing.AllocsPerRun AND -benchmem; both agree) ==
+Generated-id path:   7 -> 2 allocs/op  (-71.4%)
+Propagated-id path:  7 -> 2 allocs/op  (-71.4%)
+B/op:              464 -> 400 B (cpu=1/4), 406 B (cpu=16)  (-12.5% to -13.8%)
+
+== benchstat: 245-before-robust.txt vs 245-after-final.txt (benchtime=1s, count=6) ==
+RequestIDParallel               1092.0n ± 3%   231.5n ± 1%  -78.80% (p=0.002 n=6)   [4.72x]
+RequestIDParallel-4              291.4n ± 1%   102.0n ± 1%  -64.99% (p=0.002 n=6)   [2.86x]
+RequestIDParallel-16             253.1n ± 5%   131.6n ± 2%  -48.02% (p=0.002 n=6)   [1.92x]
+
+== Order-flip control (245-orderflip-after-first.txt vs 245-orderflip-before-second.txt) ==
+Re-ran with a FRESH git-archive(HEAD) baseline and the run order REVERSED (after-code first,
+before-code second) to rule out the thermal/run-order confound found earlier for #247:
+RequestIDParallel (after, 1st)     228.6n            RequestIDParallel (before, 2nd)  1074.0n   [4.70x]
+RequestIDParallel-4 (after, 1st)   104.3n            RequestIDParallel-4 (before, 2nd)  291.5n   [2.80x]
+RequestIDParallel-16 (after, 1st)  132.1n            RequestIDParallel-16 (before, 2nd) 261.1n   [1.98x]
+The after-code is faster REGARDLESS of which version runs first or second — this is a real,
+reproducible effect, not measurement-order noise (unlike the #247 mux.go case).
+
+== cpu=16 pooled result across both independent trials ==
+before avg (253.1 + 261.1)/2 = 257.1ns    after avg (131.6 + 132.1)/2 = 131.85ns
+pooled ratio = 257.1 / 131.85 = 1.950x
+
+== CPU-profile evidence (cpu=16, 1s run, after this task's rewrite) ==
+net/http.(*Request).WithContext           37.22% cumulative CPU  <- now the dominant cost,
+                                                                      explicitly kept per instruction
+runtime.bulkBarrierPreWrite + wbBufFlush1 ~17.8% cumulative CPU  <- GC write-barrier cost of
+                                                                      copying *http.Request (many
+                                                                      pointer fields) in WithContext
+encoding/hex.Encode                        3.31% flat            <- generated-path only, minimal
+(no crypto/rand.Read frame appears in the top-20 CPU nodes at all — CH-05 fully resolved)
+runtime.nanotime / Syscall6                ~15%                  <- benchmark harness overhead
+                                                                      (httptest timer/syscalls),
+                                                                      not request_id.go
+
+== FINAL CALL on the AC ("RequestIDParallel ns/op at cpu=16 improves >=2x vs baseline") ==
+- cpu=1:  ~4.7x   (comfortably exceeds target)
+- cpu=4:  ~2.8x   (comfortably exceeds target)
+- cpu=16: ~1.92-1.98x across two independent, order-flip-controlled trials (pooled 1.95x)
+          — a real, reproducible, but SHORT-of-2x result at the highest core count.
+
+Every allocation removable within request_id.go's own scope has been removed: allocs/op is
+down to 2, the theoretical floor for this design —
+  (1) ONE fused allocation for the context node + hex-digit buffer + header-value backing array
+  (2) r.WithContext's *http.Request copy, which the coordinator's instruction explicitly
+      requires keeping ("unavoidable for a stdlib middleware — keep it").
+CPU-profile evidence shows net/http.(*Request).WithContext itself (stdlib, out of scope) is now
+the single largest cost (37% cumulative), with its own GC write-barrier overhead close behind
+(~18%) — both structural properties of copying *http.Request, not of anything left in
+request_id.go. No further allocation exists in this middleware to remove without violating the
+"keep r.WithContext" instruction or changing observable behaviour (header/context/spec
+semantics), so 1.92-1.98x at cpu=16 is reported as the achieved, evidence-backed result — short
+of the literal 2x AC by a small, reproducible margin, not a measurement artifact.

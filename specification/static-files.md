@@ -11,7 +11,7 @@ This file does not cover the `Mount` method (see [groups.md](groups.md)), which 
 ## 1. ServeFiles
 
 1. `(*Mux).ServeFiles(prefix string, root http.FileSystem)` registers a handler that serves static files from `root` under the URL path `prefix`.
-2. `(*Group).ServeFiles(prefix string, root http.FileSystem)` is equivalent, with the group prefix prepended to `prefix`.
+2. `(*Group).ServeFiles(prefix string, root http.FileSystem)` is equivalent, with the group prefix joined with `prefix` per [groups.md](groups.md) section 11 (not a plain prepend/concatenation).
 3. `prefix` must end with `/*name` where `name` is a non-empty identifier. A `prefix` that does not end with this pattern causes a panic.
 4. `ServeFiles` registers the route for both GET and HEAD. No other methods are registered.
 5. Internally, `ServeFiles` uses `http.FileServer(root)` to serve files. No custom file-serving logic is implemented.
@@ -29,6 +29,7 @@ This file does not cover the `Mount` method (see [groups.md](groups.md)), which 
 12. A request to `/static/` serves the directory listing for `./public/`, subject to `http.FileServer` behavior.
 13. HTTP caching headers (`ETag`, `Last-Modified`, `Cache-Control`) are managed by `http.FileServer`. MuxMaster does not modify them.
 14. Directory index files (e.g., `index.html`) are served by `http.FileServer` when a directory path is requested, if such a file exists. MuxMaster does not control this behavior.
+15. Before delegating to `http.FileServer`, `ServeFiles` builds a shallow request copy (see the Terminology section in [README.md](README.md)) — a new `*http.Request` sharing the original's header map and context, with a new `*url.URL` copied from the original — and sets the copy's `URL.Path` to the value of the catch-all parameter (see item 7). `http.FileServer` receives the copy; the original request passed to `ServeHTTP` is never mutated. This applies identically to `(*Group).ServeFiles`.
 
 ---
 

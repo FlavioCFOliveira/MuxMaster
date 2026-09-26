@@ -53,7 +53,10 @@ func TestSetReqCtxUnsafe_OnlyFreshBundle(t *testing.T) {
 				fmt.Sprintf("/users/%d/posts/%d", g, g+1),
 				fmt.Sprintf("/a/%d/%d/%d", g, g+1, g+2),
 			}
-			for i := 0; i < 20000; i++ {
+			// trimmed 20000 -> 4000 (rmp #271); still 4000*n*8 = 512,000
+			// requests at GOMAXPROCS=16 (measured 2026-09-25: 69.9s of a
+			// 320s package run at 20000).
+			for i := 0; i < 2400; i++ {
 				path := paths[i%len(paths)]
 				orig := httptest.NewRequest("GET", path, nil)
 				ctxBefore := orig.Context()
@@ -104,7 +107,11 @@ func TestSetReqCtxUnsafe_MassiveParallel(t *testing.T) {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 10000; i++ {
+			// trimmed 10000 -> 2500 (rmp #271): n*16 goroutines here (256 at
+			// GOMAXPROCS=16), so this still exercises 2500*256 = 640,000
+			// requests (measured 2026-09-25: 58.0s of a 320s package run at
+			// 10000).
+			for i := 0; i < 1500; i++ {
 				idx := (g * i) % 200
 				paths := []string{
 					fmt.Sprintf("/static/%d", idx),

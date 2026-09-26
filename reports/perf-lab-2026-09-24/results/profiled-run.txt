@@ -1,0 +1,70 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkParallelStatic-16                                 	132785270	         2.761 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam1-16                                 	 4053037	        89.06 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelParam1Pooled-16                           	56327661	         7.366 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam3-16                                 	 3152433	       110.9 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParallelParam3Pooled-16                           	36778891	        11.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelCatchAll-16                               	 3909321	        85.83 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelFastParam1-16                             	23899660	        15.67 ns/op	      32 B/op	       1 allocs/op
+BenchmarkParallelFastParam1Pooled-16                       	64127284	         6.136 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelMethodNotAllowed-16                       	 8420590	        43.57 ns/op	      56 B/op	       3 allocs/op
+BenchmarkParallelOPTIONS-16                                	 7729791	        45.86 ns/op	      72 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash-16                  	 4100691	        88.59 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware-16    	 3269534	       109.2 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelNotFound-16                               	 7607751	        46.36 ns/op	      48 B/op	       3 allocs/op
+BenchmarkThrottleBacklogParallel-16                        	 2305018	       156.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIPSingleKey-16                         	  478219	       701.1 ns/op	     248 B/op	       3 allocs/op
+2026/09/24 16:36:12 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+BenchmarkThrottlePerIPManyKeys-16                          	2026/09/24 16:36:12 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:36:12 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:36:12 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   83049	      4179 ns/op	     377 B/op	       5 allocs/op
+2026/09/24 16:36:12 INFO OAuth2Introspect: configured host=127.0.0.1:44565 scheme=https
+BenchmarkOAuth2CacheHitSteadyState-16                      	2026/09/24 16:36:12 INFO OAuth2Introspect: configured host=127.0.0.1:43419 scheme=https
+2026/09/24 16:36:12 INFO OAuth2Introspect: configured host=127.0.0.1:42035 scheme=https
+2026/09/24 16:36:12 INFO OAuth2Introspect: configured host=127.0.0.1:46759 scheme=https
+2026/09/24 16:36:12 INFO OAuth2Introspect: configured host=127.0.0.1:40509 scheme=https
+ 1189608	       306.4 ns/op	     368 B/op	       2 allocs/op
+2026/09/24 16:36:13 INFO OAuth2Introspect: configured host=127.0.0.1:46219 scheme=https
+BenchmarkOAuth2ManyTokensNoCacheHit-16                     	2026/09/24 16:36:13 INFO OAuth2Introspect: configured host=127.0.0.1:32919 scheme=https
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:52272: read tcp 127.0.0.1:32919->127.0.0.1:52272: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:52264: read tcp 127.0.0.1:32919->127.0.0.1:52264: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:60118: write tcp 127.0.0.1:32919->127.0.0.1:60118: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:60146: write tcp 127.0.0.1:32919->127.0.0.1:60146: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:60132: write tcp 127.0.0.1:32919->127.0.0.1:60132: use of closed network connection
+2026/09/24 16:36:13 INFO OAuth2Introspect: configured host=127.0.0.1:42451 scheme=https
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:48772: read tcp 127.0.0.1:42451->127.0.0.1:48772: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:48802: read tcp 127.0.0.1:42451->127.0.0.1:48802: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:48786: write tcp 127.0.0.1:42451->127.0.0.1:48786: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:48778: write tcp 127.0.0.1:42451->127.0.0.1:48778: use of closed network connection
+2026/09/24 16:36:13 INFO OAuth2Introspect: configured host=127.0.0.1:41741 scheme=https
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:47182: read tcp 127.0.0.1:41741->127.0.0.1:47182: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:47786: read tcp 127.0.0.1:41741->127.0.0.1:47786: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:46560: read tcp 127.0.0.1:41741->127.0.0.1:46560: use of closed network connection
+2026/09/24 16:36:13 http: TLS handshake error from 127.0.0.1:46818: write tcp 127.0.0.1:41741->127.0.0.1:46818: use of closed network connection
+    2454	    131070 ns/op	   84397 B/op	     485 allocs/op
+2026/09/24 16:36:13 INFO OAuth2Introspect: configured host=127.0.0.1:37425 scheme=https
+BenchmarkOAuth2SingleflightCoalesce-16                     	2026/09/24 16:36:13 INFO OAuth2Introspect: configured host=127.0.0.1:40565 scheme=https
+2026/09/24 16:36:13 INFO OAuth2Introspect: configured host=127.0.0.1:39099 scheme=https
+2026/09/24 16:36:13 INFO OAuth2Introspect: configured host=127.0.0.1:35453 scheme=https
+   39458	      8730 ns/op	    1150 B/op	      10 allocs/op
+2026/09/24 16:36:14 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+BenchmarkJWTAuthHS256Parallel-16                           	2026/09/24 16:36:14 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:36:14 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:36:14 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+  531554	       624.3 ns/op	     902 B/op	      10 allocs/op
+BenchmarkCompressParallel-16                               	  363980	      1507 ns/op	    8386 B/op	       2 allocs/op
+BenchmarkLoggerParallel-16                                 	  552132	       555.8 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallelRealFile-16                         	  626182	       558.7 ns/op	      32 B/op	       4 allocs/op
+BenchmarkRequestIDParallel-16                              	 1580034	       230.1 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRealIPParallel-16                                 	15203319	        24.07 ns/op	      80 B/op	       2 allocs/op
+BenchmarkRecovererParallel-16                              	205422579	         1.730 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTimeoutParallel-16                                	  645098	       564.0 ns/op	     592 B/op	       5 allocs/op
+BenchmarkBasicAuthParallel-16                              	10176277	        35.46 ns/op	      48 B/op	       2 allocs/op
+BenchmarkAPIKeyParallel-16                                 	 2270658	       159.8 ns/op	     448 B/op	       7 allocs/op
+BenchmarkCORSParallel-16                                   	10762552	        36.40 ns/op	     103 B/op	       1 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness	13.815s

@@ -1,0 +1,42 @@
+File: graceful-shutdown
+Build ID: d00e4eb8415b84d68d07dc985455d140af387a99
+Type: alloc_space
+Time: 2026-09-25 12:37:01 WEST
+Duration: 10s, Total samples = 2019.69MB 
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 1177.30MB, 58.29% of 2019.69MB total
+Dropped 10 nodes (cum <= 10.10MB)
+      flat  flat%   sum%        cum   cum%
+  340.10MB 16.84% 16.84%   340.10MB 16.84%  net/http.(*Request).WithContext
+  235.07MB 11.64% 28.48%  1183.31MB 58.59%  github.com/FlavioCFOliveira/MuxMaster/middleware.RequestID.func1.1
+  222.06MB 10.99% 39.47%   222.06MB 10.99%  net/http.Header.Clone (inline)
+  139.52MB  6.91% 46.38%   209.53MB 10.37%  context.(*cancelCtx).propagateCancel
+   89.01MB  4.41% 50.79%   354.54MB 17.55%  context.WithDeadlineCause
+   70.01MB  3.47% 54.25%    70.01MB  3.47%  context.(*cancelCtx).Done
+   56.01MB  2.77% 57.03%    56.01MB  2.77%  time.newTimer
+   12.03MB   0.6% 57.62%    12.03MB   0.6%  sync.(*Pool).pinSlow
+       9MB  0.45% 58.07%        9MB  0.45%  net/textproto.MIMEHeader.Set (inline)
+    4.50MB  0.22% 58.29%   130.53MB  6.46%  net/http.Error
+         0     0% 58.29%   354.54MB 17.55%  context.WithDeadline (inline)
+         0     0% 58.29%   354.54MB 17.55%  context.WithTimeout
+         0     0% 58.29%   109.54MB  5.42%  fmt.Fprintln
+         0     0% 58.29%   768.68MB 38.06%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).Pre.func1
+         0     0% 58.29%  1183.31MB 58.59%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+         0     0% 58.29%   768.68MB 38.06%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+         0     0% 58.29%   115.53MB  5.72%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*statusRecorder).WriteHeader
+         0     0% 58.29%   249.58MB 12.36%  github.com/FlavioCFOliveira/MuxMaster/middleware.Logger.func1.1
+         0     0% 58.29%  1183.31MB 58.59%  github.com/FlavioCFOliveira/MuxMaster/middleware.RecovererWithLogger.func1.1
+         0     0% 58.29%   768.68MB 38.06%  github.com/FlavioCFOliveira/MuxMaster/middleware.Timeout.func1.1
+         0     0% 58.29%   108.03MB  5.35%  main.main.func1
+         0     0% 58.29%  1183.31MB 58.59%  net/http.(*conn).serve
+         0     0% 58.29%   106.53MB  5.27%  net/http.(*response).Write
+         0     0% 58.29%   222.06MB 10.99%  net/http.(*response).WriteHeader
+         0     0% 58.29%   106.53MB  5.27%  net/http.(*response).write
+         0     0% 58.29%  1183.31MB 58.59%  net/http.HandlerFunc.ServeHTTP
+         0     0% 58.29%        9MB  0.45%  net/http.Header.Set (inline)
+         0     0% 58.29%   130.53MB  6.46%  net/http.NotFound
+         0     0% 58.29%  1183.31MB 58.59%  net/http.serverHandler.ServeHTTP
+         0     0% 58.29%    13.53MB  0.67%  sync.(*Pool).Get
+         0     0% 58.29%    12.03MB   0.6%  sync.(*Pool).pin
+         0     0% 58.29%    56.01MB  2.77%  time.AfterFunc

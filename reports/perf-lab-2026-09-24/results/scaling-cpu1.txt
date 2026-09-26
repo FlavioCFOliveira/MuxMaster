@@ -1,0 +1,297 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkParallelStatic                              	14882874	        16.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStatic                              	14739115	        16.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStatic                              	14590606	        16.59 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStatic                              	14647952	        16.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStatic                              	14471282	        16.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStatic                              	14547800	        16.66 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam1                              	 1671445	       143.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelParam1                              	 1671309	       143.7 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelParam1                              	 1667782	       143.2 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelParam1                              	 1655518	       142.8 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelParam1                              	 1678311	       143.2 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelParam1                              	 1628367	       143.6 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelParam1Pooled                        	 5749288	        41.36 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam1Pooled                        	 5817873	        41.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam1Pooled                        	 5848998	        41.55 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam1Pooled                        	 5727222	        41.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam1Pooled                        	 5756020	        41.94 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam1Pooled                        	 5797731	        41.51 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam3                              	 1303186	       184.5 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParallelParam3                              	 1291591	       186.5 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParallelParam3                              	 1286566	       185.1 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParallelParam3                              	 1294422	       186.7 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParallelParam3                              	 1299084	       183.6 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParallelParam3                              	 1300039	       184.1 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParallelParam3Pooled                        	 3976128	        60.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam3Pooled                        	 3989089	        60.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam3Pooled                        	 3970670	        60.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam3Pooled                        	 3938860	        60.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam3Pooled                        	 3997372	        59.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParam3Pooled                        	 4002261	        60.30 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelCatchAll                            	 1629841	       147.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelCatchAll                            	 1632186	       146.1 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelCatchAll                            	 1637161	       146.6 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelCatchAll                            	 1637868	       147.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelCatchAll                            	 1638799	       146.7 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelCatchAll                            	 1636912	       145.8 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelFastParam1                          	 4727325	        49.13 ns/op	      32 B/op	       1 allocs/op
+BenchmarkParallelFastParam1                          	 4737100	        49.23 ns/op	      32 B/op	       1 allocs/op
+BenchmarkParallelFastParam1                          	 4742586	        49.30 ns/op	      32 B/op	       1 allocs/op
+BenchmarkParallelFastParam1                          	 4783304	        49.63 ns/op	      32 B/op	       1 allocs/op
+BenchmarkParallelFastParam1                          	 4709677	        49.05 ns/op	      32 B/op	       1 allocs/op
+BenchmarkParallelFastParam1                          	 4754858	        49.71 ns/op	      32 B/op	       1 allocs/op
+BenchmarkParallelFastParam1Pooled                    	 6018572	        39.91 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelFastParam1Pooled                    	 6027397	        40.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelFastParam1Pooled                    	 6052664	        39.43 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelFastParam1Pooled                    	 5941801	        40.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelFastParam1Pooled                    	 6006998	        39.82 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelFastParam1Pooled                    	 5996233	        39.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelMethodNotAllowed                    	 1000000	       210.0 ns/op	      56 B/op	       3 allocs/op
+BenchmarkParallelMethodNotAllowed                    	 1000000	       203.5 ns/op	      56 B/op	       3 allocs/op
+BenchmarkParallelMethodNotAllowed                    	 1000000	       202.3 ns/op	      56 B/op	       3 allocs/op
+BenchmarkParallelMethodNotAllowed                    	 1201158	       198.8 ns/op	      56 B/op	       3 allocs/op
+BenchmarkParallelMethodNotAllowed                    	 1000000	       202.3 ns/op	      56 B/op	       3 allocs/op
+BenchmarkParallelMethodNotAllowed                    	 1000000	       200.1 ns/op	      56 B/op	       3 allocs/op
+BenchmarkParallelOPTIONS                             	 1249478	       191.0 ns/op	      72 B/op	       4 allocs/op
+BenchmarkParallelOPTIONS                             	 1257225	       191.1 ns/op	      72 B/op	       4 allocs/op
+BenchmarkParallelOPTIONS                             	 1243996	       190.3 ns/op	      72 B/op	       4 allocs/op
+BenchmarkParallelOPTIONS                             	 1249107	       191.3 ns/op	      72 B/op	       4 allocs/op
+BenchmarkParallelOPTIONS                             	 1247616	       190.6 ns/op	      72 B/op	       4 allocs/op
+BenchmarkParallelOPTIONS                             	 1241697	       189.4 ns/op	      72 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash               	  718459	       306.2 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash               	  709762	       302.5 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash               	  726494	       302.5 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash               	  719377	       303.6 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash               	  705667	       301.1 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlash               	  701518	       303.4 ns/op	     192 B/op	       4 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware 	  574779	       361.5 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware 	  559041	       367.0 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware 	  561838	       364.2 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware 	  579675	       364.5 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware 	  558832	       362.9 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelRedirectTrailingSlashWithMiddleware 	  562795	       360.7 ns/op	     248 B/op	       6 allocs/op
+BenchmarkParallelNotFound                            	 1000000	       230.7 ns/op	      48 B/op	       3 allocs/op
+BenchmarkParallelNotFound                            	 1000000	       228.0 ns/op	      48 B/op	       3 allocs/op
+BenchmarkParallelNotFound                            	 1000000	       229.0 ns/op	      48 B/op	       3 allocs/op
+BenchmarkParallelNotFound                            	 1000000	       227.3 ns/op	      48 B/op	       3 allocs/op
+BenchmarkParallelNotFound                            	 1000000	       227.8 ns/op	      48 B/op	       3 allocs/op
+BenchmarkParallelNotFound                            	 1000000	       224.9 ns/op	      48 B/op	       3 allocs/op
+BenchmarkThrottleBacklogParallel                     	 6378500	        37.97 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                     	 6323835	        38.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                     	 6301627	        38.52 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                     	 6243181	        38.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                     	 6279782	        38.15 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottleBacklogParallel                     	 6295693	        38.16 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIPSingleKey                      	   56654	      4079 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                      	   57548	      4086 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                      	   57163	      4085 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                      	   57548	      4077 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                      	   57402	      4079 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPSingleKey                      	   57662	      4089 ns/op	     376 B/op	       5 allocs/op
+2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+BenchmarkThrottlePerIPManyKeys                       	2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   56972	      4113 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                       	2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   57648	      4115 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                       	2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:54 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   57324	      4101 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                       	2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   56815	      4119 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                       	2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   57284	      4100 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIPManyKeys                       	2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+2026/09/24 16:31:55 WARN ThrottlePerIP: nil keyFn — keying on r.RemoteAddr. Ensure RealIP is registered BEFORE ThrottlePerIP (with explicit trusted-proxy CIDRs); otherwise the per-IP limit degrades to a global rate limit behind any reverse proxy. See SECURITY.md "RealIP + ThrottlePerIP ordering".
+   56854	      4109 ns/op	     376 B/op	       5 allocs/op
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:37001 scheme=https
+BenchmarkOAuth2CacheHitSteadyState                   	2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:45151 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:44751 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:45001 scheme=https
+   67980	      3188 ns/op	     371 B/op	       2 allocs/op
+BenchmarkOAuth2CacheHitSteadyState                   	2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:42479 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:33865 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:45947 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:38137 scheme=https
+   69138	      3153 ns/op	     371 B/op	       2 allocs/op
+BenchmarkOAuth2CacheHitSteadyState                   	2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:37587 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:37313 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:45849 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:42649 scheme=https
+   69936	      3198 ns/op	     371 B/op	       2 allocs/op
+BenchmarkOAuth2CacheHitSteadyState                   	2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:36743 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:45421 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:44603 scheme=https
+2026/09/24 16:31:56 INFO OAuth2Introspect: configured host=127.0.0.1:37613 scheme=https
+   68353	      3181 ns/op	     371 B/op	       2 allocs/op
+BenchmarkOAuth2CacheHitSteadyState                   	2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:40403 scheme=https
+2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:46439 scheme=https
+2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:43793 scheme=https
+2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:33839 scheme=https
+   69313	      3179 ns/op	     371 B/op	       2 allocs/op
+BenchmarkOAuth2CacheHitSteadyState                   	2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:38851 scheme=https
+2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:41169 scheme=https
+2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:45267 scheme=https
+2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:39463 scheme=https
+   69318	      3176 ns/op	     371 B/op	       2 allocs/op
+2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:41147 scheme=https
+BenchmarkOAuth2ManyTokensNoCacheHit                  	2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:40217 scheme=https
+2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:35503 scheme=https
+2026/09/24 16:31:57 INFO OAuth2Introspect: configured host=127.0.0.1:46647 scheme=https
+    1818	    131640 ns/op	   18182 B/op	     156 allocs/op
+BenchmarkOAuth2ManyTokensNoCacheHit                  	2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:40357 scheme=https
+2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:39461 scheme=https
+2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:39857 scheme=https
+    1572	    131313 ns/op	   18156 B/op	     156 allocs/op
+BenchmarkOAuth2ManyTokensNoCacheHit                  	2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:38367 scheme=https
+2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:45485 scheme=https
+2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:38681 scheme=https
+2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:33315 scheme=https
+    1836	    131953 ns/op	   18233 B/op	     156 allocs/op
+BenchmarkOAuth2ManyTokensNoCacheHit                  	2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:40143 scheme=https
+2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:44573 scheme=https
+2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:41439 scheme=https
+    1599	    130353 ns/op	   18152 B/op	     156 allocs/op
+BenchmarkOAuth2ManyTokensNoCacheHit                  	2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:34637 scheme=https
+2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:35469 scheme=https
+2026/09/24 16:31:58 INFO OAuth2Introspect: configured host=127.0.0.1:44819 scheme=https
+    1543	    131562 ns/op	   18160 B/op	     156 allocs/op
+BenchmarkOAuth2ManyTokensNoCacheHit                  	2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:36309 scheme=https
+2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:34437 scheme=https
+2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:42309 scheme=https
+    1567	    130477 ns/op	   18157 B/op	     156 allocs/op
+2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:42551 scheme=https
+BenchmarkOAuth2SingleflightCoalesce                  	2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:43363 scheme=https
+2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:41251 scheme=https
+    1672	    122285 ns/op	   11462 B/op	     132 allocs/op
+BenchmarkOAuth2SingleflightCoalesce                  	2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:35271 scheme=https
+2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:33977 scheme=https
+2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:38179 scheme=https
+    1662	    122111 ns/op	   11462 B/op	     132 allocs/op
+BenchmarkOAuth2SingleflightCoalesce                  	2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:39769 scheme=https
+2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:35533 scheme=https
+2026/09/24 16:31:59 INFO OAuth2Introspect: configured host=127.0.0.1:38961 scheme=https
+2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:40897 scheme=https
+    1974	    121486 ns/op	   11447 B/op	     132 allocs/op
+BenchmarkOAuth2SingleflightCoalesce                  	2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:41455 scheme=https
+2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:39349 scheme=https
+2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:33359 scheme=https
+    1682	    122185 ns/op	   11461 B/op	     132 allocs/op
+BenchmarkOAuth2SingleflightCoalesce                  	2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:38021 scheme=https
+2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:43123 scheme=https
+2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:38413 scheme=https
+    1672	    122805 ns/op	   11462 B/op	     132 allocs/op
+BenchmarkOAuth2SingleflightCoalesce                  	2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:42409 scheme=https
+2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:34327 scheme=https
+2026/09/24 16:32:00 INFO OAuth2Introspect: configured host=127.0.0.1:33467 scheme=https
+    1645	    121771 ns/op	   11463 B/op	     132 allocs/op
+2026/09/24 16:32:00 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+BenchmarkJWTAuthHS256Parallel                        	2026/09/24 16:32:00 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:00 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:00 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   51030	      4722 ns/op	     896 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256Parallel                        	2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   49484	      4831 ns/op	     896 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256Parallel                        	2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   49098	      4735 ns/op	     896 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256Parallel                        	2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:01 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   49321	      4719 ns/op	     896 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256Parallel                        	2026/09/24 16:32:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   49260	      4738 ns/op	     896 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256Parallel                        	2026/09/24 16:32:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+2026/09/24 16:32:02 WARN JWTAuth: RequireExpiry=false — tokens without an "exp" claim are accepted. RFC 8725 §4.4 recommends RequireExpiry=true so that tokens cannot be replayed indefinitely.
+   49399	      4715 ns/op	     896 B/op	      10 allocs/op
+BenchmarkCompressParallel                            	  150391	      3271 ns/op	    8373 B/op	       2 allocs/op
+BenchmarkCompressParallel                            	  150404	      3161 ns/op	    8373 B/op	       2 allocs/op
+BenchmarkCompressParallel                            	  149398	      3245 ns/op	    8374 B/op	       2 allocs/op
+BenchmarkCompressParallel                            	  148683	      3175 ns/op	    8375 B/op	       2 allocs/op
+BenchmarkCompressParallel                            	  151008	      2831 ns/op	    8373 B/op	       2 allocs/op
+BenchmarkCompressParallel                            	  151508	      2732 ns/op	    8373 B/op	       2 allocs/op
+BenchmarkLoggerParallel                              	   32660	      7252 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallel                              	   32714	      7244 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallel                              	   33130	      7252 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallel                              	   33098	      7241 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallel                              	   33139	      7231 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallel                              	   33142	      7242 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallelRealFile                      	   33126	      7241 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallelRealFile                      	   33097	      7238 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallelRealFile                      	   32354	      7254 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallelRealFile                      	   33118	      7242 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallelRealFile                      	   33078	      7241 ns/op	      32 B/op	       4 allocs/op
+BenchmarkLoggerParallelRealFile                      	   33088	      7259 ns/op	      32 B/op	       4 allocs/op
+BenchmarkRequestIDParallel                           	  197600	      1101 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                           	  198565	      1109 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                           	  200810	      1104 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                           	  198878	      1107 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                           	  199767	      1108 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRequestIDParallel                           	  195538	      1108 ns/op	     464 B/op	       7 allocs/op
+BenchmarkRealIPParallel                              	 3615990	        66.33 ns/op	      80 B/op	       2 allocs/op
+BenchmarkRealIPParallel                              	 3554432	        65.39 ns/op	      80 B/op	       2 allocs/op
+BenchmarkRealIPParallel                              	 3605472	        65.49 ns/op	      80 B/op	       2 allocs/op
+BenchmarkRealIPParallel                              	 3605287	        65.93 ns/op	      80 B/op	       2 allocs/op
+BenchmarkRealIPParallel                              	 3588652	        65.64 ns/op	      80 B/op	       2 allocs/op
+BenchmarkRealIPParallel                              	 3632775	        65.57 ns/op	      80 B/op	       2 allocs/op
+BenchmarkRecovererParallel                           	19729815	        12.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecovererParallel                           	19294342	        12.44 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecovererParallel                           	19387088	        12.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecovererParallel                           	19234726	        12.47 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecovererParallel                           	19322223	        12.46 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRecovererParallel                           	19454037	        12.42 ns/op	       0 B/op	       0 allocs/op
+BenchmarkTimeoutParallel                             	   38162	      6117 ns/op	     592 B/op	       5 allocs/op
+BenchmarkTimeoutParallel                             	   38443	      6165 ns/op	     592 B/op	       5 allocs/op
+BenchmarkTimeoutParallel                             	   38431	      6136 ns/op	     592 B/op	       5 allocs/op
+BenchmarkTimeoutParallel                             	   38410	      6164 ns/op	     592 B/op	       5 allocs/op
+BenchmarkTimeoutParallel                             	   38403	      6142 ns/op	     592 B/op	       5 allocs/op
+BenchmarkTimeoutParallel                             	   38402	      6132 ns/op	     592 B/op	       5 allocs/op
+BenchmarkBasicAuthParallel                           	 1000000	       200.8 ns/op	      48 B/op	       2 allocs/op
+BenchmarkBasicAuthParallel                           	 1000000	       201.8 ns/op	      48 B/op	       2 allocs/op
+BenchmarkBasicAuthParallel                           	 1000000	       200.9 ns/op	      48 B/op	       2 allocs/op
+BenchmarkBasicAuthParallel                           	 1000000	       201.0 ns/op	      48 B/op	       2 allocs/op
+BenchmarkBasicAuthParallel                           	 1000000	       200.4 ns/op	      48 B/op	       2 allocs/op
+BenchmarkBasicAuthParallel                           	 1000000	       201.0 ns/op	      48 B/op	       2 allocs/op
+BenchmarkAPIKeyParallel                              	  461649	       520.8 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyParallel                              	  459993	       519.6 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyParallel                              	  459350	       524.2 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyParallel                              	  456868	       525.9 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyParallel                              	  457915	       520.8 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyParallel                              	  457820	       528.5 ns/op	     448 B/op	       7 allocs/op
+BenchmarkCORSParallel                                	 1000000	       245.2 ns/op	     104 B/op	       1 allocs/op
+BenchmarkCORSParallel                                	 1000000	       219.9 ns/op	     104 B/op	       1 allocs/op
+BenchmarkCORSParallel                                	 1000000	       211.4 ns/op	     104 B/op	       1 allocs/op
+BenchmarkCORSParallel                                	 1000000	       243.8 ns/op	     104 B/op	       1 allocs/op
+BenchmarkCORSParallel                                	 1000000	       240.6 ns/op	     104 B/op	       1 allocs/op
+BenchmarkCORSParallel                                	 1000000	       233.0 ns/op	     104 B/op	       1 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/harness	53.604s

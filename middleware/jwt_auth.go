@@ -18,7 +18,9 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
 )
 
 type jwtCtxKey struct{}
@@ -39,9 +41,10 @@ type JWTClaims struct {
 // JWTOptions configures the JWTAuth middleware.
 //
 // SECURITY (TSC-2026-0003): mixing algorithm families (HS* with RS* or ES*)
-// in Algorithms leaks the algorithm path via response latency. HMAC verifies
-// in ~1 µs, RSA-2048 verifies in ~300 µs, and an attacker submitting tokens
-// with different alg labels can determine which path the server runs from
+// in Algorithms leaks the algorithm path via response latency: the measured
+// HS256 and RS256 paths differ by about 25 µs (see SECURITY.md "JWT
+// Mixed-Family Algorithms"), and an attacker submitting tokens with
+// different alg labels can determine which path the server runs from
 // the response time alone — narrowing the attack surface for
 // algorithm-confusion attacks (RFC 8725 §3.1). Configure each endpoint
 // with a single algorithm family. JWTAuth emits a slog.Warn at construction
@@ -86,8 +89,21 @@ func newJWTHMACPool(hf func() hash.Hash, key []byte) *jwtHMACPool {
 	return &jwtHMACPool{p: sync.Pool{New: func() any { return hmac.New(hf, key) }}}
 }
 
+// WH-06 (investigated, NOT applied): summing into a function-local stack
+// array instead of calling h.Sum(nil) looks allocation-free in a
+// micro-benchmark that declares the array ONCE, above the b.N loop — that
+// hoists a single one-time heap escape and amortises it toward zero over
+// many iterations, which is a benchmark artifact, not a per-request
+// property. h has static type hash.Hash (an interface: p.p.Get() cannot
+// give escape analysis a concrete type), so h.Sum(buf[:0]) forces ANY
+// caller-local buf to escape to the heap on every call, exactly like
+// h.Sum(nil) does. Measured with a buffer declared fresh per call (the
+// only way a concurrent per-request path can use it): 141.7 ns/32 B/1
+// alloc for Sum(nil) vs 147.3 ns/64 B/1 alloc for a per-call stack array —
+// strictly worse, not better. Sum(nil) is kept as the correct, already
+// allocation-minimal choice.
 func (p *jwtHMACPool) verify(msg, sig []byte) bool {
-	h := p.p.Get().(hash.Hash)
+	h := p.p.Get().(hash.Hash) //nolint:forcetypeassert // pool.New always returns hash.Hash
 	h.Reset()
 	h.Write(msg)
 	mac := h.Sum(nil)
@@ -228,6 +244,15 @@ func JWTAuth(opts JWTOptions) func(http.Handler) http.Handler {
 		return false
 	}
 
+	// WH-06: headerMemo caches the decode of the single most recently
+	// ACCEPTED JOSE header segment for THIS JWTAuth instance. It is
+	// declared here — once per middleware instance, alongside allowedAlgs
+	// — never shared across different JWTAuth() calls, so a memo entry
+	// can never leak between two middlewares configured with different
+	// algorithm allow-lists. See decodeJWTHeader for the full security
+	// argument.
+	var headerMemo atomic.Pointer[jwtHeaderMemo]
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := extractBearerToken(r)
@@ -236,7 +261,7 @@ func JWTAuth(opts JWTOptions) func(http.Handler) http.Handler {
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
-			claims, err := parseAndValidateJWT(token, allowedAlgs, issuers, audiences, opts.ClockSkew, opts.RequireExpiry, verifyFn)
+			claims, err := parseAndValidateJWT(token, allowedAlgs, issuers, audiences, opts.ClockSkew, opts.RequireExpiry, verifyFn, &headerMemo)
 			if err != nil {
 				w.Header().Set("WWW-Authenticate", `Bearer realm="api", error="invalid_token"`)
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -291,12 +316,93 @@ type rawJWTPayload struct {
 	Iat int64       `json:"iat"`
 }
 
+// jwtHeaderMemo is the single cached (header segment, validated alg) pair
+// used by decodeJWTHeader (WH-06).
+type jwtHeaderMemo struct {
+	b64 string
+	alg string
+}
+
+// decodeJWTHeader base64url-decodes headerB64, JSON-parses it, and checks
+// it against allowedAlgs and RFC 7515 §4.1.11's "crit" rule, returning the
+// validated "alg" on success. Every token minted by one issuer carries a
+// byte-identical JOSE header segment, so memo — a single-entry,
+// concurrency-safe cache scoped to one JWTAuth instance — lets an
+// identical header skip straight to the previously computed result instead
+// of repeating the base64 decode and JSON unmarshal on every request
+// (WH-06).
+//
+// SECURITY: memo can only ever short-circuit this pure, deterministic
+// decode-and-validate-shape step. For byte-identical input it always
+// produces the byte-identical output, by definition, so caching it changes
+// nothing about which headers are accepted — it is memoizing a function of
+// its input, not skipping a check. A header is stored in memo ONLY after it
+// has already passed the allowedAlgs and crit checks below, so a memo hit
+// can never grant an alg, kid, or extension that a full decode would have
+// rejected. memo NEVER participates in signature verification: verifyFn is
+// still invoked on every single request, with the alg this function
+// returns, exactly as before — a cached header cannot bypass, weaken, or
+// skip the algorithm-confusion defence (RFC 8725 §3.1) or any other
+// validation performed by the caller. allowedAlgs itself is immutable for
+// the lifetime of a JWTAuth instance (built once at construction from
+// opts.Algorithms), so a stored (b64, alg) pair can never become stale.
+//
+// Concurrency: memo is an *atomic.Pointer, loaded and stored without a
+// lock. Concurrent misses for different bytes each recompute independently
+// and overwrite each other harmlessly — every writer stores a result it
+// just proved correct for the exact bytes it read, so the last store
+// standing is always internally consistent, and a reader that loads mid-
+// write simply sees the old or the new (both valid) entry.
+func decodeJWTHeader(headerB64 string, allowedAlgs map[string]struct{}, memo *atomic.Pointer[jwtHeaderMemo]) (string, bool) {
+	if m := memo.Load(); m != nil && m.b64 == headerB64 {
+		return m.alg, true
+	}
+	headerBytes, err := base64.RawURLEncoding.DecodeString(headerB64)
+	if err != nil {
+		return "", false
+	}
+	var hdr rawJWTHeader
+	if err := json.Unmarshal(headerBytes, &hdr); err != nil {
+		return "", false
+	}
+	if _, ok := allowedAlgs[hdr.Alg]; !ok {
+		return "", false
+	}
+	// RFC 7515 §4.1.11: if "crit" is present, every listed extension must be understood.
+	// We support none, so any "crit" entry mandates rejection.
+	if len(hdr.Crit) > 0 {
+		return "", false
+	}
+	// strings.Clone: headerB64 here is a substring of the caller's bearer
+	// token, which retains the WHOLE token's backing array for as long as
+	// it is referenced. Cloning bounds the memo to just the header's own
+	// bytes instead of keeping every past token alive.
+	memo.Store(&jwtHeaderMemo{b64: strings.Clone(headerB64), alg: hdr.Alg})
+	return hdr.Alg, true
+}
+
+// bytesFromString returns a read-only []byte view of s without copying
+// (WH-06), replacing the []byte(signingInput) conversion that previously
+// copied the whole signing input on every request. Safe because
+// signingInput is always a substring of the caller-owned bearer token —
+// itself immutable and alive for the duration of this synchronous call —
+// and every consumer of the returned slice (hash.Hash.Write, sha256/
+// sha512.SumXXX, rsa.VerifyPKCS1v15, ecdsa.Verify via verifyECDSAJWT) only
+// reads it once and never retains or mutates it after returning. The
+// project already relies on the equivalent unsafe.String direction in
+// request_id.go under the same kind of "single allocation, read-only,
+// bounded lifetime" argument.
+func bytesFromString(s string) []byte {
+	return unsafe.Slice(unsafe.StringData(s), len(s))
+}
+
 func parseAndValidateJWT(
 	token string,
 	allowedAlgs, issuers, audiences map[string]struct{},
 	clockSkew time.Duration,
 	requireExpiry bool,
 	verifyFn func(alg string, signingInput, sig []byte) bool,
+	headerMemo *atomic.Pointer[jwtHeaderMemo],
 ) (*JWTClaims, error) {
 	headerB64, rest, ok := strings.Cut(token, ".")
 	if !ok {
@@ -307,21 +413,8 @@ func parseAndValidateJWT(
 		return nil, errJWTInvalid
 	}
 
-	// Decode and parse the header to extract alg.
-	headerBytes, err := base64.RawURLEncoding.DecodeString(headerB64)
-	if err != nil {
-		return nil, errJWTInvalid
-	}
-	var hdr rawJWTHeader
-	if err := json.Unmarshal(headerBytes, &hdr); err != nil {
-		return nil, errJWTInvalid
-	}
-	if _, ok := allowedAlgs[hdr.Alg]; !ok {
-		return nil, errJWTInvalid
-	}
-	// RFC 7515 §4.1.11: if "crit" is present, every listed extension must be understood.
-	// We support none, so any "crit" entry mandates rejection.
-	if len(hdr.Crit) > 0 {
+	alg, ok := decodeJWTHeader(headerB64, allowedAlgs, headerMemo)
+	if !ok {
 		return nil, errJWTInvalid
 	}
 
@@ -333,7 +426,7 @@ func parseAndValidateJWT(
 
 	// Verify signature over "header.payload" — substring of token, no allocation.
 	signingInput := token[:len(headerB64)+1+len(payloadB64)]
-	if !verifyFn(hdr.Alg, []byte(signingInput), sigBytes) {
+	if !verifyFn(alg, bytesFromString(signingInput), sigBytes) {
 		return nil, errJWTInvalid
 	}
 

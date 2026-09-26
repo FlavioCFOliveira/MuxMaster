@@ -374,10 +374,28 @@ type StatResult struct {
 	KSP        float64
 	MWUP       float64
 	MeanDiffNs float64
+	CohenD     float64
 	Leak       bool
 }
 
-// RunTests runs Welch, KS, and MWU on trimmed samples.
+// cohenD returns the pooled-standard-deviation effect size (Cohen's d)
+// between a and b: d = |mean(a) - mean(b)| / pooled_sd, with
+// pooled_sd = sqrt(((na-1)*var(a) + (nb-1)*var(b)) / (na+nb-2)).
+// Interpretation (Cohen 1988): ~0.2 small, ~0.5 medium, ~0.8 large.
+func cohenD(a, b []int64) float64 {
+	na, nb := float64(len(a)), float64(len(b))
+	if na < 2 || nb < 2 {
+		return 0
+	}
+	va, vb := variance(a), variance(b)
+	pooled := ((na-1)*va + (nb-1)*vb) / (na + nb - 2)
+	if pooled <= 0 {
+		return 0
+	}
+	return math.Abs(mean(a)-mean(b)) / math.Sqrt(pooled)
+}
+
+// RunTests runs Welch, KS, and MWU on trimmed samples, plus Cohen's d.
 // Reports a leak when any p-value < 0.01.
 func RunTests(a, b []int64) StatResult {
 	at := trimOutliers(a)
@@ -387,11 +405,13 @@ func RunTests(a, b []int64) StatResult {
 	kp := ksTwoSample(at, bt)
 	mp := mannWhitneyU(at, bt)
 	diff := math.Abs(mean(at) - mean(bt))
+	d := cohenD(at, bt)
 	return StatResult{
 		WelchP:     wp,
 		KSP:        kp,
 		MWUP:       mp,
 		MeanDiffNs: diff,
+		CohenD:     d,
 		Leak:       wp < 0.01 || kp < 0.01 || mp < 0.01,
 	}
 }

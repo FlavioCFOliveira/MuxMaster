@@ -1,6 +1,6 @@
 # Response Helpers
 
-MuxMaster provides a small set of functions that write complete HTTP responses in one call. They set the appropriate `Content-Type` header, call `WriteHeader`, and write the body.
+MuxMaster provides a small set of functions that write complete HTTP responses in one call. `JSON`, `XML` and `Text` set the `Content-Type` header (replacing any value already set), call `WriteHeader`, and write the body; a `code` of `0` means `200 OK`.
 
 ## Functions
 
@@ -43,7 +43,7 @@ Returns the marshalling or write error; it does not write anything if marshallin
 func XML(w http.ResponseWriter, code int, v any) error
 ```
 
-Marshals `v` to XML, sets `Content-Type: application/xml; charset=utf-8`, and writes the response.
+Marshals `v` to XML with `encoding/xml`, sets `Content-Type: application/xml; charset=utf-8`, and writes the response. Like `JSON`, it returns the marshalling or write error and writes nothing if marshalling fails.
 
 ```go
 type User struct {
@@ -63,7 +63,7 @@ muxmaster.XML(w, http.StatusOK, User{ID: 42, Name: "Alice"})
 func Text(w http.ResponseWriter, code int, s string) error
 ```
 
-Writes `s` as plain text with `Content-Type: text/plain; charset=utf-8`.
+Writes `s` as plain text with `Content-Type: text/plain; charset=utf-8`. It always returns `nil`; the error result exists for symmetry with `JSON` and `XML`.
 
 ```go
 muxmaster.Text(w, http.StatusOK, "pong")
@@ -78,7 +78,7 @@ muxmaster.Text(w, http.StatusOK, fmt.Sprintf("hello, %s", name))
 func Redirect(w http.ResponseWriter, r *http.Request, code int, url string)
 ```
 
-Issues an HTTP redirect. Delegates to `http.Redirect`.
+Issues an HTTP redirect with the given 3xx status code. It delegates to `http.Redirect`, so it does not apply the backslash and control-byte encoding of the router's own redirects. Never pass an unvalidated, user-supplied URL: that creates an open redirect.
 
 ```go
 muxmaster.Redirect(w, r, http.StatusMovedPermanently, "/new-path")

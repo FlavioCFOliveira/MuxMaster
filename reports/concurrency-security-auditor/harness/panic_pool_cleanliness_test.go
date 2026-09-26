@@ -9,6 +9,8 @@ package muxmaster_test
 
 import (
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
@@ -19,6 +21,23 @@ import (
 	mm "github.com/FlavioCFOliveira/MuxMaster"
 	mw "github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
+
+// discardRecoverer is mw.Recoverer() with logging pointed at io.Discard.
+//
+// mw.RecovererWithLogger logs every recovered panic via slog (method, path,
+// and a full debug.Stack() capture) — real, intentional security behaviour
+// (MSR-2026-0057: sanitised logging of panic details), not a test artifact.
+// Under a stress test that triggers tens of thousands of concurrent panics,
+// mw.Recoverer()'s slog.Default() target (stderr, one shared, effectively
+// serializing writer) turned the log write into the dominant, largely
+// GOMAXPROCS-insensitive cost: cutting this package's panic-loop iteration
+// counts did not proportionally cut wall time (rmp #271, measured
+// 2026-09-25). debug.Stack() itself still runs on every panic — only the
+// contended I/O is removed — so this still exercises the exact same
+// recover()/dispatch race-detector-relevant code path as mw.Recoverer().
+func discardRecoverer() func(http.Handler) http.Handler {
+	return mw.RecovererWithLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
+}
 
 // TestPanicInHandler_ParamsClean verifies that after a panic in a param route,
 // subsequent requests to a different param route see only their own params.
@@ -76,11 +95,16 @@ func TestPanicInHandler_PoolClean_Concurrent(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
+	// trimmed 10000 -> 2500 (rmp #271): half of these iterations are real
+	// panics, which are much more expensive per call than a plain ServeHTTP
+	// round trip; still 2500*n*4 = 160,000 iterations (80,000 panics) at
+	// GOMAXPROCS=16 (measured 2026-09-25: 42.4s of a 320s package run at
+	// 10000).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 10000; i++ {
+			for i := 0; i < 1500; i++ {
 				r.ServeHTTP(httptest.NewRecorder(),
 					httptest.NewRequest("GET", fmt.Sprintf("/panic2/%d/%d", g, i), nil))
 				r.ServeHTTP(httptest.NewRecorder(),
@@ -107,11 +131,14 @@ func TestRecovererMiddleware_NoPanic_Race(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
+	// trimmed 20000 -> 4000 (rmp #271); still 4000*n*8 = 512,000 requests at
+	// GOMAXPROCS=16 (measured 2026-09-25: 42.2s of a 320s package run at
+	// 20000).
 	for g := 0; g < n*8; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 20000; i++ {
+			for i := 0; i < 2400; i++ {
 				path := fmt.Sprintf("/safe/%d", i)
 				r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path, nil))
 			}
@@ -125,7 +152,7 @@ func TestRecovererMiddleware_NoPanic_Race(t *testing.T) {
 func TestRecovererMiddleware_WithPanic_Race(t *testing.T) {
 	t.Parallel()
 	r := mm.New()
-	r.Use(mw.Recoverer())
+	r.Use(discardRecoverer())
 	r.GET("/boom/:id", func(w http.ResponseWriter, req *http.Request) {
 		panic("test")
 	})
@@ -135,11 +162,16 @@ func TestRecovererMiddleware_WithPanic_Race(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
+	// trimmed 5000 -> 800 (rmp #271; further trimmed from an intermediate
+	// 1500 on 2026-09-25 after discardRecoverer removed the log-I/O
+	// bottleneck — at 1500 this test was still 31.6s, now dominated by the
+	// panic/recover cost itself): half of these iterations are real panics;
+	// still 800*n*4 = 51,200 iterations (25,600 panics) at GOMAXPROCS=16.
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 5000; i++ {
+			for i := 0; i < 400; i++ {
 				r.ServeHTTP(httptest.NewRecorder(),
 					httptest.NewRequest("GET", fmt.Sprintf("/boom/%d", i), nil))
 				r.ServeHTTP(httptest.NewRecorder(),
@@ -159,7 +191,7 @@ func TestRecovererAndTimeout_H_C(t *testing.T) {
 	// Timeout is very short; handler is fast enough to run within it.
 	// But we also fire a slow goroutine to simulate the leak scenario.
 	r := mm.New()
-	r.Use(mw.Recoverer())
+	r.Use(discardRecoverer())
 
 	slowDone := make(chan struct{})
 	r.GET("/slow/:id", func(w http.ResponseWriter, req *http.Request) {
@@ -178,11 +210,15 @@ func TestRecovererAndTimeout_H_C(t *testing.T) {
 
 	n := runtime.GOMAXPROCS(0)
 	var wg sync.WaitGroup
+	// trimmed 5000 -> 1500 (rmp #271): half of these iterations are real
+	// panics; still 1500*n*4 = 96,000 iterations (48,000 panics) at
+	// GOMAXPROCS=16 (measured 2026-09-25: 68.9s of a 320s package run at
+	// 5000).
 	for g := 0; g < n*4; g++ {
 		wg.Add(1)
 		go func(g int) {
 			defer wg.Done()
-			for i := 0; i < 5000; i++ {
+			for i := 0; i < 800; i++ {
 				r.ServeHTTP(httptest.NewRecorder(),
 					httptest.NewRequest("GET", fmt.Sprintf("/slow/%d", i), nil))
 				r.ServeHTTP(httptest.NewRecorder(),

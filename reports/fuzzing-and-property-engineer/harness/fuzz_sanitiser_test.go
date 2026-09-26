@@ -19,8 +19,14 @@ package harness
 //   I-SAN-03: U+2028 (LSEP) and U+2029 (PSEP) do not appear literally in the
 //             sanitised output (they must appear as   /  ).
 //   I-SAN-04: Logger middleware never panics on any request path or method.
-//   I-SAN-05: sanitiseForLog is idempotent —
-//             sanitiseForLog(sanitiseForLog(s)) == sanitiseForLog(s).
+//   I-SAN-05 (REVISED, FPE-2026-0002): sanitiseForLog is NOT idempotent —
+//             strconv.QuoteToASCII re-escapes its own output on a second
+//             pass (e.g. `"` -> `\"` -> `\\\"`), so
+//             sanitiseForLog(sanitiseForLog(s)) != sanitiseForLog(s) in
+//             general, and the output can grow with each additional pass.
+//             The invariant that DOES hold is weaker and safety-oriented:
+//             no byte < 0x20 or == 0x7F appears in the output after ANY
+//             number of passes. No test in this file asserts idempotency.
 //
 // Note: sanitiseForLog is unexported. We test it indirectly via Logger — the
 // middleware writes the sanitised path to the supplied io.Writer, letting us

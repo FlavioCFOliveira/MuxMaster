@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/\ue115\ue115{/:}0{/:}0")

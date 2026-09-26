@@ -1,0 +1,30 @@
+--- a/main.go	2026-09-24 19:38:30.387687529 +0100
++++ b/main.go	2026-09-24 19:38:30.387687529 +0100
+@@ -229,6 +229,15 @@
+ 
+ 	r := mm.New()
+ 
++	// [waste-hunt start-up patch] HandleFast routes moved above Use(): the
++	// unmodified example panics at registration (FPE-2026-010 guard). Fast
++	// routes are never wrapped by Use(), so the served behaviour is unchanged.
++	// FastHandler: static route — zero allocations per request.
++	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
++		w.Header().Set("Content-Type", "application/json")
++		_, _ = io.WriteString(w, `{"status":"ok"}`)
++	})
++
+ 	// ── Global middleware ─────────────────────────────────────────────────────
+ 	r.Use(
+ 		mw.RequestID(),
+@@ -251,11 +260,6 @@
+ 
+ 	// ── Public routes ─────────────────────────────────────────────────────────
+ 
+-	// FastHandler: static route — zero allocations per request.
+-	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
+-		w.Header().Set("Content-Type", "application/json")
+-		_, _ = io.WriteString(w, `{"status":"ok"}`)
+-	})
+ 
+ 	// ── GET /articles — list with in-memory cache + Cache-Control ────────────
+ 	//

@@ -1,0 +1,442 @@
+# rmp tasks #251 / #252 — sprint 18 waste-hunt fixes
+# Findings: WH-01, WH-02, WH-03, WH-06, WH-07, WH-11, WH-12
+# Date: 2026-09-25
+# Baseline commit: d980583 (git worktree)
+# Host: Linux ROG 6.8.0-139-generic #139-Ubuntu SMP PREEMPT_DYNAMIC Sat Aug  1 03:52:05 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+# Go: go version go1.27.0 linux/amd64
+
+## go build ./...
+OK
+
+## go vet ./...
+OK
+
+## staticcheck ./middleware/...
+OK
+
+## golangci-lint run ./...
+0 issues.
+
+## go test -race ./middleware/... (root package)
+ok  	github.com/FlavioCFOliveira/MuxMaster/middleware	10.820s
+
+## go test -race . (root package, muxmaster_test)
+ok  	github.com/FlavioCFOliveira/MuxMaster	(cached)
+
+## go test ./... (full repo, race, informational — see notes below on
+## pre-existing flaky harness tests unrelated to this task)
+Full suite: go test ./... -race PASSES except for intermittent flakiness in
+reports/concurrency-security-auditor/harness/goroutine_leak_test.go
+(TestThrottlePerIP_NoLeak / TestThrottleBacklog_ChannelLeak), which is
+PRE-EXISTING and reproduces identically on the untouched baseline commit
+d980583 (verified independently in a git worktree, see notes at the end
+of this file). Neither test is touched by tasks #251/#252.
+
+======================================================================
+## benchstat: baseline (commit d980583) vs current, count=6, -cpu=1
+## benchmarks: BenchmarkThrottlePerIP, BenchmarkLogger, BenchmarkCompress,
+## BenchmarkRealIP, BenchmarkAPIKeyHit, BenchmarkJWTAuthHS256
+======================================================================
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/middleware
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+                                      │ /tmp/claude-1000/-data-dev-github-com-FlavioCFOliveira-MuxMaster/197aed6f-a797-4812-8f0d-fad3f2e1e7dc/scratchpad/results/baseline.txt │ /tmp/claude-1000/-data-dev-github-com-FlavioCFOliveira-MuxMaster/197aed6f-a797-4812-8f0d-fad3f2e1e7dc/scratchpad/results/current.txt │
+                                      │                                                                sec/op                                                                 │                                                    sec/op                                                      vs base               │
+ThrottlePerIP/sequential-one-client                                                                                                                              4051.5n ± 0%                                                                                                     117.8n ± 3%  -97.09% (p=0.002 n=6)
+ThrottlePerIP/many-clients-no-overlap                                                                                                                            4092.5n ± 1%                                                                                                     119.4n ± 2%  -97.08% (p=0.002 n=6)
+Logger                                                                                                                                                            7.456µ ± 1%                                                                                                     5.665µ ± 0%  -24.03% (p=0.002 n=6)
+Compress/small-600B                                                                                                                                               434.5n ± 2%                                                                                                     356.4n ± 4%  -17.97% (p=0.002 n=6)
+Compress/chunked-12KiB                                                                                                                                           14.621µ ± 1%                                                                                                     8.059µ ± 0%  -44.88% (p=0.002 n=6)
+RealIP/1-hop                                                                                                                                                      195.0n ± 2%                                                                                                     166.2n ± 1%  -14.79% (p=0.002 n=6)
+RealIP/3-hops                                                                                                                                                     256.9n ± 1%                                                                                                     201.2n ± 1%  -21.66% (p=0.002 n=6)
+APIKeyHit                                                                                                                                                         574.1n ± 1%                                                                                                     488.2n ± 0%  -14.96% (p=0.002 n=6)
+JWTAuthHS256                                                                                                                                                      5.162µ ± 4%                                                                                                     4.438µ ± 0%  -14.03% (p=0.002 n=6)
+geomean                                                                                                                                                           1.697µ                                                                                                          634.2n       -62.63%
+
+                                      │ /tmp/claude-1000/-data-dev-github-com-FlavioCFOliveira-MuxMaster/197aed6f-a797-4812-8f0d-fad3f2e1e7dc/scratchpad/results/baseline.txt │ /tmp/claude-1000/-data-dev-github-com-FlavioCFOliveira-MuxMaster/197aed6f-a797-4812-8f0d-fad3f2e1e7dc/scratchpad/results/current.txt │
+                                      │                                                                 B/op                                                                  │                                                   B/op                                                    vs base                    │
+ThrottlePerIP/sequential-one-client                                                                                                                                376.0 ± 0%                                                                                                   0.0 ± 0%  -100.00% (p=0.002 n=6)
+ThrottlePerIP/many-clients-no-overlap                                                                                                                              376.0 ± 0%                                                                                                   0.0 ± 0%  -100.00% (p=0.002 n=6)
+Logger                                                                                                                                                             104.0 ± 0%                                                                                                   0.0 ± 0%  -100.00% (p=0.002 n=6)
+Compress/small-600B                                                                                                                                               752.00 ± 0%                                                                                                 32.00 ± 0%   -95.74% (p=0.002 n=6)
+Compress/chunked-12KiB                                                                                                                                          34379.50 ± 0%                                                                                                 53.00 ± 0%   -99.85% (p=0.002 n=6)
+RealIP/1-hop                                                                                                                                                       32.00 ± 0%                                                                                                 16.00 ± 0%   -50.00% (p=0.002 n=6)
+RealIP/3-hops                                                                                                                                                      64.00 ± 0%                                                                                                 16.00 ± 0%   -75.00% (p=0.002 n=6)
+APIKeyHit                                                                                                                                                          448.0 ± 0%                                                                                                 416.0 ± 0%    -7.14% (p=0.002 n=6)
+JWTAuthHS256                                                                                                                                                       944.0 ± 0%                                                                                                 736.0 ± 0%   -22.03% (p=0.002 n=6)
+geomean                                                                                                                                                            410.3                                                                                                                  ?                      ¹ ²
+¹ summaries must be >0 to compute geomean
+² ratios must be >0 to compute geomean
+
+                                      │ /tmp/claude-1000/-data-dev-github-com-FlavioCFOliveira-MuxMaster/197aed6f-a797-4812-8f0d-fad3f2e1e7dc/scratchpad/results/baseline.txt │ /tmp/claude-1000/-data-dev-github-com-FlavioCFOliveira-MuxMaster/197aed6f-a797-4812-8f0d-fad3f2e1e7dc/scratchpad/results/current.txt │
+                                      │                                                               allocs/op                                                               │                                                allocs/op                                                  vs base                    │
+ThrottlePerIP/sequential-one-client                                                                                                                                5.000 ± 0%                                                                                                 0.000 ± 0%  -100.00% (p=0.002 n=6)
+ThrottlePerIP/many-clients-no-overlap                                                                                                                              5.000 ± 0%                                                                                                 0.000 ± 0%  -100.00% (p=0.002 n=6)
+Logger                                                                                                                                                             5.000 ± 0%                                                                                                 0.000 ± 0%  -100.00% (p=0.002 n=6)
+Compress/small-600B                                                                                                                                                4.000 ± 0%                                                                                                 2.000 ± 0%   -50.00% (p=0.002 n=6)
+Compress/chunked-12KiB                                                                                                                                            16.000 ± 0%                                                                                                 3.000 ± 0%   -81.25% (p=0.002 n=6)
+RealIP/1-hop                                                                                                                                                       2.000 ± 0%                                                                                                 1.000 ± 0%   -50.00% (p=0.002 n=6)
+RealIP/3-hops                                                                                                                                                      2.000 ± 0%                                                                                                 1.000 ± 0%   -50.00% (p=0.002 n=6)
+APIKeyHit                                                                                                                                                          7.000 ± 0%                                                                                                 6.000 ± 0%   -14.29% (p=0.002 n=6)
+JWTAuthHS256                                                                                                                                                      10.000 ± 0%                                                                                                 7.000 ± 0%   -30.00% (p=0.002 n=6)
+geomean                                                                                                                                                            5.077                                                                                                                  ?                      ¹ ²
+¹ summaries must be >0 to compute geomean
+² ratios must be >0 to compute geomean
+
+======================================================================
+## Raw baseline benchmark output (count=6)
+======================================================================
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/middleware
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkThrottlePerIP/sequential-one-client         	  296529	      4034 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	  280692	      4044 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	  293773	      4049 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	  290748	      4071 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	  292490	      4054 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	  290680	      4071 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	  294211	      4108 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	  291948	      4076 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	  292266	      4108 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	  298359	      4111 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	  293364	      4058 ns/op	     376 B/op	       5 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	  286922	      4077 ns/op	     376 B/op	       5 allocs/op
+BenchmarkLogger                                      	  162277	      7444 ns/op	     104 B/op	       5 allocs/op
+BenchmarkLogger                                      	  160448	      7518 ns/op	     104 B/op	       5 allocs/op
+BenchmarkLogger                                      	  161059	      7468 ns/op	     104 B/op	       5 allocs/op
+BenchmarkLogger                                      	  159159	      7508 ns/op	     104 B/op	       5 allocs/op
+BenchmarkLogger                                      	  162123	      7412 ns/op	     104 B/op	       5 allocs/op
+BenchmarkLogger                                      	  160630	      7410 ns/op	     104 B/op	       5 allocs/op
+BenchmarkCompress/small-600B                         	 2698512	       441.5 ns/op	     752 B/op	       4 allocs/op
+BenchmarkCompress/small-600B                         	 2769660	       435.0 ns/op	     752 B/op	       4 allocs/op
+BenchmarkCompress/small-600B                         	 2677874	       439.9 ns/op	     752 B/op	       4 allocs/op
+BenchmarkCompress/small-600B                         	 2749190	       432.9 ns/op	     752 B/op	       4 allocs/op
+BenchmarkCompress/small-600B                         	 2773760	       434.0 ns/op	     752 B/op	       4 allocs/op
+BenchmarkCompress/small-600B                         	 2749260	       431.6 ns/op	     752 B/op	       4 allocs/op
+BenchmarkCompress/chunked-12KiB                      	   83179	     14612 ns/op	   34379 B/op	      16 allocs/op
+BenchmarkCompress/chunked-12KiB                      	   82116	     14754 ns/op	   34380 B/op	      16 allocs/op
+BenchmarkCompress/chunked-12KiB                      	   82850	     14441 ns/op	   34379 B/op	      16 allocs/op
+BenchmarkCompress/chunked-12KiB                      	   82059	     14721 ns/op	   34380 B/op	      16 allocs/op
+BenchmarkCompress/chunked-12KiB                      	   81624	     14629 ns/op	   34380 B/op	      16 allocs/op
+BenchmarkCompress/chunked-12KiB                      	   83848	     14506 ns/op	   34379 B/op	      16 allocs/op
+BenchmarkRealIP/1-hop                                	 5813725	       193.9 ns/op	      32 B/op	       2 allocs/op
+BenchmarkRealIP/1-hop                                	 6043858	       196.5 ns/op	      32 B/op	       2 allocs/op
+BenchmarkRealIP/1-hop                                	 6118264	       191.1 ns/op	      32 B/op	       2 allocs/op
+BenchmarkRealIP/1-hop                                	 6152748	       195.5 ns/op	      32 B/op	       2 allocs/op
+BenchmarkRealIP/1-hop                                	 5912462	       194.5 ns/op	      32 B/op	       2 allocs/op
+BenchmarkRealIP/1-hop                                	 6070783	       196.1 ns/op	      32 B/op	       2 allocs/op
+BenchmarkRealIP/3-hops                               	 4717742	       256.5 ns/op	      64 B/op	       2 allocs/op
+BenchmarkRealIP/3-hops                               	 4610328	       258.5 ns/op	      64 B/op	       2 allocs/op
+BenchmarkRealIP/3-hops                               	 4639135	       255.3 ns/op	      64 B/op	       2 allocs/op
+BenchmarkRealIP/3-hops                               	 4737651	       257.3 ns/op	      64 B/op	       2 allocs/op
+BenchmarkRealIP/3-hops                               	 4699360	       256.5 ns/op	      64 B/op	       2 allocs/op
+BenchmarkRealIP/3-hops                               	 4695368	       258.6 ns/op	      64 B/op	       2 allocs/op
+BenchmarkAPIKeyHit                                   	 2093434	       572.4 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyHit                                   	 2107063	       572.0 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyHit                                   	 2111776	       567.1 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyHit                                   	 2066130	       578.1 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyHit                                   	 2091445	       579.4 ns/op	     448 B/op	       7 allocs/op
+BenchmarkAPIKeyHit                                   	 2053154	       575.8 ns/op	     448 B/op	       7 allocs/op
+BenchmarkJWTAuthHS256                                	  227264	      5206 ns/op	     944 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256                                	  220369	      5171 ns/op	     944 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256                                	  223926	      5153 ns/op	     944 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256                                	  227881	      5206 ns/op	     944 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256                                	  222354	      4982 ns/op	     944 B/op	      10 allocs/op
+BenchmarkJWTAuthHS256                                	  236007	      4958 ns/op	     944 B/op	      10 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/middleware	75.467s
+
+======================================================================
+## Raw current benchmark output (count=6)
+======================================================================
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster/middleware
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkThrottlePerIP/sequential-one-client         	10639539	       113.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	10237820	       117.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	10230804	       118.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	10253668	       117.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	10208095	       118.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/sequential-one-client         	10210734	       117.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	10127341	       117.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	10228806	       118.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	10173027	       117.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	 9992046	       120.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	 9972050	       121.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkThrottlePerIP/many-clients-no-overlap       	 9982339	       121.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLogger                                      	  211494	      5664 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLogger                                      	  211716	      5664 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLogger                                      	  211861	      5663 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLogger                                      	  211598	      5665 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLogger                                      	  211226	      5666 ns/op	       0 B/op	       0 allocs/op
+BenchmarkLogger                                      	  211716	      5669 ns/op	       0 B/op	       0 allocs/op
+BenchmarkCompress/small-600B                         	 3679765	       342.1 ns/op	      32 B/op	       2 allocs/op
+BenchmarkCompress/small-600B                         	 3514215	       349.1 ns/op	      32 B/op	       2 allocs/op
+BenchmarkCompress/small-600B                         	 3396943	       358.3 ns/op	      32 B/op	       2 allocs/op
+BenchmarkCompress/small-600B                         	 3386708	       362.7 ns/op	      32 B/op	       2 allocs/op
+BenchmarkCompress/small-600B                         	 3353608	       359.6 ns/op	      32 B/op	       2 allocs/op
+BenchmarkCompress/small-600B                         	 3390823	       354.5 ns/op	      32 B/op	       2 allocs/op
+BenchmarkCompress/chunked-12KiB                      	  148590	      8049 ns/op	      53 B/op	       3 allocs/op
+BenchmarkCompress/chunked-12KiB                      	  149481	      8065 ns/op	      53 B/op	       3 allocs/op
+BenchmarkCompress/chunked-12KiB                      	  149698	      8091 ns/op	      53 B/op	       3 allocs/op
+BenchmarkCompress/chunked-12KiB                      	  150488	      8045 ns/op	      53 B/op	       3 allocs/op
+BenchmarkCompress/chunked-12KiB                      	  150448	      8060 ns/op	      53 B/op	       3 allocs/op
+BenchmarkCompress/chunked-12KiB                      	  149287	      8058 ns/op	      53 B/op	       3 allocs/op
+BenchmarkRealIP/1-hop                                	 7333395	       165.2 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/1-hop                                	 7256115	       166.0 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/1-hop                                	 7244605	       166.8 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/1-hop                                	 7183614	       166.3 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/1-hop                                	 7222471	       166.5 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/1-hop                                	 7227434	       166.0 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/3-hops                               	 5910637	       201.6 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/3-hops                               	 5984660	       201.1 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/3-hops                               	 5978835	       203.5 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/3-hops                               	 5988906	       201.4 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/3-hops                               	 6000266	       200.1 ns/op	      16 B/op	       1 allocs/op
+BenchmarkRealIP/3-hops                               	 5998873	       199.0 ns/op	      16 B/op	       1 allocs/op
+BenchmarkAPIKeyHit                                   	 2465402	       487.0 ns/op	     416 B/op	       6 allocs/op
+BenchmarkAPIKeyHit                                   	 2447985	       487.9 ns/op	     416 B/op	       6 allocs/op
+BenchmarkAPIKeyHit                                   	 2458308	       488.2 ns/op	     416 B/op	       6 allocs/op
+BenchmarkAPIKeyHit                                   	 2446725	       488.2 ns/op	     416 B/op	       6 allocs/op
+BenchmarkAPIKeyHit                                   	 2459524	       489.8 ns/op	     416 B/op	       6 allocs/op
+BenchmarkAPIKeyHit                                   	 2460848	       488.6 ns/op	     416 B/op	       6 allocs/op
+BenchmarkJWTAuthHS256                                	  264646	      4437 ns/op	     736 B/op	       7 allocs/op
+BenchmarkJWTAuthHS256                                	  264050	      4439 ns/op	     736 B/op	       7 allocs/op
+BenchmarkJWTAuthHS256                                	  264139	      4436 ns/op	     736 B/op	       7 allocs/op
+BenchmarkJWTAuthHS256                                	  265444	      4432 ns/op	     736 B/op	       7 allocs/op
+BenchmarkJWTAuthHS256                                	  261468	      4447 ns/op	     736 B/op	       7 allocs/op
+BenchmarkJWTAuthHS256                                	  265963	      4439 ns/op	     736 B/op	       7 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster/middleware	74.863s
+
+======================================================================
+## WH-07 syscall evidence: strace -f -c, 1 MiB file behind ServeFiles,
+## 3 sequential GET requests, Logger absent vs present
+======================================================================
+--- without Logger ---
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ------------------
+ 46,63    0,012243         191        64         4 futex
+ 15,79    0,004147         243        17         1 epoll_pwait
+ 12,13    0,003185          43        73           nanosleep
+  9,67    0,002540          10       248           clock_gettime
+  1,87    0,000492         164         3           sendfile
+  1,39    0,000365           9        37         6 read
+  1,33    0,000349           3       115           rt_sigaction
+  1,21    0,000318           9        35           rt_sigprocmask
+  1,13    0,000296           7        42           mmap
+  0,96    0,000251          50         5           clone3
+  0,81    0,000213           8        24           fcntl
+  0,71    0,000186          10        18           close
+  0,61    0,000161          13        12           mprotect
+  0,58    0,000153          25         6           fstat
+  0,57    0,000149           7        19           sched_yield
+  0,52    0,000136           5        24           prctl
+  0,48    0,000126           9        13         1 openat
+  0,47    0,000124          17         7           munmap
+  0,46    0,000122          10        12           sigaltstack
+  0,45    0,000119          29         4           write
+  0,35    0,000093          11         8           gettid
+  0,35    0,000091           5        18           setsockopt
+  0,32    0,000085           6        14         4 epoll_ctl
+  0,31    0,000082          11         7         4 accept4
+  0,28    0,000074          12         6           rseq
+  0,20    0,000053           8         6           set_robust_list
+  0,11    0,000028           5         5           pread64
+  0,10    0,000026           6         4           sched_getaffinity
+  0,07    0,000018           6         3           prlimit64
+  0,03    0,000009           4         2           getpid
+  0,03    0,000008           4         2           madvise
+  0,03    0,000008           2         4           getsockname
+  0,03    0,000008           4         2           tgkill
+  0,00    0,000000           0         3           brk
+  0,00    0,000000           0         1         1 access
+  0,00    0,000000           0         5           socket
+  0,00    0,000000           0         3           bind
+  0,00    0,000000           0         1           listen
+  0,00    0,000000           0         1           execve
+  0,00    0,000000           0         1           uname
+  0,00    0,000000           0         1           arch_prctl
+  0,00    0,000000           0         1           set_tid_address
+  0,00    0,000000           0         1           eventfd2
+  0,00    0,000000           0         1           epoll_create1
+  0,00    0,000000           0         1           getrandom
+------ ----------- ----------- --------- --------- ------------------
+100,00    0,026258          29       879        21 total
+
+--- with Logger ---
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ------------------
+ 47,95    0,012618         233        54         5 futex
+ 14,65    0,003856         241        16         1 epoll_pwait
+ 12,21    0,003213          43        74           nanosleep
+  9,18    0,002415           9       257           clock_gettime
+  1,59    0,000418           3       115           rt_sigaction
+  1,41    0,000372           9        39         5 read
+  1,32    0,000348           9        35           rt_sigprocmask
+  1,27    0,000335         111         3           sendfile
+  1,23    0,000324           7        43           mmap
+  1,10    0,000290          17        17           sched_yield
+  0,78    0,000205          41         5           clone3
+  0,73    0,000193          10        19           close
+  0,68    0,000180           7        24           fcntl
+  0,60    0,000159          31         5           socket
+  0,57    0,000149          21         7         4 accept4
+  0,49    0,000129          10        12           mprotect
+  0,47    0,000124           6        18           setsockopt
+  0,46    0,000122          30         4           write
+  0,45    0,000118           8        14         1 openat
+  0,40    0,000106           7        14         4 epoll_ctl
+  0,39    0,000103           8        12           sigaltstack
+  0,32    0,000085           3        25           prctl
+  0,29    0,000077          25         3           prlimit64
+  0,24    0,000062           7         8           gettid
+  0,22    0,000058          11         5           munmap
+  0,21    0,000054           9         6           set_robust_list
+  0,20    0,000052           8         6           rseq
+  0,10    0,000027           5         5           pread64
+  0,08    0,000021           5         4           getsockname
+  0,08    0,000020           3         6           fstat
+  0,07    0,000018           6         3           bind
+  0,05    0,000012           3         4           sched_getaffinity
+  0,05    0,000012           6         2           tgkill
+  0,04    0,000011           5         2           getpid
+  0,03    0,000008           4         2           madvise
+  0,02    0,000006           6         1           listen
+  0,02    0,000006           6         1           epoll_create1
+  0,02    0,000005           5         1           eventfd2
+  0,02    0,000004           4         1           uname
+  0,00    0,000000           0         3           brk
+  0,00    0,000000           0         1         1 access
+  0,00    0,000000           0         1           execve
+  0,00    0,000000           0         1           arch_prctl
+  0,00    0,000000           0         1           set_tid_address
+  0,00    0,000000           0         1           getrandom
+------ ----------- ----------- --------- --------- ------------------
+100,00    0,026315          29       880        21 total
+
+Both show exactly 3 sendfile(2) calls (one per request) for the 1 MiB
+file, with near-identical read/write counts — Logger's ReadFrom
+delegation (WH-07) preserves the sendfile fast path.
+
+======================================================================
+## Pre-existing, out-of-scope flakiness note
+======================================================================
+Full-repo `go test ./... -race` occasionally reports FAIL in
+reports/concurrency-security-auditor/harness (goroutine_leak_test.go).
+This is caused by t.Parallel() tests that measure runtime.NumGoroutine()
+deltas (TestThrottlePerIP_NoLeak, TestThrottleBacklog_ChannelLeak,
+TestTimeoutMW_GoroutineLeak) interfering with each other's goroutine counts
+when run concurrently — an inherent flakiness in that measurement technique,
+not a functional defect.
+
+Verified as PRE-EXISTING and NOT caused by tasks #251/#252:
+  - Reproduced on the UNMODIFIED baseline commit d980583 (git worktree,
+    zero changes from this task applied): running
+    TestThrottlePerIP_NoLeak + TestThrottleBacklog_ChannelLeak +
+    TestTimeoutMW_GoroutineLeak together, 5 iterations, -race:
+    3-4 of 5 iterations FAIL, alternating which specific subtest fails.
+  - Each of the three tests PASSES reliably (3/3) on current (patched)
+    code when run in ISOLATION (not combined with sibling t.Parallel()
+    tests), confirming the ThrottlePerIP/ThrottleBacklog logic itself is
+    correct under -race; only the combined-parallel goroutine-count
+    measurement is flaky.
+  - This is unrelated to WH-01 (this task's only throttle.go change):
+    WH-01 only touches ThrottlePerIPCapped's per-request fast path and
+    entry recycling, not ThrottleBacklog/throttleSem at all.
+
+No fix was attempted (out of scope for #251/#252 per the working
+agreement's scope-discipline rule — reported here for the user to decide
+how to proceed, e.g. as a follow-up task to de-flake or serialise those
+three tests).
+
+======================================================================
+## Findings summary
+======================================================================
+WH-01 (middleware/throttle.go): DONE. Non-blocking fast path (select probe
+before creating a timer) + throttleEntry recycling via
+throttleTable.entryPool. CH-01/CH-02 sharding/exact-cap/no-lost-wakeup
+properties untouched and re-verified with -race.
+
+WH-02 (middleware/logger.go): DONE. Single end-of-request time.Now() serves
+both the timestamp and the duration. appendSanitisedForLog / appendLogDuration
+append directly into the pooled buffer (0 allocs/op, down from 5).
+
+WH-07 (middleware/logger.go): DONE. statusRecorder.ReadFrom delegates to the
+underlying ResponseWriter's io.ReaderFrom via a writerOnly-wrapped io.Copy
+fallback. strace evidence above: 3/3 sendfile(2) calls preserved.
+
+WH-03 (middleware/compress.go): DONE. gzipResponseWriter now carries a fixed
+[8192]byte sniff array (arr) as part of its own allocation and is recycled
+through a sync.Pool (rwPool), fully reset (`*grw = gzipResponseWriter{}`)
+before every Put — including on the panic path, verified by
+TestCompress_PoolHygiene_PanicDoesNotLeakStateToNextRequest. The 404->200
+WriteHeader defect is untouched (explicitly out of scope).
+
+WH-06 (middleware/jwt_auth.go): PARTIALLY DONE, with one sub-finding
+INVESTIGATED AND REJECTED after measurement (see below).
+  - Header memo: DONE. decodeJWTHeader caches the (header bytes -> alg)
+    result of the LAST accepted header per JWTAuth instance in an
+    atomic.Pointer[jwtHeaderMemo]. A header is stored ONLY after passing
+    the alg allow-list and RFC 7515 crit check; verifyFn (signature
+    verification) still runs unconditionally on every request. Proven with
+    dedicated bypass tests: memo hit + tampered signature still 401; memo
+    hit + disallowed alg still 401 and never poisons the cache; two
+    JWTAuth instances never share a memo; -race stress with concurrently
+    alternating header byte sequences.
+  - signingInput copy removal: DONE. bytesFromString (unsafe.Slice over
+    unsafe.StringData) replaces `[]byte(signingInput)`. Measured: 25.45 ns/
+    80 B/1 alloc -> 0.68 ns/0 B/0 allocs (scratch benchmark).
+  - hmac.Sum(nil) -> stack array: NOT APPLIED. Investigated per the
+    project's "measure, don't guess" rule and REJECTED: h has static type
+    hash.Hash (an interface — p.p.Get() gives escape analysis no concrete
+    type), so h.Sum(buf[:0]) forces ANY caller-local buf to escape to the
+    heap on EVERY call, identically to h.Sum(nil). The waste-hunt report's
+    "+12 ns/+32 B/+1 alloc" figure for this sub-finding was produced by a
+    micro-benchmark that declared the stack array ONCE, above the b.N
+    loop — hoisting a single one-time heap escape and amortising it toward
+    zero over many iterations, which cannot happen in real per-request code
+    (each request needs its own buffer). Re-measured with a buffer declared
+    fresh per call, as production code requires:
+      Sum(nil):            141.7 ns/op   32 B/op   1 allocs/op
+      Sum(stack, per-call): 147.3 ns/op   64 B/op   1 allocs/op
+    Sum(nil) is strictly better; kept unchanged. See the doc comment on
+    jwtHMACPool.verify in middleware/jwt_auth.go for the full analysis.
+
+WH-11 (middleware/real_ip.go): DONE. selectXFFRightmost scans xff from the
+right with strings.LastIndexByte, no allocation, same maxXFFHops=30 bound.
+Pinned against an independent reference oracle (the pre-existing
+strings.Split algorithm, reproduced in the test file) over a table of edge
+cases (spaces, empty entries, IPv6, IPv6 zones, ported/bracketed invalid
+entries, many-hops) plus a 50000-header random-corpus fuzz-equivalence test,
+both with and without a trust list.
+
+WH-12 (middleware/api_key.go): DONE. apiKeyCtx fuses the context node and
+the identity string into one allocation (same technique as requestIDCtx).
+TSC-2026-0008 header Set+Del timing equalisation left byte-for-byte
+unchanged.
+
+======================================================================
+## Spec sentences that may need updating (NOT edited — out of scope for a
+## go-developer agent; elite-specification-manager should review)
+======================================================================
+- specification/middleware-stdlib.md has no section for RealIP's XFF
+  right-to-left scan algorithm change (WH-11) — the algorithm's OBSERVABLE
+  behaviour is unchanged (same maxXFFHops bound, same rightmost-untrusted
+  selection), so no spec sentence describes incorrect behaviour, but a spec
+  section for RealIP's XFF semantics does not appear to exist yet per the
+  waste-hunt report's own note ("middleware-stdlib.md §5 covers RealIP's
+  header names only, not the trust/selection algorithm").
+- No spec sentence anywhere describes ThrottlePerIP, JWTAuth, or APIKey's
+  internal implementation strategy (entry pooling, header memoisation,
+  context node fusion) at a level of detail that this change would
+  contradict — all three middlewares' PUBLIC, documented behaviour
+  (limits, backlog, alg allow-list, crit rejection, identity injection,
+  TSC-2026-0008 timing) is unchanged.
+- Logger: middleware-stdlib.md §2 (item 7) says Logger "wraps
+  http.ResponseWriter with a recorder that intercepts WriteHeader" — still
+  literally true; the new ReadFrom method is additive and not described one
+  way or the other, so no existing sentence is contradicted.

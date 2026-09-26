@@ -1,0 +1,71 @@
+File: oauth2
+Build ID: 7dd73c75fb2a94c3182df7a0e45653fda4add4d0
+Type: cpu
+Time: 2026-09-24 19:51:07 WEST
+Duration: 10s, Total samples = 55.04s (550.35%)
+Active filters:
+   focus=FlavioCFOliveira/MuxMaster
+Showing nodes accounting for 7.19s, 13.06% of 55.04s total
+Dropped 240 nodes (cum <= 0.28s)
+Showing top 60 nodes out of 153
+      flat  flat%   sum%        cum   cum%
+     1.83s  3.32%  3.32%      1.83s  3.32%  runtime.nanotime (inline)
+     1.75s  3.18%  6.50%      1.75s  3.18%  time.runtimeNow
+     0.22s   0.4%  6.90%      1.52s  2.76%  runtime.mallocgc
+     0.19s  0.35%  7.25%      1.63s  2.96%  encoding/json/v2.makeMapArshaler.func2
+     0.13s  0.24%  7.49%      0.37s  0.67%  encoding/json/jsontext.(*encoderState).WriteToken
+     0.13s  0.24%  7.72%      0.13s  0.24%  runtime.memclrNoHeapPointers
+     0.11s   0.2%  7.92%      9.48s 17.22%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).dispatch
+     0.11s   0.2%  8.12%      0.12s  0.22%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.10s  0.18%  8.30%      0.11s   0.2%  encoding/json/internal/jsonwire.AppendQuote
+     0.10s  0.18%  8.48%      0.34s  0.62%  runtime.chansend
+     0.10s  0.18%  8.67%      0.19s  0.35%  runtime.mallocgcSmallScanNoHeaderSC2
+     0.10s  0.18%  8.85%      0.10s  0.18%  runtime.nextFreeFast (inline)
+     0.09s  0.16%  9.01%     10.14s 18.42%  net/http.HandlerFunc.ServeHTTP
+     0.09s  0.16%  9.18%      0.21s  0.38%  runtime.mallocgcSmallScanNoHeaderSC5
+     0.09s  0.16%  9.34%      0.13s  0.24%  runtime.unlock2
+     0.08s  0.15%  9.48%      0.08s  0.15%  crypto/internal/fips140/sha256.blockSHANI
+     0.08s  0.15%  9.63%      0.08s  0.15%  net/netip.parseIPv4Fields
+     0.07s  0.13%  9.76%      0.07s  0.13%  internal/runtime/maps.memHashAES
+     0.07s  0.13%  9.88%      0.09s  0.16%  reflect.Value.assignTo
+     0.07s  0.13% 10.01%      0.09s  0.16%  runtime.(*mspan).writeHeapBitsSmall
+     0.07s  0.13% 10.14%      0.72s  1.31%  runtime.mallocgcSmallScanNoHeader
+     0.07s  0.13% 10.27%      1.03s  1.87%  runtime.selectgo
+     0.07s  0.13% 10.39%      0.08s  0.15%  runtime.typedmemmove
+     0.06s  0.11% 10.50%      0.14s  0.25%  encoding/json/v2.marshalValueAny
+     0.06s  0.11% 10.61%      0.12s  0.22%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).Load
+     0.06s  0.11% 10.72%      0.10s  0.18%  runtime.lock2
+     0.06s  0.11% 10.83%      0.13s  0.24%  runtime.mapaccess2
+     0.05s 0.091% 10.92%      0.11s   0.2%  encoding/json/jsontext.(*encoderState).reset
+     0.05s 0.091% 11.01%      1.96s  3.56%  encoding/json/v2.marshalEncode
+     0.05s 0.091% 11.10%     10.12s 18.39%  github.com/FlavioCFOliveira/MuxMaster/middleware.RealIP.func1.1
+     0.05s 0.091% 11.19%      0.27s  0.49%  net/http.(*Request).WithContext (inline)
+     0.05s 0.091% 11.28%      0.12s  0.22%  reflect.Value.Set
+     0.05s 0.091% 11.37%      0.10s  0.18%  runtime.mallocgcSmallScanNoHeaderSC3
+     0.05s 0.091% 11.46%      0.26s  0.47%  runtime.mallocgcSmallScanSlowPath
+     0.05s 0.091% 11.56%      0.17s  0.31%  runtime.mapaccess2_faststr
+     0.05s 0.091% 11.65%      0.06s  0.11%  runtime.sellock
+     0.04s 0.073% 11.72%      0.15s  0.27%  encoding/json/jsontext.Token.appendString
+     0.04s 0.073% 11.79%      6.13s 11.14%  github.com/FlavioCFOliveira/MuxMaster/middleware.OAuth2Introspect.func2.1
+     0.04s 0.073% 11.86%      0.20s  0.36%  github.com/FlavioCFOliveira/MuxMaster/middleware.selectXFFRightmost
+     0.04s 0.073% 11.94%      0.09s  0.16%  internal/runtime/maps.(*Iter).Init
+     0.04s 0.073% 12.01%      0.07s  0.13%  internal/runtime/maps.rand
+     0.04s 0.073% 12.08%      0.17s  0.31%  net/textproto.MIMEHeader.Get
+     0.04s 0.073% 12.15%      0.08s  0.15%  reflect.Value.Elem
+     0.03s 0.055% 12.21%     10.18s 18.50%  github.com/FlavioCFOliveira/MuxMaster.(*Mux).ServeHTTP
+     0.03s 0.055% 12.26%      1.92s  3.49%  github.com/FlavioCFOliveira/MuxMaster/middleware.(*oauth2Cache).get
+     0.03s 0.055% 12.32%      0.12s  0.22%  github.com/FlavioCFOliveira/MuxMaster/middleware.extractBearerToken
+     0.03s 0.055% 12.37%      0.12s  0.22%  net/http.(*response).Write
+     0.03s 0.055% 12.43%      0.14s  0.25%  net/netip.ParseAddr
+     0.03s 0.055% 12.48%      0.11s   0.2%  net/netip.parseIPv4
+     0.03s 0.055% 12.54%      0.15s  0.27%  reflect.(*rtype).ptrTo
+     0.03s 0.055% 12.59%      0.36s  0.65%  reflect.New
+     0.03s 0.055% 12.65%      0.29s  0.53%  runtime.(*mcache).refill
+     0.03s 0.055% 12.70%      0.85s  1.54%  runtime.(*timer).maybeRunChan
+     0.03s 0.055% 12.75%      0.37s  0.67%  runtime.chansend1
+     0.03s 0.055% 12.81%      0.09s  0.16%  runtime.mallocgcSmallScanNoHeaderSC1
+     0.03s 0.055% 12.86%      0.06s  0.11%  runtime.mallocgcSmallScanNoHeaderSC4
+     0.03s 0.055% 12.92%      0.11s   0.2%  runtime.mapIterStart
+     0.03s 0.055% 12.97%      0.56s  1.02%  runtime.mapassign_faststr
+     0.03s 0.055% 13.03%      0.15s  0.27%  time.newTimer
+     0.02s 0.036% 13.06%      0.11s   0.2%  crypto/internal/fips140/sha256.(*Digest).Write

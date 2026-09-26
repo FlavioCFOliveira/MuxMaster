@@ -1,0 +1,76 @@
+### cpu
+owner share (nearest owning frame, leaf -> root):
+  net/http                  60.40%
+  runtime (no owner)        19.68%
+  MuxMaster/middleware      14.61%
+  MuxMaster/root             2.87%
+  example                    2.43%
+
+top MuxMaster owning functions (share of whole profile):
+    6.61%  middleware.Logger.func1.1
+    5.20%  middleware.parseAndValidateJWT
+    2.61%  muxmaster.JSON
+    0.78%  middleware.RequestID.func1.1
+    0.62%  middleware.(*jwtHMACPool).verify
+    0.46%  middleware.JWTAuth.func2.1
+    0.35%  middleware.sanitiseForLog
+    0.22%  middleware.nextRandomID
+    0.15%  middleware.extractBearerToken
+    0.09%  middleware.RecovererWithLogger.func1.1
+    0.07%  muxmaster.prefixMatch
+    0.07%  muxmaster.(*Mux).dispatch
+    0.06%  muxmaster.(*node).getValueStatic
+    0.04%  muxmaster.(*Mux).ServeHTTP
+    0.01%  middleware.validRequestID
+    0.01%  middleware.GetJWTClaims
+    0.01%  middleware.RecovererWithLogger.func1.1.1
+    0.01%  muxmaster.methodIdx
+    0.01%  middleware.GetRequestID
+    0.01%  middleware.JWTAuth.func1
+    0.01%  middleware.(*statusRecorder).WriteHeader
+    0.01%  middleware.newJWTHMACPool.func1
+    0.01%  middleware.init.func2
+    0.01%  middleware.init.func1
+
+### alloc_space
+owner share (nearest owning frame, leaf -> root):
+  net/http                  48.78%
+  MuxMaster/middleware      34.18%
+  example                   12.72%
+  MuxMaster/root             4.28%
+  runtime (no owner)         0.05%
+
+top MuxMaster owning functions (share of whole profile):
+   14.54%  middleware.RequestID.func1.1
+    9.94%  middleware.parseAndValidateJWT
+    7.51%  middleware.JWTAuth.func2.1
+    4.28%  muxmaster.JSON
+    0.71%  middleware.Logger.func1.1
+    0.59%  middleware.(*jwtHMACPool).verify
+    0.43%  middleware.sanitiseForLog
+    0.24%  middleware.nextRandomID
+    0.12%  middleware.newExhaustedRequestIDBuf
+    0.09%  middleware.init.func2
+    0.02%  middleware.newJWTHMACPool.func1
+
+### alloc_objects
+owner share (nearest owning frame, leaf -> root):
+  net/http                  41.80%
+  MuxMaster/middleware      28.94%
+  example                   15.35%
+  MuxMaster/root            13.91%
+  runtime (no owner)         0.00%
+
+top MuxMaster owning functions (share of whole profile):
+   13.91%  muxmaster.JSON
+   11.27%  middleware.parseAndValidateJWT
+    6.62%  middleware.JWTAuth.func2.1
+    5.78%  middleware.RequestID.func1.1
+    2.56%  middleware.sanitiseForLog
+    1.31%  middleware.Logger.func1.1
+    1.24%  middleware.(*jwtHMACPool).verify
+    0.13%  middleware.init.func2
+    0.02%  middleware.newJWTHMACPool.func1
+    0.01%  middleware.nextRandomID
+    0.00%  middleware.newExhaustedRequestIDBuf
+

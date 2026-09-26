@@ -58,6 +58,27 @@ func main() {
 	// ── Router ───────────────────────────────────────────────────────────────
 	r := mm.New()
 
+	// ── Fast routes ────────────────────────────────────────────────────────────
+	//
+	// HandleFast (via GETFast/HEADFast) must be registered before Use():
+	// stdlib middleware never wraps the FastHandler path (see the Pre vs
+	// Use vs UseFast policy matrix in README.md), so MuxMaster panics at
+	// registration if a fast route is added after Use() has already been
+	// called. /health is intentionally public, so no auth is dropped here.
+	//
+	// FastHandler: no context allocation, 0 allocs for this static route.
+	// Ideal for load-balancer probes called thousands of times per second.
+	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"status":"ok"}`)
+	})
+
+	// HEAD /health for tools that only probe with HEAD.
+	r.HEADFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+	})
+
 	// RedirectTrailingSlash handles /docs/v1/ → /docs/v1 and vice-versa
 	// automatically; http.FileServer also needs the trailing slash on directories,
 	// so we keep both enabled and let each layer handle its own case.
@@ -134,21 +155,6 @@ func main() {
 		mw.SetHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()"),
 	)
 
-	// ── Health check ─────────────────────────────────────────────────────────
-
-	// FastHandler: no context allocation, 0 allocs for this static route.
-	// Ideal for load-balancer probes called thousands of times per second.
-	r.GETFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"status":"ok"}`)
-	})
-
-	// HEAD /health for tools that only probe with HEAD.
-	r.HEADFast("/health", func(w http.ResponseWriter, _ *http.Request, _ mm.Params) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-	})
-
 	// ── Dynamic API endpoint (JSON, no-cache) ─────────────────────────────────
 
 	// With() returns a Group with extra middleware applied only to its routes.
@@ -192,6 +198,24 @@ func main() {
 	r.Mount("/docs/v1", docsV1)
 	r.Mount("/docs/v2", docsV2)
 
+	// Mount's catch-all only matches paths that still carry the "/docs/vN/"
+	// prefix WITH its trailing slash (e.g. "/docs/v1/", "/docs/v1/index.html").
+	// The global CleanPath Pre above normalises "/docs/v1/" to "/docs/v1" via
+	// path.Clean — which always strips a non-root trailing slash — before the
+	// router ever sees the request, so the canonical directory-index form can
+	// never reach the mount directly. Relying on the router's own
+	// trailing-slash redirect to add the slash back would create a redirect
+	// loop with CleanPath: the redirect adds "/", CleanPath strips it again
+	// on the retry, forever. Register the versioned index pages directly at
+	// the canonical, slash-less path so they resolve without depending on a
+	// trailing slash at all; Mount still serves every other file under each
+	// version's tree (e.g. "/docs/v1/index.html" is unaffected — it has no
+	// trailing slash to strip in the first place).
+	pages.GET("/docs/v1", serveFile(http.Dir("./static/docs/v1"), "/index.html"))
+	pages.HEAD("/docs/v1", serveFile(http.Dir("./static/docs/v1"), "/index.html"))
+	pages.GET("/docs/v2", serveFile(http.Dir("./static/docs/v2"), "/index.html"))
+	pages.HEAD("/docs/v2", serveFile(http.Dir("./static/docs/v2"), "/index.html"))
+
 	// ── Versioned static assets ───────────────────────────────────────────────
 
 	// Assets use immutable cache: long TTL + immutable directive.
@@ -222,7 +246,14 @@ func main() {
 	// keep both at default (false) to let net/http canonicalise the path
 	// before dispatch, and http.FileServer applies path.Clean internally.
 	// See SECURITY.md "UseRawPath traversal".
-	assetsGroup.ServeFiles("/assets/*filepath", staticRoot)
+	//
+	// The root passed here must already be scoped to the assets directory:
+	// ServeFiles forwards ONLY the captured "*filepath" suffix to the
+	// http.FileServer built from root (the "/assets" prefix is stripped, not
+	// included). Passing staticRoot ("./static") here would look up
+	// "/assets/style.css" under "./static/style.css" — a 404 — and the file
+	// would only be reachable at the doubled path "/assets/assets/style.css".
+	assetsGroup.ServeFiles("/assets/*filepath", http.Dir("./static/assets"))
 
 	// ── Route inspection ──────────────────────────────────────────────────────
 

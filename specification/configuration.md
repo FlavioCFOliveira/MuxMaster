@@ -10,8 +10,8 @@ This file does not cover the behavior of `NotFound`, `MethodNotAllowed`, `PanicH
 
 ## 1. Constructor
 
-1. `New() *Mux` returns a `*Mux` with all boolean feature flags set to `true` and all handler fields set to nil.
-2. The zero value of `Mux` (i.e., `Mux{}`) has all boolean fields set to `false`. This is a valid but minimally featured router. Use `New()` for production use.
+1. `New() *Mux` returns a `*Mux` with all handler fields set to nil. Its boolean feature flags are **not** uniformly `true`: `RedirectTrailingSlash`, `HandleMethodNotAllowed`, and `HandleOPTIONS` default to `true`; `RedirectFixedPath` defaults to `false` — a deliberate security default, because path canonicalization can bypass a Pre-gate or other middleware that inspects the raw, uncleaned path (see section 2.2 and [SECURITY.md](../SECURITY.md) for the rationale). Every advanced configuration field in section 4 (`CaseInsensitive`, `UseRawPath`, `UnescapePathValues`, `PoolFastParams`, `PoolRequestBundle`) also defaults to `false` via `New()`, exactly as it does for the zero value (rule 2); `New()` only elevates the three flags named above from their zero-value `false`.
+2. The zero value of `Mux` (i.e., `Mux{}`) has all boolean fields set to `false`. This is a valid but minimally featured router — it additionally lacks the three flags `New()` sets to `true` (rule 1), so `RedirectTrailingSlash`, `HandleMethodNotAllowed`, and `HandleOPTIONS` are also `false` on a zero-value `Mux`, unlike on one returned by `New()`. Use `New()` for production use.
 
 ---
 
@@ -33,12 +33,12 @@ This file does not cover the behavior of `NotFound`, `MethodNotAllowed`, `PanicH
 | Attribute | Value |
 |---|---|
 | Type | `bool` |
-| Default (via `New`) | `true` |
+| Default (via `New`) | `false` |
 | Zero value | `false` |
 
 5. When `true`, the router computes `path.Clean(r.URL.Path)` and issues a redirect if the cleaned path has a registered handler and differs from the original path.
 6. For GET and HEAD, the redirect code is 301. For all other methods, the redirect code is the value of `RedirectCode`.
-7. When `false`, no fixed-path redirect is issued.
+7. When `false` (the default via both `New()` and the zero value — unlike `RedirectTrailingSlash`, `HandleMethodNotAllowed`, and `HandleOPTIONS`, `New()` does not enable this flag), no fixed-path redirect is issued. This is a deliberate security default, not an oversight: path canonicalization performed before a Pre-gate or other path-inspecting middleware has run can let a request bypass that middleware's check on the original, uncleaned path (see [SECURITY.md](../SECURITY.md)). An operator who enables `RedirectFixedPath` is responsible for confirming that no registered `Pre` middleware relies on inspecting the pre-canonicalization path.
 
 ### 2.3 HandleMethodNotAllowed
 
@@ -123,9 +123,9 @@ This file does not cover the behavior of `NotFound`, `MethodNotAllowed`, `PanicH
 | Type | `int` |
 | Default | `0` (resolved to 301 for GET/HEAD, 307 for others) |
 
-18. When `RedirectCode` is `0`, the router uses 301 for GET and HEAD redirects and 307 for all other methods. This is the default behavior.
-19. When `RedirectCode` is set to a non-zero HTTP redirect status code (e.g., 308), that code is used for all redirects regardless of method. The caller is responsible for choosing a semantically appropriate code.
-20. Setting `RedirectCode` to a value outside the 3xx range causes a panic at the time the first redirect is issued.
+18. When `RedirectCode` is `0`, the router uses 301 for GET and HEAD redirects and 307 for all other methods. This is the default behavior. This includes `QUERY`: although `QUERY` is safe and idempotent (RFC 10008 section 2), it is not GET or HEAD, so it receives 307 by default. See [routing.md](routing.md) section 4.4, rule 53, for why this does not weaken QUERY's semantics.
+19. When `RedirectCode` is set to a non-zero value, that exact integer value is used as the response status code for every redirect the router issues, regardless of the request's method, and regardless of whether it is a semantically valid HTTP redirect status code.
+20. **The router performs no validation of `RedirectCode`.** Setting it to a value outside the 3xx range — including a value that is not a valid HTTP status code at all — does not panic, at registration time, at the time the first redirect is issued, or ever. The unvalidated value is written directly as the response status code (via `w.WriteHeader`) on every redirect, and the surrounding response (headers, body) is otherwise constructed exactly as it would be for a valid 3xx code. The caller is entirely responsible for choosing a semantically appropriate code; misconfiguring `RedirectCode` produces a malformed or nonsensical response rather than a panic that would surface the mistake at development time.
 
 ### 4.2 CaseInsensitive
 
@@ -154,11 +154,12 @@ This file does not cover the behavior of `NotFound`, `MethodNotAllowed`, `PanicH
 | Attribute | Value |
 |---|---|
 | Type | `bool` |
-| Default | `true` |
+| Default | `false` |
 
-27. When `true` (the default), captured path parameter values are URL-decoded using `url.QueryUnescape` before being stored in `Params`.
-28. When `false`, parameter values are stored as raw strings. Percent-encoding is not decoded. This is useful when the application needs to handle encoding itself.
+27. When `true`, captured path parameter values are URL-decoded using `url.QueryUnescape` before being stored in `Params`.
+28. When `false` (the default, both via `New()` and the zero value), parameter values are stored as raw strings. Percent-encoding is not decoded. This is useful when the application needs to handle encoding itself, and it is also the safer default: decoding is opt-in specifically because combining it with `UseRawPath` requires the additional handler-side precautions in rule 30.
 29. If URL decoding of a parameter value fails (malformed percent-encoding), the raw value is stored and no error is returned.
+30. **Enabling `UseRawPath` and `UnescapePathValues` together (`PRF-2026-0002`) has a security-relevant consequence beyond either flag alone:** a captured parameter value can then contain a decoded literal `/` (from a `%2f` or `%2F` sequence in the raw path) that a plain, unescaped parameter value could never contain, because `UseRawPath` makes the router match against `r.URL.RawPath` (section 4.3) while `UnescapePathValues` still decodes the captured segment before storing it. The first time a `*Mux` with both flags enabled serves a request, it emits a one-time `slog.Warn`: `muxmaster: UseRawPath+UnescapePathValues enabled — captured path params may contain literal '/' from %2f decode. Handlers using params as filesystem/URL components MUST call path.Clean and reject values containing '..'. See SECURITY.md "UseRawPath traversal" (PRF-2026-0002).` A handler that uses such a parameter value to build a filesystem path or a URL must call `path.Clean` on it and reject any value containing `..`, exactly as the warning states; the router itself performs no such sanitization, because doing so unconditionally would defeat the purpose of enabling `UseRawPath` for operators who intentionally rely on encoded slashes.
 
 ### 4.5 PoolFastParams
 
@@ -167,8 +168,8 @@ This file does not cover the behavior of `NotFound`, `MethodNotAllowed`, `PanicH
 | Type | `bool` |
 | Default | `false` |
 
-30. When `false` (the default), every `FastHandler` route (see performance.md section 6) with at least one path parameter receives a freshly allocated `Params` slice. The slice remains valid indefinitely after the handler returns; it is safe for the handler, or any goroutine it spawns, to retain and read it.
-31. When `true`, the `Params` slice for `FastHandler` routes with 1, 2, or 3 parameters is drawn from a tiered `sync.Pool` and is cleared and returned to the pool immediately after the handler's call returns. Handlers MUST NOT retain the `Params` slice, or any element of it, past their return. A handler that needs the values afterward must copy them into a new slice before returning:
+31. When `false` (the default), every `FastHandler` route (see performance.md section 6) with at least one path parameter receives a freshly allocated `Params` slice. The slice remains valid indefinitely after the handler returns; it is safe for the handler, or any goroutine it spawns, to retain and read it.
+32. When `true`, the `Params` slice for `FastHandler` routes with 1, 2, or 3 parameters is drawn from a tiered `sync.Pool` and is cleared and returned to the pool immediately after the handler's call returns. Handlers MUST NOT retain the `Params` slice, or any element of it, past their return. A handler that needs the values afterward must copy them into a new slice before returning:
 
     ```go
     func myHandler(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
@@ -178,8 +179,8 @@ This file does not cover the behavior of `NotFound`, `MethodNotAllowed`, `PanicH
     }
     ```
 
-32. `FastHandler` routes with more than 3 parameters always allocate a fresh slice, regardless of `PoolFastParams`. Pooling covers only the 1-, 2-, and 3-parameter tiers.
-33. `PoolFastParams` has no effect on `Handle` (stdlib `http.Handler`) routes. It governs only the `Params` argument passed to `FastHandler`. See section 4.6 for the equivalent pooling control on `Handle` routes.
+33. `FastHandler` routes with more than 3 parameters always allocate a fresh slice, regardless of `PoolFastParams`. Pooling covers only the 1-, 2-, and 3-parameter tiers.
+34. `PoolFastParams` has no effect on `Handle` (stdlib `http.Handler`) routes. It governs only the `Params` argument passed to `FastHandler`. See section 4.6 for the equivalent pooling control on `Handle` routes.
 
 ### 4.6 PoolRequestBundle
 
@@ -188,19 +189,19 @@ This file does not cover the behavior of `NotFound`, `MethodNotAllowed`, `PanicH
 | Type | `bool` |
 | Default | `false` |
 
-34. When `false` (the default), every `Handle` route with at least one path parameter allocates a fresh request bundle per request (see performance.md section 8, Tiered Request Bundle). Its lifetime is managed by the garbage collector; the handler, and any goroutine it spawns, may retain the `*http.Request` passed to them after the handler returns.
-35. When `true`, the request bundle is drawn from a tiered `sync.Pool` and is zeroed and returned to the pool the instant the handler's `ServeHTTP` call returns. Handlers MUST NOT retain the `*http.Request` they were given past their return. A goroutine that captures `r` and outlives the handler may observe a recycled request that already belongs to a later, unrelated request — a use-after-free against the pooled bundle storage, not a supported pattern.
-36. This lifetime contract is stricter than the general `net/http` contract, under which a handler may retain `r` indefinitely because `net/http` never recycles a `*http.Request` while any code might still reference it. `PoolRequestBundle` deliberately trades that guarantee for reduced allocation and lower latency. An operator must audit every handler reachable from a `Mux` with `PoolRequestBundle` enabled and confirm that none of them retain `r` past return before enabling it in production.
-37. Before a bundle returns to the pool, its entire memory — the request context wrapper, the captured parameter values, and the embedded `*http.Request` copy — is zeroed. This prevents a value written directly into a bundle field by one handler from being visible to a later, unrelated request that reuses the same pooled bundle. It does not change how `net/http` itself shares underlying data (for example, `Header` map contents) between the original request and its copy; that sharing exists independently of pooling.
-38. `PoolRequestBundle` has no effect on `FastHandler` routes, on static `Handle` routes (which never allocate a bundle), or on the `Params` slice passed to `FastHandler` (see section 4.5, `PoolFastParams`).
+35. When `false` (the default), every `Handle` route with at least one path parameter allocates a fresh request bundle per request (see performance.md section 8, Tiered Request Bundle). Its lifetime is managed by the garbage collector; the handler, and any goroutine it spawns, may retain the `*http.Request` passed to them after the handler returns.
+36. When `true`, the request bundle is drawn from a tiered `sync.Pool` and is zeroed and returned to the pool the instant the handler's `ServeHTTP` call returns. Handlers MUST NOT retain the `*http.Request` they were given past their return. A goroutine that captures `r` and outlives the handler may observe a recycled request that already belongs to a later, unrelated request — a use-after-free against the pooled bundle storage, not a supported pattern.
+37. This lifetime contract is stricter than the general `net/http` contract, under which a handler may retain `r` indefinitely because `net/http` never recycles a `*http.Request` while any code might still reference it. `PoolRequestBundle` deliberately trades that guarantee for reduced allocation and lower latency. An operator must audit every handler reachable from a `Mux` with `PoolRequestBundle` enabled and confirm that none of them retain `r` past return before enabling it in production.
+38. Before a bundle returns to the pool, its entire memory — the request context wrapper, the captured parameter values, and the embedded `*http.Request` copy — is zeroed. This prevents a value written directly into a bundle field by one handler from being visible to a later, unrelated request that reuses the same pooled bundle. It does not change how `net/http` itself shares underlying data (for example, `Header` map contents) between the original request and its copy; that sharing exists independently of pooling.
+39. `PoolRequestBundle` has no effect on `FastHandler` routes, on static `Handle` routes (which never allocate a bundle), or on the `Params` slice passed to `FastHandler` (see section 4.5, `PoolFastParams`).
 
 ---
 
 ## 5. Configuration Snapshot and Rebuild
 
-39. The router does not re-read its configuration fields on every request. On the first `ServeHTTP` call (or the first internal call that needs it), it captures a one-time, immutable snapshot of every feature flag in section 2, every advanced configuration field in section 4, and every handler field in section 3.
-40. After the snapshot is captured, further mutation of these fields on the live `Mux` — for example, setting `mux.HandleOPTIONS = false` after the server has already handled a request — has no effect on request handling. Every subsequent `ServeHTTP` call continues to use the values captured in the snapshot.
-41. `(*Mux).Rebuild()` discards the snapshot, along with the internally cached, middleware-wrapped `NotFound`, `MethodNotAllowed`, and OPTIONS auto-response handlers built from it. The next call that needs the snapshot rebuilds it from the current values of the `Mux` fields.
-42. `Rebuild` is safe to call concurrently with `ServeHTTP`. Every request observes either the pre-`Rebuild` snapshot in full or the post-`Rebuild` snapshot in full; it never observes a partially rebuilt snapshot.
-43. `Rebuild` is intended for tests and for scenarios where an operator deliberately reconfigures a running `Mux`. It affects only the configuration snapshot described in this section. It does not add, remove, or modify any registered route; route registration continues to follow the rules in routing.md and remains unsupported after the server has begun serving requests (see out-of-scope.md section 3.1).
-44. Calling `Handle`, `HandleFunc`, `HandleFast`, `HandleE`, or any convenience registration method does not implicitly invoke `Rebuild`. The configuration snapshot must be reset explicitly.
+40. The router does not re-read its configuration fields on every request. On the first `ServeHTTP` call (or the first internal call that needs it), it captures a one-time, immutable snapshot of every feature flag in section 2, every advanced configuration field in section 4, and every handler field in section 3.
+41. After the snapshot is captured, further mutation of these fields on the live `Mux` — for example, setting `mux.HandleOPTIONS = false` after the server has already handled a request — has no effect on request handling. Every subsequent `ServeHTTP` call continues to use the values captured in the snapshot.
+42. `(*Mux).Rebuild()` discards the snapshot, along with the internally cached, middleware-wrapped `NotFound`, `MethodNotAllowed`, and OPTIONS auto-response handlers built from it. The next call that needs the snapshot rebuilds it from the current values of the `Mux` fields.
+43. `Rebuild` is safe to call concurrently with `ServeHTTP`. Every request observes either the pre-`Rebuild` snapshot in full or the post-`Rebuild` snapshot in full; it never observes a partially rebuilt snapshot.
+44. `Rebuild` is intended for tests and for scenarios where an operator deliberately reconfigures a running `Mux`. It affects only the configuration snapshot described in this section. It does not add, remove, or modify any registered route; route registration continues to follow the rules in routing.md and remains unsupported after the server has begun serving requests (see out-of-scope.md section 3.1).
+45. Calling `Handle`, `HandleFunc`, `HandleFast`, `HandleE`, or any convenience registration method does not implicitly invoke `Rebuild`. The configuration snapshot must be reset explicitly.

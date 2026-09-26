@@ -152,6 +152,9 @@ func TestTiming_JWT_HS256vsRS256_PathLatency(t *testing.T) {
 		handler.ServeHTTP(w2, jwtReq(rs256Token))
 	}
 
+	VerifyArmStatus(t, "HS256", handler, func() *http.Request { return jwtReq(hs256Token) }, http.StatusUnauthorized)
+	VerifyArmStatus(t, "RS256", handler, func() *http.Request { return jwtReq(rs256Token) }, http.StatusUnauthorized)
+
 	hs256Samples = make([]int64, nJWT)
 	rs256Samples = make([]int64, nJWT)
 
@@ -160,11 +163,17 @@ func TestTiming_JWT_HS256vsRS256_PathLatency(t *testing.T) {
 		t0 := time.Now()
 		handler.ServeHTTP(w, jwtReq(hs256Token))
 		hs256Samples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("HS256 arm: sample %d returned status %d, want 401 — invalid evidence", i, w.Code)
+		}
 
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		handler.ServeHTTP(w2, jwtReq(rs256Token))
 		rs256Samples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("RS256 arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(hs256Samples, rs256Samples)
@@ -234,6 +243,9 @@ func TestTiming_JWT_HS256vsES256_PathLatency(t *testing.T) {
 		handler.ServeHTTP(w2, jwtReq(es256Token))
 	}
 
+	VerifyArmStatus(t, "HS256", handler, func() *http.Request { return jwtReq(hs256Token) }, http.StatusUnauthorized)
+	VerifyArmStatus(t, "ES256", handler, func() *http.Request { return jwtReq(es256Token) }, http.StatusUnauthorized)
+
 	hs256Samples = make([]int64, nJWT)
 	es256Samples = make([]int64, nJWT)
 
@@ -242,11 +254,17 @@ func TestTiming_JWT_HS256vsES256_PathLatency(t *testing.T) {
 		t0 := time.Now()
 		handler.ServeHTTP(w, jwtReq(hs256Token))
 		hs256Samples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("HS256 arm: sample %d returned status %d, want 401 — invalid evidence", i, w.Code)
+		}
 
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		handler.ServeHTTP(w2, jwtReq(es256Token))
 		es256Samples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("ES256 arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(hs256Samples, es256Samples)
@@ -299,6 +317,9 @@ func TestTiming_JWT_AlgNoneVsHS256(t *testing.T) {
 		handler.ServeHTTP(w2, jwtReq(hs256WrongSig))
 	}
 
+	VerifyArmStatus(t, "alg=none", handler, func() *http.Request { return jwtReq(noneToken) }, http.StatusUnauthorized)
+	VerifyArmStatus(t, "HS256", handler, func() *http.Request { return jwtReq(hs256WrongSig) }, http.StatusUnauthorized)
+
 	noneSamples = make([]int64, nJWT)
 	hs256Samples = make([]int64, nJWT)
 
@@ -307,11 +328,17 @@ func TestTiming_JWT_AlgNoneVsHS256(t *testing.T) {
 		t0 := time.Now()
 		handler.ServeHTTP(w, jwtReq(noneToken))
 		noneSamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("alg=none arm: sample %d returned status %d, want 401 — invalid evidence", i, w.Code)
+		}
 
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		handler.ServeHTTP(w2, jwtReq(hs256WrongSig))
 		hs256Samples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("HS256 arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(noneSamples, hs256Samples)
@@ -378,6 +405,9 @@ func TestTiming_JWT_ECDSA_ZeroSig(t *testing.T) {
 		handler.ServeHTTP(w2, jwtReq(maxToken))
 	}
 
+	VerifyArmStatus(t, "zero-sig", handler, func() *http.Request { return jwtReq(zeroToken) }, http.StatusUnauthorized)
+	VerifyArmStatus(t, "max-sig", handler, func() *http.Request { return jwtReq(maxToken) }, http.StatusUnauthorized)
+
 	const n = 100_000
 	zeroSamples = make([]int64, n)
 	maxSamples = make([]int64, n)
@@ -387,11 +417,17 @@ func TestTiming_JWT_ECDSA_ZeroSig(t *testing.T) {
 		t0 := time.Now()
 		handler.ServeHTTP(w, jwtReq(zeroToken))
 		zeroSamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("zero-sig arm: sample %d returned status %d, want 401 — invalid evidence", i, w.Code)
+		}
 
 		w2 := httptest.NewRecorder()
 		t1 := time.Now()
 		handler.ServeHTTP(w2, jwtReq(maxToken))
 		maxSamples[i] = time.Since(t1).Nanoseconds()
+		if w2.Code != http.StatusUnauthorized {
+			t.Fatalf("max-sig arm: sample %d returned status %d, want 401 — invalid evidence", i, w2.Code)
+		}
 	}
 
 	result := RunTests(zeroSamples, maxSamples)
@@ -440,12 +476,17 @@ func TestTiming_JWT_HMACPool_WarmVsCold(t *testing.T) {
 	runtime.GC()
 	runtime.GC()
 
+	VerifyArmStatus(t, "valid", handler, func() *http.Request { return jwtReq(validToken) }, http.StatusOK)
+
 	allSamples := make([]int64, n)
 	for i := 0; i < n; i++ {
 		w := httptest.NewRecorder()
 		t0 := time.Now()
 		handler.ServeHTTP(w, jwtReq(validToken))
 		allSamples[i] = time.Since(t0).Nanoseconds()
+		if w.Code != http.StatusOK {
+			t.Fatalf("valid arm: sample %d returned status %d, want 200 — invalid evidence", i, w.Code)
+		}
 	}
 
 	firstQuarter := allSamples[:n/4]

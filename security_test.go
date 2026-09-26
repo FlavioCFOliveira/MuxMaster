@@ -12,7 +12,21 @@ import (
 
 // ── Phase 1: radix tree security fixes ───────────────────────────────────────
 
+// TestWildcardStaticConflictPanics originally asserted MM-2026-0001: that
+// registering a static sibling of an already-registered named-parameter
+// route panics. That blanket restriction is superseded by MM-2026-0256 (rmp
+// task #256): specification/routing.md §4.2 rule 48 explicitly ranks static
+// routes above named parameters in matching precedence, and its exhaustive
+// panic list (§5) never listed this pairing — only two wildcards at the
+// same position (rule 71) or a catch-all sharing a root segment with an
+// existing handler (rule 68) panic. The coexistence is unambiguous (static
+// always wins on an exact match) and was already order-dependent before the
+// fix — "/users/list" then "/users/:id" always succeeded; only the reverse
+// order panicked. See TestSiblingRegistrationOrderIndependent (mux_test.go)
+// for the full order-independence regression coverage this replaces.
 func TestWildcardStaticConflictPanics(t *testing.T) {
+	m := muxmaster.New()
+	m.GET("/users/:id", handler(200, "user"))
 	panicked := false
 	func() {
 		defer func() {
@@ -20,12 +34,17 @@ func TestWildcardStaticConflictPanics(t *testing.T) {
 				panicked = true
 			}
 		}()
-		m := muxmaster.New()
-		m.GET("/users/:id", handler(200, "user"))
-		m.GET("/users/list", handler(200, "list")) // static sibling of wildcard — must panic
+		m.GET("/users/list", handler(200, "list")) // static sibling of a param — must succeed
 	}()
-	if !panicked {
-		t.Fatal("expected panic when registering static sibling of wildcard child")
+	if panicked {
+		t.Fatal("registering a static sibling of a named-parameter route must not panic (routing.md §4.2 rule 48)")
+	}
+
+	if got := get(m, "/users/list").Code; got != 200 {
+		t.Errorf("/users/list status = %d, want 200 (static must win over :id)", got)
+	}
+	if got := get(m, "/users/42").Code; got != 200 {
+		t.Errorf("/users/42 status = %d, want 200 (:id must still match)", got)
 	}
 }
 

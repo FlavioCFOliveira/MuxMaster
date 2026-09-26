@@ -10,7 +10,8 @@ package harness
 // Task covered: FPE-2026-007
 //
 // Invariants added:
-//   I-CDX-01 — Use(stdlibMW) + HandleFast panics at registration time
+//   I-CDX-01  — Mux.Use(stdlibMW) + Mux.HandleFast panics at registration time (root Mux tier)
+//   I-CDX-01b — Group.Use(stdlibMW) + Group.HandleFast panics at registration time (Group tier)
 //   I-CDX-02 — Pre(mw) runs for BOTH Handle and HandleFast routes
 //   I-CDX-03 — UseFast(fastMW) runs only for HandleFast routes, not Handle routes
 
@@ -29,49 +30,81 @@ import (
 // I-CDX-01 — Use(stdlibMW) + HandleFast must panic at registration
 // ============================================================
 
-// TestCDX_MuxUsePlusHandleFastDoesNotPanic documents the ACTUAL behaviour of
-// Mux.Use() + Mux.HandleFast(): the root Mux does NOT panic at registration time,
-// unlike Group.HandleFast (which was fixed in commit 65cde88 / CSA-2026-0054).
+// TestCDX_MuxUsePlusHandleFastNowPanics verifies that Mux.Use() + Mux.HandleFast()
+// panics at registration time on the root Mux — the same boundary Group.HandleFast
+// already enforced (CSA-2026-0054).
 //
-// FINDING FPE-2026-010 (severity 6): Mux.Use(stdlibMW) + Mux.HandleFast does
-// NOT panic. The Use() docstring claims "panics at HandleFast call time" but this
-// is only true for Group.HandleFast, not root Mux.HandleFast. Auth middleware
-// registered via Mux.Use() silently bypasses fast routes registered directly on
-// the root mux — the bypass occurs without any warning.
-//
-// Only Group.HandleFast (65cde88) panics; Mux.HandleFast does not.
-// See task FPE-2026-010 in sprint 9.
-func TestCDX_MuxUsePlusHandleFastDoesNotPanic(t *testing.T) {
-	// Document the gap: Mux.Use() + Mux.HandleFast does NOT panic (contra the docstring).
+// FINDING FPE-2026-010 (severity 6, task #181): historically, this did NOT
+// panic — the panic guard existed only on Group.HandleFast, not on the root
+// Mux, silently leaving Mux.Use()-registered auth/logging/CORS middleware
+// unattached to fast routes registered directly on the root mux. Fixed in
+// commit 825c623 (mux.go, `len(m.middleware) > 0` guard in Mux.HandleFast,
+// mirroring the Group guard). This test — previously
+// TestCDX_MuxUsePlusHandleFastDoesNotPanic, which only logged either outcome
+// without failing, because the finding was open when it was written — is now
+// a hard assertion and is the harness-level pin for invariant I-CDX-01. See
+// also the deterministic root-package regression test
+// TestRegression_FPE_2026_010 (mux_test.go), added in the same fixing commit.
+func TestCDX_MuxUsePlusHandleFastNowPanics(t *testing.T) {
 	countMW := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			next.ServeHTTP(w, r)
 		})
 	}
 
-	didPanic := false
-	func() {
-		defer func() {
-			if recover() != nil {
-				didPanic = true
-			}
-		}()
-		mux := mm.New()
-		mux.Use(countMW)
-		mux.HandleFast(http.MethodGet, "/fast-after-use", func(w http.ResponseWriter, r *http.Request, _ mm.Params) {
-			w.WriteHeader(http.StatusOK)
-		})
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("I-CDX-01: Mux.Use(stdlib) + Mux.HandleFast did not panic (FPE-2026-010 regression)")
+		}
+		msg, _ := r.(string)
+		if !strings.Contains(msg, "HandleFast") || !strings.Contains(msg, "Use") {
+			t.Errorf("panic message = %q, want hint about HandleFast + Use boundary", msg)
+		}
+		t.Logf("I-CDX-01: panic message: %v (correct — boundary enforced for root Mux)", r)
 	}()
 
-	if didPanic {
-		// Panic guard was added — the fix is in. Mark the finding resolved.
-		t.Logf("I-CDX-01: Mux.Use + Mux.HandleFast now panics (FPE-2026-010 fixed)")
-	} else {
-		// No panic — document the gap. Do not t.Fatal here because this is a
-		// known-open finding (FPE-2026-010); the test serves as a regression
-		// detector for when the fix is applied.
-		t.Logf("FPE-2026-010 OPEN: Mux.Use(stdlibMW) + Mux.HandleFast did NOT panic; auth bypass possible on root mux fast routes")
-	}
+	mux := mm.New()
+	mux.Use(countMW)
+	// Mux.HandleFast after Mux.Use() must panic (FPE-2026-010 / CSA-2026-0054 class).
+	mux.HandleFast(http.MethodGet, "/fast-after-use", func(w http.ResponseWriter, r *http.Request, _ mm.Params) {
+		w.WriteHeader(http.StatusOK)
+	})
+}
+
+// TestProp_CDXMatrix_MuxUsePanicsOnHandleFast is the property variant for the
+// root Mux boundary: for any N Use() middlewares on the root Mux, adding a
+// Mux.HandleFast route must panic. This is the Mux-level counterpart of
+// TestProp_CDXMatrix_UsePanicsOnHandleFast (Group-level, I-CDX-01b) and closes
+// the rmp #178 (FPE-2026-007) acceptance criterion that a property test cover
+// this boundary — the originally delivered property test exercised only
+// Group.HandleFast, leaving the root-Mux case pinned solely by a single
+// deterministic case (TestCDX_MuxUsePlusHandleFastNowPanics).
+func TestProp_CDXMatrix_MuxUsePanicsOnHandleFast(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		n := rapid.IntRange(1, 5).Draw(t, "n")
+
+		didPanic := false
+		func() {
+			defer func() {
+				if recover() != nil {
+					didPanic = true
+				}
+			}()
+			mux := mm.New()
+			for range n {
+				mux.Use(func(next http.Handler) http.Handler { return next })
+			}
+			// Mux.HandleFast after Mux.Use() must panic (FPE-2026-010).
+			mux.HandleFast(http.MethodGet, "/fast", func(w http.ResponseWriter, r *http.Request, _ mm.Params) {
+				w.WriteHeader(http.StatusOK)
+			})
+		}()
+
+		if !didPanic {
+			t.Fatalf("I-CDX-01: n=%d Mux.Use() middlewares + Mux.HandleFast did not panic (regression)", n)
+		}
+	})
 }
 
 // TestCDX_GroupUsePlusHandleFastPanics verifies that Group.HandleFast DOES
