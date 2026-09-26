@@ -326,6 +326,33 @@ func userDetail(w http.ResponseWriter, r *http.Request) {
 
 ## Common Adjustments
 
+### GET and HEAD Method Handling
+
+Registering a GET handler in MuxMaster does **not** make it answer HEAD requests: HEAD on a GET-only route returns 405 Method Not Allowed with `Allow: GET, OPTIONS` (`specification/routing.md` section 15). Only `net/http.ServeMux` falls back from HEAD to GET; httprouter and chi behave like MuxMaster (verified in their source: httprouter v1.3.0 has no fallback, and chi v5 provides `middleware.GetHead` to add one).
+
+| Router | HEAD on a GET-only route |
+|--------|----------|
+| `net/http.ServeMux` | served by the GET handler |
+| chi | 405, unless `middleware.GetHead` is used |
+| httprouter | 405 (register a HEAD handler) |
+| **MuxMaster** | **405** (register a HEAD handler) |
+
+When migrating from `net/http.ServeMux`, or from chi with `middleware.GetHead`, register HEAD explicitly:
+
+```go
+// Before (net/http.ServeMux)
+http.HandleFunc("GET /users/{id}", getUser) // also answers HEAD
+
+// After (MuxMaster)
+mux.GET("/users/:id", getUser)
+mux.HEAD("/users/:id", getUser)  // explicit HEAD handler required
+
+// Or use Match to register both at once:
+mux.Match([]string{"GET", "HEAD"}, "/users/:id", getUser)
+```
+
+See [Routing Reference](routing.md#get-and-head-methods) for full details.
+
 ### Parameter syntax
 
 | Router       | Named param | Catch-all     | Regex param           |

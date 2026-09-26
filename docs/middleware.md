@@ -384,7 +384,7 @@ type JWTClaims struct {
 
 **Security Considerations:**
 
-- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. The `Use()` family does not wrap fast routes and will panic if both are present. See [Pre vs. Use security boundary](../SECURITY.md#thread-safety-contract-mm-2026-0017--csa-2026-0052) in SECURITY.md.
+- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. The `Use()` family does not wrap fast routes and will panic if both are present. See [Pre vs. Use security boundary](../SECURITY.md#pre-vs-use-security-boundary-csa-2026-0059--h8-01) in SECURITY.md.
 
 - **Algorithm mixing (timing oracle — TSC-2026-0003):** Mixing algorithm families (e.g., HS256 alongside RS256) in `Algorithms` leaks the verification path via response latency: HMAC verification is ~1 µs, RSA ~300 µs. An attacker submitting tokens with different `alg` values can infer which path the server runs. Configure each endpoint with a single algorithm family (e.g., only `ES256`, not a mix). JWTAuth emits a `slog.Warn` at construction time when this misconfiguration is detected.
 
@@ -457,7 +457,7 @@ type IntrospectResponse struct {
 
 **Security Considerations:**
 
-- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#thread-safety-contract-mm-2026-0017--csa-2026-0052) in SECURITY.md.
+- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#pre-vs-use-security-boundary-csa-2026-0059--h8-01) in SECURITY.md.
 
 - **HTTPS endpoint required (RFC 7662 §4 — MSR-2026-0067):** Bearer tokens transmitted over plaintext are exposed to passive observers and man-in-the-middle attackers. The `Endpoint` must use the `https://` scheme. MuxMaster panics at construction time unless `AllowInsecureEndpoint: true` is explicitly set (testing/localhost only). Production deployments must use HTTPS.
 
@@ -511,7 +511,7 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 
 **Security Considerations:**
 
-- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#thread-safety-contract-mm-2026-0017--csa-2026-0052) in SECURITY.md.
+- **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. See [Pre vs. Use security boundary](../SECURITY.md#pre-vs-use-security-boundary-csa-2026-0059--h8-01) in SECURITY.md.
 
 - **WWW-Authenticate header (RFC 7235 §3.1 — MM-2026-0052):** MuxMaster sets the `WWW-Authenticate: ApiKey realm="api"` header on 401 responses to comply with the HTTP specification.
 

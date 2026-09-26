@@ -327,6 +327,7 @@ import (
     "encoding/json"
     "log/slog"
     "net/http"
+    "net/netip"
     "os"
     "strconv"
 
@@ -342,7 +343,7 @@ func main() {
 
     // Pre runs once per request, before routing — applies to both Handle and HandleFast
     mux.Pre(
-        middleware.RealIP(),
+        middleware.RealIP(netip.MustParsePrefix("10.0.0.0/8")), // Trust your proxy network
         middleware.RequestID(),
         middleware.RecovererWithLogger(logger),
     )

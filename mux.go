@@ -446,6 +446,10 @@ func (m *Mux) Pre(mw ...func(http.Handler) http.Handler) {
 // Path parameters use the ':name' syntax (/users/:id).
 // Regex params use '{name:expr}' (/users/{id:[0-9]+}).
 // Catch-all parameters use '*name' and must end the path (/static/*filepath).
+// Catch-all values are the unsanitised remainder of the request path
+// (decoded r.URL.Path, or r.URL.RawPath when UseRawPath is set) and may
+// contain dot-dot segments; handlers serving files must use http.FileServer
+// or ServeFiles, or clean and confine the value themselves.
 //
 // Panics on empty method, non-absolute path, nil handler, or route conflict.
 func (m *Mux) Handle(method, pattern string, handler http.Handler) {
@@ -535,15 +539,16 @@ func (m *Mux) UseFast(mw ...FastMiddleware) {
 // routes. Params are passed as a direct argument — see FastHandler for
 // lifetime guarantees.
 //
-// SECURITY: stdlib middleware (registered via Use) does NOT apply to fast
-// routes. This includes the Recoverer middleware — a panic in a FastHandler
-// is NOT recovered by middleware.Recoverer, regardless of the order Use was
-// called. Set Mux.PanicHandler to recover panics on the FastHandler path:
-// PanicHandler is invoked from dispatchWithRecover and covers both
-// http.Handler and FastHandler routes. Use UseFast to attach FastMiddleware
-// to fast routes; FastMiddleware runs on the FastHandler dispatch path.
+// SECURITY: Registering a HandleFast route after calling Use() panics
+// (CSA-2026-0054, FPE-2026-010). Stdlib middleware attached via Use does
+// not wrap fast routes. Use Pre() for middleware that must cover both route
+// types, or UseFast() for FastMiddleware that wraps only fast routes. See
+// SECURITY.md "Pre vs Use security boundary" for the full matrix.
 //
-// Panics on empty method, non-absolute path, nil handler, or route conflict.
+// PanicHandler (if set) recovers panics on both Handle and HandleFast paths.
+//
+// Panics on empty method, non-absolute path, nil handler, route conflict,
+// or when Use() middleware is registered.
 func (m *Mux) HandleFast(method, pattern string, h FastHandler) {
 	switch {
 	case method == "":

@@ -267,3 +267,43 @@ func ExampleMux_Pre() {
 	// Output:
 	// yes
 }
+
+// ExampleMux_HandleFast_auth shows how to gate a HandleFast route with
+// authentication via Pre() middleware. Use() middleware cannot wrap HandleFast
+// routes; Pre() is required for cross-cutting concerns.
+func ExampleMux_HandleFast_auth() {
+	mux := muxmaster.New()
+
+	// Protect fast routes with Pre (not Use, which would panic with HandleFast)
+	mux.Pre(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Simple token check
+			if r.Header.Get("Authorization") == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
+
+	// Fast route: protected by Pre middleware
+	mux.HandleFast(http.MethodGet, "/api/fast/:id", func(w http.ResponseWriter, _ *http.Request, ps muxmaster.Params) {
+		fmt.Fprintf(w, "id=%s", ps.Get("id"))
+	})
+
+	// Unauthenticated request
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/fast/42", nil)
+	mux.ServeHTTP(rec, req)
+	fmt.Println("Without token:", rec.Code)
+
+	// Authenticated request
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/fast/42", nil)
+	req.Header.Set("Authorization", "Bearer xyz")
+	mux.ServeHTTP(rec, req)
+	fmt.Printf("With token: %d %s\n", rec.Code, rec.Body.String())
+	// Output:
+	// Without token: 401
+	// With token: 200 id=42
+}

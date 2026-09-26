@@ -2524,7 +2524,7 @@ func ExampleOAuth2Introspect() {
 
 	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
 		Endpoint:   mockServer.URL,
-		CacheTTL:   0, // Disable caching for this example.
+		CacheTTL:   -1, // Disable caching for this example (0 = default 60s, -1 = disabled).
 		HTTPClient: mockServer.Client(),
 	})
 
