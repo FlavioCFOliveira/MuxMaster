@@ -43,8 +43,14 @@ jobs:
               --include='*.go' . 2>/dev/null \
             | grep -v '/competitor/' \
             | grep -v '/examples/' \
-            | awk -F: '{print $1 "::" $3}' \
-            | sed -E 's|^./||; s|/[^/]+\.go::func ([A-Za-z0-9_]+).*|::\1|' \
+            | awk -F: '{
+                # Package directory of the file; "." for the module root,
+                # whose files have no directory component.
+                d = $1; sub(/^\.\//, "", d)
+                if (d ~ /\//) sub(/\/[^\/]+$/, "", d); else d = "."
+                match($3, /Fuzz[A-Za-z0-9_]+/)
+                print d "::" substr($3, RSTART, RLENGTH)
+              }' \
             | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "targets=$targets" >> "$GITHUB_OUTPUT"
           echo "Found targets:"
