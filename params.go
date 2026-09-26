@@ -230,16 +230,30 @@ func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
 
 // getReqCtxUnsafe reads req.ctx directly via the pre-computed field offset.
 // Opt O5a: r.Context() is a method call that does a nil check + falls back to
-// context.Background(). Inside MuxMaster's dispatch the request was just
-// received from net/http (server.go always sets req.ctx before ServeHTTP) or
-// httptest.NewRequest (which also sets it). The field is therefore guaranteed
-// non-nil and we can skip the method call.
+// context.Background(). Inside MuxMaster's dispatch the request was, in the
+// overwhelming common case, just received from net/http (server.go always
+// sets req.ctx before ServeHTTP) or httptest.NewRequest (which also sets it),
+// so the field is non-nil and the method call can be skipped.
+//
+// rmp #292: a request can also reach this function with req.ctx == nil —
+// e.g. a *http.Request built as a struct literal (common in tests, and in
+// code that calls Mux.ServeHTTP directly rather than going through an
+// http.Server). Every requestCtx*/mountPrefixCtx/redirectCtx type embeds the
+// context.Context returned here as its parent and forwards unintercepted
+// keys and Done/Deadline/Err to it via Go's method-promotion rules; if the
+// embedded parent is a nil interface, any such forwarded call panics with a
+// nil-pointer dereference. r.Context() avoids this by falling back to
+// context.Background() when req.ctx is nil — this function must do the same
+// so that every call site gets the identical, panic-free semantics.
 //
 // MUST only be called when hasReqCtxField is true (validated by init()).
 //
 //go:nosplit
 func getReqCtxUnsafe(req *http.Request) context.Context {
-	return *(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset))
+	if c := *(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)); c != nil {
+		return c
+	}
+	return context.Background()
 }
 
 // Opt O13: reqBundle pools recycle the fused requestCtx + http.Request copy

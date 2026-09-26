@@ -107,14 +107,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Module harnesses with go.mod (exclude fuzzing which has fuzz.yml job,
-          # and benchmarks: perf-lab and dos-resilience-tester/2026-05-08-loadtest).
+          # Module harnesses with go.mod (exclude benchmarks: perf-lab and
+          # dos-resilience-tester/2026-05-08-loadtest).
+          #
+          # rmp #292: reports/fuzzing-and-property-engineer/harness runs here
+          # (-short) so its seed corpora execute as ordinary unit tests on
+          # every PR. fuzz.yml's nightly job only runs `-fuzz=...` (mutation
+          # fuzzing, `-run='^$'` skips the seed corpus as unit tests) — it
+          # never exercised the corpus this way, which is how a seed-corpus
+          # regression (FuzzMount panicking on a context-less request,
+          # CSA-2026-00xx) went undetected by CI until this was added.
           harnesses=(
             "reports/path-routing-fuzzer/harness"
             "reports/dos-resilience-tester/harness"
             "reports/middleware-security-reviewer/harness"
             "reports/middleware-security-reviewer/harness/2026-05-08-S10-PreMSR"
             "reports/http-protocol-security-auditor/harness/h2harness"
+            "reports/fuzzing-and-property-engineer/harness"
           )
           for harness in "${harnesses[@]}"; do
             echo "::group::Testing $harness"

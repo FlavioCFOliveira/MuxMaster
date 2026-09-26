@@ -28,6 +28,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -224,5 +225,229 @@ func TestContextCancellationPropagation(t *testing.T) {
 		h, called, obsCh := newCtxObserverHandler()
 		mux.GET("/pool5/:a/:b/:c/:d/:e", h)
 		runContextPropagationCase(t, "pooled overflow params", mux, "/pool5/a/b/c/d/e", 5, called, obsCh)
+	})
+}
+
+// --------------------------------------------------------------------------
+// Regression: context-less requests (req.ctx == nil)
+//
+// getReqCtxUnsafe (params.go) reads http.Request's unexported ctx field
+// directly via a precomputed offset, bypassing r.Context()'s nil check and
+// its fallback to context.Background(). Every dispatch path that builds a
+// requestCtx1/requestCtx2/requestCtx/mountPrefixCtx/redirectCtx embeds that
+// value as its parent context.Context and forwards any uninterepted Value()
+// call, plus Done()/Err()/Deadline() (Go method promotion), straight to it.
+// A *http.Request built without ever going through net/http's server or
+// httptest.NewRequest — e.g. a struct literal, which is exactly what a unit
+// test or a caller that invokes Mux.ServeHTTP directly may construct — has
+// req.ctx == nil (its zero value). Before this fix, that nil flowed
+// unchanged into the embedded parent, so any handler calling
+// ctx.Value(unregisteredKey), ctx.Done(), ctx.Deadline() or ctx.Err() paniced
+// with a nil-pointer dereference (observed via mountPrefixFrom's fallback
+// ctx.Value(mountPrefixKey{}) call on a *requestCtx1 — reachable through
+// Mount's own catch-all dispatch — see reports/fuzzing-and-property-engineer/
+// harness FuzzMount, and rmp #292).
+//
+// The fix makes getReqCtxUnsafe itself never return nil, falling back to
+// context.Background() exactly like the stdlib r.Context() does. These
+// tests assert the fix holds across every dispatch tier: no panic, and
+// context.Background() semantics (Err()==nil, Value()==nil for an unknown
+// key, Deadline() reports ok=false, Done() never fires).
+// --------------------------------------------------------------------------
+
+// ctxlessObserverKey is a typed, unregistered context key used to probe
+// Value() delegation on a context-less request's derived context.
+type ctxlessObserverKey struct{}
+
+// newContextlessRequest builds an *http.Request the way a struct literal (or
+// a caller invoking Mux.ServeHTTP directly, outside of net/http or
+// httptest.NewRequest) would: every field is set explicitly except ctx,
+// which is left at its zero value — nil. This is the exact shape that
+// exposed the getReqCtxUnsafe bug described above.
+func newContextlessRequest(t *testing.T, method, target string) *http.Request {
+	t.Helper()
+	u, err := url.ParseRequestURI(target)
+	if err != nil {
+		t.Fatalf("newContextlessRequest: invalid target %q: %v", target, err)
+	}
+	return &http.Request{
+		Method:     method,
+		URL:        u,
+		Header:     make(http.Header),
+		Body:       http.NoBody,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+	}
+}
+
+// assertBackgroundSemantics asserts that ctx behaves exactly like
+// context.Background(): no error, no deadline, no value for an unregistered
+// key, and a Done() channel that is either nil or, if non-nil, is not
+// already closed.
+func assertBackgroundSemantics(t *testing.T, label string, ctx context.Context) {
+	t.Helper()
+	if err := ctx.Err(); err != nil {
+		t.Errorf("%s: ctx.Err() = %v, want nil (context.Background() semantics)", label, err)
+	}
+	if v := ctx.Value(ctxlessObserverKey{}); v != nil {
+		t.Errorf("%s: ctx.Value(unregistered key) = %v, want nil", label, v)
+	}
+	if _, ok := ctx.Deadline(); ok {
+		t.Errorf("%s: ctx.Deadline() ok = true, want false (no deadline)", label)
+	}
+	select {
+	case <-ctx.Done():
+		t.Errorf("%s: ctx.Done() channel is already closed, want never-fires", label)
+	default:
+	}
+}
+
+// runContextlessCase fires a context-less request at serve and asserts the
+// handler runs without panicking. The handler itself (registered by the
+// caller before this runs) is responsible for calling
+// assertBackgroundSemantics on the context it receives; a panic here IS the
+// regression, so it is deliberately left unrecovered and allowed to fail the
+// test with a full stack trace.
+func runContextlessCase(t *testing.T, label string, serve http.Handler, req *http.Request, wantStatus int) {
+	t.Helper()
+
+	rec := httptest.NewRecorder()
+	serve.ServeHTTP(rec, req)
+	if wantStatus != 0 && rec.Code != wantStatus {
+		t.Errorf("%s: status = %d, want %d", label, rec.Code, wantStatus)
+	}
+}
+
+// newCtxlessProbeHandler returns a plain http.HandlerFunc that runs
+// assertBackgroundSemantics on r.Context() and replies 200 OK — used for the
+// stdlib http.Handler dispatch tiers.
+func newCtxlessProbeHandler(t *testing.T) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		assertBackgroundSemantics(t, "handler", r.Context())
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+// TestContextlessRequestNoPanic is the regression test for rmp #292 /
+// CSA-2026-00xx (see the section header above). Each subtest exercises a
+// distinct dispatch path — every param tier, the catch-all, Mount (static
+// and parameterized prefix, including nested mounts), the PoolRequestBundle
+// opt-in, and HandleFast — with a context-less request.
+func TestContextlessRequestNoPanic(t *testing.T) {
+	t.Run("1 param", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.GET("/p1/:a", newCtxlessProbeHandler(t))
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/p1/abc")
+		runContextlessCase(t, "1 param", mux, req, http.StatusOK)
+	})
+
+	t.Run("2 params", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.GET("/p2/:a/:b", newCtxlessProbeHandler(t))
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/p2/abc/def")
+		runContextlessCase(t, "2 params", mux, req, http.StatusOK)
+	})
+
+	t.Run("3 params", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.GET("/p3/:a/:b/:c", newCtxlessProbeHandler(t))
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/p3/a/b/c")
+		runContextlessCase(t, "3 params", mux, req, http.StatusOK)
+	})
+
+	t.Run("overflow params (5, beyond tree.go maxParams=3)", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.GET("/p5/:a/:b/:c/:d/:e", newCtxlessProbeHandler(t))
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/p5/a/b/c/d/e")
+		runContextlessCase(t, "overflow params", mux, req, http.StatusOK)
+	})
+
+	t.Run("catch-all", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.GET("/files/*filepath", newCtxlessProbeHandler(t))
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/files/a/b/c.txt")
+		runContextlessCase(t, "catch-all", mux, req, http.StatusOK)
+	})
+
+	t.Run("mount static prefix", func(t *testing.T) {
+		inner := muxmaster.New()
+		inner.GET("/inner/:id", newCtxlessProbeHandler(t))
+
+		outer := muxmaster.New()
+		outer.Mount("/api", inner)
+
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/api/inner/xyz")
+		runContextlessCase(t, "mount static prefix", outer, req, http.StatusOK)
+	})
+
+	t.Run("mount param prefix", func(t *testing.T) {
+		inner := muxmaster.New()
+		inner.GET("/inner/:id", newCtxlessProbeHandler(t))
+
+		outer := muxmaster.New()
+		outer.Mount("/tenants/:tenant", inner)
+
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/tenants/acme/inner/xyz")
+		runContextlessCase(t, "mount param prefix", outer, req, http.StatusOK)
+	})
+
+	t.Run("mount nested", func(t *testing.T) {
+		inner := muxmaster.New()
+		inner.GET("/inner/:id", newCtxlessProbeHandler(t))
+
+		middle := muxmaster.New()
+		middle.Mount("/v1", inner)
+
+		outer := muxmaster.New()
+		outer.Mount("/api", middle)
+
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/api/v1/inner/xyz")
+		runContextlessCase(t, "mount nested", outer, req, http.StatusOK)
+	})
+
+	t.Run("PoolRequestBundle=true, 1 param", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.PoolRequestBundle = true
+		mux.GET("/pool1/:a", newCtxlessProbeHandler(t))
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/pool1/abc")
+		runContextlessCase(t, "pooled 1 param", mux, req, http.StatusOK)
+	})
+
+	t.Run("PoolRequestBundle=true, 2 params", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.PoolRequestBundle = true
+		mux.GET("/pool2/:a/:b", newCtxlessProbeHandler(t))
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/pool2/abc/def")
+		runContextlessCase(t, "pooled 2 params", mux, req, http.StatusOK)
+	})
+
+	t.Run("PoolRequestBundle=true, 3 params", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.PoolRequestBundle = true
+		mux.GET("/pool3/:a/:b/:c", newCtxlessProbeHandler(t))
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/pool3/a/b/c")
+		runContextlessCase(t, "pooled 3 params", mux, req, http.StatusOK)
+	})
+
+	t.Run("PoolRequestBundle=true, overflow params", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.PoolRequestBundle = true
+		mux.GET("/pool5/:a/:b/:c/:d/:e", newCtxlessProbeHandler(t))
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/pool5/a/b/c/d/e")
+		runContextlessCase(t, "pooled overflow params", mux, req, http.StatusOK)
+	})
+
+	t.Run("HandleFast", func(t *testing.T) {
+		mux := muxmaster.New()
+		mux.GETFast("/fast/:a", func(w http.ResponseWriter, r *http.Request, ps muxmaster.Params) {
+			assertBackgroundSemantics(t, "fast handler", r.Context())
+			if got := ps.Get("a"); got != "abc" {
+				t.Errorf("HandleFast: param a = %q, want abc", got)
+			}
+			w.WriteHeader(http.StatusOK)
+		})
+		req := newContextlessRequest(t, http.MethodGet, "http://example.com/fast/abc")
+		runContextlessCase(t, "HandleFast", mux, req, http.StatusOK)
 	})
 }
