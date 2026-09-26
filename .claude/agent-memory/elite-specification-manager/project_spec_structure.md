@@ -56,10 +56,11 @@ See [[task_kg2026001_fastpath_spec]] for the 2026-07-14 change that added the Fa
 
 Grep `^[0-9]\+\.` before appending to any of these — do not trust an older number from memory:
 
-- routing.md: 101 (added §12 Empty Segment Rejection for Named and Regex Parameters, items 97-101 — see [[task_sprint20_282_283_join_and_empty_segment]]; supersedes the 96 recorded after [[task_rmp274_unclosed_regex_brace_spec]])
+- routing.md: 108 (§12 Empty Segment Rejection for Named/Regex Params [97-101] — [[task_sprint20_282_283_join_and_empty_segment]]; §13 Optional Parameter Expansion Limits [102-104], §14 Regex Parameter Name Length Limit [105], §15 HEAD Does Not Follow GET [106-108] — [[task_rmp288_spec_code_drift_batch]])
 - params.md: 37 (added §6 Captured Values Are Never Empty, item 37 — see [[task_sprint20_282_283_join_and_empty_segment]])
+- middleware.md: 43 (rule 43 text corrected in place, no new max — see [[task_rmp288_spec_code_drift_batch]])
 - compatibility.md: 19 (added §6 HTTP Method Constants Not Yet in the Standard Library, items 17-19)
-- middleware-stdlib.md: 70 (fully renumbered 2026-09-25 — old rule numbers before that date are stale)
+- middleware-stdlib.md: 78 (fully renumbered 2026-09-25 — old rule numbers before that date are stale; §16 CORS Vary: Origin [71-75] — [[task_rmp291_cors_vary_origin]]; §17 CORS Request-Time Error Responses [76-78] + rule-50 fix — [[task_rmp288_spec_code_drift_batch]])
 - middleware.md: 43
 - groups.md: 44 (§8 Location Rewriting for Automatic Redirects Through Mount [31-35], §9 Mount Prefix Validation [36-37], §10 RawPath Propagation Through Mount [38-40] — see [[task_rmp281_mount_redirect_prefix_spec]]; §11 Prefix and Path Joining [41-44] — see [[task_sprint20_282_283_join_and_empty_segment]])
 - performance.md: 45

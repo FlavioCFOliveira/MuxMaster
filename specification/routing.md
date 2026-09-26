@@ -41,7 +41,7 @@ This file does not cover middleware application order (see [middleware.md](middl
 
 ### 1.5 Regex Parameters
 
-18. A regex parameter validates and captures one path segment using a regular expression. It is written as `{name:expr}` where `name` is a non-empty identifier and `expr` is a valid Go regular expression (`regexp/syntax` package).
+18. A regex parameter validates and captures one path segment using a regular expression. It is written as `{name:expr}` where `name` is a non-empty identifier and `expr` is a valid Go regular expression (`regexp/syntax` package). `name` is also subject to the maximum length stated in section 14.
 19. Matching fails (the route is not selected) when the segment value does not match `expr`. The router continues to the next candidate. This check never runs against an empty segment value in the first place; section 12 states the rule that rejects an empty segment before `expr` is evaluated, regardless of what `expr` would itself accept.
 20. The regular expression `expr` is implicitly anchored. That is, the full segment value must match `expr`, not merely a substring of it.
 21. An invalid regular expression in a regex parameter causes a panic at registration time.
@@ -53,7 +53,7 @@ This file does not cover middleware application order (see [middleware.md](middl
 ### 1.6 Optional Parameters
 
 24. An optional parameter declares that a segment is present or absent. It is written as `{/:name}` (optional named segment) or `{/:name:expr}` (optional regex segment).
-25. Registering a route with an optional parameter is equivalent to registering two routes: one without the optional segment and one with it as a named or regex parameter. Both registrations use the same handler.
+25. Registering a route with an optional parameter is equivalent to registering two routes: one without the optional segment and one with it as a named or regex parameter. Both registrations use the same handler. This expansion is subject to the limits stated in section 13: a pattern may not contain more than a fixed maximum number of optional segments, and two optional segments may not be written consecutively, with no literal segment between them.
 26. If either of the two expanded routes conflicts with an already-registered route, a panic occurs at registration time.
 
 ### 1.7 Wildcard Constraints
@@ -68,7 +68,7 @@ This file does not cover middleware application order (see [middleware.md](middl
 
 ### 2.1 Supported Methods
 
-30. The following HTTP methods have dedicated convenience registration methods on `*Mux` and `*Group`. All of them, including `QUERY`, are standard methods, not custom ones (see section 2.3); `QUERY` is standardized by RFC 10008, and section 9 specifies its full semantics, including its `HandlerFuncE` and `FastHandler` convenience methods:
+30. The following HTTP methods have dedicated convenience registration methods on `*Mux` and `*Group`. All of them, including `QUERY`, are standard methods, not custom ones (see section 2.3); `QUERY` is standardized by RFC 10008, and section 9 specifies its full semantics, including its `HandlerFuncE` and `FastHandler` convenience methods. Each method in this table is matched independently of every other one, including GET and HEAD; see section 15 for the contrast with `net/http.ServeMux`.
 
 | Method | `*Mux` method | `*Group` method |
 |---|---|---|
@@ -287,3 +287,29 @@ See section 11 for the distinct panic raised when a regex parameter's opening `{
      - A trailing-slash redirect (section 4.4) does not apply merely because rule 97 rejected a candidate: it applies only under its own, independent condition — a registered handler exists at the request path with its trailing `/` added or removed — which an empty-segment rejection does not, by itself, create. For example, a request for `//profile` against only `/{id:[a-z]*}/profile` produces no trailing-slash redirect, because neither `//profile/` nor a path one `/` shorter is a registered handler.
      - A fixed-path redirect (section 4.5) applies only when `RedirectFixedPath` is `true` and a handler is registered for `path.Clean` of the request path. `path.Clean("//profile")` is `/profile`. With only `/{id:[a-z]*}/profile` registered and no separate route at `/profile`, a request for `//profile` produces a 404 response (the `NotFound` handler) regardless of `RedirectFixedPath`, because no handler exists at `/profile` either. If a route is additionally registered directly at `/profile`, the same `//profile` request, with `RedirectFixedPath` `true`, does redirect to `/profile` — this is the ordinary fixed-path mechanism operating exactly as section 4.5 already describes it, not a special case introduced by this section.
      - With the default configuration (`RedirectTrailingSlash` `true`, `RedirectFixedPath` `false`) and no separate route registered at the cleaned path, a request that rule 97 rejects therefore ends in a plain 404, with no redirect of any kind.
+
+---
+
+## 13. Optional Parameter Expansion Limits
+
+102. A pattern may contain at most 8 optional parameters (section 1.6). Because each optional parameter doubles the number of routes the expansion in requirement 25 produces, a pattern with `N` optional parameters expands into `2^N` registrations; the limit of 8 bounds this at 256. A pattern containing more than 8 optional parameters causes a panic at registration time: `muxmaster: pattern '<pattern>' has <N> optional segments; the maximum is 8 to prevent exponential addRoute time complexity (DoS).`, where `<pattern>` is the exact pattern string passed in and `<N>` is the actual count found. This limit exists to bound registration-time cost against a pattern such as `/a{/:1}{/:2}…{/:20}`, which would otherwise expand into roughly 2^20 registrations from a single `Handle` call.
+
+103. Two optional parameters may not appear consecutively in a pattern — that is, with nothing but the closing `}` of one and the opening `{/:` of the next between them, such as `/a{/:p1}{/:p2}`. Expanding two consecutive optional parameters would require both of their named or regex forms to occupy the same tree position as siblings, which conflicts with the "one wildcard child per node" invariant (section 4.3, rule 51) regardless of expansion order. Registering such a pattern causes a panic at registration time: `muxmaster: consecutive optional segments not supported in path '<pattern>' — separate optional segments with a literal segment, e.g. /users{/:id}/posts{/:post}`, where `<pattern>` is the exact pattern string passed in. Separating the two optional parameters with at least one literal path segment, as the panic message's example shows, avoids this: each optional parameter's expansion then reaches a distinct tree position through the intervening literal segment.
+
+104. Both limits are independent of each other and of the panic described in requirement 26 (an expanded route conflicting with an already-registered one): a pattern can be rejected by requirement 102 or 103 before expansion is even attempted, and a pattern that passes both can still be rejected by requirement 26 once its two expanded forms are actually inserted into the tree.
+
+---
+
+## 14. Regex Parameter Name Length Limit
+
+105. A regex parameter's name (section 1.5, rule 18) must be at most 254 bytes long. A name of 255 bytes or more causes a panic at registration time: `muxmaster: regex param name must be at most 254 bytes in '<pattern>'`, where `<pattern>` is the exact pattern string passed in. This limit does not apply to a named parameter's name (section 1.3) or a catch-all parameter's name (section 1.4), neither of which is length-limited.
+
+---
+
+## 15. HEAD Does Not Follow GET
+
+106. Registering a handler for GET at a pattern does not register that handler for HEAD at the same pattern, and vice versa. GET and HEAD (section 2.1's table) are recognized and dispatched as two entirely independent methods, exactly like any other pair of methods in that table; nothing in this specification links them, and no MuxMaster method ever implicitly registers, or answers on behalf of, another.
+
+107. This differs from Go's standard library `net/http.ServeMux` (Go 1.22 and later), whose pattern-based routing gives GET an implicit special case: "As a special case, GET also matches HEAD; all the other methods match exactly" (Go blog, "Routing Enhancements for Go 1.22", https://go.dev/blog/routing-enhancements). MuxMaster does not replicate this special case for any method pair, including GET and HEAD.
+
+108. Consequently, a request for HEAD against a path registered only for GET (and, implicitly, OPTIONS — section 4.6) does not reach the GET handler. When `HandleMethodNotAllowed` is `true` (the default), it receives a 405 response with an `Allow` header listing the methods actually registered at that path — `GET, OPTIONS` for a path with only a GET route — per section 4.7. An application that wants a MuxMaster route to answer both GET and HEAD, matching `net/http.ServeMux`'s special case, must register both explicitly, either as two separate calls (`mux.GET(pattern, h)` and `mux.HEAD(pattern, h)`) or via `ANY`/`Match` (section 2.2) with a handler that branches on `r.Method` — MuxMaster's `ServeFiles` (see [static-files.md](static-files.md), requirement 4) does exactly this internally, registering the same handler for both GET and HEAD.
