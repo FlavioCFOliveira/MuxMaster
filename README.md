@@ -32,9 +32,9 @@ Static routes allocate **zero bytes**. By default, a route with path parameters 
 - **21 middleware constructors** in the `middleware` package — logging, panic recovery, CORS, Basic Auth, API keys, JWT, OAuth 2.0 introspection, compression, throttling, timeouts, request IDs, and more
 - **Route introspection** — `Lookup`, `Routes`, `Walk`, and `WalkFast`
 
-## What's new since v1.1.0
+## What's new in v1.2.0
 
-These changes are unreleased; the full list, with rationale and tests, is in [CHANGELOG.md](CHANGELOG.md#unreleased).
+These changes shipped in v1.2.0 (2026-09-26); the full list, with rationale and tests, is in [CHANGELOG.md](CHANGELOG.md#120---2026-09-26), and the upgrade notes are in [release-notes/v1.2.0-20260926.md](release-notes/v1.2.0-20260926.md#upgrade-notes).
 
 - **HTTP QUERY method (RFC 10008)** — `MethodQuery`, `Mux.QUERY`, `Mux.QUERYE`, `Mux.QUERYFast`, `Group.QUERY`, `Group.QUERYE`; `ANY` now also registers QUERY, and the `Allow` header lists it.
 - **Mount** — an inner `*Mux`'s own redirects now keep the mount prefix in `Location`; `RawPath` is propagated through parameterised prefixes; a prefix ending in an optional parameter panics at registration.

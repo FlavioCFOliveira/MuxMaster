@@ -39,14 +39,14 @@ that the issue is closed.
 | **FPE-2026-010** | 6 | CWE-693 / CWE-863 | Calling `Mux.Use(authMW)` followed by `Mux.HandleFast(...)` silently registered a fast route with NO middleware applied. `Use()`'s GoDoc explicitly claimed this combination panics — but the panic guard from CSA-2026-0054 was only wired to `Group.HandleFast`, not root `Mux.HandleFast`. | `mux.go`, `Mux.HandleFast` — root `HandleFast` panics when `Use()`-registered middleware is present, mirroring `Group.HandleFast` | **FIXED** |
 | **TM-2026-005** | 4 | CWE-532 | The construction-time `slog.Warn` issued when `OAuth2Introspect` is configured with `AllowInsecureEndpoint: true` logged the full endpoint URL — including any credentials embedded in the query string. | `middleware/oauth2.go`, `OAuth2Introspect` — the construction-time `slog.Warn` and `slog.Info` log `host` + `scheme` only, never the full URL | **FIXED** |
 
-## Defects Found and Fixed (Sprint 18 — Unreleased)
+## Defects Found and Fixed Before v1.2.0 (Sprint 18)
 
-Three defects were discovered, fixed, and validated during Sprint 18's waste-hunt profiling and middleware security review. **No released version is affected** — all three defects were introduced and fixed within the same unreleased development cycle. Each fix includes a regression test that fails against the defective code and passes against the current code.
+Three defects were discovered, fixed, and validated during Sprint 18's waste-hunt profiling and middleware security review. **No released version is affected** — all three defects were introduced and fixed within the development cycle that produced v1.2.0. Each fix includes a regression test that fails against the defective code and passes against the current code.
 
 | ID | Sev | Class | Summary | Fix location | Regression test |
 |---|---|---|---|---|---|
 | **MID-COMPRESS-1** | Critical | CWE-670 | `Compress` middleware: 1xx informational status (e.g., 103 Early Hints) followed by a final status (e.g., 403) caused the final status to be silently dropped; the client received an implicit **200 OK** with the full response body for any request with `Accept-Encoding: gzip`. Root cause: the "first WriteHeader wins" lock in `gzipResponseWriter` lacked the 1xx exemption that `net/http` itself applies. | `middleware/compress.go:WriteHeader` — added exemption: `if code >= 100 && code <= 199 && code != http.StatusSwitchingProtocols { return }` | `middleware/wrapper_flusher_test.go:TestCompress_1xxInformational_DoesNotBlockFinalStatus` |
-| **MID-SETHEADER-1** | High | CWE-668 | `SetHeader` middleware, `response.go` `JSON`/`XML`/`Text`, `mux.go` `lazyMethodNotAllowed`/`lazyOPTIONS`: hoisted header-value `[]string` (not just the constant string) into closure/package variables, shared across requests. Downstream code indexing directly (`w.Header()[k][0] = ...`) mutated **shared backing array**, corrupting headers for all other requests until process restart. **Introduced and fixed within this unreleased work**. | `middleware/set_header.go`, `response.go`, `mux.go` — each changed to allocate slices fresh per request. | `middleware/setheader_wastehunt_test.go`, `header_aliasing_wastehunt_test.go`. |
+| **MID-SETHEADER-1** | High | CWE-668 | `SetHeader` middleware, `response.go` `JSON`/`XML`/`Text`, `mux.go` `lazyMethodNotAllowed`/`lazyOPTIONS`: hoisted header-value `[]string` (not just the constant string) into closure/package variables, shared across requests. Downstream code indexing directly (`w.Header()[k][0] = ...`) mutated **shared backing array**, corrupting headers for all other requests until process restart. **Introduced and fixed within the v1.2.0 development cycle**. | `middleware/set_header.go`, `response.go`, `mux.go` — each changed to allocate slices fresh per request. | `middleware/setheader_wastehunt_test.go`, `header_aliasing_wastehunt_test.go`. |
 | **MID-LOGGER-1** | Medium | CWE-778 | `Logger` middleware: when a handler sent both a 1xx informational status and a final status, the logger recorded the 1xx code instead of the final status in the access log. Client-visible response was correct (net/http applies its own 1xx exemption to the real `ResponseWriter`); only the **logged** status was wrong, hiding security-relevant codes (401/403/429) from status-code-based log monitoring. Root cause: same as MID-COMPRESS-1 — missing 1xx exemption in the "first wins" lock. | `middleware/logger.go:statusRecorder.WriteHeader` — added exemption matching net/http's own predicate. | `middleware/wrapper_flusher_test.go:TestLogger_1xxInformational_LogsFinalStatusNotInformational` |
 
 ## Pre-Existing Header-Aliasing Defects (Fixed in Sprint 18)
@@ -94,10 +94,10 @@ warnings.
 The README "Security defaults" section reproduces this matrix and the
 hardened-stack snippet.
 
-## Hardening Behaviours Added in Sprints 19–20 (Unreleased)
+## Hardening Behaviours Added in Sprints 19–20 (v1.2.0)
 
-These behaviours are in the code on the `[Unreleased]` line of
-[CHANGELOG.md](CHANGELOG.md); operators relying on the previous behaviour
+These behaviours shipped in v1.2.0 (see the `[1.2.0]` entry of
+[CHANGELOG.md](CHANGELOG.md#120---2026-09-26)); operators relying on the previous behaviour
 should review them.
 
 - **Redirect `Location` encoding (rmp #260, rmp #279).** The router's own
