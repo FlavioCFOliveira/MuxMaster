@@ -94,7 +94,10 @@ jobs:
             target="./$dir"
           fi
           echo "Running $fn ($target) for $duration"
-          go test -run='^$' -fuzz="^${fn}$" -fuzztime="$duration" "$target"
+          # rmp #289: Use -mod=mod to bypass stale vendor directories
+          # in harness modules; the replace directives in go.mod ensure
+          # we test against current MuxMaster code.
+          go test -mod=mod -run='^$' -fuzz="^${fn}$" -fuzztime="$duration" "$target"
 
       - name: Upload corpus on crash
         if: failure()
