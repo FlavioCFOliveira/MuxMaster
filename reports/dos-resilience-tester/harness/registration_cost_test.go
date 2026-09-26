@@ -206,7 +206,7 @@ func BenchmarkDOS20260051_Registration(b *testing.B) {
 // TestDOS20260051_CPUProfile captures a CPU profile of registering N routes
 // of a chosen shape (default: param, the shape most likely to stress
 // wildChild handling and incrementChildPrio), written under
-// DOS0051_EVIDENCE_DIR (default: current directory) for
+// DOS0051_EVIDENCE_DIR (default: a per-test temporary directory) for
 // `go tool pprof -top <file>` inspection of the dominant registration cost.
 //
 // Run: DOS0051_EVIDENCE_DIR=/path/to/evidence DOS0051_PROFILE_SHAPE=param \
@@ -236,7 +236,9 @@ func TestDOS20260051_CPUProfile(t *testing.T) {
 
 	outDir := os.Getenv("DOS0051_EVIDENCE_DIR")
 	if outDir == "" {
-		outDir = "."
+		// Default to a per-test temporary directory so a plain test run never
+		// writes a profile into the repository (rmp #290).
+		outDir = t.TempDir()
 	}
 	profPath := outDir + "/cpuprofile-" + shape + fmt.Sprintf("-N%d.pprof", n)
 	f, err := os.Create(profPath)

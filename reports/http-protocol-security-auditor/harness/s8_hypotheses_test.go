@@ -729,7 +729,7 @@ func TestS8_H8_59_60_61_HTTP2CVEsPatched(t *testing.T) {
 
 	// The h2harness module covers the runtime behaviour of:
 	// - CVE-2023-44487 Rapid Reset: goroutine count bounded after 500 RST_STREAM floods
-	// - CVE-2024-27316 CONTINUATION flood: heap growth bounded after 150 × 200-header floods
+	// - CVE-2023-45288 CONTINUATION flood: heap growth bounded after 150 × 200-header floods
 	// - HPACK bombing: heap delta < 50 MB after 200 × 50 × 4096-byte headers
 	//
 	// govulncheck output (Go 1.26.2 linux/amd64, commit e30ae94):
@@ -737,11 +737,11 @@ func TestS8_H8_59_60_61_HTTP2CVEsPatched(t *testing.T) {
 	//
 	// Go 1.26.2 is well beyond the patch versions:
 	// - CVE-2023-44487: patched in Go 1.21.1 + 1.20.8
-	// - CVE-2024-27316: patched in Go 1.22.2 + 1.21.9
+	// - CVE-2023-45288: patched in Go 1.22.2 + 1.21.9
 	// - No HTTP/2 MadeYouReset (H8-61) advisory found in govulncheck database.
 
 	t.Logf("H8-59 (CVE-2023-44487 Rapid Reset): PATCHED — Go 1.26.2 >= Go 1.21.1")
-	t.Logf("H8-60 (CVE-2024-27316 CONTINUATION flood): PATCHED — Go 1.26.2 >= Go 1.22.2")
+	t.Logf("H8-60 (CVE-2023-45288 CONTINUATION flood): PATCHED — Go 1.26.2 >= Go 1.22.2")
 	t.Logf("H8-61 (MadeYouReset / recent H2 advisory): govulncheck reports NO vulnerabilities found")
 
 	// Runtime validation is in h2harness/ — see TestH2_RapidReset_CVE202344487,

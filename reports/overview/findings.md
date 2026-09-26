@@ -700,6 +700,7 @@ O-1..O-10 were found by the rmp #240 reconciliation; O-11..O-14 by the rmp #267 
 | HPS-2026-0005..0010 | In HPS harnesses, 0006 also labels a CONTINUATION-flood check (`h2_attack_test.go:342-362`) and a HandleFast guard (`http_protocol_audit_test.go:391`); 0007..0010 are each used twice; 0005 also labels Rapid Reset/HPACK checks | No REPORTED_IN edges from a plain string match in HPS harnesses |
 | 2026-04-17 short source IDs (`HPS-001..008`, `PRF-001..006`, `DOS-001..009`, `CSA-001..010`, `SAST-001..013`, `TSC-001..006`, `FPE-001..009`) vs `<PREFIX>-2026-NNN[N]` | Different namespaces: e.g. `FPE-001` (request_id CRLF, part of MM-2026-0011) ≠ `FPE-2026-001` (unnamed wildcard); `PRF-001` (MM-2026-0001) ≠ `PRF-2026-0001` | Match only on the full literal ID (added rmp #267) |
 | `MM-TM-2026-NNNN` vs `TM-2026-NNN` | Part A composites vs later threat-model items (e.g. `TM-2026-001` in MSR-2026-0066) | Distinct namespaces (added rmp #267) |
+| `O14` vs `O-14` | `O14` is the rejected dispatchWildcard optimisation (`perf-audit-2026-05-12`, renumbered from O10 by rmp #239); `O-14` is this ledger's open item on coverage lost in `5f804fa`, and sprint 20 named artefacts after it (`FPE-O14-002`, `FPE-O14-003`, `*_o14_*` test files) | Read `O14` (no hyphen) as the optimisation and `O-14`/`FPE-O14-*`/`*_o14_*` as the ledger item; committed names are not renamed (added rmp #290) |
 
 ## B.6 Hypotheses raised by the reconciliation
 

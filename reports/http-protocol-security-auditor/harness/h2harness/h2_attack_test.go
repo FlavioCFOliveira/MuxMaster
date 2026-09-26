@@ -2,7 +2,7 @@
 //
 // Covers:
 //   - CVE-2023-44487  Rapid Reset (RST_STREAM flood)
-//   - CVE-2024-27316  CONTINUATION flood
+//   - CVE-2023-45288  CONTINUATION flood (Go: GO-2024-2687; Apache httpd tracks the same attack class as CVE-2024-27316)
 //   - HPACK bombing   (dynamic table exhaustion)
 //
 // All three vectors exploit weaknesses in the HTTP/2 framing layer.  MuxMaster
@@ -261,7 +261,7 @@ func TestH2_HPACKBombing(t *testing.T) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CVE-2024-27316: CONTINUATION flood
+// CVE-2023-45288: CONTINUATION flood
 // ─────────────────────────────────────────────────────────────────────────────
 //
 // Attack: send a HEADERS frame followed by many CONTINUATION frames without
@@ -341,7 +341,7 @@ func TestH2_ContinuationFlood_CVE202427316(t *testing.T) {
 	if allocGrowth > maxGrowthBytes {
 		t.Errorf("FINDING HPS-2026-0006: CONTINUATION flood caused heap growth of %d MB (limit %d MB)",
 			allocGrowth/1024/1024, maxGrowthBytes/1024/1024)
-		t.Errorf("CVE-2024-27316 mitigation may be ineffective")
+		t.Errorf("CVE-2023-45288 mitigation may be ineffective")
 		t.Errorf("CWE-400: Uncontrolled Resource Consumption")
 	} else {
 		t.Logf("PASS: heap growth bounded at %d KB after CONTINUATION flood", allocGrowth/1024)
