@@ -7,6 +7,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-26
+
+Minor release. It adds first-class support for the HTTP QUERY method
+(RFC 10008), fixes routing, `Mount`, `Group` and middleware defects, hardens
+redirects, `BasicAuth`, `CORS`, `OAuth2Introspect` and `Recoverer`, and
+removes waste from registration and several middleware. The exported API is a
+strict superset of v1.1.0 (`apidiff`: six additions, no incompatible changes).
+Several fixes change observable behaviour; read the upgrade notes in
+[`release-notes/v1.2.0-20260926.md`](https://github.com/FlavioCFOliveira/MuxMaster/blob/v1.2.0/release-notes/v1.2.0-20260926.md#upgrade-notes)
+before upgrading.
+
 ### Added
 
 - **HTTP QUERY method (RFC 10008)** — first-class support for the QUERY method standardised by RFC 10008 (June 2026). QUERY is a safe, idempotent method like GET, but carries request content in the body like POST. Supports `Mux.QUERY`, `Mux.QUERYE`, `Mux.QUERYFast`, `Group.QUERY`, and `Group.QUERYE`. Included in the `ANY` method set. The router performs no Content-Type or body validation; responsibility is the handler's, per RFC 10008 §2. Default redirect code for `RedirectTrailingSlash` and `RedirectFixedPath` on QUERY routes is 307 (preserves method and body).
@@ -85,9 +96,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - **GoDoc** (rmp #298): `Mux.Lookup` referred to a non-existent `LookupFast` (it now documents the `nil` handler returned for `HandleFast` routes, `WalkFast`, and the registration read lock); `ThrottleAllBacklog` carried a self-referential `Deprecated:` marker, now removed, and both throttle names are documented as equivalent; `Mux.PoolRequestBundle` mixed struct sizes and a size class ("368/400/480-byte") and now gives the 384 / 416 / 480 B size classes with the 2026-09-26 measurement. Other doc comments that contradicted the code (defaults, panics, `RoutePattern` on static routes, stale figures, a non-existent `Params.ByName`, the deprecated `Recoverer()` in the package example, a duplicate package comment) were corrected.
   - **`api.md`** (rmp #298): regenerated with `make api`. It was already out of date at the start of the sprint (`make api` at `a5f1cce` changes it), and now also reflects the GoDoc corrections above.
 
-- **Compress middleware first-WriteHeader-wins now exempts 1xx informational responses** (rmp #254): corrected a pre-existing defect where a 1xx code (e.g., 103 Early Hints) followed by a final status (e.g., 403) caused the final status to be silently dropped; the client received an implicit **200 OK** with the full body. Added 1xx exemption matching `net/http`'s own behaviour.
+- **Compress middleware first-WriteHeader-wins now exempts 1xx informational responses** (rmp #254): corrected a defect introduced after v1.1.0 (no released version is affected; SECURITY.md MID-COMPRESS-1) where a 1xx code (e.g., 103 Early Hints) followed by a final status (e.g., 403) caused the final status to be silently dropped; the client received an implicit **200 OK** with the full body. Added 1xx exemption matching `net/http`'s own behaviour.
 
-- **Logger middleware 1xx status handling** (rmp #254): corrected a pre-existing defect where 1xx informational codes in `WriteHeader` calls were recorded in the access log instead of the final status. Client-visible response was always correct; only the logged status was wrong, hiding security-relevant codes from log monitoring.
+- **Logger middleware 1xx status handling** (rmp #254): corrected a defect introduced after v1.1.0 (no released version is affected; SECURITY.md MID-LOGGER-1) where 1xx informational codes in `WriteHeader` calls were recorded in the access log instead of the final status. Client-visible response was always correct; only the logged status was wrong, hiding security-relevant codes from log monitoring.
 
 - **Compress and Logger now expose optional HTTP interfaces** (rmp #254): both middlewares now implement `http.Flusher` (delegating to underlying writer) and `Unwrap() http.ResponseWriter` (for `http.ResponseController` and other interface-aware tools). `Logger` additionally implements `io.ReaderFrom` to preserve the `sendfile`/`splice` fast path for file serving.
 
@@ -434,7 +445,8 @@ discussed in a GitHub issue before landing.
 - **Configuration snapshot** — Mux flags are frozen into a `muxConfig` snapshot on the first `ServeHTTP` call; subsequent requests use a single atomic pointer load instead of 6–8 struct field reads
 - **FastHandler footprint** — `FastHandler` struct reduced to 32 B (from 128 B) via exact `Params` slice allocation bounded by `maxParams = 3`
 
-[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/FlavioCFOliveira/MuxMaster/compare/v1.0.0-rc1...v1.0.0

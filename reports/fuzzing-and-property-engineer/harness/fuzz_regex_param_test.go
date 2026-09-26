@@ -76,11 +76,21 @@ func FuzzRegexParamRegistration(f *testing.F) {
 	f.Add("a|b|c|d")
 	f.Add("")  // empty — may be accepted or rejected
 	f.Add("(") // invalid: unclosed paren
+	// Regression seed: a valid regex whose '/' splits the pattern segment,
+	// so the token is cut inside the expression (rule 95).
+	f.Add("(a}b)/c")
 
 	f.Fuzz(func(t *testing.T, expr string) {
 		// First check if the expression is a valid Go regex.
 		_, regexErr := regexp.Compile("^(?:" + expr + ")$")
-		isValidRegex := regexErr == nil
+		// A '/' in expr ends the path segment that holds the {p:...} token:
+		// the closing-brace search never crosses a segment boundary
+		// (specification/routing.md rule 95), so the parsed token is cut at
+		// the last '}' before that '/' — or reported as unclosed — and the
+		// original expr is never what gets compiled. Such inputs cannot be
+		// held to I-REGEX-01; their panics must still be documented ones.
+		segmentBounded := !strings.ContainsRune(expr, '/')
+		isValidRegex := regexErr == nil && segmentBounded
 
 		// FPE-2026-0001 / FPE-2026-REGEX-01 — FIXED (tree.go ~line 1255,
 		// commit 825c623). The {name:expr} parser used to stop at the FIRST

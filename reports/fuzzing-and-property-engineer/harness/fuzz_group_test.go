@@ -51,7 +51,13 @@ func FuzzGroup(f *testing.F) {
 		if len(fullPath) == 0 || fullPath[0] != '/' {
 			return
 		}
-		req := httptest.NewRequest(http.MethodGet, "http://example.com"+fullPath, nil)
+		// buildRequest reports malformed targets as an error; the panic of
+		// httptest.NewRequest on them would otherwise reach the deferred
+		// recover above and be misreported as a registration panic.
+		req, err := buildRequest(http.MethodGet, fullPath)
+		if err != nil {
+			return
+		}
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 		// 200 means routed; 404 means path mismatch (acceptable for invalid combos).
@@ -68,6 +74,12 @@ func FuzzMount(f *testing.F) {
 	f.Add("/static")
 	f.Add("")         // should panic — non-absolute
 	f.Add("no-slash") // should panic — non-absolute
+	// Regression seeds for documented tree panics that an earlier,
+	// substring-based allow-list reported as unexpected crashes (see
+	// registration_panics_test.go). Both inputs are also persisted under
+	// testdata/fuzz/FuzzMount/.
+	f.Add("/{")   // regex parameter brace never closed (routing.md rule 95)
+	f.Add("/{/:") // optional segment brace never closed (tree.go expandOptional)
 
 	f.Fuzz(func(t *testing.T, prefix string) {
 		var innerPath string
@@ -159,27 +171,4 @@ func FuzzGroupDepthNoPanic(f *testing.F) {
 				depth, fullPath, rec.Code)
 		}
 	})
-}
-
-func isExpectedMountPanic(msg string) bool {
-	expected := []string{
-		"muxmaster: nil handler",
-		"muxmaster: Mount prefix must begin with '/'",
-		"muxmaster: path must begin with '/'",
-		"muxmaster: path contains invalid UTF-8",
-		"conflicts",
-		"wildcard",
-		"catch-all",
-		"panic",
-		"invalid",
-		"must",
-		"only one",
-		"optional",
-	}
-	for _, e := range expected {
-		if strings.Contains(msg, e) {
-			return true
-		}
-	}
-	return false
 }
