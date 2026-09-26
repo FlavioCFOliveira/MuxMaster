@@ -204,11 +204,7 @@ func CORS(opts CORSOptions) func(http.Handler) http.Handler {
 				return
 			}
 			if !allowAll && !allowedOrigins[origin] {
-				if len(opts.AllowedOrigins) > 0 {
-					http.Error(w, "Forbidden", http.StatusForbidden)
-					return
-				}
-				next.ServeHTTP(w, r)
+				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
 			// When allowAll, emit the literal "*" — never reflect the request origin (MM-2026-0012).
