@@ -26,9 +26,9 @@ This file does not cover middleware application order (see [middleware.md](middl
 ### 1.3 Named Parameters
 
 8. A named parameter captures one path segment. It is written as `:name` where `name` is a non-empty identifier.
-9. A named parameter matches exactly one segment. It does not match across a `/` character.
+9. A named parameter matches exactly one segment. It does not match across a `/` character. That segment must also be non-empty; see section 12 for the exact rule and its rationale.
 10. The captured value is stored in `Params` with the key equal to `name` (without the leading `:`).
-11. Example: the pattern `/users/:id` matches `/users/42` and captures `id = 42`. It does not match `/users/` or `/users/42/posts`.
+11. Example: the pattern `/users/:id` matches `/users/42` and captures `id = 42`. It does not match `/users/` or `/users/42/posts`. The `/users/` case is a terminal one: the path ends immediately after the parameter's boundary `/`, so there is no candidate segment for the router to even attempt to capture. Section 12 states the distinct, more general rule that also rejects a mid-path empty segment, such as `/users//posts` against `/users/:id/posts`.
 12. Named parameter names within a single pattern must be unique.
 
 ### 1.4 Catch-all Parameters
@@ -42,7 +42,7 @@ This file does not cover middleware application order (see [middleware.md](middl
 ### 1.5 Regex Parameters
 
 18. A regex parameter validates and captures one path segment using a regular expression. It is written as `{name:expr}` where `name` is a non-empty identifier and `expr` is a valid Go regular expression (`regexp/syntax` package).
-19. Matching fails (the route is not selected) when the segment value does not match `expr`. The router continues to the next candidate.
+19. Matching fails (the route is not selected) when the segment value does not match `expr`. The router continues to the next candidate. This check never runs against an empty segment value in the first place; section 12 states the rule that rejects an empty segment before `expr` is evaluated, regardless of what `expr` would itself accept.
 20. The regular expression `expr` is implicitly anchored. That is, the full segment value must match `expr`, not merely a substring of it.
 21. An invalid regular expression in a regex parameter causes a panic at registration time.
 22. The captured value is stored in `Params` with the key equal to `name`.
@@ -270,3 +270,20 @@ See section 11 for the distinct panic raised when a regex parameter's opening `{
 95. This panic is distinct from rule 70 (an invalid Go regular expression inside a properly closed `{name:expr}` regex parameter). Rule 70 fires only once a complete `{...}` token has been parsed as a regex parameter; this rule fires when no closing `}` can be found at all within the segment, so no regex parameter is ever parsed and rule 70's check is never reached.
 
 96. Registering a pattern that triggers this panic does not modify the router's existing route tree. Any route registered before the panicking call remains fully intact and reachable by `Lookup` and `Walk`, with the same handler, exactly as before the panicking call; the malformed pattern itself is never added to the tree. This holds even when the malformed pattern would, absent this panic, have been inserted at or reused the very same tree node that an existing, unrelated route already occupies.
+
+---
+
+## 12. Empty Segment Rejection for Named and Regex Parameters
+
+97. Neither a named parameter (section 1.3) nor a regex parameter (section 1.5) ever matches an empty segment value. When the router's descent reaches a named-parameter or regex-parameter wildcard child and the candidate segment — the path text between the `/` that precedes it and the next `/` or the end of the path — has zero length, that candidate does not match, and the router does not select it. For a regex parameter, this check is applied before the regular expression is evaluated at all: a regular expression that would itself accept the empty string (for example, `[a-z]*`) never gets the opportunity to, because the empty segment is rejected first — a regex parameter's empty-segment behavior is identical to a named parameter's in every respect covered by this rule.
+
+98. This holds wherever an empty segment occurs in the request path, not only where the pattern's parameter is its last element. For example, with `/:id/posts` or `/{id:[a-z]*}/posts` registered, a request for `//posts` does not match: the candidate segment for `id` is empty, so rule 97 rejects it before the router ever reaches the `posts` segment that follows.
+
+99. **This is a behavior change relative to earlier releases of MuxMaster.** Previously, a named parameter, or a regex parameter whose expression accepted the empty string, could match a zero-length segment: `//profile` matched `/{id:[a-z]*}/profile`, and `//posts` matched `/:id/posts`, both capturing an empty string as the parameter's value. Neither matches after this fix. The rationale is consistency and correctness, not merely symmetry between the two parameter kinds: one parameter is defined to capture one segment (rule 8), and an empty string is not a meaningful representation of "a segment" reaching a handler as if it were genuine, non-degenerate captured input; allowing it also meant that an incidental double slash in a request path — most often a client or proxy defect, not a deliberate request — was silently reinterpreted as a completed, successfully matched parameter route instead of surfacing as the malformed path it actually is. See [params.md](params.md) rule 37 for the resulting guarantee about every `Param` value produced by ordinary route matching.
+
+100. Rule 11 already establishes that `/users/:id` does not match `/users/` — a *terminal* case: the request path ends immediately after the parameter's boundary `/`, with no further path following. That case does not go through the mechanism in rule 97 at all: the router determines there is no segment to attempt to capture in the first place, because no path remains once the preceding static prefix has been consumed, rather than finding a zero-length segment and rejecting it. Rules 97-98 state the general, position-independent form of the same underlying principle — a named or regex parameter always requires a genuinely non-empty captured segment — reached through this distinct, mid-path mechanism, which rule 11's terminal case does not exercise.
+
+101. When rule 97 rejects a candidate and no other route matches the request, the request falls through to the ordinary lookup sequence (section 4.1, rule 47), exactly as any other unmatched path does; rule 97 introduces no special-cased outcome of its own.
+     - A trailing-slash redirect (section 4.4) does not apply merely because rule 97 rejected a candidate: it applies only under its own, independent condition — a registered handler exists at the request path with its trailing `/` added or removed — which an empty-segment rejection does not, by itself, create. For example, a request for `//profile` against only `/{id:[a-z]*}/profile` produces no trailing-slash redirect, because neither `//profile/` nor a path one `/` shorter is a registered handler.
+     - A fixed-path redirect (section 4.5) applies only when `RedirectFixedPath` is `true` and a handler is registered for `path.Clean` of the request path. `path.Clean("//profile")` is `/profile`. With only `/{id:[a-z]*}/profile` registered and no separate route at `/profile`, a request for `//profile` produces a 404 response (the `NotFound` handler) regardless of `RedirectFixedPath`, because no handler exists at `/profile` either. If a route is additionally registered directly at `/profile`, the same `//profile` request, with `RedirectFixedPath` `true`, does redirect to `/profile` — this is the ordinary fixed-path mechanism operating exactly as section 4.5 already describes it, not a special case introduced by this section.
+     - With the default configuration (`RedirectTrailingSlash` `true`, `RedirectFixedPath` `false`) and no separate route registered at the cleaned path, a request that rule 97 rejects therefore ends in a plain 404, with no redirect of any kind.

@@ -768,9 +768,20 @@ walk:
 
 		switch n.nType {
 		case param:
+			// routing.md rule 97: a named parameter never captures an empty
+			// segment (params.md rule 37). path is never empty here (see the
+			// invariant established above the walk loop), so path[0] == '/'
+			// is the ONLY way this segment can be empty. Folded into a
+			// single leading check instead of a separate post-scan branch:
+			// it doubles as the i==0 case of the scan below, so that scan
+			// starts at i=1 — same total work as before, one branch instead
+			// of two on the common (non-empty) path.
+			if path[0] == '/' {
+				break walk
+			}
 			// Inline scan for '/' — avoids strings.IndexByte call for short params.
 			end := len(path)
-			for i := 0; i < len(path); i++ {
+			for i := 1; i < len(path); i++ {
 				if path[i] == '/' {
 					end = i
 					break
@@ -798,8 +809,15 @@ walk:
 			break walk
 
 		case regexParam:
+			// routing.md rule 97/99: rejected before the regexp is ever
+			// evaluated, so an expression that would itself accept the empty
+			// string (e.g. "[a-z]*") never gets the chance to — see the
+			// param case above for why this is a single leading check.
+			if path[0] == '/' {
+				break walk
+			}
 			end := len(path)
-			for i := 0; i < len(path); i++ {
+			for i := 1; i < len(path); i++ {
 				if path[i] == '/' {
 					end = i
 					break
@@ -998,8 +1016,14 @@ walk:
 
 		switch n.nType {
 		case param:
+			// routing.md rule 97: reject an empty mid-path segment before
+			// capturing — see the mirror check in getValue for the full
+			// rationale (single leading check, folded with the scan start).
+			if path[0] == '/' {
+				goto fail
+			}
 			end := len(path)
-			for i := 0; i < len(path); i++ {
+			for i := 1; i < len(path); i++ {
 				if path[i] == '/' {
 					end = i
 					break
@@ -1030,8 +1054,13 @@ walk:
 			goto fail
 
 		case regexParam:
+			// routing.md rule 97/99: rejected before the regexp is
+			// evaluated — see the mirror check in getValue.
+			if path[0] == '/' {
+				goto fail
+			}
 			end := len(path)
-			for i := 0; i < len(path); i++ {
+			for i := 1; i < len(path); i++ {
 				if path[i] == '/' {
 					end = i
 					break
