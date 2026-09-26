@@ -311,6 +311,10 @@ func (g *Group) ServeFiles(prefix string, root http.FileSystem)
     section in specification/README.md): a new *http.Request with a new URL,
     but sharing the original's header map and context.
 
+    SECURITY (CDX-S8-002): like Mux.ServeFiles, it panics when the owning Mux
+    has both UseRawPath and UnescapePathValues set at the time of the call.
+    See Mux.ServeFiles for the rationale.
+
 func (g *Group) TRACE(path string, h http.HandlerFunc)
     TRACE registers a HandlerFunc for TRACE requests on path.
 

@@ -235,10 +235,15 @@ func (g *Group) Mount(prefix string, h http.Handler) {
 // http.FileServer receives a shallow copy of the request (see the
 // Terminology section in specification/README.md): a new *http.Request with
 // a new URL, but sharing the original's header map and context.
+//
+// SECURITY (CDX-S8-002): like Mux.ServeFiles, it panics when the owning Mux
+// has both UseRawPath and UnescapePathValues set at the time of the call.
+// See Mux.ServeFiles for the rationale.
 func (g *Group) ServeFiles(prefix string, root http.FileSystem) {
 	if root == nil {
 		panic("muxmaster: nil root passed to ServeFiles")
 	}
+	g.mux.checkServeFilesRawPath()
 	fullPrefix := joinPrefix(g.prefix, prefix)
 	i := strings.LastIndex(fullPrefix, "/*")
 	if i < 0 {

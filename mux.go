@@ -1085,13 +1085,7 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 	if root == nil {
 		panic("muxmaster: nil root passed to ServeFiles")
 	}
-	if m.UseRawPath && m.UnescapePathValues {
-		panic("muxmaster: ServeFiles refuses to register with UseRawPath=true AND " +
-			"UnescapePathValues=true — captured filepath would contain decoded '/' " +
-			"and http.FileServer would treat them as separators (CDX-S8-002 / PRF-2026-0002). " +
-			"Disable one of the two, or implement a custom handler that path.Clean's " +
-			"the captured value before dispatch. See SECURITY.md \"UseRawPath traversal\".")
-	}
+	m.checkServeFilesRawPath()
 	i := strings.LastIndex(prefix, "/*")
 	if i < 0 {
 		panic("muxmaster: ServeFiles prefix must end with '/*name': " + prefix)
@@ -1112,6 +1106,21 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 	})
 	m.Handle(http.MethodGet, prefix, h)
 	m.Handle(http.MethodHead, prefix, h)
+}
+
+// checkServeFilesRawPath enforces the CDX-S8-002 / PRF-2026-0002
+// registration guard shared by (*Mux).ServeFiles and (*Group).ServeFiles:
+// it panics when m has both UseRawPath and UnescapePathValues enabled, since
+// the captured filepath would then contain decoded '/' that http.FileServer
+// treats as separators. Registration-time only; never on the request path.
+func (m *Mux) checkServeFilesRawPath() {
+	if m.UseRawPath && m.UnescapePathValues {
+		panic("muxmaster: ServeFiles refuses to register with UseRawPath=true AND " +
+			"UnescapePathValues=true — captured filepath would contain decoded '/' " +
+			"and http.FileServer would treat them as separators (CDX-S8-002 / PRF-2026-0002). " +
+			"Disable one of the two, or implement a custom handler that path.Clean's " +
+			"the captured value before dispatch. See SECURITY.md \"UseRawPath traversal\".")
+	}
 }
 
 // lazyNotFound returns the middleware-wrapped not-found handler, building and
