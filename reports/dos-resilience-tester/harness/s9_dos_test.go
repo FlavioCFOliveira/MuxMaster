@@ -596,34 +596,83 @@ func TestLoggerSanitiseForLogAdversarialUTF8(t *testing.T) {
 		t.Logf("Logger sanitiseForLog pathLen=%d: %v per request", pathLen, elapsed)
 	}
 
-	// Slope check: O(L) is expected; the cost per byte should be < 10 ns.
-	if len(results) >= 2 {
-		last := results[len(results)-1]
-		first := results[0]
-		deltaTime := float64(last.elapsed - first.elapsed)
-		deltaLen := float64(last.pathLen - first.pathLen)
-		slopeNSPerByte := deltaTime / deltaLen
-		t.Logf("sanitiseForLog slope: %.3f ns/byte", slopeNSPerByte)
-		if slopeNSPerByte > 10.0 {
-			t.Logf("DOS-2026-0060 NOTE: Logger sanitiseForLog slope=%.3f ns/byte — O(L) confirmed but "+
-				"check for quadratic behaviour with adversarial inputs (invalid UTF-8 sequences).", slopeNSPerByte)
-		} else {
-			t.Logf("DOS-2026-0060 PASS: slope %.3f ns/byte — bounded O(L)", slopeNSPerByte)
+	// ---------------------------------------------------------------------
+	// DOS-2026-0060 (closed-task audit #285, row #171): the checks below
+	// used to only t.Logf a "NOTE"/"TIMING NOTE" when a threshold was
+	// exceeded — the test could never fail regardless of how bad a
+	// regression was. Both checks below now HARD-FAIL. The absolute
+	// ns/byte threshold is race-build-aware (raceBuild, see
+	// racedetect_{on,off}.go): race instrumentation measurably inflates
+	// per-byte cost (4.579 ns/byte plain vs 63 ns/byte under -race for
+	// the same workload, measured 2026-09-26), so a single threshold
+	// would either false-fail under -race or be too loose to catch a
+	// real regression in normal builds.
+	// ---------------------------------------------------------------------
+	if len(results) < 2 {
+		t.Fatalf("DOS-2026-0060: need >=2 samples to fit a slope, got %d", len(results))
+	}
+
+	const nonRaceMaxNSPerByte = 10.0
+	const raceMaxNSPerByte = 150.0 // measured 63 ns/byte under -race; ~2.4x safety margin
+	maxNSPerByte := nonRaceMaxNSPerByte
+	if raceBuild {
+		maxNSPerByte = raceMaxNSPerByte
+	}
+
+	first := results[0]
+	last := results[len(results)-1]
+	deltaTime := float64(last.elapsed - first.elapsed)
+	deltaLen := float64(last.pathLen - first.pathLen)
+	slopeNSPerByte := deltaTime / deltaLen
+	t.Logf("sanitiseForLog slope: %.3f ns/byte (raceBuild=%v, threshold=%.1f)", slopeNSPerByte, raceBuild, maxNSPerByte)
+	if slopeNSPerByte > maxNSPerByte {
+		t.Fatalf("DOS-2026-0060 REGRESSION: Logger sanitiseForLog slope=%.3f ns/byte exceeds "+
+			"the %.1f ns/byte bound (raceBuild=%v) — O(L) contract violated or the constant "+
+			"factor has regressed", slopeNSPerByte, maxNSPerByte, raceBuild)
+	}
+
+	// Build-invariant super-linearity guard: compare the slope of the
+	// FIRST pairwise interval against the slope of the LAST pairwise
+	// interval. Race instrumentation multiplies every per-byte operation
+	// by roughly the same constant factor, so this RATIO stays meaningful
+	// regardless of raceBuild — a genuine quadratic/exponential blow-up
+	// widens the ratio far beyond measurement noise on any build.
+	if len(results) >= 3 {
+		firstSlope := float64(results[1].elapsed-results[0].elapsed) / float64(results[1].pathLen-results[0].pathLen)
+		lastSlope := float64(results[len(results)-1].elapsed-results[len(results)-2].elapsed) /
+			float64(results[len(results)-1].pathLen-results[len(results)-2].pathLen)
+		t.Logf("sanitiseForLog pairwise slopes: first=%.3f ns/byte, last=%.3f ns/byte", firstSlope, lastSlope)
+		// Only meaningful once both slopes are comfortably above timer
+		// resolution noise; below that, ratios are dominated by jitter.
+		const noiseFloorNSPerByte = 0.05
+		if firstSlope > noiseFloorNSPerByte && lastSlope > noiseFloorNSPerByte {
+			const maxSuperLinearRatio = 5.0
+			ratio := lastSlope / firstSlope
+			if ratio > maxSuperLinearRatio {
+				t.Fatalf("DOS-2026-0060 REGRESSION: sanitiseForLog cost is super-linear — last-interval "+
+					"slope (%.3f ns/byte) is %.1fx the first-interval slope (%.3f ns/byte), exceeding the "+
+					"%.1fx bound. This indicates quadratic/exponential behaviour on adversarial UTF-8 input, "+
+					"not the expected O(L).", lastSlope, ratio, firstSlope, maxSuperLinearRatio)
+			}
 		}
 	}
 
-	// Max acceptable: 65 KB path processed in < 5 ms per request.
-	// Skip latency assertion under -race (instrumentation adds ~10-20x overhead and is not
-	// indicative of production behaviour — the slope assertion above catches algorithmic issues).
+	// Absolute wall-clock ceiling for the largest (65 KB) adversarial path,
+	// race-build-aware for the same reason as the slope threshold above.
+	const nonRaceMaxLatency = 5 * time.Millisecond
+	const raceMaxLatency = 75 * time.Millisecond
+	maxLatency := nonRaceMaxLatency
+	if raceBuild {
+		maxLatency = raceMaxLatency
+	}
 	for _, res := range results {
-		if res.pathLen >= 65535 && res.elapsed > 5*time.Millisecond {
-			// Log as a warning rather than hard failure — race detector instrumentation
-			// inflates timing significantly. The slope assertion above is the real guard.
-			t.Logf("DOS-2026-0060 TIMING NOTE: Logger with 65KB adversarial path takes %v. "+
-				"Under -race this is expected (instrumentation overhead). "+
-				"Without -race: slope %.3f ns/byte is the authoritative measure.", res.elapsed, 0.0)
+		if res.pathLen >= 65535 && res.elapsed > maxLatency {
+			t.Fatalf("DOS-2026-0060 REGRESSION: Logger with a %d-byte adversarial path takes %v per "+
+				"request, exceeding the %v bound (raceBuild=%v)", res.pathLen, res.elapsed, maxLatency, raceBuild)
 		}
 	}
+	t.Logf("DOS-2026-0060 PASS: slope %.3f ns/byte <= %.1f, no super-linear growth, 65KB path within %v (raceBuild=%v)",
+		slopeNSPerByte, maxNSPerByte, maxLatency, raceBuild)
 }
 
 // safeSyncWriter is a concurrent-safe io.Writer for the logger test.

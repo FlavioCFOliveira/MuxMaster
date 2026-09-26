@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -726,64 +727,124 @@ func TestThrottlePerIP_AllowsDifferentIPs(t *testing.T) {
 
 // MSR-2026-0068 — ThrottlePerIP must bound its per-key map to defend against
 // IP-churn memory exhaustion.
+//
+// Closed-task audit #285 (rmp #285), row #74: the previous version of this
+// test only asserted "at least one 503 happened" and never asserted the
+// actual invariant MSR-2026-0068 is about — that the table's PEAK
+// concurrently-held population never exceeds maxTableSize. Its
+// synchronisation (a WaitGroup signalled right after the start barrier,
+// plus a 20 ms sleep) only approximated "every goroutine has reached
+// acquire()" — a goroutine could still be scheduled out before calling
+// acquire() when release closed, and once released, an accepted entry's
+// decRefs could free a slot for a not-yet-attempted request, letting
+// `accepted` legitimately grow past maxTable without that being a real
+// cap-overshoot. That raciness made a hard peak-size assertion unsound on
+// the old structure.
+//
+// This version removes the race by splitting the test into two
+// deterministic phases:
+//
+//  1. Saturate: issue exactly maxTable requests, one per distinct key —
+//     since maxTable == the cap and there is no other traffic, every one
+//     of them MUST be accepted. Poll (bounded by a generous deadline,
+//     not a fixed sleep) until all maxTable have actually entered the
+//     handler (i.e. passed acquire() and are now blocked on release) —
+//     this is the actual, unambiguous peak: no entry can have been
+//     reclaimed yet, because release has not been closed.
+//  2. Probe while saturated: with the table provably holding exactly
+//     maxTable live entries and release still closed (nothing can drain),
+//     fire further distinct-key requests and assert every single one is
+//     rejected with 503 — this is the direct, race-free proof that peak
+//     table size never exceeds maxTableSize.
 func TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn(t *testing.T) {
 	const maxTable = 64
 	mw := middleware.ThrottlePerIPCapped(1, 100*time.Millisecond, maxTable, func(r *http.Request) string {
 		host, _, _ := net.SplitHostPort(r.RemoteAddr)
 		return host
 	})
-	// release gates handler completion so every goroutine has reached acquire()
-	// before any accepted entry is freed. Without this barrier the test is
-	// flaky under slow schedulers (e.g. QEMU emulation in CI), where early
-	// handlers can finish and free their slot before late goroutines arrive.
+
 	release := make(chan struct{})
-	var entered sync.WaitGroup
-	entered.Add(maxTable * 2)
+	var enteredHandler atomic.Int64 // count of requests that passed acquire() and are blocked below
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		enteredHandler.Add(1)
 		<-release
 		w.WriteHeader(200)
 	})
 
-	// Hold many keys in flight by issuing concurrent requests, each from a
-	// distinct IP. After maxTable distinct keys are tracked, NEW keys must
-	// be rejected with 503 immediately.
+	// Phase 1 — saturate: exactly maxTable distinct-IP requests, held open.
 	var wg sync.WaitGroup
-	rejected := make(chan int, maxTable*2)
-	accepted := make(chan int, maxTable*2)
-	start := make(chan struct{})
-	for i := 0; i < maxTable*2; i++ {
+	phase1Codes := make(chan int, maxTable)
+	for i := 0; i < maxTable; i++ {
 		wg.Add(1)
 		go func(ip int) {
 			defer wg.Done()
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/", nil)
 			req.RemoteAddr = fmt.Sprintf("10.0.%d.%d:1000", (ip>>8)&0xff, ip&0xff)
-			<-start
-			entered.Done()
 			mw(inner).ServeHTTP(rec, req)
-			if rec.Code == http.StatusServiceUnavailable {
-				rejected <- ip
-			} else {
-				accepted <- ip
-			}
+			phase1Codes <- rec.Code
 		}(i)
 	}
-	close(start)
-	// Wait for every goroutine to be past the start barrier, then give the
-	// scheduler a brief window for acquire() to be entered before releasing.
-	entered.Wait()
-	time.Sleep(20 * time.Millisecond)
+
+	deadline := time.Now().Add(5 * time.Second)
+	for enteredHandler.Load() < maxTable {
+		if time.Now().After(deadline) {
+			t.Fatalf("phase 1: only %d/%d requests entered the handler within 5s (cap=%d, no contention expected) — "+
+				"scheduler starvation or a regression that rejects fresh, well-within-cap capacity",
+				enteredHandler.Load(), maxTable, maxTable)
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	// Phase 2 — probe while deterministically saturated. release is still
+	// closed-shut (not closed yet), so none of the phase-1 entries can have
+	// been reclaimed: the table holds EXACTLY maxTable live entries right
+	// now. Any further distinct-key request must be rejected.
+	const probes = 8
+	rejectedDuringSaturation := 0
+	for i := 0; i < probes; i++ {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/", nil)
+		req.RemoteAddr = fmt.Sprintf("10.1.%d.%d:2000", (i>>8)&0xff, i&0xff)
+		mw(inner).ServeHTTP(rec, req) // rejected fast path returns immediately, does not block
+		switch rec.Code {
+		case http.StatusServiceUnavailable:
+			rejectedDuringSaturation++
+		default:
+			t.Errorf("MSR-2026-0068 REGRESSION: a probe request was ACCEPTED (code=%d) while the table "+
+				"already held %d live entries at maxTableSize=%d — peak table size exceeded the bound",
+				rec.Code, maxTable, maxTable)
+		}
+	}
+	if rejectedDuringSaturation != probes {
+		t.Fatalf("expected all %d probe requests to be rejected while the table is saturated at maxTableSize=%d; got %d rejections",
+			probes, maxTable, rejectedDuringSaturation)
+	}
+
 	close(release)
 	wg.Wait()
-	close(rejected)
-	close(accepted)
+	close(phase1Codes)
 
-	// At least one request must have been rejected because of the cap.
-	if len(rejected) == 0 {
-		t.Fatalf("expected at least one 503 due to MaxTableSize cap; got 0 rejections (cap=%d, requests=%d)", maxTable, maxTable*2)
+	accepted := 0
+	for code := range phase1Codes {
+		if code == http.StatusOK {
+			accepted++
+		}
 	}
-	t.Logf("ThrottlePerIPCapped(maxTable=%d) under %d concurrent unique IPs: accepted=%d rejected=%d",
-		maxTable, maxTable*2, len(accepted), len(rejected))
+
+	// The definitive MSR-2026-0068 assertion the closed-task audit (#285,
+	// row #74) flagged as missing: peak table size must never exceed
+	// maxTableSize. `accepted` here IS the peak concurrently-held
+	// population — phase 2's probes (all rejected, asserted above) prove
+	// no capacity existed beyond it while these entries were live.
+	if accepted > maxTable {
+		t.Fatalf("MSR-2026-0068 REGRESSION: peak table size %d exceeded maxTableSize=%d", accepted, maxTable)
+	}
+	if accepted != maxTable {
+		t.Fatalf("expected exactly %d accepted (maxTable distinct keys, no contention, within cap), got %d", maxTable, accepted)
+	}
+	t.Logf("MSR-2026-0068 PASS: ThrottlePerIPCapped(maxTable=%d) peak table size = %d (<= cap); "+
+		"%d/%d saturation probes correctly rejected with 503", maxTable, accepted, rejectedDuringSaturation, probes)
 }
 
 // ── CleanPath (Phase 5.8) ────────────────────────────────────────────────────
