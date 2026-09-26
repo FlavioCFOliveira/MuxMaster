@@ -8,13 +8,16 @@ This file specifies Go version requirements, net/http ecosystem compatibility, a
 
 ## 1. Go Version
 
-1. MuxMaster requires Go 1.26 or later. This is the minimum version declared in `go.mod`.
+1. MuxMaster requires Go 1.27.1 or later. This is the minimum version declared in `go.mod` (`go 1.27.1`).
 2. The following language features used in the implementation require Go 1.22 or later:
     - `for i := range n` syntax (range over integer).
 3. The following language features used in the implementation require Go 1.21 or later:
     - `min` and `max` built-in functions.
-4. MuxMaster does not support Go 1.25 or earlier. Code that attempts to build with an older toolchain will produce a compilation error.
-5. MuxMaster will track Go's compatibility guarantee. Code that compiles under Go 1.26 must continue to compile under future Go releases without modification, unless a Go release introduces a breaking change to the standard library (which is rare and covered by the Go compatibility promise).
+4. MuxMaster does not support any Go release earlier than 1.27.1, including Go 1.27.0. What happens when an older toolchain is used depends on the `GOTOOLCHAIN` setting of that toolchain (Go 1.21 or later; see https://go.dev/doc/toolchain):
+    - With the default `GOTOOLCHAIN=auto`, the `go` command does not build with the older toolchain. It switches to Go 1.27.1 or a newer toolchain: it first searches `PATH` for a matching `go1.27.1` executable and otherwise downloads and caches that toolchain, then runs the build with it.
+    - With `GOTOOLCHAIN=local`, or with any setting that prevents switching to a suitable toolchain (for example `GOTOOLCHAIN=path` when no matching executable is found in `PATH`), the `go` command refuses to build and reports an error stating that the module requires `go >= 1.27.1`.
+    - Toolchains earlier than Go 1.21 do not perform toolchain switching. Go 1.19.13 and later Go 1.19 releases, and Go 1.20.8 and later Go 1.20 releases, refuse to load a module that declares Go 1.22 or later. Behavior with any other pre-1.21 toolchain is not specified.
+5. MuxMaster will track Go's compatibility guarantee. Code that compiles under Go 1.27.1 must continue to compile under future Go releases without modification, unless a Go release introduces a breaking change to the standard library (which is rare and covered by the Go compatibility promise).
 
 ---
 

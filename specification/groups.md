@@ -20,7 +20,7 @@ This file does not cover the middleware application rules for groups (see [middl
 ## 2. Creating a Group
 
 5. `(*Mux).Group(prefix string) *Group` returns a new `*Group` with the given prefix and an empty middleware slice.
-6. The prefix must begin with `/`. A prefix that does not begin with `/` causes a panic.
+6. Neither `(*Mux).Group` nor `(*Group).Group` validates its prefix, and neither ever panics. The prefix is only used when a route is later registered on the group. A non-empty prefix that does not begin with `/` is accepted at creation, but it produces a joined pattern that does not begin with `/` (section 11, requirement 42). Every later route registration on that group, including `ServeFiles`, and on any sub-group derived from it, therefore panics at registration time with the [routing.md](routing.md) rule 63 message (`muxmaster: path must begin with '/' in '<pattern>'`, where `<pattern>` is the joined pattern, for example `api/users`), and `(*Group).Mount` on it panics per requirement 30. The empty prefix is valid: routes registered on a group with an empty prefix use the route-local path unchanged.
 7. The prefix may end with `/` or not. Both are valid. The final route path is produced by joining the group prefix and the route-local path according to the rule in section 11; it is not a plain, unconditional concatenation. It remains the caller's responsibility to ensure the resulting path is valid — see section 11 for exactly what the join does and does not normalize.
 
 ---
@@ -97,6 +97,8 @@ mux.Route("/api/v1", func(api *muxmaster.Group) {
 29. Calling `Mount` with a nil handler causes a panic.
 30. Calling `Mount` with a prefix that does not begin with `/` causes a panic.
 
+    See section 12, requirement 45, for the panic raised when the prefix is not valid UTF-8.
+
 ```go
 // Example
 mux.Mount("/legacy", legacyRouter)
@@ -169,3 +171,9 @@ api.GET("orders", h2)
 // so nothing is inserted (requirement 42); this happens to still be correct
 // only because the group prefix already ends in '/'.
 ```
+
+---
+
+## 12. Mount Prefix UTF-8 Validation
+
+45. Calling `Mount` with a prefix that is not a valid UTF-8 string causes a panic at registration time with the message `muxmaster: Mount prefix contains invalid UTF-8`. The message never includes the prefix. For `(*Group).Mount`, the check applies to the joined prefix (requirement 22). The check runs after the nil-handler check (requirement 29) and the leading-`/` check (requirement 30), and before the optional-parameter check (requirement 36); no route is registered when it fails. Example: `Mount("/\xff", h)` (Go notation) panics with this message. Without this check, the invalid prefix would reach the general route-registration panic for an invalid UTF-8 pattern ([routing.md](routing.md) section 16, requirement 111), whose message would expose the internal `mux_mount` catch-all name (requirement 28) instead of naming the `Mount` prefix.

@@ -260,7 +260,7 @@ See section 21 for `ThrottleAllBacklog` (an alternative name for this same funct
 | `ClientID`, `ClientSecret` | `string` | When `ClientID` is non-empty, the introspection request authenticates via HTTP Basic using these values. |
 | `CacheTTL` | `time.Duration` | How long an active token's introspection result is cached. `0` selects the default of 60 seconds; a negative value disables caching entirely. |
 | `MaxCacheSize` | `int` | Caps the number of distinct cached tokens. A value `<= 0` selects the default of 10000. |
-| `HTTPClient` | `*http.Client` | Used for introspection HTTP requests. Default: `&http.Client{Timeout: 10 * time.Second}`. |
+| `HTTPClient` | `*http.Client` | Used for introspection HTTP requests. Default (when `nil`): a client, built once per `OAuth2Introspect` call, with a 10-second `Timeout` whose `Transport` is a clone of `http.DefaultTransport` with `MaxIdleConnsPerHost` set to 100, so concurrent introspection calls to the single endpoint host reuse keep-alive connections. If `http.DefaultTransport` is not an `*http.Transport`, the client's `Transport` is left `nil`, so `http.DefaultTransport` is used unchanged. |
 | `ExtractFn` | `func(*http.Request) string` | Overrides token extraction. Default: the same Bearer-scheme extractor `JWTAuth` uses. |
 
 96. Construction validates `opts.Endpoint` and panics on any of the following, in this order — every panic message that could otherwise echo a credential embedded in `opts.Endpoint` (for example `https://user:secret@host/introspect`) instead renders a redacted form with the userinfo component removed entirely, never password-masked (CWE-532):
