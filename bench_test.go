@@ -588,3 +588,71 @@ func BenchmarkQuadraticBacktracking(b *testing.B) {
 		})
 	}
 }
+
+// ── Mount ─────────────────────────────────────────────────────────────────
+
+// newBenchMountMux builds an outer *Mux that mounts an inner *Mux at a
+// static prefix, mirroring newBenchMux's realistic route mix on the inner
+// side. Used to measure the cost mountAt's forwarding closure adds on top
+// of a plain dispatch — the mountBundle allocation, the composed-prefix
+// bookkeeping (specification/groups.md §8), and the RawPath derivation
+// (§10) all run on every request that reaches this path, matched or not.
+func newBenchMountMux() *muxmaster.Mux {
+	inner := newBenchMux()
+	outer := muxmaster.New()
+	outer.Mount("/api", inner)
+	return outer
+}
+
+// BenchmarkMount_Static measures a static-route lookup reached through one
+// level of Mount (outer dispatch → mountAt's forwarding closure → inner
+// dispatch), the baseline every mounted request pays regardless of route
+// shape.
+func BenchmarkMount_Static(b *testing.B) {
+	m := newBenchMountMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/api/users/list")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkMount_Param measures a one-path-parameter route reached through
+// Mount — the shape most affected by this change: mountAt now additionally
+// computes matchedPrefix, composes the Mount-prefix chain, and (when
+// r.URL.RawPath is set) runs the RawPath derivation, on top of the
+// pre-existing shallow request copy.
+func BenchmarkMount_Param(b *testing.B) {
+	m := newBenchMountMux()
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/api/users/42")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		m.ServeHTTP(w, r)
+	}
+}
+
+// BenchmarkMount_TSRRedirect measures a trailing-slash redirect issued by
+// the INNER *Mux and rewritten by the outer Mux through the mount-prefix
+// chain (specification/groups.md §8) — the new Location-rewriting code
+// path added by this change.
+func BenchmarkMount_TSRRedirect(b *testing.B) {
+	inner := muxmaster.New()
+	inner.GET("/users/", nopHandler)
+	outer := muxmaster.New()
+	outer.Mount("/api", inner)
+
+	w := httptest.NewRecorder()
+	r := benchReq(http.MethodGet, "/api/users")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		outer.ServeHTTP(w, r)
+	}
+}
