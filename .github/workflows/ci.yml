@@ -1,8 +1,11 @@
 name: CI
 
 on:
+  # gitflow without pull requests: sprint, release and hotfix work reaches
+  # develop and main by direct pushes, so every gitflow branch is tested
+  # on push. The pull_request trigger covers external contributions.
   push:
-    branches: [main]
+    branches: [main, develop, "release/**", "hotfix/**"]
   pull_request:
     branches: [main]
 
@@ -22,9 +25,9 @@ jobs:
         # CI-2026-005: race detector is well-supported across all 3 OSes;
         # if a Windows-specific path quirk emerges, scope it via build tags.
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version: ${{ matrix.go }}
 
@@ -56,7 +59,7 @@ jobs:
     # atomics + unsafe.Add behaviour on a different memory model. Slower
     # than native arm64 runners but available on free-tier minutes.
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       - uses: docker/setup-qemu-action@v4
         with:
@@ -78,9 +81,9 @@ jobs:
     # exercise current MuxMaster code (not stale vendor copies).
     # Separate from fast unit tests to avoid bloating PR latency.
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
@@ -143,9 +146,9 @@ jobs:
     # private ctx field; a future Go version may remove or move it.
     # rmp #289: Allowed to fail without blocking PR merge (advisory only).
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
@@ -171,14 +174,14 @@ jobs:
     name: Lint (golangci-lint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9.2.0
+        uses: golangci/golangci-lint-action@v9.3.0
         with:
           version: v2.14.0
 
@@ -186,9 +189,9 @@ jobs:
     name: SAST (staticcheck)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
@@ -210,26 +213,30 @@ jobs:
     name: SAST (gosec)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
+      - name: Install gosec
+        # Installed from source with the Go toolchain from go.mod, like
+        # staticcheck and govulncheck. The securego/gosec Docker action is
+        # not used: its images pin GOTOOLCHAIN=local with an older Go (the
+        # v2.29.0 action runs a go1.26.5 image, master a go1.27.0 one), so
+        # they cannot load a module that requires go 1.27.1.
+        run: go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
+
       - name: Run gosec
-        # @master is the upstream-recommended pin (pinned to latest stable release).
-        # See: https://github.com/securego/gosec#integrating-with-github-actions
-        uses: securego/gosec@master
-        with:
-          args: -exclude-dir=reports -severity=medium ./...
+        run: gosec -exclude-dir=reports -severity=medium ./...
 
   vulncheck:
     name: Vulnerability scan (govulncheck)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
@@ -243,7 +250,7 @@ jobs:
     name: SAST (semgrep custom rules)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       - name: Install semgrep
         # Pinned version for reproducibility
@@ -269,43 +276,67 @@ jobs:
   changelog-touched:
     name: CHANGELOG.md updated
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    # Runs on push as well as on pull_request: the project merges gitflow
+    # branches by direct pushes, so a PR-only gate would never run.
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
       - name: Verify CHANGELOG entry on behavioural changes
-        # CI-2026-016: PRs touching .go files (excluding _test.go,
+        # CI-2026-016: changes touching .go files (excluding _test.go,
         # /reports/, /competitor/, /examples/) must update CHANGELOG.md
-        # under [Unreleased]. Pure-test or doc-only PRs are exempt.
-        # Override with the 'no-changelog' label.
+        # under [Unreleased]. Pure-test or doc-only changes are exempt.
+        # Pull requests can override with the 'no-changelog' label; pushes
+        # have no override.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+          PUSH_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
-          base="${{ github.event.pull_request.base.sha }}"
-          head="${{ github.event.pull_request.head.sha }}"
-          changed=$(git diff --name-only "$base" "$head")
+          zero=0000000000000000000000000000000000000000
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            changed=$(git diff --name-only "$PR_BASE" "$PR_HEAD")
+          elif [ "$PUSH_BEFORE" != "$zero" ] &&
+               git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null &&
+               git merge-base --is-ancestor "$PUSH_BEFORE" "$PUSH_AFTER"; then
+            # Fast-forward push: the net change the push introduced.
+            changed=$(git diff --name-only "$PUSH_BEFORE" "$PUSH_AFTER")
+          else
+            # New branch (zero "before" SHA) or forced push ("before" is
+            # unknown or not an ancestor): the files touched by the commits
+            # that no other branch or tag already contains.
+            branch="${PUSH_REF#refs/heads/}"
+            mapfile -t others < <(git for-each-ref --format='%(refname)' refs/remotes/origin refs/tags |
+              grep -vxF -e "refs/remotes/origin/${branch}" -e "refs/remotes/origin/HEAD" || true)
+            changed=$(git log --format= --name-only --no-merges "$PUSH_AFTER" --not "${others[@]}" | sort -u)
+          fi
 
           # Behavioural change = any non-test .go outside excluded dirs
-          beh=$(echo "$changed" | grep -E '\.go$' | grep -vE '_test\.go$' | grep -vE '^reports/|^competitor/|^examples/' || true)
+          beh=$(grep -E '\.go$' <<<"$changed" | grep -vE '_test\.go$' | grep -vE '^reports/|^competitor/|^examples/' || true)
           if [ -z "$beh" ]; then
             echo "No behavioural .go changes — CHANGELOG check skipped."
             exit 0
           fi
 
-          if echo "$changed" | grep -q '^CHANGELOG\.md$'; then
+          if grep -qx 'CHANGELOG\.md' <<<"$changed"; then
             echo "CHANGELOG.md updated."
             exit 0
           fi
 
-          labels='${{ toJson(github.event.pull_request.labels.*.name) }}'
-          if echo "$labels" | grep -q 'no-changelog'; then
+          if [ "$EVENT_NAME" = "pull_request" ] && grep -q 'no-changelog' <<<"$PR_LABELS"; then
             echo "PR carries 'no-changelog' label — exempt."
             exit 0
           fi
 
           echo "::error::Behavioural .go changes detected without a CHANGELOG.md update."
-          echo "Either add an entry under [Unreleased] or apply the 'no-changelog' label if this is intentional."
+          echo "Add an entry under [Unreleased] (pull requests may instead apply the 'no-changelog' label)."
           echo ""
           echo "Files changed:"
           echo "$beh"
@@ -315,9 +346,9 @@ jobs:
     name: api.md is up to date
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
@@ -335,16 +366,18 @@ jobs:
   api-diff:
     name: API breaking-change check (apidiff)
     runs-on: ubuntu-latest
-    # Only run on PRs targeting main; pushes to main use this for advisory
-    # output but never fail the merge (the comparison is against the latest
-    # tag, which the merge will have updated).
-    if: github.event_name == 'pull_request'
+    # Compares the root package API with the latest release tag reachable
+    # from the checked-out commit.
+    # - pull_request: incompatible changes fail the job unless the PR
+    #   carries the 'api-break' label.
+    # - push: advisory only. Incompatible changes are reported as a
+    #   warning annotation and in the job summary; the job never fails.
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0   # full history so we can resolve tags
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
@@ -354,29 +387,54 @@ jobs:
       - name: Resolve baseline tag
         id: baseline
         run: |
-          tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-          if [ -z "$tag" ]; then
-            tag=$(git tag --sort=-v:refname | head -1)
-          fi
+          # Latest release tag (vX.Y.Z, no pre-release suffix) reachable
+          # from HEAD; empty when there is none.
+          tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' HEAD 2>/dev/null || true)
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "Comparing against ${tag:-(no tag)}"
+          if [ -z "$tag" ]; then
+            echo "::notice::No release tag reachable from HEAD; API comparison skipped."
+            echo "apidiff: no release tag reachable from HEAD; comparison skipped." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Comparing against $tag"
+          fi
 
       - name: Compare API surface
         if: steps.baseline.outputs.tag != ''
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_TAG: ${{ steps.baseline.outputs.tag }}
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
           set -euo pipefail
-          tag="${{ steps.baseline.outputs.tag }}"
-          # Snapshot of the baseline export.
-          git worktree add /tmp/baseline "$tag"
-          (cd /tmp/baseline && apidiff -w /tmp/baseline.api .)
-          # Compare against HEAD.
-          report=$(apidiff /tmp/baseline.api . || true)
+          advisory=true
+          [ "$EVENT_NAME" = "pull_request" ] && advisory=false
+
+          # apidiff exits 0 whether or not it finds changes; a non-zero exit
+          # means the tool itself failed. That fails a pull request (the
+          # check could not run) and is only a warning on push.
+          base_dir="$RUNNER_TEMP/apidiff-baseline"
+          if ! { git worktree add --detach "$base_dir" "$BASE_TAG" &&
+                 (cd "$base_dir" && apidiff -w "$RUNNER_TEMP/baseline.api" .) &&
+                 report=$(apidiff "$RUNNER_TEMP/baseline.api" .); }; then
+            if $advisory; then
+              echo "::warning::apidiff could not compare the API against $BASE_TAG."
+              exit 0
+            fi
+            echo "::error::apidiff could not compare the API against $BASE_TAG."
+            exit 1
+          fi
           echo "$report"
-          # If incompatible changes are listed, fail unless the PR carries
-          # the api-break label.
-          if echo "$report" | grep -qiE '^Incompatible changes'; then
-            labels='${{ toJson(github.event.pull_request.labels.*.name) }}'
-            if echo "$labels" | grep -q 'api-break'; then
+          {
+            echo "### API changes since $BASE_TAG"
+            echo '```'
+            echo "${report:-No API changes.}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if grep -qiE '^Incompatible changes' <<<"$report"; then
+            if $advisory; then
+              echo "::warning::Incompatible API changes since $BASE_TAG (advisory on push; see the job summary)."
+            elif grep -q 'api-break' <<<"$PR_LABELS"; then
               echo "PR is labelled api-break — incompatible changes accepted."
             else
               echo "::error::Incompatible API changes detected. Either revert or add the 'api-break' label and document in CHANGELOG."
@@ -388,9 +446,9 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
