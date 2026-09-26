@@ -1,0 +1,2 @@
+go test fuzz v1
+string("/\x8d\t\t\t\t0")
