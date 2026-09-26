@@ -33,6 +33,12 @@ Static segments match literally; dynamic segments use one of three forms:
   - Regex parameter: /items/{id:[0-9]+} — Go regexp restricted match
   - Catch-all: /static/*filepath — matches the rest of the path
 
+Catch-all values are the unsanitised remainder of the request path (decoded
+r.URL.Path, or r.URL.RawPath when Mux.UseRawPath is set), so they may contain
+dot-dot segments. Handlers that map a catch-all value to files must use
+http.FileServer or ServeFiles, which clean the path, or clean and confine the
+value themselves to prevent directory traversal.
+
 # Middleware
 
 Three orthogonal middleware scopes are supported:
@@ -46,15 +52,21 @@ Three orthogonal middleware scopes are supported:
 
 See the SECURITY.md "Pre vs Use security boundary" section for the full matrix.
 
+Use and UseFast middleware must be registered before the routes they should
+wrap. Registering routes after the server has started serving is not supported.
+
 # Performance
 
-On AMD Ryzen 9 5900HX (Go 1.26.2):
+Root-package benchmarks on AMD Ryzen 9 5900HX (Go 1.27.0, 2026-09-26; see
+docs/performance.md for the method and the full tables):
 
-  - Static route: ~25 ns / 0 alloc
-  - 1-param Handle (default): ~105 ns / 1 alloc / 384 B
-  - 1-param HandleFast (default): ~50 ns / 1 alloc / 32 B
-  - 1-param Handle + Mux.PoolRequestBundle = true: ~45 ns / 0 alloc / 0 B
-  - 1-param HandleFast + Mux.PoolFastParams = true: ~44 ns / 0 alloc / 0 B
+  - Static route: 28.6 ns / 0 allocs
+  - 1-param Handle (default): 118.5 ns / 1 alloc / 384 B
+  - 1-param HandleFast (default): 46.2 ns / 1 alloc / 32 B
+  - 1-param Handle + Mux.PoolRequestBundle = true: 48.5 ns / 0 allocs
+
+Mux.PoolFastParams = true also removes the 1-param HandleFast allocation;
+the 2026-09-26 run has no benchmark for it.
 
 HandleFast routes bypass the requestCtx allocation by passing Params directly as
 the third handler argument; they trade off stdlib middleware compatibility for
@@ -70,28 +82,6 @@ See docs/max-performance.md for the audit checklist and worked recipes.
 
 See COMPATIBILITY.md for the SemVer scheme, tier classification of the public
 API surface, deprecation policy, and Go version policy.
-
-Package muxmaster is a high-performance HTTP request multiplexer for Go.
-
-Routes are matched with a radix (compressed prefix) tree, giving O(k) lookup
-where k is the path length. Zero external dependencies; pure standard library.
-
-Usage:
-
-    mux := muxmaster.New()
-    mux.Use(logger, auth)          // middleware applied to every route below
-    mux.GET("/users", listUsers)
-    mux.GET("/users/:id", getUser)
-    mux.GET("/static/*filepath", serveFiles)
-
-    api := mux.Group("/api/v1")
-    api.Use(apiKeyCheck)
-    api.POST("/items", createItem)
-
-    http.ListenAndServe(":8080", mux)
-
-Middleware must be registered (via Use) before the routes it should wrap.
-Dynamic route registration after the server starts serving is not supported.
 
 CONSTANTS
 
@@ -127,12 +117,25 @@ func NoContent(w http.ResponseWriter)
 func PathParam(r *http.Request, name string) string
     PathParam returns the value of the named path parameter from the request.
 
+    SECURITY: Path parameters may contain any byte, including CR/LF and NUL.
+    When UseRawPath=false (the default), net/http decodes percent-encoded
+    sequences before routing. A request like /users/%0D%0ASet-Cookie:%20hacked
+    becomes /users/\r\nSet-Cookie: hacked in the matched parameter. Handlers
+    must not echo parameters directly into headers or logs without escaping (use
+    url.PathEscape for header injection mitigation, html.EscapeString for logs).
+
 func Redirect(w http.ResponseWriter, r *http.Request, code int, url string)
     Redirect sends an HTTP redirect to url with the given status code.
 
 func RoutePattern(r *http.Request) string
     RoutePattern returns the registered route pattern that matched the request,
-    or "" if none has been stored in the context.
+    or "" if none has been stored in the context. Only routes with at least one
+    parameter (named, regex or catch-all) store their pattern, so RoutePattern
+    returns "" for a static route, for the NotFound, MethodNotAllowed, automatic
+    OPTIONS and redirect handlers, and inside Pre middleware, which runs before
+    routing. A static route of a *Mux attached with Mount sees the mount's own
+    pattern, prefix + "/*mux_mount", because the context stores the nearest
+    parameterised match.
 
 func Text(w http.ResponseWriter, code int, s string) error
     Text writes s as plain text with the given status code.
@@ -184,7 +187,8 @@ type Group struct {
     Create one via Mux.Group; nest further via Group.Group.
 
 func (g *Group) ANY(path string, h http.HandlerFunc)
-    ANY registers h for all standard HTTP methods on path.
+    ANY registers h on path for every supported method: GET, HEAD, POST, PUT,
+    PATCH, DELETE, OPTIONS, CONNECT, TRACE and QUERY.
 
 func (g *Group) CONNECT(path string, h http.HandlerFunc)
     CONNECT registers a HandlerFunc for CONNECT requests on path.
@@ -205,7 +209,10 @@ func (g *Group) GETE(path string, h HandlerFuncE)
 
 func (g *Group) Group(prefix string) *Group
     Group returns a sub-group sharing the same mux with an extended prefix.
-    The sub-group starts with a copy of the parent group's middleware stacks.
+    The full prefix is g.prefix joined with prefix (see specification/groups.md
+    section 11). The sub-group starts with a copy of the parent group's
+    middleware stacks; middleware added to either group afterwards does not
+    affect the other.
 
 func (g *Group) HEAD(path string, h http.HandlerFunc)
     HEAD registers a HandlerFunc for HEAD requests on path.
@@ -216,8 +223,8 @@ func (g *Group) HEADE(path string, h HandlerFuncE)
 
 func (g *Group) Handle(method, path string, handler http.Handler)
     Handle registers handler under this group with the given method and path.
-    The full path is g.prefix + path. Group middleware is applied after
-    mux-level middleware.
+    The full path is g.prefix joined with path (see specification/groups.md
+    section 11). Mux-level middleware wraps the group middleware.
 
 func (g *Group) HandleE(method, path string, h HandlerFuncE)
     HandleE registers a HandlerFuncE under this group. Errors are passed to
@@ -226,9 +233,10 @@ func (g *Group) HandleE(method, path string, h HandlerFuncE)
     rationale (CSA-2026-0052).
 
 func (g *Group) HandleFast(method, path string, h FastHandler)
-    HandleFast registers a FastHandler under this group with the given method
-    and path. The full path is g.prefix + path. Group FastMiddleware is applied
-    before dispatch.
+    HandleFast registers a FastHandler under this group with the given
+    method and path. The full path is g.prefix joined with path (see
+    specification/groups.md section 11). Mux-level FastMiddleware wraps the
+    group FastMiddleware.
 
     SECURITY: panics if the group has stdlib middleware registered via Use().
     Stdlib middleware is incompatible with the FastHandler dispatch path —
@@ -244,11 +252,13 @@ func (g *Group) Match(methods []string, path string, handler http.Handler)
     Match registers handler for each of the listed methods on path.
 
 func (g *Group) Mount(prefix string, h http.Handler)
-    Mount attaches h at g.prefix+prefix, stripping the full prefix before
-    forwarding. The group's stdlib middleware (registered via Use) wraps the
-    mounted handler so authentication, logging, etc. apply to every request
-    reaching h — without this wrapping a Group with BasicAuth/JWTAuth would
-    silently leave the mounted handler unprotected (MSR-2026-0062).
+    Mount attaches h at g.prefix joined with prefix (see specification/groups.md
+    section 11), stripping the full prefix before forwarding. See Mux.Mount
+    for the registered pattern and panics. The group's stdlib middleware
+    (registered via Use) wraps the mounted handler so authentication, logging,
+    etc. apply to every request reaching h — without this wrapping a Group with
+    BasicAuth/JWTAuth would silently leave the mounted handler unprotected
+    (MSR-2026-0062).
 
 func (g *Group) OPTIONS(path string, h http.HandlerFunc)
     OPTIONS registers a HandlerFunc for OPTIONS requests on path.
@@ -293,12 +303,13 @@ func (g *Group) Route(prefix string, fn func(*Group))
     Route creates a sub-group at prefix and calls fn with it.
 
 func (g *Group) ServeFiles(prefix string, root http.FileSystem)
-    ServeFiles serves static files from root under the given prefix pattern.
-    prefix must end with "/*name" (relative to the group prefix).
+    ServeFiles serves static files from root under g.prefix joined with prefix
+    (see specification/groups.md section 11). prefix must end with "/*name"
+    (relative to the group prefix).
 
     http.FileServer receives a shallow copy of the request (see the Terminology
-    section in README.md): a new *http.Request with a new URL, but sharing the
-    original's header map and context.
+    section in specification/README.md): a new *http.Request with a new URL,
+    but sharing the original's header map and context.
 
 func (g *Group) TRACE(path string, h http.HandlerFunc)
     TRACE registers a HandlerFunc for TRACE requests on path.
@@ -334,15 +345,19 @@ type Mux struct {
 	// handler exists at the alternate path.
 	RedirectTrailingSlash bool
 
-	// RedirectFixedPath redirects requests whose cleaned path has a handler.
+	// RedirectFixedPath redirects a request whose path has no route, but
+	// whose path.Clean form does, to that cleaned path (for example //users
+	// or /a/../users to /users). New leaves it false: a redirect to a
+	// canonicalised path can bypass path-inspecting middleware.
 	RedirectFixedPath bool
 
 	// HandleMethodNotAllowed returns 405 with an Allow header when the path
 	// exists but not for the requested method.
 	HandleMethodNotAllowed bool
 
-	// HandleOPTIONS replies to OPTIONS requests with the Allow header set to
-	// all registered methods for the matched path.
+	// HandleOPTIONS replies to OPTIONS requests for a path that has no
+	// explicit OPTIONS route with 204 No Content and an Allow header listing
+	// the methods registered for that path.
 	HandleOPTIONS bool
 
 	// CaseInsensitive enables case-insensitive route matching for static segments.
@@ -365,17 +380,19 @@ type Mux struct {
 	// then DECODED in the captured param value. A request such as
 	// `/files/..%2fetc%2fpasswd` binds `:filepath` to the literal string
 	// `..\x2fetc\x2fpasswd` — i.e. the captured value contains a real slash.
-	// Handlers that pass `ParamsFromContext(...).ByName("filepath")` to
+	// Handlers that pass `ParamsFromContext(...).Get("filepath")` to
 	// `os.Open`, `http.FileServer`, or any URL/file API WITHOUT calling
 	// `path.Clean` (and rejecting values that contain `..`) are vulnerable to
-	// directory traversal. The `clean_path` middleware does NOT normalise
+	// directory traversal. The CleanPath middleware does NOT normalise
 	// post-decode values; it only canonicalises the request path before
 	// dispatch. See SECURITY.md "UseRawPath traversal" and
 	// examples/static-site/ for the safe pattern.
 	UnescapePathValues bool
 
-	// RedirectCode overrides the default redirect status code (301/307).
-	// Zero means use the default.
+	// RedirectCode overrides the status code of the automatic trailing-slash
+	// and fixed-path redirects. Zero (the default) means 301 Moved
+	// Permanently for GET and HEAD and 307 Temporary Redirect for every
+	// other method, including QUERY, so the method and body are preserved.
 	RedirectCode int
 
 	// NotFound is called when no route matches (default: http.NotFound).
@@ -424,7 +441,8 @@ type Mux struct {
 	// PoolRequestBundle, when true, recycles the per-request reqBundle (the
 	// fused requestCtx + http.Request copy) handed to http.Handler routes
 	// with path parameters via a tiered sync.Pool. It eliminates the
-	// 368/400/480-byte allocation on every param-route request and is the
+	// per-request bundle allocation (a 384, 416 or 480 B size class for 1, 2
+	// or 3+ parameters) on every param-route request and is the
 	// single largest performance lever for stdlib-style handlers — but it
 	// enforces a strict lifetime contract:
 	//
@@ -433,21 +451,20 @@ type Mux struct {
 	//   the handler observe a recycled request bound to an unrelated route —
 	//   effectively a use-after-free against the bundle storage.
 	//
-	// This contract is stricter than the Go stdlib's documented invariant
-	// (net/http itself recycles request structs internally, but only via the
-	// per-connection serve loop, which guarantees the handler has returned
-	// before recycling). With PoolRequestBundle the recycling happens at
-	// MuxMaster's dispatch boundary, which is finer-grained.
+	// This contract is stricter than the default mode, in which a handler
+	// may retain r after returning: with PoolRequestBundle the storage behind
+	// r is reused as soon as MuxMaster's dispatch returns.
 	//
 	// Default is FALSE for full stdlib semantics. Operators who audit their
-	// handlers and confirm they do not retain r past return may opt in to
-	// drive ParamRoute1 from ~106 ns / 384 B / 1 alloc down to roughly
-	// 40-50 ns / 0 B / 0 allocs on the hot path.
+	// handlers and confirm they do not retain r past return may opt in. On
+	// the 2026-09-26 benchmark run (AMD Ryzen 9 5900HX, Go 1.27.0; see
+	// docs/performance.md) it took BenchmarkParamRoute1 from 118.5 ns /
+	// 384 B / 1 alloc to 48.5 ns / 0 B / 0 allocs.
 	//
 	// SECURITY (Opt O13): the bundle is fully zeroed before returning to
 	// the pool, so secrets accidentally stored in request fields by a
-	// handler cannot leak across requests. The zeroing cost (~10 ns) is
-	// already included in the projected savings.
+	// handler cannot leak across requests. The measured figures above
+	// include the zeroing cost.
 	PoolRequestBundle bool
 
 	// Has unexported fields.
@@ -459,10 +476,15 @@ type Mux struct {
     snapshot when changing flags after the server has started serving.
 
 func New() *Mux
-    New returns a Mux with production-safe defaults enabled.
+    New returns a Mux with production-safe defaults: RedirectTrailingSlash,
+    HandleMethodNotAllowed and HandleOPTIONS are true; RedirectFixedPath,
+    CaseInsensitive, UseRawPath, UnescapePathValues, PoolFastParams and
+    PoolRequestBundle are false; RedirectCode is 0 and every handler field is
+    nil, selecting the documented defaults.
 
 func (m *Mux) ANY(pattern string, h http.HandlerFunc)
-    ANY registers handler for all standard HTTP methods on pattern.
+    ANY registers h on pattern for every supported method: GET, HEAD, POST, PUT,
+    PATCH, DELETE, OPTIONS, CONNECT, TRACE and QUERY.
 
 func (m *Mux) CONNECT(pattern string, h http.HandlerFunc)
     CONNECT registers a HandlerFunc for CONNECT requests on pattern.
@@ -491,7 +513,9 @@ func (m *Mux) GETFast(pattern string, h FastHandler)
     GETFast registers a FastHandler for GET requests on pattern.
 
 func (m *Mux) Group(prefix string) *Group
-    Group returns a RouteGroup whose routes share the given path prefix.
+    Group returns a *Group whose routes share the given path prefix. The group
+    starts with no middleware of its own; the Mux's Use middleware still wraps
+    its routes.
 
 func (m *Mux) HEAD(pattern string, h http.HandlerFunc)
     HEAD registers a HandlerFunc for HEAD requests on pattern.
@@ -508,9 +532,15 @@ func (m *Mux) Handle(method, pattern string, handler http.Handler)
 
     Path parameters use the ':name' syntax (/users/:id). Regex params use
     '{name:expr}' (/users/{id:[0-9]+}). Catch-all parameters use '*name' and
-    must end the path (/static/*filepath).
+    must end the path (/static/*filepath). Catch-all values are the unsanitised
+    remainder of the request path (decoded r.URL.Path, or r.URL.RawPath when
+    UseRawPath is set) and may contain dot-dot segments; handlers serving files
+    must use http.FileServer or ServeFiles, or clean and confine the value
+    themselves.
 
-    Panics on empty method, non-absolute path, nil handler, or route conflict.
+    Panics on an empty or unsupported method, a path that does not begin with
+    '/', a nil handler, or a route conflict. The supported methods are GET,
+    HEAD, POST, PUT, PATCH, DELETE, OPTIONS, CONNECT, TRACE and QUERY.
 
 func (m *Mux) HandleE(method, pattern string, h HandlerFuncE)
     HandleE registers a HandlerFuncE for the given method and path. Errors
@@ -526,38 +556,52 @@ func (m *Mux) HandleFast(method, pattern string, h FastHandler)
     routes. Params are passed as a direct argument — see FastHandler for
     lifetime guarantees.
 
-    SECURITY: stdlib middleware (registered via Use) does NOT apply to fast
-    routes. This includes the Recoverer middleware — a panic in a FastHandler
-    is NOT recovered by middleware.Recoverer, regardless of the order Use was
-    called. Set Mux.PanicHandler to recover panics on the FastHandler path:
-    PanicHandler is invoked from dispatchWithRecover and covers both
-    http.Handler and FastHandler routes. Use UseFast to attach FastMiddleware to
-    fast routes; FastMiddleware runs on the FastHandler dispatch path.
+    SECURITY: Registering a HandleFast route after calling Use() panics
+    (CSA-2026-0054, FPE-2026-010). Stdlib middleware attached via Use does not
+    wrap fast routes. Use Pre() for middleware that must cover both route types,
+    or UseFast() for FastMiddleware that wraps only fast routes. See SECURITY.md
+    "Pre vs Use security boundary" for the full matrix.
 
-    Panics on empty method, non-absolute path, nil handler, or route conflict.
+    PanicHandler (if set) recovers panics on both Handle and HandleFast paths.
+
+    Panics on an empty or unsupported method, a path that does not begin
+    with '/', a nil handler, a route conflict, or when Use() middleware is
+    registered.
 
 func (m *Mux) HandleFunc(method, pattern string, h http.HandlerFunc)
     HandleFunc registers a HandlerFunc for the given method and path.
 
 func (m *Mux) Lookup(method, path string) (http.Handler, Params, bool)
     Lookup performs a route lookup without dispatching a request. Returns (nil,
-    nil, false) if path is empty or does not begin with '/'. For FastHandler
-    routes the returned http.Handler is nil; use LookupFast when you need to
-    distinguish fast routes.
+    nil, false) if path is empty or does not begin with '/', if method is not a
+    supported method, or if no route matches.
+
+    A route registered with HandleFast (or a *Fast helper) also matches: Lookup
+    then returns a nil http.Handler, the captured Params and true. There is no
+    fast-route counterpart of Lookup; use WalkFast to enumerate fast routes.
+
+    Lookup matches path exactly as registered: it applies no trailing-slash or
+    fixed-path redirect and ignores CaseInsensitive. Unlike ServeHTTP, which
+    never takes a lock, Lookup holds the registration read lock while it runs.
 
 func (m *Mux) Match(methods []string, pattern string, handler http.Handler)
     Match registers handler for each of the listed methods on pattern.
 
 func (m *Mux) Mount(prefix string, h http.Handler)
     Mount attaches h at prefix, stripping the prefix before forwarding the
-    request. The catch-all parameter is named "mux_mount".
+    request. Trailing '/' characters are removed from prefix, and the mount
+    is registered under the internal method "*" with the pattern prefix +
+    "/*mux_mount", which is how Routes lists it. Explicit routes in the request
+    method's own tree take precedence over the mount. Middleware registered with
+    Use before Mount wraps h. Panics if h is nil, if prefix does not begin with
+    '/' or is not valid UTF-8, or if its last element is an optional parameter.
 
     h receives a shallow copy of the request (see the Terminology section in
-    README.md): a new *http.Request with a new URL, but sharing the original's
-    header map, Trailer, Form and context. h may read the original request's
-    headers, but must not mutate them in place — such a mutation would be
-    visible to the caller's original request and to any outer middleware that
-    runs after Mount returns.
+    specification/README.md): a new *http.Request with a new URL, but sharing
+    the original's header map, Trailer, Form and context. h may read the
+    original request's headers, but must not mutate them in place — such a
+    mutation would be visible to the caller's original request and to any outer
+    middleware that runs after Mount returns.
 
 func (m *Mux) OPTIONS(pattern string, h http.HandlerFunc)
     OPTIONS registers a HandlerFunc for OPTIONS requests on pattern.
@@ -654,8 +698,8 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem)
     prefix must end with "/*name" (e.g. "/static/*filepath").
 
     http.FileServer receives a shallow copy of the request (see the Terminology
-    section in README.md): a new *http.Request with a new URL, but sharing the
-    original's header map and context.
+    section in specification/README.md): a new *http.Request with a new URL,
+    but sharing the original's header map and context.
 
     SECURITY (CDX-S8-002): http.FileServer applies path.Clean internally,
     so a request like /static/../etc/passwd cannot escape root. However,
@@ -728,7 +772,10 @@ type Params []Param
     Params is an ordered list of path parameters extracted from a URL.
 
 func ParamsFromContext(ctx context.Context) Params
-    ParamsFromContext returns the path parameters stored in ctx.
+    ParamsFromContext returns the path parameters stored in ctx, or nil when
+    ctx carries none (for example on a static route). ctx must not be nil;
+    a request whose internal context is nil is dispatched by ServeHTTP with
+    context.Background() as the parent, so r.Context() is always safe to pass.
 
 func (ps Params) Bool(name string) (bool, error)
     Bool returns the named parameter parsed as bool.
@@ -740,8 +787,8 @@ func (ps Params) Get(name string) string
     Get returns the value for the named parameter, or "" if not present.
 
 func (ps Params) Int(name string) (int, error)
-    Int returns the named parameter parsed as int. Returns errParamNotFound if
-    the key is absent, or a strconv error on parse failure.
+    Int returns the named parameter parsed as int (base 10). Returns a non-nil
+    error if the key is absent, or the strconv error on parse failure.
 
 func (ps Params) Int64(name string) (int64, error)
     Int64 returns the named parameter parsed as int64 (base 10).
@@ -783,7 +830,7 @@ Usage with MuxMaster:
 
     mux := muxmaster.New()
     mux.Use(middleware.Logger(os.Stdout))
-    mux.Use(middleware.Recoverer)
+    mux.Use(middleware.RecovererWithLogger(slog.Default()))
     mux.Use(middleware.CORS(middleware.CORSOptions{
         AllowedOrigins: []string{"https://example.com"},
     }))
@@ -811,10 +858,21 @@ func APIKey(opts APIKeyOptions) func(http.Handler) http.Handler
 
 func BasicAuth(realm string, creds map[string]string) func(http.Handler) http.Handler
     BasicAuth enforces HTTP Basic Authentication using constant-time credential
-    comparison. Passwords are SHA-256 hashed at construction time so that
-    subtle.ConstantTimeCompare always operates on equal-length inputs,
-    eliminating both user-enumeration timing (MM-2026-0009) and password-length
-    oracle (MM-2026-0020). Panics if creds is nil.
+    comparison. Usernames and passwords are SHA-256 hashed at construction time
+    and stored as an unordered slice of {userHash, passHash} entries — not a
+    map — so that authenticating a request never performs a data-dependent map
+    lookup. Every request scans the ENTIRE entry slice unconditionally with
+    subtle.ConstantTimeCompare / subtle.ConstantTimeCopy: there is no early
+    exit and no branch whose outcome depends on whether the supplied username
+    matches a registered one. This removes the user-enumeration timing oracle
+    inherent to Go's `map[string]V` lookup (`runtime.mapaccess2_faststr`,
+    whose running time depends on hash-bucket occupancy and key comparison),
+    tracked as TSC-2026-0002 in SECURITY.md. Cost scales linearly with the
+    number of registered users (O(n) per request, always — matched or not); see
+    BenchmarkBasicAuth for the per-user overhead. The historical password-length
+    oracle (MM-2026-0020) and user-enumeration oracle (MM-2026-0009) remain
+    fixed by the same hash-before-compare technique this function has always
+    used. Panics if creds is nil.
 
 func CORS(opts CORSOptions) func(http.Handler) http.Handler
     CORS handles Cross-Origin Resource Sharing. Panics on invalid configuration.
@@ -826,14 +884,20 @@ func CORS(opts CORSOptions) func(http.Handler) http.Handler
     misconfiguration is caught at boot.
 
     ORDERING (MSR-2026-0070): CORS sets `Access-Control-Allow-Origin` (and
-    related Access-Control-* + Vary headers) when its frame runs. If another
-    middleware that calls `Header().Set(...)` runs AFTER CORS in the request
-    flow (innermost in the Use() chain), the late Set will OVERWRITE the
-    CORS-managed values, silently bypassing the configured whitelist. To keep
-    CORS authoritative, register CORS as the INNERMOST middleware that touches
-    these headers (i.e. last in the Use() chain that handles them) or avoid
-    calling SetHeader on CORS-managed names. See SetHeader for the composition
-    rule.
+    related Access-Control-* headers) when its frame runs. If another middleware
+    that calls `Header().Set(...)` runs AFTER CORS in the request flow
+    (innermost in the Use() chain), the late Set will OVERWRITE the CORS-managed
+    values, silently bypassing the configured whitelist. To keep CORS
+    authoritative, register CORS as the INNERMOST middleware that touches these
+    headers (i.e. last in the Use() chain that handles them) or avoid calling
+    SetHeader on CORS-managed names. See SetHeader for the composition rule.
+
+    VARY (TM-2026-033, spec section 16): unlike the Access-Control-* headers
+    above, `Vary: Origin` is added with Header.Add semantics — as an additional
+    value alongside whatever Vary already carries, never overwriting it — so
+    its correctness does not depend on Use()-chain order relative to other
+    Vary-setting middleware (e.g. Compress). It is added to every response CORS
+    produces or forwards, unconditionally.
 
 func CleanPath() func(http.Handler) http.Handler
     CleanPath normalises r.URL.Path via path.Clean before routing. When
@@ -841,10 +905,17 @@ func CleanPath() func(http.Handler) http.Handler
     from what path.Clean produces for the percent-decoded Path, RawPath is
     zeroed to prevent encoded path-traversal bypass (MM-2026-0018).
 
+    ORDERING: When composing CleanPath with path-inspecting Pre-gates
+    (authorization checks that reject certain prefixes), CleanPath MUST
+    be registered first. A gate registered before CleanPath sees the raw,
+    unnormalised path and can be bypassed by /admin/../public, //admin,
+    or %2e%2e-encoded variants. CleanPath must run first to normalise before the
+    gate inspects the path (rmp #284, TM-2026-040).
+
     When the path changes, next receives a shallow copy of the request (see
-    the Terminology section in README.md): a new *http.Request with a new URL,
-    but sharing the original's header map and context. The original request
-    passed to CleanPath is never mutated.
+    the Terminology section in the MuxMaster specification/README.md): a new
+    *http.Request with a new URL, but sharing the original's header map and
+    context. The original request passed to CleanPath is never mutated.
 
 func Compress(level int) func(http.Handler) http.Handler
     Compress compresses responses with gzip when the client accepts it.
@@ -977,9 +1048,18 @@ func Recoverer() func(http.Handler) http.Handler
 
 func RecovererWithLogger(logger *slog.Logger) func(http.Handler) http.Handler
     RecovererWithLogger recovers from panics, logs the panic value and stack
-    trace at Error level via logger, and writes a plain 500 response. The panic
-    value is never written to the response body, preventing information leakage
-    to clients (MM-2026-0023).
+    trace at Error level via logger, and writes a plain 500 response — but only
+    if the wrapped handler has not already committed a response (sent a final
+    status or written a body byte). A handler that panics after writing its
+    own response is a handler bug independent of Recoverer: net/http itself
+    discards a WriteHeader call once the status line is on the wire (logging
+    "superfluous response.WriteHeader call" to its own ErrorLog), and Recoverer
+    now applies the same rule to the body, instead of unconditionally appending
+    "Internal Server Error\n" after whatever the handler already streamed (O-14,
+    rmp #276).
+
+    The panic value is never written to the response body, preventing
+    information leakage to clients (MM-2026-0023).
 
 func RequestID() func(http.Handler) http.Handler
     RequestID generates or propagates a request ID via X-Request-ID header.
@@ -1028,22 +1108,28 @@ func StripSlashes() func(http.Handler) http.Handler
     path would diverge between Path and RawPath when Mux.UseRawPath is true
     (HPS-2026-0004).
 
-    When the path has trailing slashes to strip, next receives a shallow copy of
-    the request (see the Terminology section in README.md): a new *http.Request
-    with a new URL, but sharing the original's header map and context. The
-    original request passed to StripSlashes is never mutated.
+    When the path has trailing slashes to strip, next receives a shallow
+    copy of the request (see the Terminology section in the MuxMaster
+    specification/README.md): a new *http.Request with a new URL, but sharing
+    the original's header map and context. The original request passed to
+    StripSlashes is never mutated.
 
 func ThrottleAllBacklog(limit int, backlog int, timeout time.Duration) func(http.Handler) http.Handler
-    ThrottleAllBacklog is the renamed ThrottleBacklog — limits concurrency
-    globally across ALL clients combined. Use ThrottlePerIP for per-client rate
-    limiting.
-
-    Deprecated: Use ThrottleAllBacklog. ThrottleBacklog remains for
-    compatibility.
+    ThrottleAllBacklog limits concurrent handler execution globally, across
+    all clients combined, with a backlog queue. It is an equivalent name for
+    ThrottleBacklog: both return the same middleware with the same behaviour and
+    panics. Use ThrottlePerIP for per-client limits.
 
 func ThrottleBacklog(limit int, backlog int, timeout time.Duration) func(http.Handler) http.Handler
-    ThrottleBacklog limits concurrent handler execution with a backlog queue.
-    Panics if limit <= 0 or backlog < 0.
+    ThrottleBacklog limits concurrent handler execution globally, across all
+    clients combined, with a backlog queue. At most limit requests run next
+    at the same time; up to backlog further requests wait, each for at most
+    timeout, for a free slot. A request that finds the backlog full, or whose
+    wait times out, receives 503 Service Unavailable. Use ThrottlePerIP for
+    per-client limits.
+
+    ThrottleBacklog and ThrottleAllBacklog are equivalent names for the same
+    middleware. Panics if limit <= 0 or backlog < 0.
 
 func ThrottlePerIP(limit int, timeout time.Duration, keyFn func(*http.Request) string) func(http.Handler) http.Handler
     ThrottlePerIP limits concurrent handler executions per client key.
@@ -1086,14 +1172,29 @@ func ThrottlePerIPCapped(limit int, timeout time.Duration, maxTableSize int, key
 func Timeout(d time.Duration) func(http.Handler) http.Handler
     Timeout applies a context deadline to each request. Panics if d <= 0.
 
-    SECURITY (DOS-2026-0003): Timeout cancels the request context after d,
-    but it does NOT preempt the handler goroutine — Go has no preemption
-    primitive for blocked syscalls. Handlers MUST observe ctx.Done() on every
-    blocking call (DB, network, file I/O); a handler that ignores ctx.Done()
-    will run to completion regardless of the timeout, accumulating goroutines
-    under load and exhausting memory or upstream connections. Co-design Timeout
-    with handler-level cooperation (use the *Context variants of the stdlib —
-    sql.DB.QueryContext, net/http with http.Request, etc.).
+    SECURITY (DOS-2026-0003): Timeout cancels the request context after d, but
+    it does NOT preempt the handler goroutine — Go has no preemption primitive
+    for blocked syscalls. Handlers MUST observe ctx.Done() on every blocking
+    call (DB, network, file I/O); a handler that ignores ctx.Done() will run to
+    completion regardless of the timeout, accumulating goroutines under load and
+    exhausting memory or upstream connections.
+
+    Example of a timeout-aware handler:
+
+        func myHandler(w http.ResponseWriter, r *http.Request) {
+            ctx := r.Context()
+            result := make(chan interface{}, 1)
+            go func() { result <- doExpensiveWork() }()
+            select {
+            case val := <-result:
+                w.Write([]byte(val.(string)))
+            case <-ctx.Done():
+                http.Error(w, "request timeout", http.StatusGatewayTimeout)
+            }
+        }
+
+    Co-design Timeout with handler-level cooperation (use the *Context variants
+    of the stdlib — sql.DB.QueryContext, net/http with http.Request, etc.).
 
 func WithValue(key, val any) func(http.Handler) http.Handler
     WithValue injects a value into the request context. To avoid context key
@@ -1197,14 +1298,15 @@ type JWTOptions struct {
 }
     JWTOptions configures the JWTAuth middleware.
 
-    SECURITY (TSC-2026-0003): mixing algorithm families (HS* with RS* or ES*)
-    in Algorithms leaks the algorithm path via response latency. HMAC verifies
-    in ~1 µs, RSA-2048 verifies in ~300 µs, and an attacker submitting tokens
-    with different alg labels can determine which path the server runs from the
-    response time alone — narrowing the attack surface for algorithm-confusion
-    attacks (RFC 8725 §3.1). Configure each endpoint with a single algorithm
-    family. JWTAuth emits a slog.Warn at construction time when a mixed-family
-    Algorithms list is detected.
+    SECURITY (TSC-2026-0003): mixing algorithm families (HS* with RS* or ES*) in
+    Algorithms leaks the algorithm path via response latency: the measured HS256
+    and RS256 paths differ by about 25 µs (see SECURITY.md "JWT Mixed-Family
+    Algorithms"), and an attacker submitting tokens with different alg labels
+    can determine which path the server runs from the response time alone —
+    narrowing the attack surface for algorithm-confusion attacks (RFC 8725
+    §3.1). Configure each endpoint with a single algorithm family. JWTAuth emits
+    a slog.Warn at construction time when a mixed-family Algorithms list is
+    detected.
 
 type OAuth2Options struct {
 	// Endpoint is the RFC 7662 introspection URL. Required.

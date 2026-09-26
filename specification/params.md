@@ -85,9 +85,11 @@ type Param struct {
 
 26. `RoutePattern(r *http.Request) string` returns the matched route pattern for the current request.
 27. Example: a request to `/users/42` matched by the pattern `/users/:id` causes `RoutePattern` to return `"/users/:id"`.
-28. `RoutePattern` returns `""` when called outside a handler that was dispatched by the router (for example, in pre-routing middleware or in a manually constructed request).
-29. The primary use cases for `RoutePattern` are structured logging, metrics (to avoid high-cardinality labels from raw paths), distributed tracing (span names), and OpenAPI generation.
-30. `RoutePattern` is a package-level function.
+28. `RoutePattern` returns `""` when called outside a handler that was dispatched by the router (for example, in `Pre` middleware, which runs before route lookup, or in a manually constructed request).
+29. `RoutePattern` also returns `""` for a static route — one whose pattern declares no named, regex, or catch-all parameter — because only a route with at least one parameter stores its pattern in the request context (see [introspection.md](introspection.md) section 5, rule 27). For the same reason, it returns `""` inside `NotFound`, `MethodNotAllowed`, the automatic `OPTIONS` responder, and a trailing-slash or fixed-path redirect handler: none of these carries a stored pattern.
+30. A static route belonging to a `*Mux` attached with `Mount` is the one exception to rule 29: `RoutePattern` returns the mount's own pattern, `prefix + "/*mux_mount"`, because the context stores the nearest parameterized match, and `Mount` registers the mounted sub-router behind a catch-all (see [groups.md](groups.md)).
+31. The primary use cases for `RoutePattern` are structured logging, metrics (to avoid high-cardinality labels from raw paths), distributed tracing (span names), and OpenAPI generation.
+32. `RoutePattern` is a package-level function.
 
 ---
 

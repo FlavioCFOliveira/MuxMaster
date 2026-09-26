@@ -84,20 +84,22 @@ mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
 
 ## Step 3 — Add Middleware
 
-Middleware wraps all routes registered **after** the `Use` call. The most common setup adds logging and panic recovery at the top of `main`:
+Middleware registered with `Use` wraps every route registered **after** the `Use` call; routes registered earlier are not wrapped. The most common setup adds access logging and panic recovery at the top of `main`:
 
 ```go
 import (
+    "log/slog"
     "os"
+
     "github.com/FlavioCFOliveira/MuxMaster/middleware"
 )
 
 mux := muxmaster.New()
 mux.Use(middleware.Logger(os.Stdout))
-mux.Use(middleware.Recoverer())
+mux.Use(middleware.RecovererWithLogger(slog.Default()))
 ```
 
-After restarting, every request prints a log line:
+After restarting, every request prints one line in the format `<RFC 3339 time> <method> <path> <status> <duration>`:
 
 ```
 2026-04-17T10:05:31Z GET /users/42 200 87.5µs
@@ -128,7 +130,7 @@ admin.GET("/stats", getStats)
 
 ## Step 5 — JSON Responses
 
-`muxmaster.JSON` marshals any value to JSON, sets `Content-Type: application/json`, and writes the status code in one call:
+`muxmaster.JSON` marshals any value to JSON, sets `Content-Type: application/json; charset=utf-8`, and writes the status code and body in one call:
 
 ```go
 type User struct {
@@ -161,7 +163,7 @@ mux.GETE("/users/:id", func(w http.ResponseWriter, r *http.Request) error {
 })
 ```
 
-Set a custom error handler to produce consistent JSON error responses:
+Without an `ErrorHandler`, a returned error always produces a plain-text `500 Internal Server Error`, whatever status code the error carries. Set a custom error handler to use the status code of an `HTTPError` and produce consistent JSON error responses:
 
 ```go
 mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
@@ -184,6 +186,7 @@ package main
 import (
     "errors"
     "log"
+    "log/slog"
     "net/http"
     "os"
 
@@ -204,7 +207,7 @@ var users = map[int]User{
 func main() {
     mux := muxmaster.New()
     mux.Use(middleware.Logger(os.Stdout))
-    mux.Use(middleware.Recoverer())
+    mux.Use(middleware.RecovererWithLogger(slog.Default()))
 
     mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
         code := http.StatusInternalServerError

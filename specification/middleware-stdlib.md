@@ -134,6 +134,8 @@ This file does not specify how middleware is registered (see [middleware.md](mid
 55. If `limit` is less than or equal to 0, `ThrottleBacklog` panics.
 56. If `backlog` is less than 0, `ThrottleBacklog` panics.
 
+See section 21 for `ThrottleAllBacklog` (an alternative name for this same function), and for `ThrottlePerIP` / `ThrottlePerIPCapped`, which limit concurrency per client key instead of globally across all clients.
+
 ---
 
 ## 12. StripSlashes
@@ -187,3 +189,113 @@ This file does not specify how middleware is registered (see [middleware.md](mid
 77. `CORS` responds with 403 Forbidden, without calling the next handler, when the request carries a non-empty, validly-formed `Origin` header that is not the wildcard case (`AllowedOrigins` does not contain `"*"`) and does not exactly match any entry in `AllowedOrigins`. The response body is the literal text `Forbidden`, written via `net/http.Error`. Per rule 71, this response still carries `Vary: Origin` (merged per rules 73-74 with any `Vary` value already present).
 
 78. Neither response in requirements 76 or 77 is reachable when `AllowedOrigins` is empty, because `CORS` panics at construction time in that case (rule 50) before any request can be served.
+
+---
+
+## 18. APIKey
+
+79. `APIKey(opts APIKeyOptions) func(http.Handler) http.Handler` authenticates requests by comparing an extracted key against a pre-configured set of valid keys.
+
+| Field | Type | Description |
+|---|---|---|
+| `Keys` | `map[string]string` | Maps a raw API key value to the identity string injected into the request context on a match. Panics at construction if `nil` or empty. |
+| `Header` | `string` | Request header read to extract the key when `ExtractFn` is nil. Default: `X-API-Key`. |
+| `ExtractFn` | `func(*http.Request) string` | Overrides key extraction. When set, `Header` is not consulted. |
+
+80. `APIKey(opts)` panics with `middleware: APIKey requires at least one key in opts.Keys` when `len(opts.Keys) == 0`.
+81. At construction time, every value in `opts.Keys` is SHA-256 hashed into an internal `map[[32]byte]string`; the raw key strings themselves are not retained after construction. Per-request cost is one SHA-256 hash of the extracted key plus one `[32]byte`-keyed map lookup — no iteration over the configured key set and no per-key string comparison.
+82. At request time, the key is extracted via `ExtractFn` (if set) or by reading the `Header` request header:
+    - If the extracted value is the empty string, `APIKey` responds with 401 and sets `WWW-Authenticate: ApiKey realm="api"`.
+    - If the extracted value's SHA-256 hash is not present in the hashed key set, `APIKey` responds with 401 and sets `WWW-Authenticate: ApiKey realm="api", error="invalid_key"`.
+    - If the hash is found, the associated identity string is injected into the request context (retrievable via `GetAPIKeyIdentity`) and the next handler is called. Before doing so, `APIKey` also sets and immediately deletes a `WWW-Authenticate` header on this success path, so that the header-map manipulation cost is identical on both the hit and the miss paths (TSC-2026-0008): without this, the miss path's extra `Header().Set` call was measurably slower than the hit path, letting a caller distinguish a valid key from an invalid one by response latency alone. The client-visible response carries no `WWW-Authenticate` header on this path, because the header is deleted before the response is sent.
+83. `GetAPIKeyIdentity(ctx context.Context) (string, bool)` returns the identity string injected by `APIKey`, and `false` if no `APIKey` middleware ran for the request (or a matching key was never found).
+
+---
+
+## 19. JWTAuth
+
+84. `JWTAuth(opts JWTOptions) func(http.Handler) http.Handler` validates a JSON Web Token carried in the `Authorization` request header using the `Bearer` scheme (RFC 6750). The scheme name is matched case-insensitively (`bearer`, `Bearer`, `BEARER`), sharing the same extraction helper `OAuth2Introspect` uses (section 20).
+
+| Field | Type | Description |
+|---|---|---|
+| `Secret` | `[]byte` | HMAC signing key. Required when `Algorithms` includes `HS256`, `HS384`, or `HS512`. |
+| `PublicKey` | `crypto.PublicKey` | RSA or ECDSA public key. Required when `Algorithms` includes an `RS*` or `ES*` algorithm. |
+| `Algorithms` | `[]string` | Accepted signing algorithms. Must be non-empty. Supported values: `HS256`, `HS384`, `HS512`, `RS256`, `RS384`, `RS512`, `ES256`, `ES384`, `ES512`. |
+| `Issuers` | `[]string` | When non-empty, the token's `iss` claim must exactly match one entry. |
+| `Audiences` | `[]string` | When non-empty, at least one entry of the token's `aud` claim must match one entry. |
+| `ClockSkew` | `time.Duration` | Permitted clock drift applied to `exp` and `nbf` comparisons. Default: `0`. |
+| `RequireExpiry` | `bool` | When `true`, a token whose payload has no `exp` claim (or `exp == 0`) is rejected. Default: `false`. |
+
+85. `JWTAuth(opts)` panics with `middleware: JWTAuth requires at least one algorithm in opts.Algorithms` when `opts.Algorithms` is empty.
+86. For each algorithm listed in `opts.Algorithms`, construction validates the required key material and panics if it is missing or of the wrong type:
+    - `HS256`, `HS384`, `HS512`: panics with `middleware: JWTAuth HS256 requires opts.Secret` (respectively `HS384`, `HS512`) when `opts.Secret` is `nil`.
+    - `RS256`, `RS384`, `RS512`: panics with `middleware: JWTAuth <alg> requires opts.PublicKey to be *rsa.PublicKey` when `opts.PublicKey` does not have that concrete type.
+    - `ES256`: panics with `middleware: JWTAuth ES256 requires opts.PublicKey to be *ecdsa.PublicKey` when the type does not match, or with `middleware: JWTAuth ES256 requires a P-256 public key (RFC 7518 §3.4)` when it is an `*ecdsa.PublicKey` on the wrong curve. `ES384` and `ES512` apply the identical pattern against P-384 and P-521 respectively.
+    - Any other string in `opts.Algorithms` panics with `middleware: JWTAuth unsupported algorithm: <alg>`.
+87. Construction emits a one-time `slog.Warn` in two cases, neither of which prevents construction from succeeding: when `opts.Algorithms` mixes more than one algorithm family (`HS*`, `RS*`, `ES*`) in the same `JWTAuth` instance (TSC-2026-0003 — verification latency differs measurably between families, e.g. HMAC versus RSA-2048, letting a caller infer which algorithm path a given token took); and whenever `opts.RequireExpiry` is left at its default `false` (TM-2026-001, RFC 8725 §4.4 — a token with no `exp` claim never expires).
+88. If the `Authorization` header does not carry a well-formed `Bearer <token>` value, `JWTAuth` responds with 401 and sets `WWW-Authenticate: Bearer realm="api"`, without attempting to parse a token.
+89. A token is structurally three `.`-separated base64url segments (header, payload, signature). Signature verification always runs before the payload is parsed or any claim is inspected, so a token cannot influence claim-parsing behavior before its signature has been checked.
+90. The header segment is base64url-decoded and JSON-parsed into an `alg` string and an optional `crit` array (RFC 7515 section 4.1.11). The token is rejected (as an invalid token, requirement 93) if: the segment does not decode as base64url; the decoded bytes are not valid JSON; `alg` is not one of the algorithms in `opts.Algorithms`; or `crit` is present and non-empty (this implementation understands no critical extensions, so any `crit` entry mandates rejection). The single most recently accepted (header-segment-bytes, validated `alg`) pair is cached in a per-`JWTAuth`-instance, lock-free single-entry memo (WH-06): a byte-identical header segment on a later request skips the decode and validation steps and reuses the cached `alg`, but this memo never participates in signature verification (which still runs, unconditionally, on every request) and can only ever return a result that a full decode would also have produced, because an entry is stored only after passing the same checks.
+91. Signature verification runs over the exact byte range `header.payload` (the token substring up to and including the second `.`), never decoded. For `HS256`/`HS384`/`HS512`, verification uses a pooled `hash.Hash` (recycled across requests to avoid re-deriving the HMAC key schedule) and constant-time comparison (`crypto/hmac.Equal`). For `RS256`/`RS384`/`RS512`, verification uses `crypto/rsa.VerifyPKCS1v15` against the corresponding SHA-2 digest. For `ES256`/`ES384`/`ES512`, the signature is expected in the fixed-width IEEE P1363 `r‖s` format (not ASN.1 DER); a signature of the wrong byte length is rejected without calling `crypto/ecdsa.Verify`.
+92. Once the signature verifies, the payload segment is base64url-decoded and JSON-parsed into `sub`, `iss`, `aud` (accepted as either a single JSON string or a JSON array of strings), `exp`, `nbf`, and `iat` (each a `NumericDate` per RFC 7519 section 2, i.e. an integer count of seconds since the Unix epoch). The token is rejected when any of the following holds:
+    - `exp`, `nbf`, or `iat` is negative (TM-2026-002 — RFC 7519 section 2 defines `NumericDate` as non-negative).
+    - `opts.RequireExpiry` is `true` and `exp` is absent (`0`).
+    - `exp` is present and `time.Now()` is after `time.Unix(exp, 0)` plus `opts.ClockSkew`.
+    - `nbf` is present and `time.Now()` plus `opts.ClockSkew` is before `time.Unix(nbf, 0)`.
+    - `opts.Issuers` is non-empty and `iss` is not one of its entries.
+    - `opts.Audiences` is non-empty and no entry of `aud` is one of its entries.
+93. Every rejection described in requirements 88-92 — a missing or malformed `Authorization` header excepted (requirement 88, which never carries the `error` parameter) — produces the same 401 response: `WWW-Authenticate: Bearer realm="api", error="invalid_token"`. `JWTAuth` does not distinguish an expired token from an invalid signature, an unmet audience, or any other rejection reason in the HTTP response; the distinct internal error values (invalid, expired, not-yet-valid) are not exposed to the client.
+94. On success, a `*JWTClaims` value is injected into the request context, retrievable via `GetJWTClaims(ctx context.Context) (*JWTClaims, bool)`. `JWTClaims` has the exported fields `Subject`, `Issuer`, `Audience []string`, `ExpiresAt time.Time`, `IssuedAt time.Time`, `NotBefore time.Time` (each `time.Time` is the zero value when the corresponding claim was absent from the token), and `RawPayload []byte` — the decoded JSON payload bytes, made available so application code can unmarshal claims beyond the standard set this middleware itself parses.
+
+---
+
+## 20. OAuth2Introspect
+
+95. `OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler` validates a Bearer token by calling a remote RFC 7662 token introspection endpoint. Token extraction defaults to the same `Authorization: Bearer <token>` helper `JWTAuth` uses (section 19, requirement 84) and can be overridden.
+
+| Field | Type | Description |
+|---|---|---|
+| `Endpoint` | `string` | RFC 7662 introspection URL. Required. Must use the `https://` scheme unless `AllowInsecureEndpoint` is `true`. |
+| `AllowInsecureEndpoint` | `bool` | Disables the HTTPS-only enforcement on `Endpoint`. Default: `false`. |
+| `ClientID`, `ClientSecret` | `string` | When `ClientID` is non-empty, the introspection request authenticates via HTTP Basic using these values. |
+| `CacheTTL` | `time.Duration` | How long an active token's introspection result is cached. `0` selects the default of 60 seconds; a negative value disables caching entirely. |
+| `MaxCacheSize` | `int` | Caps the number of distinct cached tokens. A value `<= 0` selects the default of 10000. |
+| `HTTPClient` | `*http.Client` | Used for introspection HTTP requests. Default: `&http.Client{Timeout: 10 * time.Second}`. |
+| `ExtractFn` | `func(*http.Request) string` | Overrides token extraction. Default: the same Bearer-scheme extractor `JWTAuth` uses. |
+
+96. Construction validates `opts.Endpoint` and panics on any of the following, in this order — every panic message that could otherwise echo a credential embedded in `opts.Endpoint` (for example `https://user:secret@host/introspect`) instead renders a redacted form with the userinfo component removed entirely, never password-masked (CWE-532):
+    1. `opts.Endpoint == ""`: `middleware: OAuth2Introspect requires a non-empty opts.Endpoint`.
+    2. `opts.Endpoint` fails `url.Parse`: `middleware: OAuth2Introspect: malformed Endpoint URL (<redacted>): <reason>`, where `<redacted>` strips any `user:pass@` or `user@` substring immediately following the scheme separator via a regular expression (there is no parsed `*url.URL` to redact structurally at this stage) and `<reason>` is the underlying parse error, never the raw URL `url.Parse` itself would otherwise have echoed.
+    3. The parsed URL's host component is empty: `middleware: OAuth2Introspect: Endpoint URL has no host: <redacted>`, where `<redacted>` is the parsed URL re-serialized with its userinfo component cleared.
+    4. The parsed URL contains a userinfo component (`user:pass@` or `user@`): `middleware: OAuth2Introspect: Endpoint URL must not contain userinfo (RFC 3986 §3.2.1) — credentials in URL are an exfiltration vector: <redacted>`.
+    5. The parsed URL's scheme is not `https` and `opts.AllowInsecureEndpoint` is not `true`: `middleware: OAuth2Introspect: Endpoint must use https:// — bearer tokens over plaintext leak to passive observers (RFC 7662 §4). Set OAuth2Options.AllowInsecureEndpoint=true ONLY for testing.`
+97. If the scheme is not `https` and `opts.AllowInsecureEndpoint` is `true`, construction succeeds but emits a one-time `slog.Warn` logging only the resolved `host` and `scheme` fields (never the full URL, never any userinfo). Construction also always emits a `slog.Info` at this same reduced (`host`, `scheme`) granularity when it succeeds, regardless of scheme (TM-2026-005): neither log line, nor any panic message in requirement 96, ever includes embedded credentials.
+98. Tokens are looked up and cached by `sha256(token)`; the raw token value itself is never used as a cache key or otherwise retained beyond the lifetime of the request that carried it and the single in-flight upstream call it may trigger.
+99. Caching is enabled whenever the effective `CacheTTL` (`opts.CacheTTL`, or 60 seconds when `opts.CacheTTL == 0`) is positive, and disabled (every request reaches the introspection endpoint) only when `opts.CacheTTL` is explicitly negative. When enabled:
+    - Only a response with `Active == true` is ever cached; a response with `Active == false` is never stored, so a rejected token is re-introspected on every subsequent request.
+    - A cached entry's expiry is `min(now + effective CacheTTL, token's own ExpiresAt)` when the introspection response carries a non-zero `ExpiresAt` earlier than `now + effective CacheTTL`; otherwise it is `now + effective CacheTTL`.
+    - When the cache is at its `MaxCacheSize` (or default 10000) capacity and a new token must be inserted, exactly one existing entry — the one with the globally earliest expiry across the whole cache — is evicted first, via a min-heap ordered by expiry giving amortised O(log n) insert and evict (CH-09), replacing an earlier O(n) full-cache scan performed on every cache-full write. This eviction choice guarantees that if any cached entry has already expired, an expired entry is evicted before a live one.
+    - A cache hit for a token whose cached `Active` is `false` is treated identically to requirement 102's `invalid_token` case below; a cache hit with `Active == true` injects the cached `*IntrospectResponse` and calls the next handler without contacting the introspection endpoint.
+100. Concurrent requests for the identical token (same `sha256(token)`) are coalesced by an in-process, per-`OAuth2Introspect`-instance singleflight group into a single outbound introspection HTTP call: one request becomes the leader and performs the call; every other concurrent request for the same token becomes a follower and waits for either the leader's result or its own request context to be done, whichever comes first. A follower's own cancellation never affects the leader or any other follower. Once it holds leadership, the leader re-checks the cache (in case a different, concurrent leader for the same token already populated it) before making the outbound HTTP call. The leader's outbound HTTP request runs on a context built from `context.WithoutCancel(r.Context())` plus an independently applied 30-second timeout: this means the leader's own request being cancelled (for example, the leader's client disconnecting) never aborts the shared call — every follower still receives a legitimate result — while context values already attached to `r.Context()` (for example, a trace or correlation ID) still propagate to the outbound introspection request (MSR-2026-0071). The independent 30-second timeout, and `opts.HTTPClient`'s own configured timeout, both still bound how long the outbound call can run.
+101. The outbound introspection request is an HTTP POST to `opts.Endpoint` with `Content-Type: application/x-www-form-urlencoded` and a body of `token=<token>&token_type_hint=access_token`; when `opts.ClientID` is non-empty, HTTP Basic authentication is set from `opts.ClientID` and `opts.ClientSecret`. The response body is read through a reader limited to 64 KB to bound memory consumption from an oversized response. A non-`200` response status, a transport-level error, or a response body that does not decode as the expected JSON shape are all treated as an error, which produces the same 401 response as requirement 102's `invalid_token` case.
+102. Request-time responses:
+    - No token could be extracted: 401, `WWW-Authenticate: Bearer realm="api"`.
+    - A token was extracted but the introspection result — whether from cache or freshly fetched — has `Active == false`, or fetching or decoding it failed (requirement 101): 401, `WWW-Authenticate: Bearer realm="api", error="invalid_token"`.
+    - A token was extracted and the (possibly cached) introspection result has `Active == true`: the `*IntrospectResponse` is injected into the request context, retrievable via `GetOAuth2Claims`, and the next handler is called.
+103. `IntrospectResponse` has the exported fields `Active bool`, `Subject string`, `Scope string`, `ClientID string`, `Username string`, `TokenType string`, `ExpiresAt time.Time`, `IssuedAt time.Time`, `NotBefore time.Time`, `Issuer string`, and `Audience []string`, populated from the introspection endpoint's JSON response fields `active`, `sub`, `scope`, `client_id`, `username`, `token_type`, `exp`, `iat`, `nbf`, `iss`, and `aud` (accepted as either a JSON string or a JSON array of strings) respectively. A `time.Time` field is the zero value when the corresponding JSON field was absent or zero.
+104. `GetOAuth2Claims(ctx context.Context) (*IntrospectResponse, bool)` returns the value injected by requirement 102, and `false` if no `OAuth2Introspect` middleware produced one for the request.
+
+---
+
+## 21. ThrottlePerIP and ThrottlePerIPCapped
+
+105. `ThrottlePerIP(limit int, timeout time.Duration, keyFn func(*http.Request) string) func(http.Handler) http.Handler` and `ThrottlePerIPCapped(limit int, timeout time.Duration, maxTableSize int, keyFn func(*http.Request) string) func(http.Handler) http.Handler` limit concurrent handler execution per client-supplied key, in contrast to `ThrottleBacklog` (section 11), which limits concurrency globally across all clients combined. `ThrottlePerIP(limit, timeout, keyFn)` is defined as `ThrottlePerIPCapped(limit, timeout, DefaultThrottlePerIPMaxTableSize, keyFn)`, where the exported constant `DefaultThrottlePerIPMaxTableSize` is `100000`.
+106. `keyFn` extracts the rate-limit key from the request. If `keyFn` is `nil`, the key is the host part of `r.RemoteAddr` (via `net.SplitHostPort`), and construction emits a one-time `slog.Warn` recommending that `RealIP` (section 5), configured with explicit trusted proxy CIDRs, be registered before `ThrottlePerIP` — otherwise, behind a reverse proxy or load balancer that does not rewrite `RemoteAddr`, every request can appear to originate from the same address, and the per-key limit degrades to a single global limit shared by every client.
+107. Both functions panic with `middleware: ThrottlePerIP limit must be > 0` when `limit <= 0`. Neither function validates `timeout`.
+108. `maxTableSize` (fixed at `DefaultThrottlePerIPMaxTableSize` for `ThrottlePerIP`, explicit for `ThrottlePerIPCapped`) bounds the number of distinct keys tracked concurrently. A value `<= 0` disables the bound entirely (unbounded growth; not recommended in production). When the table already holds `maxTableSize` distinct keys and an incoming request's key is not among them, that request is rejected immediately with 503 Service Unavailable, without waiting; requests for keys already present in the table continue to be served normally. This exists to bound memory growth under an attack that cycles through a very large or unbounded number of distinct client keys.
+109. Internally, the per-key table is partitioned into 64 independent shards, selected by a hash (`hash/maphash`, seeded once per middleware instance with a random seed) of the key; unrelated keys are very likely to land in different shards and therefore contend on independent mutexes rather than a single global one, and a single atomic counter tracks the live entry count across all shards to keep the `maxTableSize` bound exact under concurrent registration and removal of keys. This sharding is an internal scalability mechanism (CH-01) and has no effect on any behavior described in requirements 105-108 and 110-111.
+110. For a request whose key is accepted (requirement 108 does not reject it), a concurrency token for that key is requested:
+    - If a token is immediately available (fewer than `limit` requests for that key already in flight), the handler runs immediately.
+    - Otherwise, the request waits up to `timeout` for a token to become available; if `timeout` elapses first, the middleware responds with 503 Service Unavailable. There is no separate queue-capacity parameter (unlike `ThrottleBacklog`'s `backlog`): any number of requests for the same key beyond `limit` may wait concurrently, each independently governed by `timeout`.
+    A token held for a key is released when the handler for that request returns, making it available to the next waiter (if any) for the same key.
+111. A key's tracking entry is removed from the table once no request is holding, or waiting for, a token under that key, freeing its slot in the `maxTableSize` bound (requirement 108) for a different key.

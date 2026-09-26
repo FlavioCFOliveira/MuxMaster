@@ -28,7 +28,7 @@ This page collects ready-to-use patterns for common production scenarios.
 func main() {
     mux := muxmaster.New()
     mux.Use(middleware.Logger(os.Stdout))
-    mux.Use(middleware.Recoverer())
+    mux.Use(middleware.RecovererWithLogger(slog.Default()))
     mux.Use(middleware.RequestID())
 
     mux.Mount("/api/v1", v1Router())
@@ -168,6 +168,8 @@ api.With(requireRole("admin")).DELETE("/users/:id", deleteUser) // admin only
 ---
 
 ## JWT authentication
+
+The `middleware` package includes `JWTAuth`, which verifies HS*, RS* and ES* tokens without external dependencies; see [Middleware — JWTAuth](middleware.md#jwtauth). If you prefer a third-party JWT library, wrap it in ordinary middleware:
 
 ```go
 import "github.com/golang-jwt/jwt/v5"
@@ -402,6 +404,8 @@ mux.GET("/ready", func(w http.ResponseWriter, r *http.Request) {
 
 ## Rate limiting per IP
 
+The built-in `middleware.ThrottlePerIP` limits the number of **concurrent** requests per client (see [Middleware](middleware.md#throttleperip-and-throttleperipcapped)). To limit the request **rate** instead, use a token bucket such as `golang.org/x/time/rate`:
+
 ```go
 import "golang.org/x/time/rate"
 
@@ -422,7 +426,7 @@ func ipRateLimiter(rps float64, burst int) func(http.Handler) http.Handler {
 
     return func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-            ip := r.RemoteAddr // use middleware.RealIP if behind a proxy
+            ip, _, _ := net.SplitHostPort(r.RemoteAddr) // use middleware.RealIP if behind a proxy
             if !getLimiter(ip).Allow() {
                 muxmaster.JSON(w, http.StatusTooManyRequests, map[string]string{
                     "error": "too many requests",
@@ -436,6 +440,8 @@ func ipRateLimiter(rps float64, burst int) func(http.Handler) http.Handler {
 
 mux.Use(ipRateLimiter(10, 30)) // 10 req/s, burst of 30
 ```
+
+This sketch never removes entries from `limiters`; in production, evict idle clients or cap the map, or an attacker with many source addresses can grow it without bound.
 
 ---
 
@@ -455,36 +461,58 @@ mux.Use(middleware.CORS(middleware.CORSOptions{
 }))
 ```
 
-Put CORS middleware before authentication middleware so preflight OPTIONS requests (which do not carry credentials) are handled without authentication.
+Register CORS before authentication middleware. CORS answers preflight OPTIONS requests (which do not carry credentials) itself, with `204 No Content`, so they never reach the authentication middleware.
 
 ---
 
 ## Serving embedded frontend assets
 
+A catch-all such as `/*filepath` cannot share the root with other routes (registering both panics; see [Routing](routing.md#pattern-priority-and-conflicts)), so serve the single-page application from the `NotFound` handler:
+
 ```go
-import "embed"
+import (
+    "embed"
+    "io/fs"
+    "log"
+    "net/http"
+    "strings"
+
+    "github.com/FlavioCFOliveira/MuxMaster"
+)
 
 //go:embed frontend/dist
 var frontendFS embed.FS
 
 func main() {
+    dist, err := fs.Sub(frontendFS, "frontend/dist")
+    if err != nil {
+        log.Fatal(err)
+    }
+    files := http.FileServerFS(dist)
+
     mux := muxmaster.New()
 
     // API routes
     api := mux.Group("/api")
     api.GET("/users", listUsers)
 
-    // Frontend — serve index.html for all unmatched routes (SPA fallback)
-    mux.GET("/*filepath", func(w http.ResponseWriter, r *http.Request) {
-        path := muxmaster.PathParam(r, "filepath")
-        f, err := frontendFS.Open("frontend/dist" + path)
-        if err != nil {
-            // File not found — serve index.html for client-side routing
-            http.ServeFileFS(w, r, frontendFS, "frontend/dist/index.html")
+    // Frontend: existing files are served as-is; any other GET or HEAD
+    // outside /api/ receives index.html for client-side routing.
+    mux.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        if (r.Method != http.MethodGet && r.Method != http.MethodHead) ||
+            strings.HasPrefix(r.URL.Path, "/api/") {
+            http.NotFound(w, r)
             return
         }
-        f.Close()
-        http.ServeFileFS(w, r, frontendFS, "frontend/dist"+path)
+        name := strings.TrimPrefix(r.URL.Path, "/")
+        if name == "" || !fs.ValidPath(name) {
+            name = "index.html"
+        }
+        if info, err := fs.Stat(dist, name); err != nil || info.IsDir() {
+            http.ServeFileFS(w, r, dist, "index.html")
+            return
+        }
+        files.ServeHTTP(w, r)
     })
 
     log.Fatal(http.ListenAndServe(":8080", mux))
@@ -507,7 +535,7 @@ func structuredLogger(next http.Handler) http.Handler {
             "status",    rec.status,
             "duration",  time.Since(start),
             "ip",        r.RemoteAddr,
-            "requestID", r.Header.Get("X-Request-Id"),
+            "requestID", middleware.GetRequestID(r.Context()),
         )
     })
 }
@@ -521,6 +549,7 @@ func (r *statusRecorder) WriteHeader(code int) {
     r.ResponseWriter.WriteHeader(code)
 }
 
+mux.Pre(middleware.RequestID()) // so GetRequestID returns the ID
 mux.Use(structuredLogger)
 ```
 
@@ -550,6 +579,8 @@ func TestGetUser(t *testing.T) {
     }
 }
 ```
+
+`httptest.NewRequest` sets the request context. A `*http.Request` built as a struct literal has a `nil` context; `ServeHTTP` still dispatches it, using `context.Background()` as the parent, so parameter routes work in such tests too.
 
 Testing with a custom error handler:
 

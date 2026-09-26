@@ -19,9 +19,9 @@ import (
 // the gate inspects the path (rmp #284, TM-2026-040).
 //
 // When the path changes, next receives a shallow copy of the request (see
-// the Terminology section in README.md): a new *http.Request with a new
-// URL, but sharing the original's header map and context. The original
-// request passed to CleanPath is never mutated.
+// the Terminology section in the MuxMaster specification/README.md): a new
+// *http.Request with a new URL, but sharing the original's header map and
+// context. The original request passed to CleanPath is never mutated.
 func CleanPath() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

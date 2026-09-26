@@ -12,7 +12,7 @@
 //
 //	mux := muxmaster.New()
 //	mux.Use(middleware.Logger(os.Stdout))
-//	mux.Use(middleware.Recoverer())
+//	mux.Use(middleware.RecovererWithLogger(slog.Default()))
 //	mux.Use(middleware.CORS(middleware.CORSOptions{
 //	    AllowedOrigins: []string{"https://example.com"},
 //	}))

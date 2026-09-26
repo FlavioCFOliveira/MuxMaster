@@ -52,8 +52,8 @@ func (g *Group) UseFast(mw ...FastMiddleware) {
 }
 
 // Handle registers handler under this group with the given method and path.
-// The full path is g.prefix joined with path (see joinPrefix / groups.md
-// section 11). Group middleware is applied after mux-level middleware.
+// The full path is g.prefix joined with path (see specification/groups.md
+// section 11). Mux-level middleware wraps the group middleware.
 func (g *Group) Handle(method, path string, handler http.Handler) {
 	g.mux.Handle(method, joinPrefix(g.prefix, path), wrapMiddleware(handler, g.middleware))
 }
@@ -80,8 +80,8 @@ func (g *Group) HandleE(method, path string, h HandlerFuncE) {
 }
 
 // HandleFast registers a FastHandler under this group with the given method and path.
-// The full path is g.prefix joined with path (see joinPrefix / groups.md
-// section 11). Group FastMiddleware is applied before dispatch.
+// The full path is g.prefix joined with path (see specification/groups.md
+// section 11). Mux-level FastMiddleware wraps the group FastMiddleware.
 //
 // SECURITY: panics if the group has stdlib middleware registered via Use().
 // Stdlib middleware is incompatible with the FastHandler dispatch path —
@@ -168,7 +168,8 @@ func (g *Group) OPTIONSE(path string, h HandlerFuncE) { g.HandleE(http.MethodOpt
 // QUERY is a standard HTTP method (RFC 10008); see MethodQuery.
 func (g *Group) QUERYE(path string, h HandlerFuncE) { g.HandleE(MethodQuery, path, h) }
 
-// ANY registers h for all standard HTTP methods on path.
+// ANY registers h on path for every supported method: GET, HEAD, POST, PUT,
+// PATCH, DELETE, OPTIONS, CONNECT, TRACE and QUERY.
 func (g *Group) ANY(path string, h http.HandlerFunc) {
 	for _, method := range anyMethods {
 		g.HandleFunc(method, path, h)
@@ -193,9 +194,10 @@ func (g *Group) With(mw ...func(http.Handler) http.Handler) *Group {
 }
 
 // Group returns a sub-group sharing the same mux with an extended prefix.
-// The full prefix is g.prefix joined with prefix (see joinPrefix / groups.md
-// section 11). The sub-group starts with a copy of the parent group's
-// middleware stacks.
+// The full prefix is g.prefix joined with prefix (see
+// specification/groups.md section 11). The sub-group starts with a copy of
+// the parent group's middleware stacks; middleware added to either group
+// afterwards does not affect the other.
 func (g *Group) Group(prefix string) *Group {
 	mw := make([]func(http.Handler) http.Handler, len(g.middleware))
 	copy(mw, g.middleware)
@@ -215,8 +217,9 @@ func (g *Group) Route(prefix string, fn func(*Group)) {
 	fn(sub)
 }
 
-// Mount attaches h at g.prefix joined with prefix (see joinPrefix /
-// groups.md section 11), stripping the full prefix before forwarding. The
+// Mount attaches h at g.prefix joined with prefix (see
+// specification/groups.md section 11), stripping the full prefix before
+// forwarding. See Mux.Mount for the registered pattern and panics. The
 // group's stdlib middleware (registered via Use) wraps the mounted handler
 // so authentication, logging, etc. apply to every request reaching h —
 // without this wrapping a Group with BasicAuth/JWTAuth would silently leave
@@ -226,12 +229,12 @@ func (g *Group) Mount(prefix string, h http.Handler) {
 }
 
 // ServeFiles serves static files from root under g.prefix joined with prefix
-// (see joinPrefix / groups.md section 11). prefix must end with "/*name"
+// (see specification/groups.md section 11). prefix must end with "/*name"
 // (relative to the group prefix).
 //
 // http.FileServer receives a shallow copy of the request (see the
-// Terminology section in README.md): a new *http.Request with a new URL,
-// but sharing the original's header map and context.
+// Terminology section in specification/README.md): a new *http.Request with
+// a new URL, but sharing the original's header map and context.
 func (g *Group) ServeFiles(prefix string, root http.FileSystem) {
 	if root == nil {
 		panic("muxmaster: nil root passed to ServeFiles")

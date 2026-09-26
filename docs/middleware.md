@@ -18,14 +18,15 @@ This is the same signature used by `net/http`, chi, gorilla/mux, and most other 
 - [Writing Custom Middleware](#writing-custom-middleware)
 - [Built-in Middleware Reference](#built-in-middleware-reference)
   - [Logger](#logger)
-  - [Recoverer](#recoverer)
+  - [RecovererWithLogger](#recovererwithlogger)
   - [CORS](#cors)
   - [BasicAuth](#basicauth)
   - [JWTAuth](#jwtauth)
   - [OAuth2Introspect](#oauth2introspect)
   - [APIKey](#apikey)
   - [Compress](#compress)
-  - [ThrottleBacklog](#throttlebacklog)
+  - [ThrottleBacklog and ThrottleAllBacklog](#throttlebacklog-and-throttleallbacklog)
+  - [ThrottlePerIP and ThrottlePerIPCapped](#throttleperip-and-throttleperipcapped)
   - [Timeout](#timeout)
   - [RequestID](#requestid)
   - [RealIP](#realip)
@@ -46,6 +47,18 @@ This means:
 - Middleware applied to a route stays with that route, regardless of later `Use` calls
 - `Use` must be called **before** the routes it should affect
 
+The router's own responses — the `NotFound` and `MethodNotAllowed` handlers, the automatic OPTIONS response and the trailing-slash and fixed-path redirects — are wrapped with the complete `Use` chain at the time they run, including middleware added after they were first used.
+
+### Which middleware wraps which route type
+
+| Registered with | Wraps `Handle` routes | Wraps `HandleFast` routes |
+|---|---|---|
+| `mux.Pre(...)` | Yes | Yes |
+| `mux.Use(...)` / `group.Use(...)` (`func(http.Handler) http.Handler`) | Yes | No — registering a `HandleFast` route after `Use` panics |
+| `mux.UseFast(...)` / `group.UseFast(...)` (`FastMiddleware`) | No | Yes |
+
+An authentication gate that must also cover `HandleFast` routes must be registered with `Pre`. See [SECURITY.md](../SECURITY.md#pre-vs-use-security-boundary-csa-2026-0059--h8-01).
+
 Execution order mirrors nesting order: the first middleware listed in `Use` is the outermost wrapper (runs first on request, last on response).
 
 ```go
@@ -64,9 +77,9 @@ mux.GET("/path", handler)
 ```go
 mux := muxmaster.New()
 mux.Use(middleware.Logger(os.Stdout))
-mux.Use(middleware.Recoverer())
+mux.Use(middleware.RecovererWithLogger(slog.Default()))
 
-mux.GET("/api/users", listUsers) // wrapped by Logger and Recoverer
+mux.GET("/api/users", listUsers) // wrapped by Logger and RecovererWithLogger
 ```
 
 ---
@@ -80,7 +93,7 @@ mux.Pre(middleware.CleanPath())
 mux.Pre(middleware.StripSlashes())
 ```
 
-Pre-routing middleware cannot access path parameters because routing has not happened yet. It is useful for path normalization, request ID injection, and real IP extraction.
+`Pre` middleware wraps the whole dispatch, so it runs for every request — `Handle` routes, `HandleFast` routes, 404, 405, automatic OPTIONS and redirects. It cannot access path parameters or `RoutePattern`, because routing has not happened yet. It is the right place for path normalisation, request IDs, real IP extraction, panic recovery and authentication gates that must cover fast routes. Each `Pre` call appends to the chain; the first registered is outermost.
 
 **Exception — asterisk-form `OPTIONS * HTTP/1.1`:** Under `net/http`'s default server configuration (`http.Server.DisableGeneralOptionsHandler == false`, the default), an incoming `OPTIONS * HTTP/1.1` request is answered by `net/http` itself before `Mux.ServeHTTP` is called, so pre-routing middleware does not run for it. To route these requests through MuxMaster and its middleware, set `http.Server.DisableGeneralOptionsHandler` to `true`:
 
@@ -99,7 +112,7 @@ When `DisableGeneralOptionsHandler` is `true`, `OPTIONS *` requests reach `Mux.S
 
 ## Group Middleware
 
-Middleware registered on a group applies only to the routes in that group, after any mux-level middleware:
+Middleware registered on a group applies only to the routes in that group; mux-level `Use` middleware wraps it, so it runs first:
 
 ```go
 mux := muxmaster.New()
@@ -112,11 +125,13 @@ api.GET("/users", listUsers) // Logger → requireAPIKey → listUsers
 mux.GET("/health", health)     // Logger → health (no requireAPIKey)
 ```
 
+A group that has `Use` middleware panics when you register a `HandleFast` route on it; use `group.UseFast` for fast routes.
+
 ---
 
 ## Per-Route Middleware with `With`
 
-`With` returns a copy of the mux or group with additional middleware scoped to the next route registration:
+`With` returns a new `*Group` that adds middleware to the routes you register through it. `mux.With(...)` returns a group with an empty prefix; `group.With(...)` keeps the group's prefix and middleware:
 
 ```go
 // On the mux
@@ -126,7 +141,7 @@ mux.With(requireAdmin).DELETE("/users/:id", deleteUser)
 api.With(rateLimit, auditLog).POST("/payments", processPayment)
 ```
 
-`With` does not mutate the original mux or group; it returns a new, temporary scope.
+`With` does not modify the original mux or group.
 
 ---
 
@@ -175,9 +190,9 @@ mux.Use(RateLimit(100))
 Use `context.WithValue` with an unexported key type to avoid collisions:
 
 ```go
-type ctxKey string
+type ctxKey struct{}
 
-const userIDKey ctxKey = "userID"
+var userIDKey ctxKey
 
 func injectUserID(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -191,13 +206,15 @@ func injectUserID(next http.Handler) http.Handler {
 userID := r.Context().Value(userIDKey).(string)
 ```
 
-Alternatively, use `middleware.WithValue` for simple cases:
+Alternatively, use `middleware.WithValue` for simple cases, again with an unexported key type:
 
 ```go
-mux.Use(middleware.WithValue("requestEnv", "production"))
+type envKey struct{}
+
+mux.Use(middleware.WithValue(envKey{}, "production"))
 
 // In a handler:
-env := r.Context().Value("requestEnv").(string)
+env := r.Context().Value(envKey{}).(string)
 ```
 
 ---
@@ -236,25 +253,27 @@ Logger implements `http.Flusher` (delegating to the underlying response writer) 
 
 ---
 
-### Recoverer
+### RecovererWithLogger
 
-Catches panics in downstream handlers and resumes normal request processing. Without this middleware a panic crashes the entire server. The panic value and stack trace are always logged; the panic value itself is never written to the response body.
+Recovers panics in downstream handlers, logs the panic value and stack trace at Error level through the given `*slog.Logger`, and answers with a plain `500 Internal Server Error`. The panic value is never written to the response body. Without recovery, `net/http` recovers the panic per connection, logs it and closes the connection.
 
 ```go
-mux.Use(middleware.Recoverer())
+mux.Use(middleware.RecovererWithLogger(slog.Default()))
 ```
 
-**Response behavior:** Recoverer writes a plain 500 response only if the handler has not already committed its own response — that is, only if the handler panicked before calling `WriteHeader` or `Write`. If the handler already sent a status or wrote body bytes before panicking, Recoverer leaves the response exactly as the handler left it and does not append anything; this is a handler bug independent of Recoverer, not something Recoverer can safely correct after the fact.
+Register it with `Pre` instead of `Use` to cover `HandleFast` routes and the other `Pre` middleware registered after it. `middleware.Recoverer()` is deprecated; it is equivalent to `RecovererWithLogger(slog.Default())`.
+
+**Response behaviour:** it writes a plain 500 response only if the handler has not already committed its own response — that is, only if the handler panicked before calling `WriteHeader` or `Write`. If the handler already sent a status or wrote body bytes before panicking, Recoverer leaves the response exactly as the handler left it and does not append anything; this is a handler bug independent of Recoverer, not something Recoverer can safely correct after the fact.
 
 **Supported interfaces:**
 
-Recoverer implements `http.Flusher` (delegating to the underlying response writer) and exposes `Unwrap() http.ResponseWriter`, so `http.ResponseController` reaches `Hijack` and other optional interfaces on the underlying writer.
+`RecovererWithLogger` implements `http.Flusher` (delegating to the underlying response writer) and exposes `Unwrap() http.ResponseWriter`, so `http.ResponseController` reaches `Hijack` and other optional interfaces on the underlying writer.
 
 ---
 
 ### CORS
 
-Handles Cross-Origin Resource Sharing. Responds to preflight OPTIONS requests and sets the appropriate CORS headers on responses.
+Handles Cross-Origin Resource Sharing. It answers every `OPTIONS` request that carries an `Origin` header as a preflight (`204 No Content`, without calling the next handler) and sets the CORS headers on other responses.
 
 ```go
 mux.Use(middleware.CORS(middleware.CORSOptions{
@@ -285,6 +304,15 @@ mux.Use(middleware.CORS(middleware.CORSOptions{
 | `ExposedHeaders`   | `[]string` | Response headers accessible to the browser                  |
 | `AllowCredentials` | `bool`     | Whether the response can include cookies (cannot use `"*"`) |
 | `MaxAge`           | `int`      | Seconds to cache the preflight response                     |
+
+**Behaviour:**
+
+- `Vary: Origin` is added to **every** response that passes through CORS, including requests without an `Origin` header and CORS's own error responses, so shared caches never reuse a response across origins. It is added, not set, so other `Vary` values are kept.
+- A request without an `Origin` header is passed to the next handler unchanged apart from `Vary`.
+- An `Origin` containing CR, LF or NUL receives `400 Bad Request`; an origin not in `AllowedOrigins` receives `403 Forbidden`.
+- With `AllowedOrigins: []string{"*"}` the response carries the literal `Access-Control-Allow-Origin: *`; the request origin is never reflected.
+- Construction panics if `AllowedOrigins` is empty, or if `AllowCredentials` is `true` while `AllowedOrigins` contains `"*"`.
+- A `SetHeader` middleware that runs after CORS and sets an `Access-Control-*` header overwrites CORS's value; see [SetHeader](#setheader).
 
 **Header isolation:**
 
@@ -317,7 +345,11 @@ mux.Use(middleware.BasicAuth("My API", credentials))
 
 **Parameters:**
 - `realm string` — shown to the user in the browser's credential prompt
-- `credentials map[string]string` — map of username → password
+- `credentials map[string]string` — map of username → password; panics if `nil`
+
+A request without valid credentials receives `401 Unauthorized` with `WWW-Authenticate: Basic realm="<realm>"`.
+
+**Constant-time lookup:** usernames and passwords are SHA-256 hashed at construction. Every request compares the supplied credentials against **all** registered users with `crypto/subtle`, with no early exit, so response time does not reveal whether a username exists (TSC-2026-0002). The cost therefore grows with the number of users. On the 2026-09-26 benchmark run (AMD Ryzen 9 5900HX), a successful request took about 320 ns, 550 ns and 2.8 µs with 1, 10 and 100 users, and a rejected one about 730 ns, 960 ns and 3.2 µs ([Performance](performance.md#middleware-middlewarebench_testgo)). For large user bases, use a credential store designed for it.
 
 ---
 
@@ -386,7 +418,9 @@ type JWTClaims struct {
 
 - **Pre-routing placement (Auth gates):** If this middleware must cover routes registered with `HandleFast`, register it via `mux.Pre(...)`, not `mux.Use(...)`. The `Use()` family does not wrap fast routes and will panic if both are present. See [Pre vs. Use security boundary](../SECURITY.md#pre-vs-use-security-boundary-csa-2026-0059--h8-01) in SECURITY.md.
 
-- **Algorithm mixing (timing oracle — TSC-2026-0003):** Mixing algorithm families (e.g., HS256 alongside RS256) in `Algorithms` leaks the verification path via response latency: HMAC verification is ~1 µs, RSA ~300 µs. An attacker submitting tokens with different `alg` values can infer which path the server runs. Configure each endpoint with a single algorithm family (e.g., only `ES256`, not a mix). JWTAuth emits a `slog.Warn` at construction time when this misconfiguration is detected.
+- **Supported algorithms only:** `Algorithms` accepts HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384 and ES512. Any other value, including `none`, panics at construction, as does a listed algorithm whose key material (`Secret` or a `PublicKey` of the right type and curve) is missing. Tokens whose `alg` is not listed are rejected with 401.
+
+- **Algorithm mixing (timing oracle — TSC-2026-0003):** Mixing algorithm families (e.g., HS256 alongside RS256) in `Algorithms` leaks the verification path via response latency: the measured HS256 and RS256 paths differ by about 25 µs. An attacker submitting tokens with different `alg` values can infer which path the server runs. Configure each endpoint with a single algorithm family (e.g., only `ES256`, not a mix). JWTAuth emits a `slog.Warn` at construction time when this misconfiguration is detected.
 
 - **Require expiry (RFC 8725 §4.4 — TM-2026-001):** The default `RequireExpiry: false` is unsafe in production. A stolen token without an `"exp"` claim remains valid indefinitely. Production deployments **must** set `RequireExpiry: true`. JWTAuth emits a `slog.Warn` at construction time when this default is in effect.
 
@@ -463,17 +497,17 @@ type IntrospectResponse struct {
 
 - **Endpoint URL validation (TM-2026-004):** The `Endpoint` URL is validated to ensure it has a non-empty host and contains no embedded userinfo (which could exfiltrate credentials). Misconfigured endpoints are detected at construction time.
 
-- **Credential logging mitigation (TM-2026-005):** Construction-time logs emit only the host and scheme of the endpoint, never the full URL, to prevent credentials embedded in query strings from being recorded.
+- **Credential redaction (TM-2026-005, CWE-532):** Construction-time log lines and panic messages never render credentials embedded in the `Endpoint` URL.
 
 - **Cache poisoning (MSR-2026-0063):** Because tokens are cached, a revoked token remains valid until the TTL expires. High-security endpoints should disable caching by setting `CacheTTL` to a negative value (e.g., `-1`). The singleflight mechanism still coalesces concurrent calls for the same token, preventing IDP load spikes.
 
-- **Singleflight defense (DOS-OAUTH2-001):** Concurrent requests for the same token share a single upstream introspection call. If the leader's request context is cancelled, the call detaches to a 30-second background timeout so followers receive the legitimate result instead of being poisoned with a 401.
+- **Singleflight defense (DOS-OAUTH2-001, MSR-2026-0071):** Concurrent requests for the same token share a single upstream introspection call. The call runs on a context detached from the leader's cancellation (`context.WithoutCancel`) with a 30-second timeout, so a cancelled leader does not fail its followers with a 401; request-scoped context values are kept.
 
 ---
 
 ### APIKey
 
-Authenticates requests by matching an extracted API key against a pre-validated set. All keys are hashed at construction time; per-request overhead is one SHA-256 hash plus a lookup.
+Authenticates requests by matching an extracted API key against a configured set. All keys are SHA-256 hashed at construction time; per-request overhead is one SHA-256 hash plus one map lookup keyed by that hash. A missing or unknown key receives `401 Unauthorized`.
 
 ```go
 import (
@@ -517,19 +551,19 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 
 - **Timing oracle mitigation (TSC-2026-0008):** To avoid leaking whether the API key was found via response latency, the hit path (valid key) performs an equivalent header operation (set + delete) as the miss paths, equalising the cost of both branches. This prevents attackers from distinguishing valid keys from invalid ones by measuring response time.
 
-- **Pre-hashing:** All keys are SHA-256 hashed at construction time. Per-request overhead is one SHA-256 hash of the submitted key plus a constant-time map lookup.
+- **Pre-hashing:** All keys are SHA-256 hashed at construction time, and the submitted key is hashed before the map lookup, so the lookup never compares the raw key bytes.
 
 ---
 
 ### Compress
 
-Compresses responses using gzip or deflate, depending on the `Accept-Encoding` header.
+Compresses responses with gzip when the request's `Accept-Encoding` header contains `gzip`. No other encoding is supported.
 
 ```go
-mux.Use(middleware.Compress(5)) // compression level 1–9; 5 is a good default
+mux.Use(middleware.Compress(5)) // a compress/gzip level; an invalid level panics
 ```
 
-Responses smaller than a threshold are not compressed. The `Content-Encoding: gzip` header is set automatically.
+Responses smaller than 1024 bytes are sent uncompressed, as are responses whose `Content-Type` is already compressed or that already carry a `Content-Encoding`. `Vary: Accept-Encoding` is always added; `Content-Encoding: gzip` is set when the body is compressed. While deciding, the middleware buffers up to 8 KiB per response, so configure `http.Server` timeouts. Do not compress responses that echo user input next to a secret (BREACH); see [SECURITY.md](../SECURITY.md).
 
 The middleware applies a "first-WriteHeader wins" lock to prevent multiple calls from changing the status code once compression has begun. To match `net/http`'s own behaviour, 1xx informational responses (e.g., 103 Early Hints) are exempt from this lock and do not block subsequent final status codes.
 
@@ -539,9 +573,9 @@ Compress implements `http.Flusher` (delegating to the underlying gzip writer) an
 
 ---
 
-### ThrottleBacklog
+### ThrottleBacklog and ThrottleAllBacklog
 
-Limits the number of concurrently executing handlers. Requests that exceed the limit are queued; requests that exceed the queue are rejected with 503.
+Limits the number of concurrently executing handlers across all clients combined. Requests over the limit wait in a backlog; a request that finds the backlog full, or waits longer than the timeout, receives `503 Service Unavailable`. `ThrottleAllBacklog` is an equivalent name for `ThrottleBacklog`.
 
 ```go
 mux.Use(middleware.ThrottleBacklog(
@@ -558,15 +592,36 @@ mux.Use(middleware.ThrottleBacklog(
 
 ---
 
+### ThrottlePerIP and ThrottlePerIPCapped
+
+Limits the number of concurrently executing handlers **per client key**. A request that cannot get a slot for its key within the timeout receives `503 Service Unavailable`.
+
+```go
+trustedProxy := netip.MustParsePrefix("10.0.0.0/8")
+mux.Use(middleware.RealIP(&trustedProxy))                 // first: set RemoteAddr
+mux.Use(middleware.ThrottlePerIP(10, time.Second, nil))   // 10 concurrent requests per IP
+```
+
+**Parameters:**
+- `limit int` — maximum concurrent requests per key; must be > 0
+- `timeout time.Duration` — how long a request waits for a slot
+- `keyFn func(*http.Request) string` — extracts the key; `nil` uses the host part of `r.RemoteAddr`
+
+With `keyFn == nil`, register `RealIP` (with explicit trusted proxy CIDRs) before `ThrottlePerIP`; otherwise every request behind a load balancer shares the balancer's address and the limit becomes global. `ThrottlePerIP` logs a reminder at construction when `keyFn` is `nil`.
+
+The table of tracked keys is capped at `DefaultThrottlePerIPMaxTableSize` (100 000). When it is full, requests for keys not already in the table receive 503 immediately, which bounds memory under IP churn. `ThrottlePerIPCapped(limit, timeout, maxTableSize, keyFn)` sets a different cap; `maxTableSize <= 0` removes it, which is not recommended in production.
+
+---
+
 ### Timeout
 
-Cancels the request context after the specified duration. The handler is expected to honour `ctx.Done()` to exit early.
+Sets a deadline on the request context. It does not interrupt the handler or write a response when the deadline passes: the handler must watch `ctx.Done()` (and use context-aware calls such as `QueryContext`) and write its own error response. Panics if the duration is not positive.
 
 ```go
 mux.Use(middleware.Timeout(10 * time.Second))
 ```
 
-The timeout applies to the handler execution time, not to the total connection lifetime.
+The deadline covers the handlers wrapped by `Timeout`, not the connection. Use `http.Server` timeouts for the connection.
 
 ---
 
@@ -578,7 +633,7 @@ Attaches a unique request ID to every request, generating a 16-byte random value
 mux.Use(middleware.RequestID())
 ```
 
-**Header behavior:**
+**Header behaviour:**
 
 - **Inbound:** If the incoming request has an `X-Request-ID` header, it is validated (MM-2026-0011): ASCII alphanumeric plus `-`, `_`, `.`; length 1–128 characters. Invalid or empty values are replaced with a freshly generated ID.
 - **Outbound:** The request ID is written to the `X-Request-ID` response header.
@@ -597,7 +652,7 @@ id := middleware.GetRequestID(r.Context())
 
 ### RealIP
 
-Extracts the real client IP address from `X-Forwarded-For` or `X-Real-IP` headers set by a reverse proxy, and sets `r.RemoteAddr` to that value.
+Extracts the real client IP address from the `X-Forwarded-For` header (or, when it is absent, `X-Real-IP`) set by a reverse proxy, and sets `r.RemoteAddr` to that value. It does so only when the direct peer's address lies in one of the trusted CIDR prefixes passed as `*netip.Prefix`; values that are not valid IP addresses are ignored.
 
 ```go
 trustedProxy := netip.MustParsePrefix("10.0.0.0/8")
@@ -608,13 +663,13 @@ For `X-Forwarded-For` (a comma-separated list of IPs in proxy chain order), Real
 
 **Security:**
 
-Only use this middleware if the server is behind a trusted reverse proxy. Accepting these headers from arbitrary clients is a security risk — the client can spoof `X-Forwarded-For` to claim any IP address. If the proxy chain is compromised, RealIP will assign the IP address that an attacker inserted into the rightmost position.
+Only use this middleware if the server is behind a trusted reverse proxy, and always pass the proxy CIDRs. Called with no CIDRs, `RealIP()` trusts every peer, so any client can spoof its address; it logs a warning at construction. Every proxy in the chain must be covered by a trusted CIDR, or the walk stops at the uncovered proxy. If the proxy chain is compromised, RealIP assigns whatever address the attacker inserted.
 
 ---
 
 ### CleanPath
 
-Rewrites the request path in-place, normalising redundant components via `path.Clean`:
+Normalises the request path with `path.Clean` before routing. When the path changes, the next handler receives a shallow copy of the request with the cleaned path; the original request is not modified:
 - `//users` → `/users`
 - `/a/../users` → `/users`
 - `/a/./users` → `/a/users`
@@ -630,19 +685,32 @@ and can be bypassed by traversal sequences like `/admin/../public` or `//admin`.
 CleanPath must run first to normalise the path before the gate inspects it:
 
 ```go
-mux.Pre(middleware.CleanPath())              // first: normalise the path
-mux.Pre(middleware.BasicAuth("realm", ...))  // then: check authorisation
+func adminGate(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        if strings.HasPrefix(r.URL.Path, "/admin") && !isAdmin(r) {
+            http.Error(w, "Forbidden", http.StatusForbidden)
+            return
+        }
+        next.ServeHTTP(w, r)
+    })
+}
+
+mux.Pre(middleware.CleanPath()) // first: normalise the path
+mux.Pre(adminGate)              // then: check authorisation on the clean path
 ```
 
-If this order is reversed, `/admin/../public` reaches the BasicAuth gate as-is
-(bypassing the `/admin` check), though the radix tree lookup still matches the
-correct route based on the cleaned path.
+If this order is reversed, `//admin` reaches the gate unnormalised, does not
+match the `/admin` prefix and is let through, and CleanPath then hands the router
+the cleaned `/admin` path.
+
+When `r.URL.RawPath` is set it is cleaned too, and it is cleared if it no longer
+matches the cleaned `Path`, so an encoded traversal cannot survive in `RawPath`.
 
 ---
 
 ### StripSlashes
 
-Removes trailing slashes from the URL path before routing. Unlike `RedirectTrailingSlash`, this modifies the request in-place without issuing a redirect.
+Removes all trailing slashes from the URL path before routing (`/a///` becomes `/a`), and strips the matching separators from `r.URL.RawPath` when it is set. Unlike `RedirectTrailingSlash`, it issues no redirect: the next handler receives a shallow copy of the request with the stripped path, and the original request is not modified.
 
 ```go
 mux.Pre(middleware.StripSlashes())
@@ -652,13 +720,13 @@ mux.Pre(middleware.StripSlashes())
 
 ### NoCache
 
-Sets headers that instruct browsers and intermediaries not to cache the response.
+Sets headers that instruct browsers, CDNs and reverse proxies not to cache the response. It sets them before calling the next handler, which can still override them.
 
 ```go
 mux.Use(middleware.NoCache())
 ```
 
-Headers set: `Cache-Control: no-cache, no-store, no-transform, must-revalidate, private, max-age=0`, `Pragma: no-cache`, `Expires: 0`.
+Headers set: `Cache-Control: no-store, no-cache, must-revalidate`, `Pragma: no-cache`, `Expires: 0`, `Surrogate-Control: no-store`, `X-Accel-Expires: 0`.
 
 **Header isolation:**
 
@@ -676,6 +744,10 @@ mux.Use(middleware.SetHeader("X-Frame-Options", "DENY"))
 mux.Use(middleware.SetHeader("Strict-Transport-Security", "max-age=31536000"))
 ```
 
+The header is set before the next handler runs, so later middleware and the handler can override it. Construction panics if the key or value contains CR or LF.
+
+**Ordering with CORS:** a `SetHeader` registered after `CORS` in the same chain runs later and overwrites CORS's values; `Use(CORS(...), SetHeader("Access-Control-Allow-Origin", "*"))` defeats the origin allow-list. Register `SetHeader` before `CORS`, or do not use it for `Access-Control-*` or `Vary`.
+
 **Header isolation:**
 
 Each request gets its own independent copy of the header value. Code downstream that directly indexes into the `Header()` map (e.g., `w.Header()["X-Custom"][0] = ...`) mutates only that request's copy; other requests are unaffected.
@@ -684,13 +756,15 @@ Each request gets its own independent copy of the header value. Code downstream 
 
 ### WithValue
 
-Stores a value in the request context. Useful for injecting configuration or feature flags:
+Stores a value in the request context. Useful for injecting configuration or feature flags. Use an unexported key type: a string key can collide with another package's, and `WithValue` logs a warning at construction when given one. A `nil` key panics.
 
 ```go
-mux.Use(middleware.WithValue("appEnv", "production"))
+type appEnvKey struct{}
+
+mux.Use(middleware.WithValue(appEnvKey{}, "production"))
 
 // In a handler:
-env := r.Context().Value("appEnv").(string)
+env := r.Context().Value(appEnvKey{}).(string)
 ```
 
 ---

@@ -15,9 +15,10 @@ import (
 // (HPS-2026-0004).
 //
 // When the path has trailing slashes to strip, next receives a shallow copy
-// of the request (see the Terminology section in README.md): a new
-// *http.Request with a new URL, but sharing the original's header map and
-// context. The original request passed to StripSlashes is never mutated.
+// of the request (see the Terminology section in the MuxMaster
+// specification/README.md): a new *http.Request with a new URL, but sharing
+// the original's header map and context. The original request passed to
+// StripSlashes is never mutated.
 func StripSlashes() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

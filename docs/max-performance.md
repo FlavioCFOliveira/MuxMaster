@@ -32,42 +32,45 @@ mux.PoolFastParams    = true   // recycle Params slices for HandleFast (Opt O9)
 mux.Pre(realIP, requestID, recoverer)
 
 // Register routes normally
-mux.GET("/health", healthHandler)               // 0 allocs
-mux.GET("/users/:id", getUser)                  // 0 allocs (was 384 B)
-mux.GET("/orgs/:org/repos/:repo", getRepo)      // 0 allocs (was 416 B)
-mux.GET("/static/*filepath", serveStatic)       // 0 allocs (was 384 B)
+mux.GET("/health", healthHandler)               // static: 0 allocs with or without the pool
+mux.GET("/users/:id", getUser)                  // 0 allocs (default: 384 B, 1 alloc)
+mux.GET("/orgs/:org/repos/:repo", getRepo)      // 0 allocs (default: 416 B, 1 alloc)
+mux.GET("/static/*filepath", serveStatic)       // 0 allocs (default: 384 B, 1 alloc)
 
 http.ListenAndServe(":8080", mux)
 ```
 
-Result on AMD Ryzen 9 5900HX (Go 1.26.2):
+Measured on 2026-09-26 (AMD Ryzen 9 5900HX, Go 1.27.0, `-count=3`, root `bench_test.go`; [report](../reports/perf-lab-2026-09-26-docs/README.md)):
 
-| Route | Default | This config | Speed-up |
+| Route | Default | `PoolRequestBundle = true` | Speed-up |
 |---|---:|---:|---:|
-| Static | 25 ns / 0 B | 25 ns / 0 B | — |
-| 1 param | 105 ns / 384 B / 1 alloc | **45 ns / 0 B / 0 allocs** | **2.4×** |
-| 2 params | 119 ns / 416 B / 1 alloc | **57 ns / 0 B / 0 allocs** | **2.1×** |
-| 3 params | 135 ns / 480 B / 1 alloc | **59 ns / 0 B / 0 allocs** | **2.3×** |
-| Parallel param | 100 ns / 384 B / 1 alloc | **6 ns / 0 B / 0 allocs** | **16×** |
+| Static | 28.63 ns / 0 B / 0 allocs | unchanged — static routes have no bundle | — |
+| 1 param | 118.5 ns / 384 B / 1 alloc | **48.51 ns / 0 B / 0 allocs** | **2.4×** |
+| 2 params | 130.1 ns / 416 B / 1 alloc | **59.76 ns / 0 B / 0 allocs** | **2.2×** |
+| 3 params | 149.6 ns / 480 B / 1 alloc | **61.76 ns / 0 B / 0 allocs** | **2.4×** |
+| Catch-all | 132.4 ns / 384 B / 1 alloc | **44.95 ns / 0 B / 0 allocs** | **2.9×** |
+| Parallel param | 104.5 ns / 384 B / 1 alloc | **6.901 ns / 0 B / 0 allocs** | **15×** |
 
-This is faster than `httprouter` (56 ns / 64 B / 1 alloc) **with zero allocations** while remaining 100 % `net/http`-compatible.
+In the competitor suite on the same host, the pooled `Handle` path was faster than `httprouter` on 1 parameter (46.7 vs 50.5 ns), 3 parameters and the parallel benchmark, level on 2 parameters, and slower on catch-all (46.5 vs 42.8 ns) — with zero allocations and the standard `http.Handler` signature. See [Performance](performance.md#comparison-notes).
 
 ---
 
 ## How fast can it go?
 
-| Configuration | 1-param route ns/op | B/op | allocs/op |
-|---|---:|---:|---:|
-| `gorilla/mux` | 944 | 1152 | 8 |
-| `chi v5` | 349 | 704 | 4 |
-| `bunrouter` (HTTPHandler adapter) | 183 | 416 | 3 |
-| **MuxMaster default `Handle`** | 105 | 384 | 1 |
-| **MuxMaster `HandleFast`** | 50 | 32 | 1 |
-| `httprouter` (3-arg API) | 56 | 64 | 1 |
-| **MuxMaster `Handle` + `PoolRequestBundle`** | **45** | **0** | **0** |
-| **MuxMaster `HandleFast` + `PoolFastParams`** | **44** | **0** | **0** |
+1-parameter route, `competitor/` suite, 2026-09-26 (AMD Ryzen 9 5900HX, Go 1.27.0, `-count=3`):
 
-Same hardware (AMD Ryzen 9 5900HX, Go 1.26.2), same route set, same `net/http.ServeMux`-style API. Source: [`reports/perf-audit-2026-05-12/2026-05-12-deep-audit.md`](../reports/perf-audit-2026-05-12/2026-05-12-deep-audit.md).
+| Configuration | ns/op | B/op | allocs/op |
+|---|---:|---:|---:|
+| `gorilla/mux` | 954.7 | 1 153 | 8 |
+| `chi v5` | 360.7 | 704 | 4 |
+| `bunrouter` (`http.Handler` adapter) | 160.3 | 416 | 3 |
+| **MuxMaster default `Handle`** | 116.9 | 384 | 1 |
+| `httprouter` (3-argument handler) | 50.5 | 64 | 1 |
+| **MuxMaster `HandleFast`** | 47.8 | 32 | 1 |
+| **MuxMaster `Handle` + `PoolRequestBundle`** | **46.7** | **0** | **0** |
+| **MuxMaster `HandleFast` + `PoolFastParams`** | not in this run¹ | 0 | 0 |
+
+¹ The suite has no pooled fast-route benchmark. The most recent measurement is the 2026-09-24 scaling benchmark below (`b.RunParallel`, 39.3 ns at 1 CPU, 0 allocs); it is not directly comparable with the serial figures above.
 
 ---
 
@@ -78,15 +81,15 @@ Does the handler need to retain *http.Request or Params past return?
 (e.g. send r into a goroutine that outlives ServeHTTP)
 │
 ├── YES ─ Use default Handle (no opt-ins).
-│         Lifetime is GC-managed. Costs ~105 ns / 384 B / 1 alloc.
+│         Lifetime is GC-managed. Costs ~117 ns / 384 B / 1 alloc.
 │
 └── NO  ─ Do you need the stdlib http.Handler signature?
           │
           ├── YES ─ Use Handle + Mux.PoolRequestBundle = true.
-          │         45 ns / 0 B / 0 allocs. Full stdlib middleware compatibility.
+          │         ~47 ns / 0 B / 0 allocs. Full stdlib middleware compatibility.
           │
           └── NO  ─ Use HandleFast + Mux.PoolFastParams = true.
-                    44 ns / 0 B / 0 allocs. FastMiddleware only (not stdlib).
+                    0 B / 0 allocs. FastMiddleware only (not stdlib).
                     Params arrive as a 3rd argument (no context lookup).
 ```
 
@@ -112,11 +115,11 @@ mux.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
 
 **What the pool actually recycles**
 
-The pool holds three tiers — `reqBundle1` (368 B), `reqBundle2` (400 B), `reqBundle` (456 B) — matching the param count of the matched route. On Get the bundle is filled with the current request's fields. On Put the bundle is **fully zeroed** before returning to the pool, so the next request cannot observe stale state.
+The pool holds three tiers — `reqBundle1` (368 B, 384 B size class), `reqBundle2` (400 B, 416 B), `reqBundle` (456 B, 480 B) — matching the parameter count of the matched route. On Get the bundle is filled with a copy of the current request. After the handler returns, the bundle is **fully zeroed** and put back, so the next request cannot observe stale state. Routes with more than three parameters still allocate their overflow parameter slice. Static routes are unaffected: they never use a bundle.
 
 **What happens if the unsafe shortcut is unavailable**
 
-Future Go versions may rename or remove the unexported `ctx` field of `http.Request`. MuxMaster detects this at init via reflection (`hasReqCtxField`) and falls back to the non-pooled `r.WithContext(...)` path automatically — `PoolRequestBundle = true` is silently ignored in that case, preserving correctness over speed. On Go 1.22 through 1.26 (current) the field is present and the pool path is active.
+Future Go versions may rename or remove the unexported `ctx` field of `http.Request`. MuxMaster detects this at init via reflection (`hasReqCtxField`) and falls back to the non-pooled `r.WithContext(...)` path automatically — `PoolRequestBundle = true` is silently ignored in that case, preserving correctness over speed. The field is present on Go 1.26 (the module minimum) and Go 1.27 (used for the 2026-09-26 measurements), where the pooled path measured zero allocations.
 
 ---
 
@@ -140,9 +143,7 @@ The pool is independent of `PoolRequestBundle` — you can enable either, both, 
 
 ### High-concurrency scaling
 
-Pooling becomes progressively more beneficial as CPU core count increases, due to allocation-driven GC and runtime lock pressure (see the contention-hunt report for detailed profiling).
-
-Measured on an AMD Ryzen 9 5900HX (16 logical CPUs, Go 1.27.0):
+Pooling becomes more beneficial as the number of CPUs grows, because allocation drives GC and allocator contention. Measured on 2026-09-24 with `b.RunParallel`, `-cpu 1,4,16`, `-count=6` (AMD Ryzen 9 5900HX, Go 1.27.0; [contention-hunt report](../reports/perf-lab-2026-09-24/contention-hunt.md)); not re-measured on 2026-09-26:
 
 | Route type | CPU=1 | CPU=4 | CPU=16 | Pooled benefit |
 |---|---:|---:|---:|---:|
@@ -153,7 +154,7 @@ Measured on an AMD Ryzen 9 5900HX (16 logical CPUs, Go 1.27.0):
 
 **Recommendation:**
 
-The benefit grows measurably with core count. At the tested points (1, 4, 16 cores), pooling delivers measurable gains at all levels. Consider enabling `PoolRequestBundle` and/or `PoolFastParams` if your deployment has multiple cores and your application can meet the lifetime contract.
+Pooling was faster at every tested CPU count, and the gap widened with more CPUs: the allocating variants stopped improving beyond 4 CPUs, while the pooled ones kept scaling. Consider enabling `PoolRequestBundle` and/or `PoolFastParams` if your deployment runs on several cores and your handlers meet the lifetime contract.
 
 **Audit the lifetime contract first:** Verify that no handler retains `*http.Request` or `Params` past return. Violating this contract results in use-after-free against recycled pool storage. See [Lifetime contract — what you must not do](#lifetime-contract--what-you-must-not-do) below.
 
@@ -172,8 +173,8 @@ Both APIs run on the same radix tree and the same atomic dispatch. The differenc
 | Stdlib middleware (`Use`) | ✅ Applied | ❌ Panics at registration |
 | FastMiddleware (`UseFast`) | ❌ Not applied | ✅ Applied |
 | `Pre` middleware | ✅ Applied | ✅ Applied |
-| Default cost (1 param) | 105 ns / 384 B / 1 alloc | 50 ns / 32 B / 1 alloc |
-| With pool opt-in | 45 ns / 0 B / 0 allocs | 44 ns / 0 B / 0 allocs |
+| Default cost (1 param, 2026-09-26) | 116.9 ns / 384 B / 1 alloc | 47.8 ns / 32 B / 1 alloc |
+| With pool opt-in | 46.7 ns / 0 B / 0 allocs (2026-09-26) | 0 B / 0 allocs (39.3 ns at 1 CPU, `RunParallel`, 2026-09-24) |
 | Best for | Handlers that interact with `r` or use stdlib middleware ecosystems | Hot internal routes; latency-sensitive paths |
 
 **Mixing on the same Mux**
@@ -295,10 +296,9 @@ If you are turning on `PoolRequestBundle` for an existing codebase, the audit re
 - The return value of `muxmaster.PathParam(r, "...")` — a string
 - The return value of `io.ReadAll(r.Body)` — a byte slice copy
 
-**Unsafe captures** (these point into the recycled bundle):
-- `r` itself (the `*http.Request` pointer)
-- `r.URL` (the `*url.URL` pointer — note that `*r.URL` is copied into the bundle, but in the pool path `*r.URL` is overwritten by the next request's URL pointer)
-- `r.Body` if you store the `io.ReadCloser` instead of draining it
+**Unsafe captures** (these point into the recycled bundle, or are read through it):
+- `r` itself (the `*http.Request` pointer) — any later read through it (`r.URL`, `r.Header`, `r.Context()`, …) sees a zeroed or reissued bundle
+- `r.Body` if you store the `io.ReadCloser` instead of draining it — `net/http` closes the body when the request ends
 - `ps` (the `Params` slice from `FastHandler`)
 - Any element `ps[i]` of `Params` if you keep the `Param` struct beyond return
 
@@ -318,7 +318,7 @@ If your grep returns clean, your handlers are pool-safe. If it finds matches, au
 
 ### Recipe 1 — High-throughput JSON REST API
 
-Goal: 50k+ RPS per core, sub-100 µs P99 latency, zero per-request allocations on the routing layer.
+Goal: a JSON REST API with zero per-request allocations in the routing layer.
 
 ```go
 package main
@@ -342,8 +342,9 @@ func main() {
     mux.PoolFastParams    = true   // 0-alloc HandleFast path
 
     // Pre runs once per request, before routing — applies to both Handle and HandleFast
+    proxyNet := netip.MustParsePrefix("10.0.0.0/8") // trust your proxy network
     mux.Pre(
-        middleware.RealIP(netip.MustParsePrefix("10.0.0.0/8")), // Trust your proxy network
+        middleware.RealIP(&proxyNet),
         middleware.RequestID(),
         middleware.RecovererWithLogger(logger),
     )
@@ -428,9 +429,8 @@ mux.GET("/v1/export/:id", func(w http.ResponseWriter, r *http.Request) {
         fw.Write(row)
     }
     fw.Flush()
-    // The bundle is returned to the pool ONLY after this function returns,
-    // i.e. after the stream completes. `r.Context()` is the request context
-    // passed by net/http and lives for the connection — safe to use.
+    // The bundle is returned to the pool only after this function returns,
+    // i.e. after the stream completes, so using r and r.Context() here is safe.
 })
 ```
 
@@ -483,7 +483,9 @@ In production, wire up `net/http/pprof` and capture under real load:
 ```go
 import _ "net/http/pprof"
 
-mux.Mount("/debug/pprof/", http.DefaultServeMux)  // attach the standard pprof handler tree
+// Handle (not Mount): DefaultServeMux registers the pprof handlers under
+// /debug/pprof/, and Mount would strip that prefix before forwarding.
+mux.Handle(http.MethodGet, "/debug/pprof/*path", http.DefaultServeMux)
 
 // curl -s http://your-host/debug/pprof/profile?seconds=30 > cpu.prof
 // go tool pprof -top -cum cpu.prof
@@ -493,7 +495,7 @@ mux.Mount("/debug/pprof/", http.DefaultServeMux)  // attach the standard pprof h
 
 ## See Also
 
-- [Performance](performance.md) — design rationale and absolute baseline numbers
+- [Performance](performance.md) — design rationale, current and historical measurements
 - [`reports/perf-audit-2026-05-12/2026-05-12-deep-audit.md`](../reports/perf-audit-2026-05-12/2026-05-12-deep-audit.md) — the audit that produced the pool opt-ins
 - [Configuration](configuration.md) — every `*Mux` field and its default
 - [SECURITY.md](../SECURITY.md) — the concurrency analysis behind the lifetime contracts

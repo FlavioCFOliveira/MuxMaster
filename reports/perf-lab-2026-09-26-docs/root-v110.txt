@@ -1,0 +1,60 @@
+goos: linux
+goarch: amd64
+pkg: github.com/FlavioCFOliveira/MuxMaster
+cpu: AMD Ryzen 9 5900HX with Radeon Graphics        
+BenchmarkStaticRoute-16                 	45166706	        27.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16                 	44189988	        26.95 ns/op	       0 B/op	       0 allocs/op
+BenchmarkStaticRoute-16                 	44053233	        26.87 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParamRoute1-16                 	10098266	       118.2 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16                 	10343060	       120.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute1-16                 	 9591859	       119.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParamRoute2-16                 	 8485779	      1509 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16                 	 1000000	      1635 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute2-16                 	  835480	      1655 ns/op	     416 B/op	       1 allocs/op
+BenchmarkParamRoute3-16                 	  731839	      1711 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16                 	 1000000	      1496 ns/op	     480 B/op	       1 allocs/op
+BenchmarkParamRoute3-16                 	 8018770	       147.2 ns/op	     480 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16               	10516027	       109.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16               	10658236	       110.0 ns/op	     384 B/op	       1 allocs/op
+BenchmarkWildcardRoute-16               	11083249	       109.2 ns/op	     384 B/op	       1 allocs/op
+BenchmarkNotFound-16                    	 5160252	       223.7 ns/op	     100 B/op	       3 allocs/op
+BenchmarkNotFound-16                    	 5957983	       216.6 ns/op	      93 B/op	       3 allocs/op
+BenchmarkNotFound-16                    	 5963502	       215.0 ns/op	      93 B/op	       3 allocs/op
+BenchmarkParallelStaticRoute-16         	334118820	         3.675 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16         	324180738	         3.737 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelStaticRoute-16         	320882270	         3.731 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParallelParamRoute-16          	11409472	       105.2 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelParamRoute-16          	11570112	       105.3 ns/op	     384 B/op	       1 allocs/op
+BenchmarkParallelParamRoute-16          	11500782	       105.5 ns/op	     384 B/op	       1 allocs/op
+BenchmarkFastStaticRoute-16             	47156185	        25.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16             	48119210	        25.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastStaticRoute-16             	47549254	        25.45 ns/op	       0 B/op	       0 allocs/op
+BenchmarkFastParamRoute1-16             	26406914	        44.10 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16             	26642113	        43.31 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute1-16             	27049764	        43.30 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16             	18984050	        61.58 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16             	19423530	        61.44 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute2-16             	19653169	        61.80 ns/op	      64 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16             	13991497	        85.23 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16             	13952344	        85.64 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParamRoute3-16             	13727678	        84.97 ns/op	      96 B/op	       1 allocs/op
+BenchmarkFastParallelParamRoute-16      	95065626	        15.33 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParallelParamRoute-16      	78580412	        15.53 ns/op	      32 B/op	       1 allocs/op
+BenchmarkFastParallelParamRoute-16      	75656246	        15.54 ns/op	      32 B/op	       1 allocs/op
+BenchmarkPooledParamRoute1-16           	27695689	        42.62 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16           	29248758	        42.20 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute1-16           	29210319	        41.93 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16           	21907618	        55.34 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16           	22323327	        55.05 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute2-16           	21740685	        54.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16           	21160154	        59.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16           	20966314	        58.60 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParamRoute3-16           	20893142	        58.27 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16         	30357675	        40.79 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16         	29084282	        41.78 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledWildcardRoute-16         	29644396	        41.11 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParallelParamRoute-16    	195699850	         6.347 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParallelParamRoute-16    	190302139	         6.324 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPooledParallelParamRoute-16    	189730696	         6.351 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/FlavioCFOliveira/MuxMaster	84.703s
