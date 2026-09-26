@@ -14,7 +14,7 @@ updates:
       - dependencies
       - github-actions
     commit-message:
-      prefix: "ci(deps)"
+      prefix: "ci"
       include: scope
     groups:
       actions-minor-and-patch:
@@ -23,11 +23,13 @@ updates:
           - minor
           - patch
 
-  # Go modules. The core MuxMaster package has zero external deps, but
-  # the side modules (/competitor, /reports/*) and examples may pull in
-  # libraries that need patching.
+  # Go modules. Only modules with third-party dependencies are listed: the
+  # root module and the examples have none, and /competitor is
+  # git-ignored. The security harnesses below are separate modules that CI
+  # tests (ci.yml "Harness tests", fuzz.yml).
   - package-ecosystem: gomod
-    directory: /
+    # golang.org/x/net and golang.org/x/text (HTTP/2 harness)
+    directory: /reports/http-protocol-security-auditor/harness/h2harness
     schedule:
       interval: weekly
       day: monday
@@ -36,11 +38,12 @@ updates:
       - dependencies
       - go
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
       include: scope
 
   - package-ecosystem: gomod
-    directory: /competitor
+    # chi, httprouter, bunrouter and testify (differential fuzzing)
+    directory: /reports/path-routing-fuzzer/harness
     schedule:
       interval: weekly
       day: monday
@@ -48,20 +51,20 @@ updates:
     labels:
       - dependencies
       - go
-      - competitor
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
       include: scope
 
   - package-ecosystem: gomod
-    directory: /examples/oauth2
+    # pgregory.net/rapid (property-based tests)
+    directory: /reports/fuzzing-and-property-engineer/harness
     schedule:
-      interval: monthly
-    open-pull-requests-limit: 1
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - go
-      - examples
     commit-message:
-      prefix: "chore(deps)"
+      prefix: "chore"
       include: scope

@@ -311,6 +311,10 @@ func (g *Group) ServeFiles(prefix string, root http.FileSystem)
     section in specification/README.md): a new *http.Request with a new URL,
     but sharing the original's header map and context.
 
+    SECURITY (CDX-S8-002): like Mux.ServeFiles, it panics when the owning Mux
+    has both UseRawPath and UnescapePathValues set at the time of the call.
+    See Mux.ServeFiles for the rationale.
+
 func (g *Group) TRACE(path string, h http.HandlerFunc)
     TRACE registers a HandlerFunc for TRACE requests on path.
 
@@ -1002,6 +1006,11 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler
     network calls. On success, the IntrospectResponse is available via
     GetOAuth2Claims.
 
+    When opts.HTTPClient is nil, call OAuth2Introspect during startup, before
+    the process issues HTTP requests concurrently through http.DefaultTransport:
+    the default client copies http.DefaultTransport's settings at this call (see
+    OAuth2Options.HTTPClient).
+
     Panics if opts.Endpoint is empty, malformed, or non-HTTPS (unless
     opts.AllowInsecureEndpoint is true). Bearer tokens transmitted over
     plaintext are exposed to passive observers (MSR-2026-0067 / RFC 7662 §4).
@@ -1335,7 +1344,26 @@ type OAuth2Options struct {
 	CacheTTL time.Duration
 	// MaxCacheSize caps the number of cached active tokens. Default: 10000.
 	MaxCacheSize int
-	// HTTPClient is used for introspection requests. Default: 10s timeout.
+	// HTTPClient is used for introspection requests. Default: a client with
+	// a 10s timeout and its own transport. That transport copies the
+	// settings of http.DefaultTransport (proxy, dialers, TLS configuration,
+	// timeouts, protocol selection) ONCE, when OAuth2Introspect is called —
+	// later changes to http.DefaultTransport are not seen — without
+	// modifying or initialising http.DefaultTransport. It sets
+	// MaxIdleConns, MaxIdleConnsPerHost and MaxConnsPerHost to 100 and
+	// keeps keep-alives enabled: calls beyond the limit wait for a free
+	// connection (the wait counts toward the 10s timeout) instead of opening
+	// new sockets, which prevents ephemeral-port exhaustion under load. The
+	// bound of 100 connections is exact for HTTP/1.1; over HTTP/2 each
+	// connection multiplexes many calls, and the HTTP/2 layer may open
+	// additional connections. If http.DefaultTransport is not an
+	// *http.Transport, it is used as is. Supply your own client to choose
+	// different settings.
+	//
+	// Because the default client reads http.DefaultTransport's fields when
+	// OAuth2Introspect is called, construct the middleware during startup,
+	// before the process issues HTTP requests concurrently through
+	// http.DefaultTransport.
 	HTTPClient *http.Client
 	// ExtractFn overrides token extraction. Default: "Authorization: Bearer <token>".
 	ExtractFn func(*http.Request) string

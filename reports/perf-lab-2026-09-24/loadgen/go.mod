@@ -1,6 +1,6 @@
 module github.com/FlavioCFOliveira/MuxMaster/reports/perf-lab-2026-09-24/loadgen
 
-go 1.26
+go 1.27.1
 
 require github.com/FlavioCFOliveira/MuxMaster v0.0.0
 

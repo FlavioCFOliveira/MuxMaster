@@ -2,6 +2,7 @@ package muxmaster
 
 import (
 	"context"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
@@ -1084,13 +1085,7 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 	if root == nil {
 		panic("muxmaster: nil root passed to ServeFiles")
 	}
-	if m.UseRawPath && m.UnescapePathValues {
-		panic("muxmaster: ServeFiles refuses to register with UseRawPath=true AND " +
-			"UnescapePathValues=true — captured filepath would contain decoded '/' " +
-			"and http.FileServer would treat them as separators (CDX-S8-002 / PRF-2026-0002). " +
-			"Disable one of the two, or implement a custom handler that path.Clean's " +
-			"the captured value before dispatch. See SECURITY.md \"UseRawPath traversal\".")
-	}
+	m.checkServeFilesRawPath()
 	i := strings.LastIndex(prefix, "/*")
 	if i < 0 {
 		panic("muxmaster: ServeFiles prefix must end with '/*name': " + prefix)
@@ -1111,6 +1106,21 @@ func (m *Mux) ServeFiles(prefix string, root http.FileSystem) {
 	})
 	m.Handle(http.MethodGet, prefix, h)
 	m.Handle(http.MethodHead, prefix, h)
+}
+
+// checkServeFilesRawPath enforces the CDX-S8-002 / PRF-2026-0002
+// registration guard shared by (*Mux).ServeFiles and (*Group).ServeFiles:
+// it panics when m has both UseRawPath and UnescapePathValues enabled, since
+// the captured filepath would then contain decoded '/' that http.FileServer
+// treats as separators. Registration-time only; never on the request path.
+func (m *Mux) checkServeFilesRawPath() {
+	if m.UseRawPath && m.UnescapePathValues {
+		panic("muxmaster: ServeFiles refuses to register with UseRawPath=true AND " +
+			"UnescapePathValues=true — captured filepath would contain decoded '/' " +
+			"and http.FileServer would treat them as separators (CDX-S8-002 / PRF-2026-0002). " +
+			"Disable one of the two, or implement a custom handler that path.Clean's " +
+			"the captured value before dispatch. See SECURITY.md \"UseRawPath traversal\".")
+	}
 }
 
 // lazyNotFound returns the middleware-wrapped not-found handler, building and
@@ -1644,19 +1654,6 @@ func buildRedirectTarget(newPath, rawQuery string) string {
 	return newPath + "?" + rawQuery
 }
 
-// redirectHTMLReplacer mirrors net/http's private htmlReplacer, used to
-// escape the redirect target into the HTML body net/http.Redirect writes for
-// GET requests. Duplicated here because that symbol is unexported.
-var redirectHTMLReplacer = strings.NewReplacer(
-	"&", "&amp;",
-	"<", "&lt;",
-	">", "&gt;",
-	// "&#34;" is shorter than "&quot;".
-	`"`, "&#34;",
-	// "&#39;" is shorter than "&apos;" and apos was not in HTML until HTML5.
-	"'", "&#39;",
-)
-
 // isRedirectControlByte reports whether b is an ASCII control byte (0x00-
 // 0x1F) or DEL (0x7F). RFC 9110 §5.5 forbids raw CTL bytes in HTTP field
 // values; a percent-decoded control byte in the request path (e.g. a %00 in
@@ -1873,7 +1870,21 @@ func writeRedirect(w http.ResponseWriter, r *http.Request, target string, code i
 		// runtime.concatstrings call, one allocation) replaces the previous
 		// two-step `body := ...; body+"\n"`, which allocated the
 		// intermediate string and then the final one.
-		body := "<a href=\"" + redirectHTMLReplacer.Replace(loc) + "\">" + http.StatusText(code) + "</a>.\n\n"
+		//
+		// html.EscapeString uses exactly the same five-byte mapping
+		// (& < > " ' -> &amp; &lt; &gt; &#34; &#39;) as net/http's private
+		// htmlReplacer that net/http.Redirect applies here, so the body stays
+		// byte-identical (TestWriteRedirect_ByteIdenticalToNetHTTPRedirect).
+		// Using the stdlib function instead of a local duplicate replacer
+		// also lets taint-tracking SAST (gosec G705) recognise the sanitiser;
+		// loc itself is a same-origin, path-only target (see doc comment
+		// above), and this body is only written with the text/html
+		// Content-Type set by this function.
+		body := "<a href=\"" + html.EscapeString(loc) + "\">" + http.StatusText(code) + "</a>.\n\n"
+		// #nosec G705 -- false positive: the only request-derived bytes are
+		// loc, escaped by html.EscapeString above; gosec also taints
+		// http.StatusText(code), which can only return a fixed stdlib literal
+		// (or "") for any int, never attacker-controlled bytes.
 		_, _ = io.WriteString(w, body)
 	}
 }

@@ -1,6 +1,12 @@
 name: Commitlint
 
+# The project follows gitflow without pull requests: sprint branches are
+# merged into develop, and release/hotfix branches into main, by direct
+# pushes. The push trigger therefore carries the real enforcement; the
+# pull_request trigger covers external contributions.
 on:
+  push:
+    branches: [main, develop, "release/**", "hotfix/**"]
   pull_request:
     branches: [main]
 
@@ -13,7 +19,7 @@ jobs:
     name: Validate commit messages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -23,26 +29,59 @@ jobs:
         # chore, build, style, revert, security.
         # Allowed scopes (optional): any lowercase identifier or a comma-
         # separated list. Subject must be 1-100 chars.
+        #
+        # Merge commits (more than one parent) are exempt: gitflow creates
+        # them with git's default "Merge ..." subjects. The exemption uses
+        # the parent count, not the subject, so a single-parent commit
+        # whose subject merely starts with "Merge " is still validated.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+          PUSH_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
-          base="${{ github.event.pull_request.base.sha }}"
-          head="${{ github.event.pull_request.head.sha }}"
-          range="${base}..${head}"
+          zero=0000000000000000000000000000000000000000
+
+          # Build the list of revisions to validate as arguments for
+          # `git rev-list`.
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            revs=("${PR_BASE}..${PR_HEAD}")
+          elif [ "$PUSH_BEFORE" != "$zero" ] &&
+               git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null &&
+               git merge-base --is-ancestor "$PUSH_BEFORE" "$PUSH_AFTER"; then
+            # Fast-forward push: exactly the commits the push introduced.
+            revs=("${PUSH_BEFORE}..${PUSH_AFTER}")
+          else
+            # New branch (zero "before" SHA) or forced push ("before" is
+            # unknown or not an ancestor): validate the commits that no
+            # other branch or tag already contains.
+            branch="${PUSH_REF#refs/heads/}"
+            mapfile -t others < <(git for-each-ref --format='%(refname)' refs/remotes/origin refs/tags |
+              grep -vxF -e "refs/remotes/origin/${branch}" -e "refs/remotes/origin/HEAD" || true)
+            revs=("$PUSH_AFTER" --not "${others[@]}")
+          fi
+
           re='^(feat|fix|perf|refactor|test|docs|ci|chore|build|style|revert|security)(\([a-z0-9_,/.-]+\))?(!)?: .{1,100}$'
           fail=0
-          while IFS= read -r line; do
-            sha=$(echo "$line" | awk '{print $1}')
-            msg=$(echo "$line" | cut -d' ' -f2-)
-            if ! echo "$msg" | grep -qE "$re"; then
+          checked=0
+          while IFS= read -r sha; do
+            msg=$(git log -1 --format='%s' "$sha")
+            checked=$((checked + 1))
+            if ! [[ "$msg" =~ $re ]]; then
               echo "::error::commit $sha does not match Conventional Commits: \"$msg\""
               fail=1
             fi
-          done < <(git log --pretty=format:'%H %s' "$range")
-          if [ $fail -ne 0 ]; then
+          done < <(git rev-list --no-merges "${revs[@]}")
+          merges=$(git rev-list --merges --count "${revs[@]}")
+
+          if [ "$fail" -ne 0 ]; then
             echo ""
             echo "Allowed format: <type>(scope): <subject>"
             echo "Allowed types: feat, fix, perf, refactor, test, docs, ci, chore, build, style, revert, security"
             echo "See CONTRIBUTING.md for examples."
             exit 1
           fi
-          echo "All commits validate."
+          echo "All $checked commit(s) validate ($merges merge commit(s) exempt)."

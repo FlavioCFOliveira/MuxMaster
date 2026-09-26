@@ -13,6 +13,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -142,6 +143,89 @@ func TestOAuth2Introspect_ConcurrentManyTokens_HeapEvictionUnderLoad(t *testing.
 
 	if failures != 0 {
 		t.Fatalf("%d requests failed under heap-eviction load", failures)
+	}
+}
+
+// TestOAuth2Introspect_DefaultClient_BoundsConnectionsUnderConcurrency is
+// the regression test for rmp #300. The default introspection client (no
+// OAuth2Options.HTTPClient) used http.DefaultTransport, which keeps at most
+// two idle connections per host and never caps the connections per host.
+// Because every introspection call targets the same host, concurrent cache
+// misses opened and closed one TCP connection per surplus call; on Windows
+// and macOS the resulting TIME_WAIT churn exhausted the ephemeral port range
+// and valid tokens were rejected with 401
+// (TestOAuth2Introspect_ConcurrentManyTokens_HeapEvictionUnderLoad failed
+// there with thousands of rejected requests). Raising only the idle pool
+// was not enough: with more concurrent calls than idle slots the surplus
+// connections still churned, and Windows CI kept failing.
+//
+// The documented default caps the client at oauth2DefaultConnLimit
+// connections per host. This test drives 4× that many concurrent callers,
+// with caching disabled so that EVERY request performs an introspection
+// call, and a small IdP delay so calls genuinely overlap. It asserts that:
+//   - no request fails (callers beyond the cap wait for a free connection
+//     instead of dialling), and
+//   - the IdP accepts at most oauth2DefaultConnLimit TCP connections over
+//     the whole run — an exact bound, since with MaxConnsPerHost equal to
+//     MaxIdleConnsPerHost no connection is ever closed and re-dialled.
+func TestOAuth2Introspect_DefaultClient_BoundsConnectionsUnderConcurrency(t *testing.T) {
+	// oauth2DefaultConnLimit mirrors the per-host connection limit documented
+	// on OAuth2Options.HTTPClient (MaxConnsPerHost = MaxIdleConnsPerHost = 100).
+	const oauth2DefaultConnLimit = 100
+	const goroutines = 4 * oauth2DefaultConnLimit
+	const perGoroutine = 25
+
+	var newConns int64
+	idp := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(time.Millisecond) // keep calls in flight long enough to overlap
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprintf(w, `{"active":true,"sub":"u","exp":%d}`, time.Now().Add(time.Hour).Unix())
+	}))
+	idp.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			atomic.AddInt64(&newConns, 1)
+		}
+	}
+	idp.Start()
+	defer idp.Close()
+
+	mw := middleware.OAuth2Introspect(middleware.OAuth2Options{
+		Endpoint:              idp.URL,
+		AllowInsecureEndpoint: true,
+		CacheTTL:              -1, // every request introspects
+	})
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	var wg sync.WaitGroup
+	var failures int64
+	start := make(chan struct{})
+	wg.Add(goroutines)
+	for g := 0; g < goroutines; g++ {
+		go func(g int) {
+			defer wg.Done()
+			<-start // release every caller at once: a burst above the cap
+			for i := 0; i < perGoroutine; i++ {
+				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer conn-bound-%d-%d", g, i))
+				rec := httptest.NewRecorder()
+				wrapped.ServeHTTP(rec, req)
+				if rec.Code != http.StatusOK {
+					atomic.AddInt64(&failures, 1)
+				}
+			}
+		}(g)
+	}
+	close(start)
+	wg.Wait()
+
+	if failures != 0 {
+		t.Fatalf("%d/%d requests failed", failures, goroutines*perGoroutine)
+	}
+	if got := atomic.LoadInt64(&newConns); got > oauth2DefaultConnLimit {
+		t.Fatalf("default introspection client opened %d TCP connections for %d calls from %d concurrent callers (limit %d): per-host connections are not bounded",
+			got, goroutines*perGoroutine, goroutines, oauth2DefaultConnLimit)
 	}
 }
 

@@ -237,14 +237,13 @@ func FuzzWildcardConflictOrderIndependence(f *testing.F) {
 		f.Add(i, false)
 		f.Add(i, true)
 	}
+	if len(wildcardConflictPairs) == 0 {
+		f.Fatal("wildcardConflictPairs is empty: the fuzz target would assert nothing")
+	}
 	f.Fuzz(func(t *testing.T, idx int, swap bool) {
-		if idx < 0 {
-			idx = -idx
-		}
-		if len(wildcardConflictPairs) == 0 {
-			t.Skip()
-		}
-		cp := wildcardConflictPairs[idx%len(wildcardConflictPairs)]
+		// Unsigned modulo maps every int, including math.MinInt (whose
+		// negation overflows back to itself), onto a valid table index.
+		cp := wildcardConflictPairs[uint(idx)%uint(len(wildcardConflictPairs))]
 		first, second := cp.a, cp.b
 		if swap {
 			first, second = second, first

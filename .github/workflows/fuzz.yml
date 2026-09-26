@@ -26,9 +26,9 @@ jobs:
     outputs:
       targets: ${{ steps.find.outputs.targets }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
@@ -67,9 +67,9 @@ jobs:
         target: ${{ fromJson(needs.list-targets.outputs.targets) }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
-      - uses: actions/setup-go@v6.4.0
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 

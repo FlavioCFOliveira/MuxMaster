@@ -245,9 +245,11 @@ func FuzzRoutingDifferentialAgainstReferenceMatcher(f *testing.F) {
 	f.Add([]byte{9, 8, 7, 6, 5, 4, 3, 2, 1, 0})
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		if len(data) == 0 || len(data) > 512 {
-			t.Skip()
-		}
+		// Every input is in the property's domain: differentialPRNG yields
+		// 0 once data is exhausted (so an empty input is a valid, fully
+		// deterministic route set), and it reads only the bytes the
+		// generators consume (so trailing bytes of a long input are simply
+		// unused). No input is discarded.
 		p := &differentialPRNG{data: data}
 
 		mux := muxmaster.New()

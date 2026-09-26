@@ -80,10 +80,9 @@ var treePanics = []registrationPanic{
 			`the maximum is 8 to prevent exponential addRoute time complexity \(DoS\)\.$`),
 	},
 	{
-		site: "tree.go expandOptional",
-		source: "optional segment '{/:' with no closing '}' (tree.go expandOptional; " +
-			"not yet listed in specification/routing.md, see section 11 for the regex-parameter analogue)",
-		re: regexp.MustCompile(`^muxmaster: unclosed \{ in path '` + anyText + `'$`),
+		site:   "tree.go expandOptional",
+		source: "specification/routing.md rule 110",
+		re:     regexp.MustCompile(`^muxmaster: unclosed \{ in path '` + anyText + `'$`),
 	},
 	{
 		site:   "tree.go expandOptional",
@@ -93,7 +92,7 @@ var treePanics = []registrationPanic{
 	},
 	{
 		site:   "tree.go addRouteInternal",
-		source: "invalid UTF-8 pattern (tree.go addRouteInternal; not yet listed in specification/routing.md)",
+		source: "specification/routing.md rule 111",
 		re:     regexp.MustCompile(`^muxmaster: path contains invalid UTF-8: ` + anyText + `$`),
 	},
 	{
@@ -123,7 +122,7 @@ var treePanics = []registrationPanic{
 	},
 	{
 		site:   "tree.go insertChild",
-		source: "regex parameter without ':' (specification/routing.md section 1.5 defines only the {name:expr} form)",
+		source: "specification/routing.md rule 112",
 		re:     regexp.MustCompile(`^muxmaster: regex param must have the form \{name:expr\} in '` + anyText + `'$`),
 	},
 	{
@@ -148,7 +147,7 @@ var treePanics = []registrationPanic{
 	},
 	{
 		site:   "tree.go insertChild",
-		source: "catch-all not preceded by '/' (specification/routing.md section 1.4 defines only the /*name form)",
+		source: "specification/routing.md rule 113",
 		re:     regexp.MustCompile(`^muxmaster: catch-all requires a '/' prefix in path '` + anyText + `'$`),
 	},
 }
@@ -168,7 +167,7 @@ var mountPanics = []registrationPanic{
 	},
 	{
 		site:   "mux.go mountAt",
-		source: "invalid UTF-8 Mount prefix (mux.go mountAt, FPE-2026-002; not yet listed in specification/groups.md)",
+		source: "specification/groups.md rule 45 (FPE-2026-002)",
 		re:     regexp.MustCompile(`^muxmaster: Mount prefix contains invalid UTF-8$`),
 	},
 	{

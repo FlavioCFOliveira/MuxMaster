@@ -18,6 +18,8 @@ This file does not cover middleware application order (see [middleware.md](middl
 4. Patterns may not contain a fragment (`#`) or query string (`?`). Only the path component is matched.
 5. The empty string is not a valid pattern.
 
+    A pattern must also be valid UTF-8; see section 16, requirement 111, for the panic raised otherwise.
+
 ### 1.2 Static Patterns
 
 6. A static pattern contains only literal characters and no wildcard tokens.
@@ -36,7 +38,7 @@ This file does not cover middleware application order (see [middleware.md](middl
 13. A catch-all parameter captures the remainder of the path including all `/` characters. It is written as `*name` where `name` is a non-empty identifier.
 14. A catch-all parameter must be the last element of the pattern. A pattern such as `/*name/suffix` is invalid and causes a panic at registration time.
 15. The captured value includes the leading `/`. Example: the pattern `/static/*filepath` matched against `/static/img/logo.png` captures `filepath = /img/logo.png`.
-16. There must be a literal `/` immediately before the `*` token in the pattern.
+16. There must be a literal `/` immediately before the `*` token in the pattern. A pattern that violates this causes a panic at registration time; see section 16, requirement 113.
 17. Only one catch-all parameter is permitted per pattern.
 
 ### 1.5 Regex Parameters
@@ -48,13 +50,15 @@ This file does not cover middleware application order (see [middleware.md](middl
 22. The captured value is stored in `Params` with the key equal to `name`.
 23. Example: the pattern `/users/{id:\d+}` matches `/users/42` and captures `id = 42`. It does not match `/users/abc`.
 
-    See section 11 for the panic raised when a `{` is never closed by a matching `}`; that is a distinct, registration-time malformation from an invalid regular expression (rule 21).
+    See section 11 for the panic raised when a `{` is never closed by a matching `}`; that is a distinct, registration-time malformation from an invalid regular expression (rule 21). See section 16, requirement 112, for the panic raised when a closed `{...}` token contains no `:` separator.
 
 ### 1.6 Optional Parameters
 
 24. An optional parameter declares that a segment is present or absent. It is written as `{/:name}` (optional named segment) or `{/:name:expr}` (optional regex segment).
 25. Registering a route with an optional parameter is equivalent to registering two routes: one without the optional segment and one with it as a named or regex parameter. Both registrations use the same handler. This expansion is subject to the limits stated in section 13: a pattern may not contain more than a fixed maximum number of optional segments, and two optional segments may not be written consecutively, with no literal segment between them.
 26. If either of the two expanded routes conflicts with an already-registered route, a panic occurs at registration time.
+
+    See section 16, requirement 110, for the panic raised when an optional parameter's opening `{/:` is never closed by a `}`.
 
 ### 1.7 Wildcard Constraints
 
@@ -203,7 +207,7 @@ The following conditions cause a call to the built-in `panic` function at route 
 70. A regex parameter contains an invalid Go regular expression.
 71. A wildcard conflicts with an already-registered wildcard at the same position. This includes a regex parameter registered at the same position as an existing plain named parameter, and a plain named parameter registered at the same position as an existing regex parameter: the tree holds exactly one wildcard child per node, so the second of the two always panics, regardless of which kind was registered first.
 
-See section 11 for the distinct panic raised when a regex parameter's opening `{` is never closed by a matching `}` at all.
+See section 11 for the distinct panic raised when a regex parameter's opening `{` is never closed by a matching `}` at all, sections 13 and 14 for the optional-parameter and regex-parameter-name limits, and section 16 for the panics raised by an unclosed optional parameter, an invalid UTF-8 pattern, a regex parameter without `:`, and a catch-all not preceded by `/`.
 
 ---
 
@@ -314,3 +318,23 @@ See section 11 for the distinct panic raised when a regex parameter's opening `{
 108. This differs from Go's standard library `net/http.ServeMux` (Go 1.22 and later), whose pattern-based routing gives GET an implicit special case: "As a special case, GET also matches HEAD; all the other methods match exactly" (Go blog, "Routing Enhancements for Go 1.22", https://go.dev/blog/routing-enhancements). MuxMaster does not replicate this special case for any method pair, including GET and HEAD.
 
 109. Consequently, a request for HEAD against a path registered only for GET (and, implicitly, OPTIONS — section 4.6) does not reach the GET handler. When `HandleMethodNotAllowed` is `true` (the default), it receives a 405 response with an `Allow` header listing the methods actually registered at that path — `GET, OPTIONS` for a path with only a GET route — per section 4.7. An application that wants a MuxMaster route to answer both GET and HEAD, matching `net/http.ServeMux`'s special case, must register both explicitly, either as two separate calls (`mux.GET(pattern, h)` and `mux.HEAD(pattern, h)`) or via `ANY`/`Match` (section 2.2) with a handler that branches on `r.Method` — MuxMaster's `ServeFiles` (see [static-files.md](static-files.md), requirement 4) does exactly this internally, registering the same handler for both GET and HEAD.
+
+---
+
+## 16. Further Pattern Malformation Panics
+
+This section specifies four registration-time panics that sections 5, 11, 13, and 14 do not cover. Each applies to every registration entry point: `Handle`, `HandleFunc`, `HandleE`, `HandleFast`, and their convenience methods, directly on `*Mux` or through the equivalent `*Group` methods, as well as `ANY`, `Match`, `ServeFiles`, and `Mount`. In each message below, `<pattern>` is the pattern string as it reaches the router, which is defined as follows:
+
+- For a `*Group` registration, it is the joined pattern ([groups.md](groups.md) section 11).
+- For `Mount`, it is the prefix with trailing `/` characters removed, followed by the internal catch-all `/*mux_mount` ([groups.md](groups.md) requirement 28).
+- When the pattern contains optional parameters (section 1.6), they are expanded first (requirement 25), and `<pattern>` is the expanded form in which the check fails. For a pattern without optional parameters, `<pattern>` is the pattern exactly as passed in.
+
+110. **Unclosed optional parameter.** A pattern that contains the opener `{/:` with no `}` character anywhere after it in the pattern causes a panic at registration time with the message `muxmaster: unclosed { in path '<pattern>'`. The search for the closing `}` is not limited to the current segment, unlike the search in section 11. When optional parameters precede the unclosed one, they are expanded first, so `<pattern>` is the expanded form without them. Examples: `/a{/:b` panics with `muxmaster: unclosed { in path '/a{/:b'`; `/{/:b` panics with `muxmaster: unclosed { in path '/{/:b'`; `/x{/:a}/y{/:b` panics with `muxmaster: unclosed { in path '/x/y{/:b'`. The limit check of requirement 103 runs before this check. This panic is distinct from section 11, which governs a `{` that does not begin an optional parameter.
+
+111. **Invalid UTF-8 pattern.** A pattern that is not a valid UTF-8 string causes a panic at registration time with the message `muxmaster: path contains invalid UTF-8: <quoted>`, where `<quoted>` is `<pattern>` rendered as a double-quoted Go string literal in which every non-ASCII byte and every invalid byte is escaped (the output of `strconv.QuoteToASCII`). Example: the pattern `"/\xff"` (Go notation) panics with `muxmaster: path contains invalid UTF-8: "/\xff"`. This check runs after optional-parameter expansion and after requirements 103, 104, and 110: the pattern `"/x{/:a}/\xff"` panics with `muxmaster: path contains invalid UTF-8: "/x/\xff"`. A `Mount` prefix that is not valid UTF-8 never reaches this check; it panics earlier with the dedicated message in [groups.md](groups.md) requirement 45.
+
+112. **Regex parameter without `:`.** A token that begins with `{`, is closed by a `}` within the same segment, and contains no `:` causes a panic at registration time with the message `muxmaster: regex param must have the form {name:expr} in '<pattern>'`. Section 1.5 defines only the `{name:expr}` form; a brace-delimited token without the `:` separator is not a regex parameter and is never treated as a literal. Examples: `/{abc}`, `/{}`, and `/a/{abc}/c` each panic. This check runs before the regular expression is compiled (rule 70) and before the name length limit (requirement 106) is enforced.
+
+113. **Catch-all not preceded by `/`.** A catch-all token `*name` that is the last element of the pattern but is not immediately preceded by a `/` (rule 16) causes a panic at registration time with the message `muxmaster: catch-all requires a '/' prefix in path '<pattern>'`. Examples: `/a*b` and `/a/b*c` each panic. This check runs after rules 67 and 68: a catch-all that is not the last element of the pattern panics with the rule 67 message, even when it is also not preceded by `/`.
+
+114. A registration that panics under requirement 110, 111, 112, or 113 does not modify the router's existing route tree. Every route registered before the panicking call remains registered, listed by `Routes`, and reachable with the same handler; no part of the malformed pattern is added to the tree. This is the same guarantee that requirement 97 states for section 11.

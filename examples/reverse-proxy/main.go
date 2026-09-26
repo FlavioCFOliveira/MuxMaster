@@ -9,11 +9,13 @@
 //     load, Transport.startDialConnForLocked can start a background dial
 //     goroutine that keeps calling ctx.Value() on the ORIGINAL request's
 //     context after RoundTrip — and therefore ServeHTTP — has returned.
+//
 //   - With PoolRequestBundle=true, that context belongs to a recycled,
 //     zeroed reqBundle by the time the dial goroutine reads it, producing
 //     a nil-pointer dereference in requestCtx1.Value (params.go) — a
 //     remotely triggerable process crash under load, reproduced in
 //     reports/perf-lab-2026-09-24/waste-hunt/results/defects/reverse-proxy-pool-crash.txt.
+//
 //   - This is a general hazard for ANY reverse proxy built on
 //     net/http.Transport, not specific to this example's code, so pooling
 //     stays off for the whole gateway. See docs/max-performance.md

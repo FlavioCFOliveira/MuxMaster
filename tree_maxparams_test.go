@@ -2,6 +2,8 @@ package muxmaster
 
 import (
 	"net/http"
+	"strconv"
+	"strings"
 	"testing"
 	"unsafe"
 )
@@ -85,5 +87,35 @@ func TestMaxParamsNilBufPassedForStaticTree(t *testing.T) {
 	}
 	if tsr {
 		t.Error("unexpected TSR hint for exact match")
+	}
+}
+
+// TestMaxParamsSaturatesAtUint8Max pins the explicit saturation of
+// node.maxParams (a uint8) in addRoute (rmp #301): a pattern with more than
+// math.MaxUint8 wildcards must clamp maxParams to 255, never wrap to a
+// small value, and exactly 255 must be stored unchanged.
+func TestMaxParamsSaturatesAtUint8Max(t *testing.T) {
+	nopHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+	pattern := func(n int) string {
+		var b strings.Builder
+		for i := range n {
+			b.WriteString("/:p")
+			b.WriteString(strconv.Itoa(i))
+		}
+		return b.String()
+	}
+	for _, tc := range []struct {
+		params int
+		want   uint8
+	}{
+		{255, 255},
+		{256, 255},
+		{300, 255},
+	} {
+		root := &node{}
+		root.addRoute(pattern(tc.params), nopHandler)
+		if root.maxParams != tc.want {
+			t.Errorf("%d params: maxParams = %d, want %d", tc.params, root.maxParams, tc.want)
+		}
 	}
 }

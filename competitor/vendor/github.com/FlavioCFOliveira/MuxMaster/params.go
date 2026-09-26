@@ -39,8 +39,9 @@ func (ps Params) Lookup(name string) (value string, ok bool) {
 	return "", false
 }
 
-// Int returns the named parameter parsed as int.
-// Returns errParamNotFound if the key is absent, or a strconv error on parse failure.
+// Int returns the named parameter parsed as int (base 10).
+// Returns a non-nil error if the key is absent, or the strconv error on parse
+// failure.
 func (ps Params) Int(name string) (int, error) {
 	v, ok := ps.Lookup(name)
 	if !ok {
@@ -225,21 +226,35 @@ func init() {
 //
 //go:nosplit
 func setReqCtxUnsafe(req *http.Request, ctx context.Context) {
-	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx
+	*(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)) = ctx // nosemgrep: muxmaster-unsafe-ptr-without-checkptr-note — fresh allocation, no concurrent access, GC-managed lifetime
 }
 
 // getReqCtxUnsafe reads req.ctx directly via the pre-computed field offset.
 // Opt O5a: r.Context() is a method call that does a nil check + falls back to
-// context.Background(). Inside MuxMaster's dispatch the request was just
-// received from net/http (server.go always sets req.ctx before ServeHTTP) or
-// httptest.NewRequest (which also sets it). The field is therefore guaranteed
-// non-nil and we can skip the method call.
+// context.Background(). Inside MuxMaster's dispatch the request was, in the
+// overwhelming common case, just received from net/http (server.go always
+// sets req.ctx before ServeHTTP) or httptest.NewRequest (which also sets it),
+// so the field is non-nil and the method call can be skipped.
+//
+// rmp #292: a request can also reach this function with req.ctx == nil —
+// e.g. a *http.Request built as a struct literal (common in tests, and in
+// code that calls Mux.ServeHTTP directly rather than going through an
+// http.Server). Every requestCtx*/mountPrefixCtx/redirectCtx type embeds the
+// context.Context returned here as its parent and forwards unintercepted
+// keys and Done/Deadline/Err to it via Go's method-promotion rules; if the
+// embedded parent is a nil interface, any such forwarded call panics with a
+// nil-pointer dereference. r.Context() avoids this by falling back to
+// context.Background() when req.ctx is nil — this function must do the same
+// so that every call site gets the identical, panic-free semantics.
 //
 // MUST only be called when hasReqCtxField is true (validated by init()).
 //
 //go:nosplit
 func getReqCtxUnsafe(req *http.Request) context.Context {
-	return *(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset))
+	if c := *(*context.Context)(unsafe.Add(unsafe.Pointer(req), reqCtxFieldOffset)); c != nil { // nosemgrep: muxmaster-unsafe-ptr-without-checkptr-note — read-only access to fresh request, safe under Go MM
+		return c
+	}
+	return context.Background()
 }
 
 // Opt O13: reqBundle pools recycle the fused requestCtx + http.Request copy
@@ -568,17 +583,34 @@ func routeCtxPattern(ctx context.Context) string {
 }
 
 // PathParam returns the value of the named path parameter from the request.
+//
+// SECURITY: Path parameters may contain any byte, including CR/LF and NUL.
+// When UseRawPath=false (the default), net/http decodes percent-encoded
+// sequences before routing. A request like /users/%0D%0ASet-Cookie:%20hacked
+// becomes /users/\r\nSet-Cookie: hacked in the matched parameter.
+// Handlers must not echo parameters directly into headers or logs without
+// escaping (use url.PathEscape for header injection mitigation,
+// html.EscapeString for logs).
 func PathParam(r *http.Request, name string) string {
 	return routeCtxParams(r.Context()).Get(name)
 }
 
-// ParamsFromContext returns the path parameters stored in ctx.
+// ParamsFromContext returns the path parameters stored in ctx, or nil when
+// ctx carries none (for example on a static route). ctx must not be nil; a
+// request whose internal context is nil is dispatched by ServeHTTP with
+// context.Background() as the parent, so r.Context() is always safe to pass.
 func ParamsFromContext(ctx context.Context) Params {
 	return routeCtxParams(ctx)
 }
 
 // RoutePattern returns the registered route pattern that matched the request,
-// or "" if none has been stored in the context.
+// or "" if none has been stored in the context. Only routes with at least one
+// parameter (named, regex or catch-all) store their pattern, so RoutePattern
+// returns "" for a static route, for the NotFound, MethodNotAllowed, automatic
+// OPTIONS and redirect handlers, and inside Pre middleware, which runs before
+// routing. A static route of a *Mux attached with Mount sees the mount's own
+// pattern, prefix + "/*mux_mount", because the context stores the nearest
+// parameterised match.
 func RoutePattern(r *http.Request) string {
 	return routeCtxPattern(r.Context())
 }

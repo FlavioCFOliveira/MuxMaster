@@ -1,7 +1,7 @@
 //go:build race
 
 // h018_reqctx_offset_test.go — CSA harness for MM-2026-0035 / Hypothesis #2
-// Validates setReqCtxUnsafe ABI drift: on Go 1.26.2, the reflect-derived offset
+// Validates setReqCtxUnsafe ABI drift: on Go 1.27.1, the reflect-derived offset
 // must point to the 'ctx context.Context' field of http.Request.
 //
 // If hasReqCtxField==false (future Go version, field renamed), the safe fallback

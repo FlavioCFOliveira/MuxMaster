@@ -4,7 +4,7 @@ package harness
 // had no fuzz or property target. ServeFiles (mux.go ~line 832) delegates
 // to http.FileServer(root) after rewriting the request's URL.Path to the
 // captured catch-all param value (see mux.go's CDX-S8-002 comment and
-// specification/static-files.md item 6 and 15). http.FileServer applies
+// specification/static-files.md items 6 and 16). http.FileServer applies
 // path.Clean to the rewritten path before opening any file, which is the
 // documented protection against ".." traversal for the default
 // (UseRawPath=false) configuration that ServeFiles supports (a

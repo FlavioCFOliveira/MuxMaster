@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -62,7 +63,26 @@ type OAuth2Options struct {
 	CacheTTL time.Duration
 	// MaxCacheSize caps the number of cached active tokens. Default: 10000.
 	MaxCacheSize int
-	// HTTPClient is used for introspection requests. Default: 10s timeout.
+	// HTTPClient is used for introspection requests. Default: a client with
+	// a 10s timeout and its own transport. That transport copies the
+	// settings of http.DefaultTransport (proxy, dialers, TLS configuration,
+	// timeouts, protocol selection) ONCE, when OAuth2Introspect is called —
+	// later changes to http.DefaultTransport are not seen — without
+	// modifying or initialising http.DefaultTransport. It sets
+	// MaxIdleConns, MaxIdleConnsPerHost and MaxConnsPerHost to 100 and
+	// keeps keep-alives enabled: calls beyond the limit wait for a free
+	// connection (the wait counts toward the 10s timeout) instead of opening
+	// new sockets, which prevents ephemeral-port exhaustion under load. The
+	// bound of 100 connections is exact for HTTP/1.1; over HTTP/2 each
+	// connection multiplexes many calls, and the HTTP/2 layer may open
+	// additional connections. If http.DefaultTransport is not an
+	// *http.Transport, it is used as is. Supply your own client to choose
+	// different settings.
+	//
+	// Because the default client reads http.DefaultTransport's fields when
+	// OAuth2Introspect is called, construct the middleware during startup,
+	// before the process issues HTTP requests concurrently through
+	// http.DefaultTransport.
 	HTTPClient *http.Client
 	// ExtractFn overrides token extraction. Default: "Authorization: Bearer <token>".
 	ExtractFn func(*http.Request) string
@@ -244,6 +264,133 @@ func (c *oauth2Cache) evictOneLocked() bool {
 	return true
 }
 
+// oauth2DefaultMaxConnsPerHost bounds the default introspection client's
+// connections to the introspection host, both in total (MaxConnsPerHost)
+// and in its keep-alive pool (MaxIdleConnsPerHost). Using the SAME value
+// for both is what makes the bound hold: every connection the transport may
+// open also fits in the idle pool, so no connection is ever closed because
+// the pool is full, and no new one is ever dialled while the cap is
+// reached — the caller waits for a connection to become free instead.
+//
+// 100 matches http.DefaultTransport's MaxIdleConns (the whole idle pool is
+// dedicated to the single introspection host). With HTTP/1.1 keep-alive it
+// sustains 100 / IdP-latency calls per second (10 000/s at 10 ms), well
+// above what a single IdP is normally provisioned for; concurrent requests
+// for the SAME token are already coalesced by singleflight, and cache hits
+// never reach the transport.
+const oauth2DefaultMaxConnsPerHost = 100
+
+// newOAuth2DefaultClient builds the introspection client used when
+// OAuth2Options.HTTPClient is nil.
+//
+// rmp #300: the previous default, &http.Client{Timeout: 10 * time.Second},
+// used http.DefaultTransport, whose MaxIdleConnsPerHost is
+// http.DefaultMaxIdleConnsPerHost (2). Since introspection always targets a
+// single host, any burst of more than two concurrent cache misses closed
+// every surplus connection after one use, so each call paid a fresh TCP
+// (and TLS) handshake and left a client-side socket in TIME_WAIT. Under
+// sustained concurrent load this exhausts the ephemeral port range —
+// markedly sooner on Windows and macOS (16384 ephemeral ports, long
+// TIME_WAIT) than on Linux — and every failed dial surfaced as a 401 for a
+// VALID token. Raising MaxIdleConnsPerHost alone was not enough: with more
+// concurrent calls than idle slots the surplus connections were still
+// opened and closed per call (still exhausting the ports on Windows CI), so
+// MaxConnsPerHost now caps the total — see oauth2DefaultMaxConnsPerHost.
+// Measured on 16 000 calls over 800 goroutines: ~7 700 new connections with
+// the original default, ~550 with only the idle pool raised, and at most
+// 100 with both limits set.
+//
+// The transport is built by oauth2TransportFrom, which COPIES the settings
+// of http.DefaultTransport at construction time instead of calling
+// http.DefaultTransport.Clone(): Clone() runs the global transport's
+// one-time HTTP/2 initialisation, and an application that later replaced
+// http.DefaultTransport.TLSClientConfig then silently lost HTTP/2 for all
+// of its http.DefaultClient traffic (rmp #300 follow-up).
+//
+// If http.DefaultTransport has been replaced by a RoundTripper that is not
+// an *http.Transport, it is used unchanged (Transport left nil), exactly as
+// before: the application owns that transport's pooling policy.
+func newOAuth2DefaultClient() *http.Client {
+	client := &http.Client{Timeout: 10 * time.Second}
+	if dt, ok := http.DefaultTransport.(*http.Transport); ok {
+		client.Transport = oauth2TransportFrom(dt)
+	}
+	return client
+}
+
+// oauth2TransportFrom returns a NEW *http.Transport that carries src's
+// application-level settings (proxy, dialers, TLS configuration, timeouts,
+// buffer sizes, protocol selection) and the connection bounds of
+// oauth2DefaultMaxConnsPerHost.
+//
+// It reads src's exported fields only and never calls a src method, so it
+// does not trigger src's lazy HTTP/2 initialisation (see
+// newOAuth2DefaultClient). The copy is a snapshot taken at construction:
+// later changes to src are not reflected. Like any read of a shared
+// *http.Transport, it must not run concurrently with code that writes
+// src's fields.
+//
+// Every exported http.Transport field is classified below as copied,
+// overridden or deliberately not copied; oauth2_transport_internal_test.go
+// fails when a Go release adds a field that is not classified here.
+//
+// Deliberately NOT copied:
+//   - TLSNextProto: once src has initialised HTTP/2 it holds an "h2" stub
+//     entry that is only a signal to src itself. Copying it would make the
+//     new transport believe HTTP/2 is configured externally, skip its own
+//     HTTP/2 set-up, and fail every h2 connection on the stub. The one
+//     documented application use — a non-nil map WITHOUT an "h2" entry,
+//     which disables HTTP/2 — is honoured by giving the new transport an
+//     empty non-nil map.
+//   - DisableKeepAlives: forced to false. Keep-alive reuse is what bounds
+//     the sockets the introspection client opens; without it every call
+//     dials a new connection and the ephemeral-port exhaustion returns.
+//   - MaxIdleConns, MaxIdleConnsPerHost, MaxConnsPerHost: overridden with
+//     oauth2DefaultMaxConnsPerHost.
+func oauth2TransportFrom(src *http.Transport) *http.Transport {
+	dst := &http.Transport{
+		Proxy:                  src.Proxy,
+		OnProxyConnectResponse: src.OnProxyConnectResponse,
+		DialContext:            src.DialContext,
+		//lint:ignore SA1019 honour an application that still sets the deprecated dialer.
+		Dial:           src.Dial, //nolint:staticcheck // SA1019: see the lint:ignore directive above.
+		DialTLSContext: src.DialTLSContext,
+		//lint:ignore SA1019 honour an application that still sets the deprecated dialer.
+		DialTLS:                src.DialTLS, //nolint:staticcheck // SA1019: see the lint:ignore directive above.
+		TLSHandshakeTimeout:    src.TLSHandshakeTimeout,
+		DisableCompression:     src.DisableCompression,
+		IdleConnTimeout:        src.IdleConnTimeout,
+		ResponseHeaderTimeout:  src.ResponseHeaderTimeout,
+		ExpectContinueTimeout:  src.ExpectContinueTimeout,
+		ProxyConnectHeader:     src.ProxyConnectHeader.Clone(),
+		GetProxyConnectHeader:  src.GetProxyConnectHeader,
+		MaxResponseHeaderBytes: src.MaxResponseHeaderBytes,
+		WriteBufferSize:        src.WriteBufferSize,
+		ReadBufferSize:         src.ReadBufferSize,
+		ForceAttemptHTTP2:      src.ForceAttemptHTTP2,
+
+		DisableKeepAlives:   false,
+		MaxIdleConns:        oauth2DefaultMaxConnsPerHost,
+		MaxIdleConnsPerHost: oauth2DefaultMaxConnsPerHost,
+		MaxConnsPerHost:     oauth2DefaultMaxConnsPerHost,
+	}
+	if src.TLSClientConfig != nil {
+		dst.TLSClientConfig = src.TLSClientConfig.Clone()
+	}
+	if src.HTTP2 != nil {
+		h2 := *src.HTTP2
+		dst.HTTP2 = &h2
+	}
+	if src.Protocols != nil {
+		p := *src.Protocols
+		dst.Protocols = &p
+	}
+	if src.TLSNextProto != nil && src.TLSNextProto["h2"] == nil {
+		dst.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+	}
+	return dst
+}
+
 // oauth2UserinfoPattern matches an embedded userinfo component ("user:pass@"
 // or "user@") immediately following a scheme separator ("://"), e.g. in
 // "https://user:secret@host/path". It is the fallback redaction path used
@@ -279,6 +426,11 @@ func redactedEndpointRaw(raw string) string {
 // OAuth2Introspect validates Bearer tokens via RFC 7662 token introspection.
 // Active tokens are cached (keyed by sha256(token)) to avoid per-request network calls.
 // On success, the IntrospectResponse is available via GetOAuth2Claims.
+//
+// When opts.HTTPClient is nil, call OAuth2Introspect during startup, before
+// the process issues HTTP requests concurrently through http.DefaultTransport:
+// the default client copies http.DefaultTransport's settings at this call
+// (see OAuth2Options.HTTPClient).
 //
 // Panics if opts.Endpoint is empty, malformed, or non-HTTPS (unless
 // opts.AllowInsecureEndpoint is true). Bearer tokens transmitted over plaintext
@@ -346,7 +498,7 @@ func OAuth2Introspect(opts OAuth2Options) func(http.Handler) http.Handler {
 	}
 	client := opts.HTTPClient
 	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
+		client = newOAuth2DefaultClient()
 	}
 	extract := opts.ExtractFn
 	if extract == nil {
