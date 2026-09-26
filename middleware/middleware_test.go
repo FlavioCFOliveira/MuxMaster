@@ -1065,6 +1065,58 @@ func TestSec_TSC_2026_0008_APIKey_HeaderSymmetry(t *testing.T) {
 	}
 }
 
+// TestSec_APIKey_WWWAuthenticate_MissingAndInvalid — MM-2026-0052 (rmp #5).
+// RFC 7235 §4.1 requires a 401 response to carry WWW-Authenticate. APIKey
+// has two independent 401 branches (middleware/api_key.go): the
+// missing-key branch (extracted key == "") and the invalid-key branch
+// (extracted key non-empty but no hash match). Both branches must set
+// WWW-Authenticate exactly once — zero times would violate RFC 7235,
+// more than once would emit a duplicated header line that some HTTP
+// clients/proxies handle inconsistently. Four properties are checked (one
+// presence + one uniqueness assertion per branch):
+//  1. missing header  -> WWW-Authenticate present
+//  2. missing header  -> WWW-Authenticate set exactly once
+//  3. invalid key     -> WWW-Authenticate present
+//  4. invalid key     -> WWW-Authenticate set exactly once
+func TestSec_APIKey_WWWAuthenticate_MissingAndInvalid(t *testing.T) {
+	mw := middleware.APIKey(middleware.APIKeyOptions{
+		Keys: map[string]string{"valid-key": "svc"},
+	})
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	cases := []struct {
+		name      string
+		setHeader func(r *http.Request)
+	}{
+		{"missing_header", func(_ *http.Request) {}},
+		{"invalid_key", func(r *http.Request) { r.Header.Set("X-API-Key", "wrong-key") }},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			tc.setHeader(req)
+			wrapped.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("%s: got status %d, want 401", tc.name, rec.Code)
+			}
+			values := rec.Header().Values("WWW-Authenticate")
+			if len(values) == 0 || values[0] == "" {
+				t.Errorf("MM-2026-0052: %s: WWW-Authenticate missing on 401 (RFC 7235 §4.1). Header=%v",
+					tc.name, rec.Header())
+			}
+			if len(values) != 1 {
+				t.Errorf("MM-2026-0052: %s: WWW-Authenticate set %d times, want exactly 1 (uniqueness). Values=%v",
+					tc.name, len(values), values)
+			}
+		})
+	}
+}
+
 // COV-2026-009 — Compress middleware edge cases.
 func TestCompress_SkipNonAcceptingClient(t *testing.T) {
 	mw := middleware.Compress(5)
@@ -1136,6 +1188,43 @@ func TestCompress_SmallPayloadBelowThreshold(t *testing.T) {
 	wrapped.ServeHTTP(rec, req)
 	if rec.Header().Get("Content-Encoding") == "gzip" {
 		t.Error("tiny payload should not be compressed")
+	}
+}
+
+// TestSec_Compress_SmallResponseVaryPresent — MSR-2026-0060 (rmp #45).
+// compress.go's commit() unconditionally adds "Vary: Accept-Encoding"
+// (see the MSR-2026-0060 comment at compress.go's commit method) even when
+// the response is below minCompressSize and therefore served uncompressed:
+// without it, a CDN or shared cache could key its cache entry without
+// Accept-Encoding and later serve this small, uncompressed response to a
+// client that requested (and would otherwise receive) gzip on a
+// byte-larger version of the same resource. This is the specified
+// behaviour — the below-threshold skip path in commit() calls
+// hdr.Add("Vary", "Accept-Encoding") before writing the uncompressed body,
+// unconditionally on whether compression was actually applied.
+func TestSec_Compress_SmallResponseVaryPresent(t *testing.T) {
+	mw := middleware.Compress(5)
+	wrapped := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte("tiny")) // well below minCompressSize (1024 bytes)
+	}))
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	wrapped.ServeHTTP(rec, req)
+
+	if rec.Header().Get("Content-Encoding") == "gzip" {
+		t.Fatal("tiny payload should not be compressed (test precondition violated)")
+	}
+	vary := rec.Header().Values("Vary")
+	found := false
+	for _, v := range vary {
+		if strings.Contains(v, "Accept-Encoding") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("MSR-2026-0060: Vary: Accept-Encoding missing on below-threshold (uncompressed) response. Got Vary=%v", vary)
 	}
 }
 

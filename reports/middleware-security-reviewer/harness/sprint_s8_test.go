@@ -14,6 +14,18 @@
 //   - Composition: timeout + compress cancel propagation (H8-02)
 //   - Composition: with_value + recoverer ctx survives panic (H8-11)
 //   - Composition: 32-middleware chain correctness (H8-12)
+//
+// NOTE (rmp #285, 2026-09-26): the five findings above that describe S8's
+// ORIGINAL (pre-fix) behaviour — MSR-2026-0065, MSR-2026-0066's
+// "AcceptedForever" framing, MSR-2026-0067, MSR-2026-0068's "unbounded
+// table" framing, and MSR-2026-0069 — were all subsequently fixed. Their
+// original t.Logf-only tests here never asserted anything (so they would
+// have silently kept "passing" even if a fix were reverted) and their doc
+// comments describe behaviour that no longer matches HEAD. Each has since
+// been superseded by an asserting regression test in sprint_s9_test.go;
+// the stale originals were removed in favour of a pointer comment at their
+// former location, below, to avoid duplicating the same assertion in two
+// files.
 package harness_test
 
 import (
@@ -37,51 +49,17 @@ import (
 // ═══════════════════════════════════════════════════════════════════════════════
 // MSR-2026-0065: real_ip leftmost-XFF in multi-hop chains
 // ═══════════════════════════════════════════════════════════════════════════════
-
-// TestSec_RealIP_MultiHop_LeftmostXFF_Spoofable confirms that when a
-// multi-hop XFF chain is present and only the rightmost proxy is trusted,
-// real_ip picks the leftmost (client-injected) value rather than the first
-// non-trusted hop from the right.
 //
-// Attack: X-Forwarded-For: attacker-ip, real-client, trusted-proxy
-// With trusted = trusted-proxy/32
-// Expected correct behavior: real-client (rightmost non-trusted)
-// Actual current behavior:   attacker-ip (leftmost) — spoofable
-func TestSec_RealIP_MultiHop_LeftmostXFF_Spoofable(t *testing.T) {
-	trusted := netip.MustParsePrefix("10.0.0.5/32")
-	mw := middleware.RealIP(&trusted)
-
-	var capturedRemote string
-	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		capturedRemote = r.RemoteAddr
-		w.WriteHeader(http.StatusOK)
-	})
-
-	req := httptest.NewRequest("GET", "/", nil)
-	// Direct peer is the trusted proxy.
-	req.RemoteAddr = "10.0.0.5:12345"
-	// XFF chain: attacker injected their IP leftmost; real client is in the middle.
-	req.Header.Set("X-Forwarded-For", "9.9.9.9, 1.2.3.4, 10.0.0.5")
-
-	rec := httptest.NewRecorder()
-	mw(inner).ServeHTTP(rec, req)
-
-	// The correct behaviour for a multi-trusted-proxy deployment is to pick
-	// "1.2.3.4" (the rightmost non-trusted entry).
-	// The current implementation picks "9.9.9.9" (leftmost).
-	if capturedRemote == "9.9.9.9" {
-		t.Logf("MSR-2026-0065 CONFIRMED: real_ip picked leftmost XFF value %q in multi-hop chain. "+
-			"An attacker who controls the first XFF entry can spoof their IP as %q. "+
-			"Correct value for multi-hop should be %q (rightmost non-trusted). "+
-			"NOTE: GoDoc documents safe only behind a SINGLE proxy. "+
-			"Multi-hop operators must configure proxy depth or use custom keyFn in ThrottlePerIP.",
-			capturedRemote, capturedRemote, "1.2.3.4")
-	} else if capturedRemote == "1.2.3.4" {
-		t.Logf("OK: real_ip correctly resolved rightmost-non-trusted XFF entry: %q", capturedRemote)
-	} else {
-		t.Logf("real_ip result: %q (neither attacker nor real-client)", capturedRemote)
-	}
-}
+// TestSec_RealIP_MultiHop_LeftmostXFF_Spoofable (rmp #285: removed, stale).
+// Its doc comment claimed the "current" (S8) behaviour was to pick the
+// leftmost, attacker-spoofable XFF entry — real_ip.go's selectXFFRightmost
+// has since been rewritten to walk from the rightmost entry (MSR-2026-0065
+// fix), and this test's own body never asserted anything (every branch was
+// a t.Logf), so it kept "passing" through the fix without ever exercising
+// it as a regression guard. Superseded by
+// sprint_s9_test.go::TestSec_RealIP_AttackerInjectionRejected_Regression,
+// which asserts (t.Errorf) that the leftmost, attacker-injected value is
+// NOT selected.
 
 // TestSec_RealIP_SingleProxy_XFF_Correct confirms that for the documented
 // single-trusted-proxy deployment, real_ip correctly extracts the client IP.
@@ -112,46 +90,17 @@ func TestSec_RealIP_SingleProxy_XFF_Correct(t *testing.T) {
 // MSR-2026-0066: JWT accepts tokens with no exp claim (no RequireExpiry option)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// TestSec_JWT_NoExpClaim_AcceptedForever confirms that a JWT with no "exp"
-// claim is accepted indefinitely by JWTAuth. RFC 8725 §4.4 states that tokens
-// without expiry SHOULD be rejected unless there is a compelling reason.
-// The finding: JWTOptions has no RequireExpiry bool to enforce this.
-func TestSec_JWT_NoExpClaim_AcceptedForever(t *testing.T) {
-	secret := []byte("s8-test-secret-key")
-	mw := middleware.JWTAuth(middleware.JWTOptions{
-		Secret:     secret,
-		Algorithms: []string{"HS256"},
-	})
-
-	// Build a token with no exp claim.
-	claims := map[string]any{
-		"sub": "eternal-user",
-		"iat": time.Now().Add(-24 * 365 * time.Hour).Unix(), // issued a year ago
-		// no "exp" field
-	}
-	token := makeJWT("HS256", nil, claims, hs256Sign(secret))
-
-	var reached bool
-	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reached = true
-		w.WriteHeader(http.StatusOK)
-	})
-
-	req := httptest.NewRequest("GET", "/", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
-	mw(inner).ServeHTTP(rec, req)
-
-	if rec.Code == http.StatusOK && reached {
-		t.Logf("MSR-2026-0066 CONFIRMED: JWT with no exp claim accepted (iat=1 year ago). " +
-			"RFC 8725 §4.4 recommends rejecting tokens without expiry. " +
-			"JWTOptions has no RequireExpiry field to enforce this. " +
-			"Severity: MEDIUM. Recommended fix: add RequireExpiry bool to JWTOptions; " +
-			"when true, reject tokens where raw.Exp == 0.")
-	} else {
-		t.Logf("JWT no-exp token rejected (code=%d) — behaviour changed from expected", rec.Code)
-	}
-}
+// TestSec_JWT_NoExpClaim_AcceptedForever (rmp #285: removed, stale/duplicate).
+// Its doc comment framed "JWTOptions has no RequireExpiry bool" as an open
+// finding (MSR-2026-0066); RequireExpiry has since been added, and neither
+// branch of the original body asserted anything (both were t.Logf), so it
+// never exercised the fix as a regression guard. The accepted-by-design
+// backward-compatibility behaviour it documented (RequireExpiry=false, the
+// default, still accepts a token with no "exp") is now properly asserted
+// (t.Errorf on regression) by
+// sprint_s9_test.go::TestSec_JWT_RequireExpiryFalse_NoExpAccepted; the
+// opt-in enforcement path is covered by
+// sprint_s9_test.go::TestSec_JWT_RequireExpiry_NoExpRejected.
 
 // TestSec_JWT_WithExpClaim_ExpiryEnforced verifies that a token WITH exp is
 // correctly rejected once it expires (regression guard for MSR-2026-0066 fix).
@@ -185,47 +134,18 @@ func TestSec_JWT_WithExpClaim_ExpiryEnforced(t *testing.T) {
 // MSR-2026-0067: OAuth2 endpoint URL HTTPS not enforced
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// TestSec_OAuth2_PlaintextHTTP_EndpointAccepted confirms that OAuth2Introspect
-// does NOT reject a plaintext HTTP introspection endpoint at construction time.
-// A plaintext endpoint sends bearer tokens over the wire in clear text,
-// exposing them to any network observer (MITM / passive eavesdrop).
-//
-// RFC 7662 §4 explicitly requires TLS for introspection endpoints.
-func TestSec_OAuth2_PlaintextHTTP_EndpointAccepted(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"active":true,"sub":"user1"}`)
-	}))
-	defer ts.Close()
-
-	if strings.HasPrefix(ts.URL, "https://") {
-		t.Skip("test server unexpectedly used TLS")
-	}
-
-	var constructionPanicked bool
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				constructionPanicked = true
-				t.Logf("OAuth2Introspect panicked on http:// endpoint (GOOD if fixing MSR-2026-0067): %v", r)
-			}
-		}()
-		_ = middleware.OAuth2Introspect(middleware.OAuth2Options{
-			Endpoint: ts.URL, // plaintext HTTP
-			CacheTTL: -1,
-		})
-	}()
-
-	if !constructionPanicked {
-		t.Logf("MSR-2026-0067 CONFIRMED: OAuth2Introspect accepts plaintext HTTP endpoint %q "+
-			"without warning or panic at construction time. "+
-			"Bearer tokens are sent in the clear to this endpoint on every cache miss. "+
-			"RFC 7662 §4 requires TLS for introspection endpoints. "+
-			"Severity: HIGH. Recommended fix: url.Parse(opts.Endpoint) at construction; "+
-			"panic/error if scheme != 'https' unless AllowInsecureEndpoint bool override is set.",
-			ts.URL)
-	}
-}
+// TestSec_OAuth2_PlaintextHTTP_EndpointAccepted (rmp #285: removed, stale).
+// Its doc comment and its `if !constructionPanicked` branch documented
+// OAuth2Introspect SILENTLY accepting a plaintext http:// endpoint
+// (MSR-2026-0067); oauth2.go now panics on a non-https Endpoint unless
+// AllowInsecureEndpoint is set, and this test never asserted the absence of
+// that panic (t.Skip on the impossible https-test-server case, t.Logf on
+// both outcomes of the real check), so it would keep "passing" whether or
+// not the fix regressed. Superseded by
+// sprint_s9_test.go::TestSec_OAuth2_HTTPSEnforcement_Regression (asserts
+// t.Errorf if construction does NOT panic on http://) and
+// sprint_s9_test.go::TestSec_OAuth2_AllowInsecureEndpoint_NopanicInTest
+// (asserts the opt-out override).
 
 // TestSec_OAuth2_HTTPS_Endpoint_NotRejected confirms that a TLS endpoint
 // (the correct/safe configuration) is accepted without panic (regression guard).
@@ -253,94 +173,32 @@ func TestSec_OAuth2_HTTPS_Endpoint_NotRejected(t *testing.T) {
 // MSR-2026-0068: ThrottlePerIP unbounded table under sustained IP churn
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn confirms that the internal
-// per-IP table in ThrottlePerIP has no hard cap, making it susceptible to
-// memory exhaustion under sustained IP-churn attacks.
+// TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn (rmp #285: removed,
+// stale). Its doc comment claimed "the internal per-IP table in
+// ThrottlePerIP has no hard cap" (MSR-2026-0068); ThrottlePerIP now wraps
+// ThrottlePerIPCapped with DefaultThrottlePerIPMaxTableSize, so that claim
+// is false at HEAD. The test's own body never asserted anything either way
+// (it only measured and logged peak concurrent in-flight requests at 500
+// unique IPs — well under the 100,000 default cap, so it never actually
+// probed the cap boundary). Cap enforcement is properly asserted by
+// sprint_s9_test.go::TestSec_ThrottlePerIPCapped_CapEnforced_Regression
+// (t.Errorf if new keys beyond the cap do NOT get 503) and
+// sprint_s9_test.go::TestSec_ThrottlePerIP_DefaultCap_Present (t.Errorf if
+// the default cap constant is not positive).
 //
-// This test uses a small scale (500 IPs) to document the behaviour.
-// At production scale (1M IPs), the O(N) map growth exhausts heap.
-func TestSec_ThrottlePerIP_UnboundedTable_UnderIPChurn(t *testing.T) {
-	const concurrentIPs = 500
-	const limit = 10
-
-	startBarrier := make(chan struct{})
-	var inFlight atomic.Int64
-	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		inFlight.Add(1)
-		<-startBarrier
-		inFlight.Add(-1)
-		w.WriteHeader(http.StatusOK)
-	})
-
-	mw := middleware.ThrottlePerIP(limit, 5*time.Second, func(r *http.Request) string {
-		return r.RemoteAddr
-	})
-	handler := mw(inner)
-
-	var wg sync.WaitGroup
-	for i := range concurrentIPs {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			req := httptest.NewRequest("GET", "/", nil)
-			req.RemoteAddr = fmt.Sprintf("10.%d.%d.%d:1234",
-				(i>>16)&0xff, (i>>8)&0xff, i&0xff)
-			rec := httptest.NewRecorder()
-			handler.ServeHTTP(rec, req)
-		}(i)
-	}
-
-	time.Sleep(50 * time.Millisecond)
-	peakInFlight := inFlight.Load()
-	close(startBarrier)
-	wg.Wait()
-
-	t.Logf("MSR-2026-0068: ThrottlePerIP concurrent IPs: %d, peak in-flight: %d. "+
-		"Table entries while all requests are in-flight = O(concurrent unique IPs). "+
-		"No max-entries cap exists — a sustained 1M-unique-IP attack would grow the table "+
-		"to 1M entries. Mitigation: add MaxTableSize int to ThrottlePerIP; "+
-		"document RealIP+known-client-range requirement for bounded key space.",
-		concurrentIPs, peakInFlight)
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // MSR-2026-0069: Logger logs r.Method without sanitisation
 // ═══════════════════════════════════════════════════════════════════════════════
-
-// TestSec_Logger_Method_NotSanitised confirms that Logger writes r.Method
-// directly into the log format string without sanitiseForLog. In Go's HTTP
-// server, Method is validated and cannot contain CRLF; but in test harnesses
-// or behind a misbehaving reverse proxy, a method with control characters
-// would produce a log injection line.
-func TestSec_Logger_Method_NotSanitised(t *testing.T) {
-	var logBuf bytes.Buffer
-	mw := middleware.Logger(&logBuf)
-
-	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	req := httptest.NewRequest("GET", "/safe-path", nil)
-	// Inject a CRLF into the Method field directly (bypasses Go HTTP parser).
-	req.Method = "GET\r\nINJECTED: fake-log-line"
-
-	mw(inner).ServeHTTP(httptest.NewRecorder(), req)
-
-	logOutput := logBuf.String()
-	if strings.Contains(logOutput, "INJECTED") && strings.Contains(logOutput, "fake-log-line") {
-		t.Logf("MSR-2026-0069 CONFIRMED: Logger emits unsanitised r.Method. "+
-			"CRLF in Method creates a fake log line. Log output: %q. "+
-			"Severity: LOW (Go net/http prevents this in production; "+
-			"exploitable via test harness or misbehaving reverse proxy). "+
-			"Fix: replace r.Method with sanitiseForLog(r.Method) in logger.go fmt.Fprintf call.",
-			logOutput)
-	} else if strings.Contains(logOutput, "\r") {
-		t.Logf("MSR-2026-0069: raw CR in Method log: %q", logOutput)
-	} else {
-		t.Logf("Logger method field in log: %q — no injection in this run "+
-			"(Go net/http may have validated the method before it reached here)", logOutput)
-	}
-}
+//
+// TestSec_Logger_Method_NotSanitised (rmp #285: removed, stale). Its doc
+// comment and its first `if` branch documented Logger emitting r.Method
+// UNSANITISED, letting a CRLF-injected Method forge a fake log line
+// (MSR-2026-0069); logger.go now sanitises the Method field before
+// formatting, and this test never asserted the absence of the injection —
+// all three branches were t.Logf, so it kept "passing" through the fix.
+// Superseded by
+// sprint_s9_test.go::TestSec_Logger_Method_Sanitised_Regression, which
+// asserts (t.Errorf) that no raw CR/LF byte reaches the log output.
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Composition H8-10: set_header + cors — SetHeader after CORS overwrites CORS headers
