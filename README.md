@@ -72,7 +72,7 @@ These changes shipped in v1.2.0 (2026-09-26); the full list, with rationale and 
 go get github.com/FlavioCFOliveira/MuxMaster
 ```
 
-**Requires Go 1.26 or later** (`go.mod` declares `go 1.26`).
+**Requires Go 1.27.1 or later** (`go.mod` declares `go 1.27.1`).
 
 ---
 

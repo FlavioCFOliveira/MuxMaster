@@ -3,6 +3,7 @@ package muxmaster_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -231,6 +232,12 @@ func FuzzTSRRedirectSafety(f *testing.F) {
 		"/items/abc%00", "/items/abc%00/", "/items/%01%02", // rmp #260: percent-decoded CTL bytes into a TSR target
 		"/a%2fb", "/..%2fadmin", "/admin/..",
 		"/ádmin/", // non-ASCII, not "admin"
+		// Inputs the target formerly discarded before dispatch (rmp #303):
+		"",                                          // empty path
+		strings.Repeat("/a", 1100) + "/",            // > 2048 bytes
+		"/admin\x00/", "/admin\r\n/", "/items/\x7f", // raw control bytes: net/url rejects, dispatch must not
+		"/%zz/", "/admin%/", // malformed escapes: literal '%' in a decoded path
+		"admin/", ":1/admin/", "@evil.com/", // no leading '/': bogus host/port/userinfo client-side
 	}
 	for _, s := range seeds {
 		f.Add(s, uint8(0))
@@ -241,22 +248,37 @@ func FuzzTSRRedirectSafety(f *testing.F) {
 	methods := []string{http.MethodGet, http.MethodConnect, http.MethodPost, http.MethodHead}
 
 	f.Fuzz(func(t *testing.T, path string, methodIdx uint8) {
-		if len(path) == 0 || len(path) > 2048 {
-			t.Skip()
-		}
 		method := methods[int(methodIdx)%len(methods)]
 
-		// http.NewRequest (which httptest.NewRequest wraps) rejects targets
-		// containing raw ASCII control characters at url.Parse time — the
-		// same class of input a real HTTP/1.1 server already refuses at the
-		// request-line parser, before r.URL.Path ever exists. Skip those:
-		// they cannot reach dispatch() through any real net/http listener
-		// either, so they are outside this fuzz target's threat model
-		// (control-byte smuggling into a decoded path is
-		// http-protocol-security-auditor's territory, not routing).
+		// Every input is dispatched; none is discarded. The redirect-safety
+		// invariants (no panic, no open redirect, no CR/LF or other control
+		// byte in Location, no loop, rules 54-55) are properties of
+		// dispatch over ANY decoded r.URL.Path value, so they must hold for
+		// the empty path, for arbitrarily long paths, and for paths
+		// net/url refuses to parse as a client-side request target.
+		//
+		// Such refused targets (raw ASCII control bytes, malformed "%"
+		// escapes, a non-"/" first byte that turns the path into a bogus
+		// host or port) never arrive as a raw request-target through a real
+		// listener, but the SAME decoded r.URL.Path values do: a real
+		// server percent-decodes "%00", "%25zz", "%0d%0a" into exactly
+		// these bytes, and middleware or http.StripPrefix can hand the mux
+		// a path with no leading "/". For those inputs the request is built
+		// directly with URL.Path set to the fuzzed bytes, which is the
+		// shape dispatch() actually consumes.
 		req, err := http.NewRequest(method, "http://example.com"+path, nil)
-		if err != nil {
-			t.Skip()
+		direct := err != nil
+		if direct {
+			req = &http.Request{
+				Method:     method,
+				URL:        &url.URL{Path: path},
+				Proto:      "HTTP/1.1",
+				ProtoMajor: 1,
+				ProtoMinor: 1,
+				Header:     make(http.Header),
+				Host:       "example.com",
+				RequestURI: path,
+			}
 		}
 
 		var rec *httptest.ResponseRecorder
@@ -272,7 +294,17 @@ func FuzzTSRRedirectSafety(f *testing.F) {
 
 		assertRedirectIsSafe(t, method, path, rec)
 		if rec.Code >= 300 && rec.Code < 400 {
-			followAndCheckLoop(t, mux, method, path, 3)
+			// followAndCheckLoop replays its start path through
+			// http.NewRequest, which cannot represent a directly built
+			// request. Start the chain from the first Location instead
+			// (already proven path-rooted and control-byte-free by
+			// assertRedirectIsSafe), so the loop check still runs for
+			// these inputs.
+			start := path
+			if direct {
+				start = rec.Header().Get("Location")
+			}
+			followAndCheckLoop(t, mux, method, start, 3)
 		}
 	})
 }

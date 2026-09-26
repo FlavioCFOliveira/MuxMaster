@@ -112,7 +112,7 @@ changes.
 `go.mod` declares the minimum supported Go version. Bumping it is a
 MINOR change, not a MAJOR one — consistent with the
 [Go core team's published guidance](https://go.dev/wiki/MinimumGoVersion).
-The CI matrix tests against the declared minimum (Go 1.26) and against
+The CI matrix tests against the declared minimum (Go 1.27.1) and against
 `stable` on Linux, macOS and Windows, plus Linux/arm64; a non-blocking
 canary job also builds and tests the root package with Go tip.
 

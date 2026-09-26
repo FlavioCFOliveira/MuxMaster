@@ -1,6 +1,6 @@
 module github.com/FlavioCFOliveira/MuxMaster/reports/fuzzing-and-property-engineer/harness
 
-go 1.26
+go 1.27.1
 
 require (
 	github.com/FlavioCFOliveira/MuxMaster v0.0.0

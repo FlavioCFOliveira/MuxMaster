@@ -36,9 +36,9 @@ Each check corresponds to a job in `.github/workflows/`:
 
 | Workflow file        | Job name                                          |
 |----------------------|---------------------------------------------------|
-| `ci.yml`             | `Test (Go 1.26 on ubuntu-latest)`                 |
-| `ci.yml`             | `Test (Go 1.26 on macos-latest)`                  |
-| `ci.yml`             | `Test (Go 1.26 on windows-latest)`                |
+| `ci.yml`             | `Test (Go 1.27.1 on ubuntu-latest)`                 |
+| `ci.yml`             | `Test (Go 1.27.1 on macos-latest)`                  |
+| `ci.yml`             | `Test (Go 1.27.1 on windows-latest)`                |
 | `ci.yml`             | `Test (Go stable on ubuntu-latest)`               |
 | `ci.yml`             | `Test (Go stable on macos-latest)`                |
 | `ci.yml`             | `Test (Go stable on windows-latest)`              |
@@ -92,9 +92,9 @@ gh api -X PUT "repos/$REPO/branches/$BRANCH/protection" --input - <<'JSON'
   "required_status_checks": {
     "strict": true,
     "contexts": [
-      "Test (Go 1.26 on ubuntu-latest)",
-      "Test (Go 1.26 on macos-latest)",
-      "Test (Go 1.26 on windows-latest)",
+      "Test (Go 1.27.1 on ubuntu-latest)",
+      "Test (Go 1.27.1 on macos-latest)",
+      "Test (Go 1.27.1 on windows-latest)",
       "Test (Go stable on ubuntu-latest)",
       "Test (Go stable on macos-latest)",
       "Test (Go stable on windows-latest)",

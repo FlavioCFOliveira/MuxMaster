@@ -119,7 +119,7 @@ The pool holds three tiers — `reqBundle1` (368 B, 384 B size class), `reqBundl
 
 **What happens if the unsafe shortcut is unavailable**
 
-Future Go versions may rename or remove the unexported `ctx` field of `http.Request`. MuxMaster detects this at init via reflection (`hasReqCtxField`) and falls back to the non-pooled `r.WithContext(...)` path automatically — `PoolRequestBundle = true` is silently ignored in that case, preserving correctness over speed. The field is present on Go 1.26 (the module minimum) and Go 1.27 (used for the 2026-09-26 measurements), where the pooled path measured zero allocations.
+Future Go versions may rename or remove the unexported `ctx` field of `http.Request`. MuxMaster detects this at init via reflection (`hasReqCtxField`) and falls back to the non-pooled `r.WithContext(...)` path automatically — `PoolRequestBundle = true` is silently ignored in that case, preserving correctness over speed. The field is present on Go 1.27.1 (the module minimum; asserted by `TestReqCtxFieldDetected`) and was present on Go 1.27.0 (used for the 2026-09-26 measurements), where the pooled path measured zero allocations.
 
 ---
 

@@ -13,7 +13,7 @@ import (
 // param-route request. If a change decreases a bundle into a smaller size
 // class, update the assertion and document the saving in CHANGELOG.
 //
-// Current size classes on amd64 (Go 1.26+, 8-byte pointer):
+// Current size classes on amd64 (Go 1.27.1+, 8-byte pointer; verified on go1.27.1):
 //
 //	reqBundle1  368 B → GC size class 384 B   (1-param routes — Opt O12)
 //	reqBundle2  400 B → GC size class 416 B   (2-param routes — Opt O12)

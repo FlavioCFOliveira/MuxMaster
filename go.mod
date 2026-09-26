@@ -1,3 +1,3 @@
 module github.com/FlavioCFOliveira/MuxMaster
 
-go 1.26
+go 1.27.1

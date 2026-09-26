@@ -6,8 +6,8 @@ Thank you for your interest in contributing. This guide covers everything you ne
 
 ### Prerequisites
 
-- Go 1.26 or later (the minimum declared in `go.mod`)
-- `golangci-lint` v2 — `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4` (the version CI uses)
+- Go 1.27.1 or later (the minimum declared in `go.mod`)
+- `golangci-lint` v2 — `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0` (the version CI uses)
 - `staticcheck` — `go install honnef.co/go/tools/cmd/staticcheck@latest`
 
 ### Clone and verify

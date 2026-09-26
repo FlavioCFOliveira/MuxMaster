@@ -38,8 +38,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	_ "net/http/pprof" // attached to mux below via Mount
 	"net/http/httptest"
+	_ "net/http/pprof" // attached to mux below via Mount
 	"os"
 	"os/signal"
 	"runtime"
@@ -111,8 +111,8 @@ func buildMux(log *slog.Logger) *mm.Mux {
 	// cross-cutting policies that must wrap every request: auth gates, ID
 	// generation, panic recovery, real-IP resolution.
 	mux.Pre(
-		mw.RequestID(),                  // X-Request-Id propagation
-		mw.RecovererWithLogger(log),     // recover from panics in handlers
+		mw.RequestID(),              // X-Request-Id propagation
+		mw.RecovererWithLogger(log), // recover from panics in handlers
 	)
 
 	// ── Group with stdlib middleware for the JSON API ─────────────────────────
@@ -125,16 +125,16 @@ func buildMux(log *slog.Logger) *mm.Mux {
 	v1.Use(mw.Logger(os.Stdout))
 
 	// JSON REST routes — use Handle (stdlib http.Handler signature).
-	v1.GET("/users/:id", getUser)                                  // 1 param, 0 alloc
-	v1.GET("/users/:id/orders/:orderID", getUserOrder)             // 2 params, 0 alloc
-	v1.GET("/orgs/:org/repos/:repo/issues/:num", getRepoIssue)     // 3 params, 0 alloc
-	v1.GET("/static/*filepath", listStaticFile)                    // catch-all, 0 alloc
+	v1.GET("/users/:id", getUser)                              // 1 param, 0 alloc
+	v1.GET("/users/:id/orders/:orderID", getUserOrder)         // 2 params, 0 alloc
+	v1.GET("/orgs/:org/repos/:repo/issues/:num", getRepoIssue) // 3 params, 0 alloc
+	v1.GET("/static/*filepath", listStaticFile)                // catch-all, 0 alloc
 	v1.POST("/users", createUser)
 
 	// Regex-constrained route on a different prefix so it does not collide
 	// with the ":id" wildcard above (a regex param and a `:name` param cannot
 	// share the same parent in the radix tree).
-	v1.GET("/profiles/{id:[0-9]+}", getUserProfile)                // regex-constrained
+	v1.GET("/profiles/{id:[0-9]+}", getUserProfile) // regex-constrained
 
 	// Background work pattern — copy primitives before spawning a goroutine.
 	v1.POST("/events", postEvent)
